@@ -1,0 +1,78 @@
+{
+  "auth": {
+    "register": {
+      "success": "Coaching centre registered successfully",
+      "emailExists": "Coaching centre with this email already exists"
+    },
+    "login": {
+      "success": "Login successful",
+      "invalidCredentials": "Invalid email or password",
+      "inactive": "Your account is inactive. Please contact support.",
+      "pendingApproval": "Your account is awaiting admin approval.",
+      "rejected": "Your account has been rejected by the admin."
+    },
+    "profile": {
+      "notFound": "Coaching centre not found",
+      "unauthorized": "Unauthorized"
+    },
+    "token": {
+      "noToken": "No token provided or invalid format",
+      "invalidToken": "Invalid or expired token"
+    },
+    "authorization": {
+      "unauthorized": "Unauthorized",
+      "forbidden": "Forbidden: Insufficient permissions"
+    }
+  },
+  "validation": {
+    "failed": "Validation failed",
+    "email": {
+      "required": "Email is required",
+      "invalid": "Please provide a valid email"
+    },
+    "password": {
+      "required": "Password is required",
+      "minLength": "Password must be at least 6 characters long"
+    },
+    "coachingName": {
+      "required": "Coaching name is required",
+      "mustBeString": "Coaching name must be a string"
+    },
+    "firstName": {
+      "mustBeString": "First name must be a string"
+    },
+    "lastName": {
+      "mustBeString": "Last name must be a string"
+    },
+    "mobileNumber": {
+      "mustBeString": "Mobile number must be a string"
+    },
+    "contactEmail": {
+      "invalid": "Contact email must be a valid email"
+    },
+    "contactNumber": {
+      "mustBeString": "Contact number must be a string"
+    },
+    "locale": {
+      "invalid": "Invalid locale. Supported locales: en, hi"
+    }
+  },
+  "errors": {
+    "internalServerError": "Internal Server Error",
+    "routeNotFound": "Route {route} not found"
+  },
+  "health": {
+    "serverRunning": "Server is running"
+  },
+  "common": {
+    "success": "Success",
+    "error": "Error",
+    "notFound": "Not found",
+    "badRequest": "Bad request"
+  },
+  "locale": {
+    "changed": "Language changed to {locale}",
+    "invalid": "Invalid locale. Supported locales: en, hi"
+  }
+}
+

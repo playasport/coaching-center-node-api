@@ -1,0 +1,33 @@
+{
+  "rules": [
+    {
+      "description": "All application code lives under the src directory and must use TypeScript (no JavaScript files)."
+    },
+    {
+      "description": "Use Prisma as the MySQL ORM. Changes to the data model go through prisma/schema.prisma and require running the appropriate prisma migrate/generate commands."
+    },
+    {
+      "description": "All API request validation must use Zod schemas placed in src/validations, wired through the validate middleware. express-validator is not permitted."
+    },
+    {
+      "description": "JWT authentication relies on helpers in src/utils (generateToken, verifyToken, hashPassword, comparePassword). Password hashes must be stored in the Laravel compatible $2y$ format."
+    },
+    {
+      "description": "Use the AdminApproveStatus enum (src/enums/adminApprove.enum.ts) to guard login access: centres must be active and admin approved before issuing JWTs."
+    },
+    {
+      "description": "All user-facing strings must come from the locale JSON files (src/locales). Support en and hi languages, default locale is controlled by DEFAULT_LOCALE and the locale middleware."
+    },
+    {
+      "description": "Swagger documentation lives in src/config/swagger.ts and every new route must include Swagger annotations."
+    },
+    {
+      "description": "Express routes are mounted under /api/v1 and follow the existing middleware pipeline (cors, body parsing, locale middleware, routes, error handlers)."
+    },
+    {
+        "description": "Create a Md file for each new feature and add the rules for that feature in that Md file. /docs folder."
+    }
+  ]
+}
+
+

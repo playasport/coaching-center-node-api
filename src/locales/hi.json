@@ -1,0 +1,78 @@
+{
+  "auth": {
+    "register": {
+      "success": "कोचिंग सेंटर सफलतापूर्वक पंजीकृत हो गया",
+      "emailExists": "इस ईमेल के साथ कोचिंग सेंटर पहले से मौजूद है"
+    },
+    "login": {
+      "success": "लॉगिन सफल",
+      "invalidCredentials": "अमान्य ईमेल या पासवर्ड",
+      "inactive": "आपका खाता निष्क्रिय है। कृपया सहायता से संपर्क करें।",
+      "pendingApproval": "आपका खाता व्यवस्थापक की मंजूरी की प्रतीक्षा में है।",
+      "rejected": "आपका खाता व्यवस्थापक द्वारा अस्वीकृत कर दिया गया है।"
+    },
+    "profile": {
+      "notFound": "कोचिंग सेंटर नहीं मिला",
+      "unauthorized": "अनधिकृत"
+    },
+    "token": {
+      "noToken": "कोई टोकन प्रदान नहीं किया गया या अमान्य प्रारूप",
+      "invalidToken": "अमान्य या समाप्त टोकन"
+    },
+    "authorization": {
+      "unauthorized": "अनधिकृत",
+      "forbidden": "निषिद्ध: अपर्याप्त अनुमतियां"
+    }
+  },
+  "validation": {
+    "failed": "सत्यापन विफल",
+    "email": {
+      "required": "ईमेल आवश्यक है",
+      "invalid": "कृपया एक वैध ईमेल प्रदान करें"
+    },
+    "password": {
+      "required": "पासवर्ड आवश्यक है",
+      "minLength": "पासवर्ड कम से कम 6 अक्षर लंबा होना चाहिए"
+    },
+    "coachingName": {
+      "required": "कोचिंग नाम आवश्यक है",
+      "mustBeString": "कोचिंग नाम एक स्ट्रिंग होना चाहिए"
+    },
+    "firstName": {
+      "mustBeString": "पहला नाम एक स्ट्रिंग होना चाहिए"
+    },
+    "lastName": {
+      "mustBeString": "अंतिम नाम एक स्ट्रिंग होना चाहिए"
+    },
+    "mobileNumber": {
+      "mustBeString": "मोबाइल नंबर एक स्ट्रिंग होना चाहिए"
+    },
+    "contactEmail": {
+      "invalid": "संपर्क ईमेल एक वैध ईमेल होना चाहिए"
+    },
+    "contactNumber": {
+      "mustBeString": "संपर्क नंबर एक स्ट्रिंग होना चाहिए"
+    },
+    "locale": {
+      "invalid": "अमान्य भाषा। समर्थित भाषाएं: en, hi"
+    }
+  },
+  "errors": {
+    "internalServerError": "आंतरिक सर्वर त्रुटि",
+    "routeNotFound": "रूट {route} नहीं मिला"
+  },
+  "health": {
+    "serverRunning": "सर्वर चल रहा है"
+  },
+  "common": {
+    "success": "सफलता",
+    "error": "त्रुटि",
+    "notFound": "नहीं मिला",
+    "badRequest": "खराब अनुरोध"
+  },
+  "locale": {
+    "changed": "भाषा {locale} में बदल गई",
+    "invalid": "अमान्य भाषा। समर्थित भाषाएं: en, hi"
+  }
+}
+
