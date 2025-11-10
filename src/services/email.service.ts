@@ -2,6 +2,7 @@ import nodemailer, { Transporter } from 'nodemailer';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { config } from '../config/env';
+import { logger } from '../utils/logger';
 
 let transporter: Transporter | null = null;
 const templateCache = new Map<string, string>();
@@ -100,14 +101,14 @@ export const sendTemplatedEmail = async ({
   }
 
   if (!config.email.enabled) {
-    console.info('[Email] Service disabled. Message skipped.', { to, subject });
+    logger.info('Email service disabled. Message skipped.', { to, subject });
     return 'Email delivery disabled';
   }
 
   const mailer = getTransporter();
 
   if (!mailer) {
-    console.info('[Email Mock]', { to, subject, html: finalHtml, text });
+    logger.info('Email mocked send', { to, subject, html: finalHtml, text });
     return 'Email mocked';
   }
 
@@ -118,6 +119,8 @@ export const sendTemplatedEmail = async ({
     html: finalHtml,
     text,
   });
+
+  logger.info('Email queued for delivery', { to, subject });
 
   return 'Email queued for delivery';
 };

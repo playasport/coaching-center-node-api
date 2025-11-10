@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { config } from './env';
+import { logger } from '../utils/logger';
 
 let isConnecting = false;
 
@@ -26,11 +27,11 @@ export const connectDatabase = async (): Promise<typeof mongoose> => {
   isConnecting = false;
 
   mongoose.connection.on('error', (err) => {
-    console.error('❌ MongoDB connection error:', err);
+    logger.error('MongoDB connection error', err);
   });
 
   mongoose.connection.on('disconnected', () => {
-    console.warn('⚠️ MongoDB disconnected');
+    logger.warn('MongoDB disconnected');
   });
 
   return mongoose;

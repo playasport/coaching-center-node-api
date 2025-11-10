@@ -1,5 +1,6 @@
 import { config } from '../config/env';
 import { getTwilioClient } from '../utils/twilio';
+import { logger } from '../utils/logger';
 
 export type SmsPriority = 'high' | 'medium' | 'low';
 
@@ -47,7 +48,7 @@ const processQueue = async () => {
   }
 
   if (!isSmsEnabled()) {
-    console.info('[SMS] Service disabled. Clearing queue.');
+    logger.info('SMS service disabled. Clearing queue.');
     while (!smsQueue.isEmpty()) {
       smsQueue.dequeue();
     }
@@ -64,7 +65,7 @@ const processQueue = async () => {
 
     const client = getTwilioClient();
     if (!client) {
-      console.info('[SMS Mock]', JSON.stringify(message));
+      logger.info('SMS mocked send', message);
       continue;
     }
 
@@ -74,9 +75,16 @@ const processQueue = async () => {
         from: config.twilio.fromPhone,
         to: message.to,
       });
-      console.info('[SMS] Sent', message.to, 'priority', message.priority);
+      logger.info('SMS sent successfully', {
+        to: message.to,
+        priority: message.priority,
+      });
     } catch (error) {
-      console.error('[SMS] Failed', message.to, error);
+      logger.error('SMS delivery failed', {
+        to: message.to,
+        priority: message.priority,
+        error,
+      });
       if (message.priority === 'high') {
         smsQueue.enqueue(message);
       }
@@ -93,7 +101,7 @@ export const queueSms = (
   metadata?: Record<string, unknown>
 ) => {
   smsQueue.enqueue({ to, body, priority, metadata });
-  processQueue().catch((error) => console.error('[SMS] Queue error', error));
+  processQueue().catch((error) => logger.error('SMS queue processing error', error));
 };
 
 export const sendSms = (
@@ -103,7 +111,7 @@ export const sendSms = (
   metadata?: Record<string, unknown>
 ) => {
   if (!isSmsEnabled()) {
-    console.info('[SMS] Service disabled. Message skipped.', { to, body });
+    logger.info('SMS service disabled. Message skipped.', { to, body, priority });
     return;
   }
   queueSms(to, body, priority, metadata);
@@ -111,7 +119,7 @@ export const sendSms = (
 
 export const sendOtpSms = async (mobile: string, otp: string): Promise<string> => {
   if (!isSmsEnabled()) {
-    console.info('[SMS] OTP not sent. Service disabled.', { mobile });
+    logger.info('SMS OTP not sent. Service disabled.', { mobile });
     return 'SMS delivery disabled. OTP not sent.';
   }
 
