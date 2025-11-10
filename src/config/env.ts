@@ -40,4 +40,13 @@ export const config = {
   sms: {
     enabled: parseBoolean(process.env.SMS_ENABLED, true),
   },
+  email: {
+    enabled: parseBoolean(process.env.EMAIL_ENABLED, true),
+    from: process.env.EMAIL_FROM || '',
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: Number(process.env.EMAIL_PORT) || 587,
+    username: process.env.EMAIL_USERNAME || '',
+    password: process.env.EMAIL_PASSWORD || '',
+    secure: parseBoolean(process.env.EMAIL_SECURE, false),
+  },
 };

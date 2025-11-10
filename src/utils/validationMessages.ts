@@ -19,6 +19,7 @@ export const validationMessages = {
     required: () => getValidationMessage('password.required'),
     minLength: () => getValidationMessage('password.minLength'),
     invalidPattern: () => getValidationMessage('password.invalidPattern'),
+    sameAsCurrent: () => getValidationMessage('password.sameAsCurrent'),
   },
   coachingName: {
     required: () => getValidationMessage('coachingName.required'),
@@ -48,6 +49,21 @@ export const validationMessages = {
   isVerified: {
     required: () => getValidationMessage('isVerified.required'),
     mustBeTrue: () => getValidationMessage('isVerified.mustBeTrue'),
+  },
+  otp: {
+    required: () => getValidationMessage('otp.required'),
+    length: () => getValidationMessage('otp.length'),
+  },
+  address: {
+    line1Required: () => getValidationMessage('address.line1Required'),
+    cityRequired: () => getValidationMessage('address.cityRequired'),
+    stateRequired: () => getValidationMessage('address.stateRequired'),
+    countryRequired: () => getValidationMessage('address.countryRequired'),
+    pincodeRequired: () => getValidationMessage('address.pincodeRequired'),
+    pincodeInvalid: () => getValidationMessage('address.pincodeInvalid'),
+  },
+  profile: {
+    noChanges: () => getValidationMessage('profile.noChanges'),
   },
 };
 

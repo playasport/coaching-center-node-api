@@ -23,7 +23,12 @@
     },
     "profile": {
       "notFound": "Coaching centre not found",
-      "unauthorized": "Unauthorized"
+      "unauthorized": "Unauthorized",
+      "updateSuccess": "Profile updated successfully",
+      "passwordChanged": "Password updated successfully",
+      "invalidCurrentPassword": "Current password is incorrect",
+      "mobileVerificationFailed": "Failed to verify the mobile number. Please try again.",
+      "meSuccess": "User details fetched successfully"
     },
     "token": {
       "noToken": "No token provided or invalid format",
@@ -32,6 +37,12 @@
     "authorization": {
       "unauthorized": "Unauthorized",
       "forbidden": "Forbidden: Insufficient permissions"
+    },
+    "password": {
+      "resetOtpSent": "Password reset OTP sent successfully",
+      "resetSuccess": "Password reset successfully",
+      "resetUserNotFound": "No account found for the provided details",
+      "resetOtpInvalid": "Password reset OTP is invalid or has expired"
     }
   },
   "validation": {
@@ -43,7 +54,8 @@
     "password": {
       "required": "Password is required",
       "minLength": "Password must be at least 6 characters long",
-      "invalidPattern": "Password must include at least one uppercase letter, one lowercase letter, one number, and one special character"
+      "invalidPattern": "Password must include at least one uppercase letter, one lowercase letter, one number, and one special character",
+      "sameAsCurrent": "New password must be different from the current password"
     },
     "coachingName": {
       "required": "Coaching name is required",
@@ -63,6 +75,21 @@
       "mustBeString": "Mobile number must be a string",
       "minLength": "Mobile number must be exactly 10 digits long",
       "invalidPattern": "Mobile number must start with 6, 7, 8, or 9 and contain only digits"
+    },
+    "otp": {
+      "required": "OTP is required",
+      "length": "OTP must be exactly 6 digits"
+    },
+    "address": {
+      "line1Required": "Address line 1 is required",
+      "cityRequired": "City is required",
+      "stateRequired": "State is required",
+      "countryRequired": "Country is required",
+      "pincodeRequired": "Pincode is required",
+      "pincodeInvalid": "Pincode must be a 6-digit number"
+    },
+    "profile": {
+      "noChanges": "Please provide at least one field to update"
     },
     "contactEmail": {
       "invalid": "Contact email must be a valid email"

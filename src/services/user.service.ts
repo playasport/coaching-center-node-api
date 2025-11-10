@@ -1,4 +1,5 @@
 import { UserModel, User, UserDocument } from '../models/user.model';
+import { Address } from '../models/address.model';
 import { hashPassword } from '../utils/password';
 
 export interface CreateUserData {
@@ -17,11 +18,13 @@ export interface UpdateUserData {
   firstName?: string;
   lastName?: string | null;
   mobile?: string | null;
+  email?: string;
   gender?: 'male' | 'female' | 'other';
   password?: string;
   role?: string;
   isActive?: boolean;
   isDeleted?: boolean;
+  address?: Partial<Address> | null;
 }
 
 const defaultProjection = {
@@ -81,6 +84,10 @@ export const userService = {
       update.password = await hashPassword(data.password);
     }
 
+    if (data.email) {
+      update.email = data.email.toLowerCase();
+    }
+
     const doc = await UserModel.findOneAndUpdate({ id }, update, {
       new: true,
       projection: defaultProjection,
@@ -116,6 +123,10 @@ export const userService = {
       .select(defaultProjection)
       .lean<User | null>();
     return this.sanitize(doc);
+  },
+
+  async findByIdWithPassword(id: string) {
+    return fetchRawByQuery({ id });
   },
 };
 
