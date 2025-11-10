@@ -19,7 +19,8 @@ export const validate = (schema: ZodSchema) => {
           message: issue.message,
         }));
 
-        next(new ApiError(400, t('validation.failed'), errors));
+        const message = errors[0]?.message ?? t('validation.failed');
+        next(new ApiError(400, message, errors));
         return;
       }
 

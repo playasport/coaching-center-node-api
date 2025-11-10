@@ -18,6 +18,7 @@ export const validationMessages = {
   password: {
     required: () => getValidationMessage('password.required'),
     minLength: () => getValidationMessage('password.minLength'),
+    invalidPattern: () => getValidationMessage('password.invalidPattern'),
   },
   coachingName: {
     required: () => getValidationMessage('coachingName.required'),
@@ -26,19 +27,27 @@ export const validationMessages = {
   firstName: {
     required: () => getValidationMessage('firstName.required'),
     mustBeString: () => getValidationMessage('firstName.mustBeString'),
+    invalidFormat: () => getValidationMessage('firstName.invalidFormat'),
   },
   lastName: {
     mustBeString: () => getValidationMessage('lastName.mustBeString'),
+    invalidFormat: () => getValidationMessage('lastName.invalidFormat'),
   },
   mobileNumber: {
     required: () => getValidationMessage('mobileNumber.required'),
     mustBeString: () => getValidationMessage('mobileNumber.mustBeString'),
+    minLength: () => getValidationMessage('mobileNumber.minLength'),
+    invalidPattern: () => getValidationMessage('mobileNumber.invalidPattern'),
   },
   contactEmail: {
     invalid: () => getValidationMessage('contactEmail.invalid'),
   },
   contactNumber: {
     mustBeString: () => getValidationMessage('contactNumber.mustBeString'),
+  },
+  isVerified: {
+    required: () => getValidationMessage('isVerified.required'),
+    mustBeTrue: () => getValidationMessage('isVerified.mustBeTrue'),
   },
 };
 

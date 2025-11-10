@@ -35,6 +35,22 @@ const options: swaggerJsdoc.Options = {
               type: 'boolean',
               example: false,
             },
+            errors: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  field: {
+                    type: 'string',
+                    example: 'body.email',
+                  },
+                  message: {
+                    type: 'string',
+                    example: 'Email is required',
+                  },
+                },
+              },
+            },
             message: {
               type: 'string',
               example: 'Error message',
@@ -184,7 +200,7 @@ const options: swaggerJsdoc.Options = {
         },
         AcademyRegisterRequest: {
           type: 'object',
-          required: ['firstName', 'email', 'password'],
+          required: ['firstName', 'email', 'password', 'isVerified'],
           properties: {
             firstName: {
               type: 'string',
@@ -207,11 +223,18 @@ const options: swaggerJsdoc.Options = {
             mobile: {
               type: 'string',
               example: '9876543210',
+              description: 'Academy administrator mobile number used for OTP verification',
             },
             gender: {
               type: 'string',
               enum: ['male', 'female', 'other'],
               example: 'female',
+            },
+            isVerified: {
+              type: 'boolean',
+              example: true,
+              description:
+                'Set to true after successfully verifying the mobile OTP via /academy/auth/verify-otp',
             },
           },
         },

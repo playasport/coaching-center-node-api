@@ -4,7 +4,8 @@
       "success": "Coaching centre registered successfully",
       "emailExists": "Coaching centre with this email already exists",
       "mobileExists": "A user with this mobile number already exists",
-      "otpResend": "OTP not valid. Please resend OTP."
+      "otpResend": "OTP not valid. Please resend OTP.",
+      "mobileNotVerified": "Mobile number not verified. Please verify mobile number."
     },
     "login": {
       "success": "Login successful",
@@ -41,7 +42,8 @@
     },
     "password": {
       "required": "Password is required",
-      "minLength": "Password must be at least 6 characters long"
+      "minLength": "Password must be at least 6 characters long",
+      "invalidPattern": "Password must include at least one uppercase letter, one lowercase letter, one number, and one special character"
     },
     "coachingName": {
       "required": "Coaching name is required",
@@ -49,20 +51,28 @@
     },
     "firstName": {
       "required": "First name is required",
-      "mustBeString": "First name must be a string"
+      "mustBeString": "First name must be a string",
+      "invalidFormat": "First name must start with a capital letter and contain only letters and spaces"
     },
     "lastName": {
-      "mustBeString": "Last name must be a string"
+      "mustBeString": "Last name must be a string",
+      "invalidFormat": "Last name must start with a capital letter and contain only letters and spaces"
     },
     "mobileNumber": {
       "required": "Mobile number is required",
-      "mustBeString": "Mobile number must be a string"
+      "mustBeString": "Mobile number must be a string",
+      "minLength": "Mobile number must be exactly 10 digits long",
+      "invalidPattern": "Mobile number must start with 6, 7, 8, or 9 and contain only digits"
     },
     "contactEmail": {
       "invalid": "Contact email must be a valid email"
     },
     "contactNumber": {
       "mustBeString": "Contact number must be a string"
+    },
+    "isVerified": {
+      "required": "OTP verification status is required",
+      "mustBeTrue": "Please verify your mobile OTP before registering"
     },
     "locale": {
       "invalid": "Invalid locale. Supported locales: en, hi"

@@ -9,6 +9,7 @@ import { sendOtpSms } from '../services/sms.service';
 import { otpService } from '../services/otp.service';
 import { ApiError } from '../utils/ApiError';
 import { ApiResponse } from '../utils/ApiResponse';
+import type { AcademyRegisterInput, AcademyLoginInput } from '../validations/auth.validation';
 
 export const registerAcademyUser = async (
   req: Request,
@@ -16,7 +17,12 @@ export const registerAcademyUser = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { firstName, lastName, email, password, mobile } = req.body;
+    const { firstName, lastName, email, password, mobile, isVerified } =
+      req.body as AcademyRegisterInput;
+
+    if (!isVerified) {
+      throw new ApiError(400, t('auth.register.mobileNotVerified'));
+    }
 
     const existingUser = await userService.findByEmail(email);
     if (existingUser) {
@@ -47,7 +53,7 @@ export const loginAcademyUser = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body as AcademyLoginInput;
 
     const user = await userService.findByEmailWithPassword(email);
 
