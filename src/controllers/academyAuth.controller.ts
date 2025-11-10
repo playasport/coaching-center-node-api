@@ -14,6 +14,7 @@ import type {
   AcademyRegisterInput,
   AcademyLoginInput,
   AcademyProfileUpdateInput,
+  AcademyAddressUpdateInput,
   AcademyPasswordChangeInput,
   AcademyForgotPasswordRequestInput,
   AcademyForgotPasswordVerifyInput,
@@ -143,63 +144,46 @@ export const updateAcademyProfile = async (
       updates.gender = payload.gender;
     }
 
-    if (payload.address) {
-      updates.address = {
-        ...payload.address,
-        isDeleted: false,
-      };
-    }
-
-    if (payload.email) {
-      const emailLower = payload.email.toLowerCase();
-      if (!existingUser.email || emailLower !== existingUser.email.toLowerCase()) {
-        const emailOwner = await userService.findByEmail(emailLower);
-        if (emailOwner && emailOwner.id !== existingUser.id) {
-          throw new ApiError(400, t('auth.register.emailExists'));
-        }
-        updates.email = emailLower;
-      }
-    }
-
-    if (payload.mobile) {
-      const isSameMobile = existingUser.mobile === payload.mobile;
-
-      if (!isSameMobile) {
-        if (!payload.mobileOtp) {
-          throw new ApiError(400, t('validation.otp.required'));
-        }
-
-        const otpStatus = await otpService.verifyOtp(
-          { channel: 'mobile', identifier: payload.mobile },
-          payload.mobileOtp,
-          'profile_update'
-        );
-
-        if (otpStatus !== 'valid') {
-          const messageMap: Record<string, string> = {
-            not_found: t('auth.profile.mobileVerificationFailed'),
-            consumed: t('auth.login.otpUsed'),
-            expired: t('auth.login.otpExpired'),
-            invalid: t('auth.login.invalidOtp'),
-          };
-
-          throw new ApiError(400, messageMap[otpStatus] ?? t('auth.login.invalidOtp'));
-        }
-
-        const mobileOwner = await userService.findByMobile(payload.mobile);
-        if (mobileOwner && mobileOwner.id !== existingUser.id) {
-          throw new ApiError(400, t('auth.register.mobileExists'));
-        }
-
-        updates.mobile = payload.mobile;
-      }
-    }
-
     if (!Object.keys(updates).length) {
       throw new ApiError(400, t('validation.profile.noChanges'));
     }
 
     const updatedUser = await userService.update(existingUser.id, updates);
+    if (!updatedUser) {
+      throw new ApiError(500, t('errors.internalServerError'));
+    }
+
+    const response = new ApiResponse(200, { user: updatedUser }, t('auth.profile.updateSuccess'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateAcademyAddress = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.profile.unauthorized'));
+    }
+
+    const payload = req.body as AcademyAddressUpdateInput;
+
+    const existingUser = await userService.findById(req.user.id);
+    if (!existingUser) {
+      throw new ApiError(404, t('auth.profile.notFound'));
+    }
+
+    const updatedUser = await userService.update(existingUser.id, {
+      address: {
+        ...payload.address,
+        isDeleted: false,
+      },
+    });
+
     if (!updatedUser) {
       throw new ApiError(500, t('errors.internalServerError'));
     }

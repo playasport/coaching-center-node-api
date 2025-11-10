@@ -18,6 +18,10 @@ const options: swaggerJsdoc.Options = {
         url: `http://localhost:${config.port}/api/v1`,
         description: 'Development server',
       },
+      {
+        url: '/api/v1',
+        description: 'Current server (auto-detected host)',
+      },
     ],
     components: {
       securitySchemes: {
@@ -377,25 +381,17 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: 'Doe',
             },
-            email: {
-              type: 'string',
-              format: 'email',
-              example: 'academy.updated@example.com',
-            },
-            mobile: {
-              type: 'string',
-              example: '9876501234',
-            },
-            mobileOtp: {
-              type: 'string',
-              example: '123456',
-              description: 'Required when updating the mobile number.',
-            },
             gender: {
               type: 'string',
               enum: ['male', 'female', 'other'],
               example: 'male',
             },
+          },
+        },
+        AcademyAddressUpdateRequest: {
+          type: 'object',
+          required: ['address'],
+          properties: {
             address: {
               type: 'object',
               properties: {

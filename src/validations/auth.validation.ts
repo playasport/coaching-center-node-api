@@ -198,34 +198,26 @@ export const academyProfileUpdateSchema = z.object({
         ])
         .optional()
         .transform((val) => (val ? val : undefined)),
-      email: z
-        .string({ message: validationMessages.email.required() })
-        .email(validationMessages.email.invalid())
-        .optional(),
-      mobile: mobileNumberSchema.optional(),
-      mobileOtp: otpCodeSchema.optional(),
       gender: z.enum(['male', 'female', 'other']).optional(),
-      address: addressInputSchema.optional(),
     })
     .refine(
       (data) =>
         Boolean(
           data.firstName ??
             data.lastName ??
-            data.email ??
-            data.mobile ??
-            data.gender ??
-            data.address
+            data.gender
         ),
       {
         message: validationMessages.profile.noChanges(),
         path: ['body'],
       }
-    )
-    .refine((data) => (data.mobile ? Boolean(data.mobileOtp) : true), {
-      message: validationMessages.otp.required(),
-      path: ['mobileOtp'],
-    }),
+    ),
+});
+
+export const academyAddressUpdateSchema = z.object({
+  body: z.object({
+    address: addressInputSchema,
+  }),
 });
 
 export const academyPasswordChangeSchema = z.object({
@@ -247,6 +239,7 @@ export type LoginInput = z.infer<typeof loginSchema>['body'];
 export type AcademyRegisterInput = z.infer<typeof academyRegisterSchema>['body'];
 export type AcademyLoginInput = z.infer<typeof academyLoginSchema>['body'];
 export type AcademyProfileUpdateInput = z.infer<typeof academyProfileUpdateSchema>['body'];
+export type AcademyAddressUpdateInput = z.infer<typeof academyAddressUpdateSchema>['body'];
 export type AcademyPasswordChangeInput = z.infer<
   typeof academyPasswordChangeSchema
 >['body'];

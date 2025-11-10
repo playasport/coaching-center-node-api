@@ -5,6 +5,7 @@ import {
   sendAcademyOtp,
   verifyAcademyOtp,
   updateAcademyProfile,
+  updateAcademyAddress,
   changeAcademyPassword,
   getCurrentAcademyUser,
   requestAcademyPasswordReset,
@@ -17,6 +18,7 @@ import {
   academyOtpSchema,
   academyVerifyOtpSchema,
   academyProfileUpdateSchema,
+  academyAddressUpdateSchema,
   academyPasswordChangeSchema,
   academyForgotPasswordRequestSchema,
   academyForgotPasswordVerifySchema,
@@ -177,6 +179,42 @@ router.patch(
   authorize(DefaultRoles.ACADEMY),
   validate(academyProfileUpdateSchema),
   updateAcademyProfile
+);
+
+/**
+ * @swagger
+ * /academy/auth/address:
+ *   patch:
+ *     summary: Update academy address
+ *     tags: [Academy Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AcademyAddressUpdateRequest'
+ *     responses:
+ *       200:
+ *         description: Address updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserResponse'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.patch(
+  '/address',
+  authenticate,
+  authorize(DefaultRoles.ACADEMY),
+  validate(academyAddressUpdateSchema),
+  updateAcademyAddress
 );
 
 /**
