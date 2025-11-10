@@ -1,0 +1,352 @@
+{
+  "info": {
+    "name": "PlayAsport Academy API",
+    "_postman_id": "f6fa5a6e-6b7f-4d37-9fb5-3fd2aa97aabb",
+    "description": "Postman collection for the PlayAsport Academy backend. Update the `base_url` variable to match your environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register (Academy)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"academy@example.com\",\n  \"password\": \"StrongPass@123\",\n  \"mobile\": \"9876543210\",\n  \"gender\": \"male\",\n  \"isVerified\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/academy/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academy",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"academy@example.com\",\n  \"password\": \"StrongPass@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/academy/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academy",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"mode\": \"profile_update\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/academy/auth/send-otp",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academy",
+                "auth",
+                "send-otp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"mode\": \"profile_update\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/academy/auth/verify-otp",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academy",
+                "auth",
+                "verify-otp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Johnny\",\n  \"lastName\": \"Academy\",\n  \"gender\": \"other\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/academy/auth/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academy",
+                "auth",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Address",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": {\n    \"line1\": \"123 Main Street\",\n    \"line2\": \"Suite 4B\",\n    \"area\": \"Downtown\",\n    \"city\": \"New Delhi\",\n    \"state\": \"Delhi\",\n    \"country\": \"India\",\n    \"pincode\": \"110001\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/academy/auth/address",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academy",
+                "auth",
+                "address"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"StrongPass@123\",\n  \"newPassword\": \"StrongerPass@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/academy/auth/password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academy",
+                "auth",
+                "password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Me (Current User)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/academy/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academy",
+                "auth",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password - Request OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"mobile\",\n  \"mobile\": \"9876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/academy/auth/forgot-password/request",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academy",
+                "auth",
+                "forgot-password",
+                "request"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password - Verify & Reset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"mobile\",\n  \"mobile\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"StrongerPass@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/academy/auth/forgot-password/verify",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academy",
+                "auth",
+                "forgot-password",
+                "verify"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Locale",
+      "item": [
+        {
+          "name": "Change Locale",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locale\": \"hi\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/locale",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "locale"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Locale",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/locale",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "locale"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api/v1"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ]
+}
+

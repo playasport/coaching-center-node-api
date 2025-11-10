@@ -23,18 +23,31 @@ export const connectDatabase = async (): Promise<typeof mongoose> => {
   isConnecting = true;
   mongoose.set('strictQuery', true);
 
-  await mongoose.connect(config.database.mongoUri);
-  isConnecting = false;
+  try {
+    await mongoose.connect(config.database.mongoUri);
 
-  mongoose.connection.on('error', (err) => {
-    logger.error('MongoDB connection error', err);
-  });
+    const currentState = mongoose.connection.readyState as mongoose.ConnectionStates;
+    if (currentState !== mongoose.ConnectionStates.connected) {
+      throw new Error('MongoDB connection not established.');
+    }
 
-  mongoose.connection.on('disconnected', () => {
-    logger.warn('MongoDB disconnected');
-  });
+    logger.info('MongoDB connection established');
 
-  return mongoose;
+    mongoose.connection.on('error', (err) => {
+      logger.error('MongoDB connection error', err);
+    });
+
+    mongoose.connection.on('disconnected', () => {
+      logger.warn('MongoDB disconnected');
+    });
+
+    return mongoose;
+  } catch (error) {
+    logger.error('Failed to connect to MongoDB', error);
+    throw error;
+  } finally {
+    isConnecting = false;
+  }
 };
 
 export const disconnectDatabase = async (): Promise<void> => {
