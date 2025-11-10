@@ -1,6 +1,6 @@
 import app from './app';
 import { config } from './config/env';
-import prisma from './config/database';
+import { connectDatabase, disconnectDatabase } from './config/database';
 import { setLocale } from './utils/i18n';
 
 const startServer = async (): Promise<void> => {
@@ -10,8 +10,8 @@ const startServer = async (): Promise<void> => {
     console.log(`🌐 Default locale set to: ${config.defaultLocale}`);
 
     // Test database connection
-    await prisma.$connect();
-    console.log('✅ Database connected successfully');
+    await connectDatabase();
+    console.log('✅ MongoDB connected successfully');
 
     // Start server
     app.listen(config.port, () => {
@@ -28,13 +28,13 @@ const startServer = async (): Promise<void> => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM signal received: closing HTTP server');
-  await prisma.$disconnect();
+  await disconnectDatabase();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('SIGINT signal received: closing HTTP server');
-  await prisma.$disconnect();
+  await disconnectDatabase();
   process.exit(0);
 });
 

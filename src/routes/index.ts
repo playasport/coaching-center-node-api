@@ -1,43 +1,16 @@
 import { Router } from 'express';
-import authRoutes from './auth.routes';
 import localeRoutes from './locale.routes';
+import academyAuthRoutes from './academyAuth.routes';
 import { t } from '../utils/i18n';
+import { ApiResponse } from '../utils/ApiResponse';
 
 const router = Router();
 
-router.use('/auth', authRoutes);
 router.use('/locale', localeRoutes);
-
-/**
- * @swagger
- * /health:
- *   get:
- *     summary: Health check endpoint
- *     tags: [Health]
- *     responses:
- *       200:
- *         description: Server is running
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Server is running
- *                 timestamp:
- *                   type: string
- *                   format: date-time
- */
+router.use('/academy/auth', academyAuthRoutes);
 router.get('/health', (_req, res) => {
-  res.json({
-    success: true,
-    message: t('health.serverRunning'),
-    timestamp: new Date().toISOString(),
-  });
+  const response = new ApiResponse(200, { timestamp: new Date().toISOString() }, t('health.serverRunning'));
+  res.json(response);
 });
 
 export default router;

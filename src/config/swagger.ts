@@ -5,9 +5,10 @@ const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Coaching Center Panel API',
+      title: 'PlayAsport Academy API',
       version: '1.0.0',
-      description: 'API documentation for Coaching Center Panel Node.js APIs with TypeScript, Express, Prisma, and MySQL',
+      description:
+        'API documentation for PlayAsport Academy backend built with Node.js, TypeScript, Express, and MongoDB.',
       contact: {
         name: 'API Support',
       },
@@ -40,20 +41,12 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
-        CoachingCentre: {
+        User: {
           type: 'object',
           properties: {
             id: {
               type: 'string',
-              example: '9b530377-2249-4828-af88-243244573689',
-            },
-            email: {
-              type: 'string',
-              example: 'coaching@example.com',
-            },
-            coachingName: {
-              type: 'string',
-              example: 'Star Warriors Coaching',
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
             },
             firstName: {
               type: 'string',
@@ -63,13 +56,30 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: 'Doe',
             },
-            mobileNumber: {
+            email: {
               type: 'string',
-              example: '1234567890',
+              example: 'academy@example.com',
             },
-            isAdminApprove: {
+            mobile: {
               type: 'string',
-              example: 'approved',
+              example: '9876543210',
+            },
+            gender: {
+              type: 'string',
+              example: 'male',
+            },
+            role: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  example: 'academy',
+                },
+                name: {
+                  type: 'string',
+                  example: 'academy',
+                },
+              },
             },
             isActive: {
               type: 'boolean',
@@ -81,63 +91,28 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
-        RegisterRequest: {
+        UserResponse: {
           type: 'object',
-          required: ['email', 'password', 'coachingName'],
           properties: {
-            email: {
-              type: 'string',
-              format: 'email',
-              example: 'coaching@example.com',
+            success: {
+              type: 'boolean',
+              example: true,
             },
-            password: {
+            message: {
               type: 'string',
-              minLength: 6,
-              example: 'password123',
+              example: 'User registered successfully',
             },
-            coachingName: {
-              type: 'string',
-              example: 'Star Warriors Coaching',
-            },
-            firstName: {
-              type: 'string',
-              example: 'John',
-            },
-            lastName: {
-              type: 'string',
-              example: 'Doe',
-            },
-            mobileNumber: {
-              type: 'string',
-              example: '1234567890',
-            },
-            contactEmail: {
-              type: 'string',
-              format: 'email',
-              example: 'contact@example.com',
-            },
-            contactNumber: {
-              type: 'string',
-              example: '1234567890',
+            data: {
+              type: 'object',
+              properties: {
+                user: {
+                  $ref: '#/components/schemas/User',
+                },
+              },
             },
           },
         },
-        LoginRequest: {
-          type: 'object',
-          required: ['email', 'password'],
-          properties: {
-            email: {
-              type: 'string',
-              format: 'email',
-              example: 'coaching@example.com',
-            },
-            password: {
-              type: 'string',
-              example: 'password123',
-            },
-          },
-        },
-        AuthResponse: {
+        UserTokenResponse: {
           type: 'object',
           properties: {
             success: {
@@ -151,14 +126,142 @@ const options: swaggerJsdoc.Options = {
             data: {
               type: 'object',
               properties: {
-                coachingCentre: {
-                  $ref: '#/components/schemas/CoachingCentre',
+                user: {
+                  $ref: '#/components/schemas/User',
                 },
                 token: {
                   type: 'string',
-                  example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                  example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
                 },
               },
+            },
+          },
+        },
+        OtpSendResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'One-time password has been sent.',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                otp: {
+                  type: 'string',
+                  example: '123456',
+                },
+                mode: {
+                  type: 'string',
+                  enum: ['login', 'register'],
+                  example: 'register',
+                },
+                expiresAt: {
+                  type: 'string',
+                  format: 'date-time',
+                  example: '2025-01-01T12:00:00.000Z',
+                },
+              },
+            },
+          },
+        },
+        OtpVerificationResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'OTP verified successfully',
+            },
+          },
+        },
+        AcademyRegisterRequest: {
+          type: 'object',
+          required: ['firstName', 'email', 'password'],
+          properties: {
+            firstName: {
+              type: 'string',
+              example: 'John',
+            },
+            lastName: {
+              type: 'string',
+              example: 'Doe',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'academy@example.com',
+            },
+            password: {
+              type: 'string',
+              minLength: 6,
+              example: 'strongPassword123',
+            },
+            mobile: {
+              type: 'string',
+              example: '9876543210',
+            },
+            gender: {
+              type: 'string',
+              enum: ['male', 'female', 'other'],
+              example: 'female',
+            },
+          },
+        },
+        AcademyLoginRequest: {
+          type: 'object',
+          required: ['email', 'password'],
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'academy@example.com',
+            },
+            password: {
+              type: 'string',
+              example: 'strongPassword123',
+            },
+          },
+        },
+        AcademyOtpRequest: {
+          type: 'object',
+          required: ['mobile'],
+          properties: {
+            mobile: {
+              type: 'string',
+              example: '9876543210',
+            },
+            mode: {
+              type: 'string',
+              enum: ['login', 'register'],
+              example: 'register',
+              description: 'Purpose of OTP. Defaults to login when omitted.',
+            },
+          },
+        },
+        AcademyVerifyOtpRequest: {
+          type: 'object',
+          required: ['mobile', 'otp'],
+          properties: {
+            mobile: {
+              type: 'string',
+              example: '9876543210',
+            },
+            otp: {
+              type: 'string',
+              example: '123456',
+            },
+            mode: {
+              type: 'string',
+              enum: ['login', 'register'],
+              example: 'login',
             },
           },
         },
@@ -166,17 +269,22 @@ const options: swaggerJsdoc.Options = {
     },
     tags: [
       {
-        name: 'Auth',
-        description: 'Authentication endpoints',
+        name: 'Academy Auth',
+        description: 'Academy user authentication endpoints',
       },
       {
         name: 'Health',
         description: 'Health check endpoints',
       },
+      {
+        name: 'Locale',
+        description: 'Locale management endpoints',
+      },
     ],
   },
-  apis: ['./src/routes/*.ts', './src/controllers/*.ts'],
+  apis: ['./src/routes/**/*.ts', './src/controllers/**/*.ts'],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
+
 

@@ -8,14 +8,14 @@ export interface TokenPayload {
 }
 
 export const generateToken = (payload: TokenPayload): string => {
-  return jwt.sign(payload, config.jwt.secret, {
-    expiresIn: config.jwt.expiresIn,
+  return jwt.sign(payload, config.jwt.secret as jwt.Secret, {
+    expiresIn: config.jwt.expiresIn as jwt.SignOptions['expiresIn'],
   });
 };
 
 export const verifyToken = (token: string): TokenPayload => {
   try {
-    return jwt.verify(token, config.jwt.secret) as TokenPayload;
+    return jwt.verify(token, config.jwt.secret as jwt.Secret) as TokenPayload;
   } catch (error) {
     throw new Error('Invalid or expired token');
   }

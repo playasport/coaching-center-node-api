@@ -2,14 +2,23 @@
   "auth": {
     "register": {
       "success": "Coaching centre registered successfully",
-      "emailExists": "Coaching centre with this email already exists"
+      "emailExists": "Coaching centre with this email already exists",
+      "mobileExists": "A user with this mobile number already exists",
+      "otpResend": "OTP not valid. Please resend OTP."
     },
     "login": {
       "success": "Login successful",
       "invalidCredentials": "Invalid email or password",
       "inactive": "Your account is inactive. Please contact support.",
       "pendingApproval": "Your account is awaiting admin approval.",
-      "rejected": "Your account has been rejected by the admin."
+      "rejected": "Your account has been rejected by the admin.",
+      "invalidRole": "You do not have access to this resource.",
+      "mobileNotFound": "No user found with the provided mobile number.",
+      "otpSent": "One-time password has been generated and sent.",
+      "otpUsed": "The OTP has already been used.",
+      "otpExpired": "The OTP has expired. Please request a new one.",
+      "invalidOtp": "The OTP you entered is invalid.",
+      "otpVerified": "OTP verified successfully."
     },
     "profile": {
       "notFound": "Coaching centre not found",
@@ -39,12 +48,14 @@
       "mustBeString": "Coaching name must be a string"
     },
     "firstName": {
+      "required": "First name is required",
       "mustBeString": "First name must be a string"
     },
     "lastName": {
       "mustBeString": "Last name must be a string"
     },
     "mobileNumber": {
+      "required": "Mobile number is required",
       "mustBeString": "Mobile number must be a string"
     },
     "contactEmail": {

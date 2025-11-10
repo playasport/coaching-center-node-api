@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { setLocale, getLocale } from '../utils/i18n';
 import { t } from '../utils/i18n';
+import { ApiResponse } from '../utils/ApiResponse';
+import { ApiError } from '../utils/ApiError';
 
 type SupportedLocale = 'en' | 'hi';
 
@@ -8,18 +10,16 @@ type SupportedLocale = 'en' | 'hi';
  * Get current locale
  */
 export const getCurrentLocale = async (
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    res.json({
-      success: true,
-      data: {
-        locale: getLocale(),
-        supportedLocales: ['en', 'hi'],
-      },
+    const response = new ApiResponse(200, {
+      locale: getLocale(),
+      supportedLocales: ['en', 'hi'],
     });
+    res.json(response);
   } catch (error) {
     next(error);
   }
@@ -37,23 +37,13 @@ export const setCurrentLocale = async (
     const { locale } = req.body;
 
     if (!locale || !['en', 'hi'].includes(locale)) {
-      res.status(400).json({
-        success: false,
-        message: t('validation.locale.invalid'),
-        supportedLocales: ['en', 'hi'],
-      });
-      return;
+      throw new ApiError(400, t('validation.locale.invalid'));
     }
 
     setLocale(locale as SupportedLocale);
 
-    res.json({
-      success: true,
-      message: t('locale.changed', { locale }),
-      data: {
-        locale: getLocale(),
-      },
-    });
+    const response = new ApiResponse(200, { locale: getLocale() }, t('locale.changed', { locale }));
+    res.json(response);
   } catch (error) {
     next(error);
   }

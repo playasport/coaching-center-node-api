@@ -24,12 +24,14 @@ export const validationMessages = {
     mustBeString: () => getValidationMessage('coachingName.mustBeString'),
   },
   firstName: {
+    required: () => getValidationMessage('firstName.required'),
     mustBeString: () => getValidationMessage('firstName.mustBeString'),
   },
   lastName: {
     mustBeString: () => getValidationMessage('lastName.mustBeString'),
   },
   mobileNumber: {
+    required: () => getValidationMessage('mobileNumber.required'),
     mustBeString: () => getValidationMessage('mobileNumber.mustBeString'),
   },
   contactEmail: {
