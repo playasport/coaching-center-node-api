@@ -7,6 +7,11 @@
       "otpResend": "OTP not valid. Please resend OTP.",
       "mobileNotVerified": "Mobile number not verified. Please verify mobile number."
     },
+    "social": {
+      "loginSuccess": "Social login successful",
+      "missingEmail": "Unable to retrieve an email address from the social account. Please ensure the provider supplies a verified email.",
+      "providerNotSupported": "The selected social provider is not supported."
+    },
     "login": {
       "success": "Login successful",
       "invalidCredentials": "Invalid email or password",

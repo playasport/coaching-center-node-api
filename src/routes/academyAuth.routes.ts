@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   registerAcademyUser,
   loginAcademyUser,
+  socialLoginAcademyUser,
   sendAcademyOtp,
   verifyAcademyOtp,
   updateAcademyProfile,
@@ -15,6 +16,7 @@ import { validate } from '../middleware/validation.middleware';
 import {
   academyRegisterSchema,
   academyLoginSchema,
+  academySocialLoginSchema,
   academyOtpSchema,
   academyVerifyOtpSchema,
   academyProfileUpdateSchema,
@@ -83,6 +85,39 @@ router.post('/register', validate(academyRegisterSchema), registerAcademyUser);
  *               $ref: '#/components/schemas/Error'
  */
 router.post('/login', validate(academyLoginSchema), loginAcademyUser);
+
+/**
+ * @swagger
+ * /academy/auth/social-login:
+ *   post:
+ *     summary: Login or register an academy user via social providers (Firebase)
+ *     tags: [Academy Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AcademySocialLoginRequest'
+ *           example:
+ *             provider: google
+ *             idToken: eyJhbGciOiJSUzI1NiIsImtpZCI6IjUxOG...
+ *             firstName: John
+ *             lastName: Doe
+ *     responses:
+ *       200:
+ *         description: Social login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserTokenResponse'
+ *       400:
+ *         description: Invalid token or missing user information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/social-login', validate(academySocialLoginSchema), socialLoginAcademyUser);
 
 /**
  * @swagger

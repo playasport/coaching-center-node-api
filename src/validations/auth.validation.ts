@@ -129,6 +129,22 @@ export const academyLoginSchema = z.object({
   }),
 });
 
+export const academySocialLoginSchema = z.object({
+  body: z.object({
+    provider: z.enum(['google', 'facebook', 'instagram', 'apple']).optional(),
+    idToken: z
+      .string({ message: 'ID token is required' })
+      .min(1, 'ID token is required'),
+    firstName: z
+      .string()
+      .min(1, validationMessages.firstName.required())
+      .optional(),
+    lastName: z
+      .string()
+      .optional(),
+  }),
+});
+
 export const academyOtpSchema = z.object({
   body: z.object({
     mobile: mobileNumberSchema,
@@ -238,6 +254,7 @@ export type RegisterInput = z.infer<typeof registerSchema>['body'];
 export type LoginInput = z.infer<typeof loginSchema>['body'];
 export type AcademyRegisterInput = z.infer<typeof academyRegisterSchema>['body'];
 export type AcademyLoginInput = z.infer<typeof academyLoginSchema>['body'];
+export type AcademySocialLoginInput = z.infer<typeof academySocialLoginSchema>['body'];
 export type AcademyProfileUpdateInput = z.infer<typeof academyProfileUpdateSchema>['body'];
 export type AcademyAddressUpdateInput = z.infer<typeof academyAddressUpdateSchema>['body'];
 export type AcademyPasswordChangeInput = z.infer<

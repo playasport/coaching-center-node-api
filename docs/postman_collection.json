@@ -37,6 +37,33 @@
           }
         },
         {
+          "name": "Social Login (Firebase)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"google\",\n  \"idToken\": \"YOUR_FIREBASE_ID_TOKEN\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/academy/auth/social-login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academy",
+                "auth",
+                "social-login"
+              ]
+            }
+          }
+        },
+        {
           "name": "Login",
           "request": {
             "method": "POST",

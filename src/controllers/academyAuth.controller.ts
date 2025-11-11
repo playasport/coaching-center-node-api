@@ -13,12 +13,14 @@ import { ApiResponse } from '../utils/ApiResponse';
 import type {
   AcademyRegisterInput,
   AcademyLoginInput,
+  AcademySocialLoginInput,
   AcademyProfileUpdateInput,
   AcademyAddressUpdateInput,
   AcademyPasswordChangeInput,
   AcademyForgotPasswordRequestInput,
   AcademyForgotPasswordVerifyInput,
 } from '../validations/auth.validation';
+import { firebaseAuthService } from '../services/firebaseAuth.service';
 
 export const registerAcademyUser = async (
   req: Request,
@@ -107,6 +109,75 @@ export const loginAcademyUser = async (
       user: userService.sanitize(user),
       token,
     }, t('auth.login.success'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const socialLoginAcademyUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const payload = req.body as AcademySocialLoginInput;
+
+    const decodedToken = await firebaseAuthService.verifyIdToken(payload.idToken);
+
+    const email = decodedToken.email?.toLowerCase();
+    if (!email) {
+      throw new ApiError(400, t('auth.social.missingEmail'));
+    }
+
+    let user = await userService.findByEmail(email);
+
+    if (!user) {
+      const nameFromToken = decodedToken.name ?? '';
+      const [tokenFirstName, ...tokenLastParts] = nameFromToken.trim().split(/\s+/).filter(Boolean);
+      const firstName =
+        payload.firstName?.trim() ||
+        tokenFirstName ||
+        'User';
+      const lastName =
+        payload.lastName?.trim() ||
+        (tokenLastParts.length ? tokenLastParts.join(' ') : decodedToken.family_name || null) ||
+        null;
+
+      user = await userService.create({
+        id: uuidv4(),
+        email,
+        firstName,
+        lastName,
+        password: `${uuidv4()}!Social1`,
+        role: DefaultRoles.ACADEMY,
+        isActive: true,
+      });
+    }
+
+    if (user.role?.id !== DefaultRoles.ACADEMY) {
+      throw new ApiError(403, t('auth.login.invalidRole'));
+    }
+
+    if (!user.isActive || user.isDeleted) {
+      throw new ApiError(403, t('auth.login.inactive'));
+    }
+
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      role: user.role?.id ?? DefaultRoles.USER,
+    });
+
+    const response = new ApiResponse(
+      200,
+      {
+        user,
+        token,
+        provider: payload.provider ?? decodedToken.firebase?.sign_in_provider,
+      },
+      t('auth.social.loginSuccess')
+    );
     res.json(response);
   } catch (error) {
     next(error);

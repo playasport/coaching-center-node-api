@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>PlayAsport Social Login Demo</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        background-color: #f4f5f7;
+        color: #1f2937;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      .page {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem 4rem;
+      }
+
+      h1 {
+        margin-bottom: 0.25rem;
+      }
+
+      .card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 16px 48px rgba(15, 23, 42, 0.12);
+        margin-top: 2rem;
+      }
+
+      .card h2 {
+        margin-top: 0;
+      }
+
+      .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      label {
+        font-weight: 600;
+      }
+
+      input,
+      textarea {
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        border: 1px solid #cbd5f5;
+        font-size: 0.95rem;
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+
+      .button-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      button {
+        cursor: pointer;
+        padding: 0.85rem 1.25rem;
+        border: none;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        color: white;
+        transition: transform 0.1s ease, box-shadow 0.1s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 16px rgba(15, 23, 42, 0.12);
+      }
+
+      button.google {
+        background: linear-gradient(120deg, #ea4335, #4285f4);
+      }
+
+      button.facebook {
+        background: #1877f2;
+      }
+
+      button.apple {
+        background: #161616;
+      }
+
+      button.logout {
+        background: #9ca3af;
+        color: #111827;
+      }
+
+      pre {
+        background: #0f172a;
+        color: #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem;
+        overflow-x: auto;
+        font-size: 0.85rem;
+      }
+
+      .status {
+        font-weight: 600;
+        margin-bottom: 1rem;
+      }
+
+      .status.success {
+        color: #047857;
+      }
+
+      .status.error {
+        color: #dc2626;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0.75rem;
+        background: rgba(99, 102, 241, 0.1);
+        border-radius: 999px;
+        font-size: 0.85rem;
+        margin-right: 0.5rem;
+      }
+
+      code {
+        background: rgba(15, 23, 42, 0.08);
+        padding: 0.1rem 0.35rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+      }
+
+      @media (max-width: 600px) {
+        .card {
+          padding: 1.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1>PlayAsport Social Login Demo</h1>
+        <p>
+          Use this page to exercise social login flows powered by Firebase and verify the backend
+          <code>/academy/auth/social-login</code> endpoint.
+        </p>
+      </header>
+
+      <section class="card" id="firebaseConfigSection">
+        <h2>1. Firebase Configuration</h2>
+        <p>
+          Paste your Firebase web config JSON below. You can find it under
+          <strong>Project Settings → General → Your Apps</strong> in the Firebase Console.
+        </p>
+        <div class="field-group">
+          <label for="firebaseConfig">Firebase config (JSON)</label>
+          <textarea
+            id="firebaseConfig"
+            placeholder='{
+"apiKey": "...",
+"authDomain": "...firebaseapp.com",
+"projectId": "...",
+"appId": "...",
+"messagingSenderId": "..."
+}'
+          ></textarea>
+
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button id="applyFirebaseConfig" class="google" style="justify-self: flex-start;">
+              Apply Firebase Config
+            </button>
+            <button id="clearFirebaseConfig" class="logout" style="background: #ef4444; color: white;">
+              Clear Config
+            </button>
+          </div>
+        </div>
+
+        <p class="chip">
+          Firebase Status:
+          <span id="firebaseStatus">Not initialised</span>
+        </p>
+      </section>
+
+      <section class="card" id="backendConfigSection">
+        <h2>2. Backend Endpoint</h2>
+        <p>
+          Provide the base URL of your API server. Requests will be sent to
+          <code>BASE_URL/academy/auth/social-login</code>.
+        </p>
+        <div class="field-group">
+          <label for="backendBaseUrl">Backend base URL</label>
+          <input
+            id="backendBaseUrl"
+            type="url"
+            placeholder="http://localhost:3000/api/v1"
+            value="http://localhost:3000/api/v1"
+          />
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>3. Try Social Login</h2>
+        <p>Select a provider. We will obtain a Firebase ID token and send it to your backend.</p>
+
+        <div class="field-group">
+          <label>Optional display name overrides</label>
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <input id="overrideFirstName" type="text" placeholder="Override first name (optional)" />
+            <input id="overrideLastName" type="text" placeholder="Override last name (optional)" />
+          </div>
+          <small style="color: #6b7280;">
+            Some providers do not return names in the ID token. Use these fields to supply names that will be sent to the backend.
+          </small>
+        </div>
+
+        <div class="button-grid">
+          <button id="googleLogin" class="google">Continue with Google</button>
+          <button id="facebookLogin" class="facebook">Continue with Facebook</button>
+          <button id="appleLogin" class="apple">Continue with Apple</button>
+        </div>
+
+        <button id="logout" class="logout">Sign out from Firebase</button>
+
+        <p id="status" class="status">Awaiting action...</p>
+
+        <h3>Firebase ID Token</h3>
+        <pre id="idTokenPreview">Sign in to preview the ID token...</pre>
+
+        <h3>Backend Response</h3>
+        <pre id="backendResponse">No request sent yet.</pre>
+
+        <h3>Decoded JWT (backend response)</h3>
+        <pre id="jwtPreview">Awaiting backend response...</pre>
+      </section>
+
+      <footer style="margin-top: 3rem;">
+        <p style="font-size: 0.9rem; color: #6b7280;">
+          • Ensure each provider is enabled in the Firebase Console.<br />
+          • For Apple Sign-In on the web, the Firebase project must have the Apple provider configured and associated with
+          the correct services IDs.<br />
+          • For Facebook, make sure the OAuth redirect URI from Firebase is added to the Facebook developer settings.
+        </p>
+      </footer>
+    </div>
+
+    <script type="module">
+      import {
+        initializeApp,
+        getApps,
+      } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
+      import {
+        getAuth,
+        signInWithPopup,
+        GoogleAuthProvider,
+        FacebookAuthProvider,
+        OAuthProvider,
+        signOut,
+      } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
+
+      const firebaseConfigTextarea = document.getElementById('firebaseConfig');
+      const applyFirebaseConfigButton = document.getElementById('applyFirebaseConfig');
+      const firebaseStatusLabel = document.getElementById('firebaseStatus');
+      const backendBaseUrlInput = document.getElementById('backendBaseUrl');
+      const googleLoginButton = document.getElementById('googleLogin');
+      const facebookLoginButton = document.getElementById('facebookLogin');
+      const appleLoginButton = document.getElementById('appleLogin');
+      const logoutButton = document.getElementById('logout');
+      const statusEl = document.getElementById('status');
+      const idTokenPreview = document.getElementById('idTokenPreview');
+      const backendResponse = document.getElementById('backendResponse');
+      const jwtPreview = document.getElementById('jwtPreview');
+      const overrideFirstNameInput = document.getElementById('overrideFirstName');
+      const overrideLastNameInput = document.getElementById('overrideLastName');
+      const clearFirebaseConfigButton = document.getElementById('clearFirebaseConfig');
+
+      let firebaseApp = null;
+      let firebaseAuth = null;
+
+      const STORAGE_KEYS = {
+        firebaseConfig: 'playasport_demo_firebase_config',
+        backendUrl: 'playasport_demo_backend_url',
+        overrideFirstName: 'playasport_demo_override_first_name',
+        overrideLastName: 'playasport_demo_override_last_name',
+      };
+
+      const updateStatus = (message, type = 'info') => {
+        statusEl.textContent = message;
+        statusEl.className = `status ${type === 'error' ? 'error' : type === 'success' ? 'success' : ''}`;
+      };
+
+      const renderIdToken = (token) => {
+        idTokenPreview.textContent = token ? token : 'Sign in to preview the ID token...';
+      };
+
+      const renderBackendResponse = (payload) => {
+        backendResponse.textContent = typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
+
+        try {
+          if (payload && payload.data && payload.data.token) {
+            const [, base64Payload] = payload.data.token.split('.');
+            const decoded = JSON.parse(atob(base64Payload.replace(/-/g, '+').replace(/_/g, '/')));
+            jwtPreview.textContent = JSON.stringify(decoded, null, 2);
+          } else {
+            jwtPreview.textContent = 'No JWT found in response.';
+          }
+        } catch (error) {
+          jwtPreview.textContent = `Unable to decode JWT: ${error.message}`;
+        }
+      };
+
+      const ensureFirebase = () => {
+        if (!firebaseAuth) {
+          throw new Error('Firebase has not been initialised. Provide the config first.');
+        }
+        return firebaseAuth;
+      };
+
+      const initFirebase = () => {
+        try {
+          const rawConfig = firebaseConfigTextarea.value || '{}';
+          localStorage.setItem(STORAGE_KEYS.firebaseConfig, rawConfig);
+          const parsed = JSON.parse(rawConfig);
+
+          if (!parsed || !parsed.apiKey || !parsed.authDomain || !parsed.projectId) {
+            throw new Error('Config must include apiKey, authDomain, and projectId.');
+          }
+
+          if (getApps().length) {
+            firebaseStatusLabel.textContent = 'Already initialised (refresh to reconfigure)';
+            firebaseStatusLabel.style.color = '#2563eb';
+            firebaseApp = null;
+            firebaseAuth = getAuth();
+            return;
+          }
+
+          firebaseApp = initializeApp(parsed);
+          firebaseAuth = getAuth(firebaseApp);
+          firebaseStatusLabel.textContent = 'Initialised';
+          firebaseStatusLabel.style.color = '#047857';
+          updateStatus('Firebase initialised. Choose a provider to login.', 'success');
+        } catch (error) {
+          console.error(error);
+          firebaseStatusLabel.textContent = 'Initialisation failed';
+          firebaseStatusLabel.style.color = '#dc2626';
+          updateStatus(error.message, 'error');
+        }
+      };
+
+      const postToBackend = async (provider, idToken, profile) => {
+        const baseUrl = backendBaseUrlInput.value.trim().replace(/\/$/, '');
+
+        if (!baseUrl) {
+          throw new Error('Backend base URL is required.');
+        }
+
+        localStorage.setItem(STORAGE_KEYS.backendUrl, baseUrl);
+
+        const url = `${baseUrl}/academy/auth/social-login`;
+        const body = {
+          provider,
+          idToken,
+        };
+
+        if (profile?.firstName) {
+          body.firstName = profile.firstName;
+        }
+        if (profile?.lastName) {
+          body.lastName = profile.lastName;
+        }
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+          const errorPayload = await response.json().catch(() => ({}));
+          throw new Error(
+            `Backend responded with status ${response.status}: ${JSON.stringify(errorPayload, null, 2)}`
+          );
+        }
+
+        return response.json();
+      };
+
+      const handleSocialLogin = async (providerKey) => {
+        try {
+          updateStatus(`Signing in with ${providerKey}...`);
+          const auth = ensureFirebase();
+
+          let providerInstance;
+          if (providerKey === 'google') {
+            providerInstance = new GoogleAuthProvider();
+          } else if (providerKey === 'facebook') {
+            providerInstance = new FacebookAuthProvider();
+          } else if (providerKey === 'apple') {
+            providerInstance = new OAuthProvider('apple.com');
+          } else {
+            throw new Error(`Unsupported provider: ${providerKey}`);
+          }
+
+          const result = await signInWithPopup(auth, providerInstance);
+          const user = result.user;
+          const token = await user.getIdToken();
+
+          renderIdToken(token);
+          updateStatus(`${providerKey} sign-in successful. Sending token to backend...`, 'success');
+
+          const { displayName } = user;
+          const names = displayName ? displayName.trim().split(/\s+/) : [];
+          const profile = {
+            firstName:
+              overrideFirstNameInput.value.trim() ||
+              result._tokenResponse?.firstName ||
+              names[0] ||
+              user.displayName?.split(' ')?.[0],
+            lastName:
+              overrideLastNameInput.value.trim() ||
+              result._tokenResponse?.lastName ||
+              (names.length > 1 ? names.slice(1).join(' ') : undefined) ||
+              user.displayName?.split(' ')?.slice(1).join(' ') ||
+              undefined,
+          };
+
+          const backendPayload = await postToBackend(providerKey, token, profile);
+          renderBackendResponse(backendPayload);
+          updateStatus('Backend login successful!', 'success');
+        } catch (error) {
+          console.error(error);
+          updateStatus(error.message || 'Social login failed.', 'error');
+          renderBackendResponse(error.message || error);
+        }
+      };
+
+      applyFirebaseConfigButton.addEventListener('click', () => initFirebase());
+      googleLoginButton.addEventListener('click', () => handleSocialLogin('google'));
+      facebookLoginButton.addEventListener('click', () => handleSocialLogin('facebook'));
+      appleLoginButton.addEventListener('click', () => handleSocialLogin('apple'));
+
+      logoutButton.addEventListener('click', async () => {
+        try {
+          const auth = ensureFirebase();
+          await signOut(auth);
+          renderIdToken('');
+          renderBackendResponse('Signed out. No request sent yet.');
+          updateStatus('Signed out from Firebase.', 'success');
+        } catch (error) {
+          updateStatus(error.message || 'Sign-out failed.', 'error');
+        }
+      });
+
+      clearFirebaseConfigButton.addEventListener('click', () => {
+        localStorage.removeItem(STORAGE_KEYS.firebaseConfig);
+        firebaseConfigTextarea.value = '';
+        firebaseStatusLabel.textContent = 'Not initialised';
+        firebaseStatusLabel.style.color = '';
+        firebaseApp = null;
+        firebaseAuth = null;
+        updateStatus('Firebase config cleared. Provide a new config to continue.');
+      });
+
+      overrideFirstNameInput.addEventListener('input', (event) => {
+        localStorage.setItem(STORAGE_KEYS.overrideFirstName, event.target.value);
+      });
+
+      overrideLastNameInput.addEventListener('input', (event) => {
+        localStorage.setItem(STORAGE_KEYS.overrideLastName, event.target.value);
+      });
+
+      window.addEventListener('DOMContentLoaded', () => {
+        const storedConfig = localStorage.getItem(STORAGE_KEYS.firebaseConfig);
+        if (storedConfig) {
+          firebaseConfigTextarea.value = storedConfig;
+          initFirebase();
+        }
+
+        const storedBackendUrl = localStorage.getItem(STORAGE_KEYS.backendUrl);
+        if (storedBackendUrl) {
+          backendBaseUrlInput.value = storedBackendUrl;
+        }
+
+        const storedFirstName = localStorage.getItem(STORAGE_KEYS.overrideFirstName);
+        if (storedFirstName) {
+          overrideFirstNameInput.value = storedFirstName;
+        }
+
+        const storedLastName = localStorage.getItem(STORAGE_KEYS.overrideLastName);
+        if (storedLastName) {
+          overrideLastNameInput.value = storedLastName;
+        }
+      });
+    </script>
+  </body>
+</html>
+

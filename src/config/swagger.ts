@@ -334,6 +334,36 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        AcademySocialLoginRequest: {
+          type: 'object',
+          required: ['idToken'],
+          properties: {
+            provider: {
+              type: 'string',
+              enum: ['google', 'facebook', 'instagram', 'apple'],
+              example: 'google',
+              description: 'Optional hint for analytics/logging. Token verification relies on Firebase.',
+            },
+            idToken: {
+              type: 'string',
+              example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjUxOG... (Firebase ID token)',
+            },
+            firstName: {
+              type: 'string',
+              example: 'John',
+            },
+            lastName: {
+              type: 'string',
+              example: 'Doe',
+            },
+          },
+          example: {
+            provider: 'google',
+            idToken: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjUxOG...',
+            firstName: 'John',
+            lastName: 'Doe',
+          },
+        },
         AcademyOtpRequest: {
           type: 'object',
           required: ['mobile'],
