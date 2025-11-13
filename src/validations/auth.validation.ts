@@ -22,13 +22,14 @@ const nameRegex = /^[A-Z][a-zA-Z\s]*$/;
 
 const addressInputSchema = z.object({
   line1: z
-    .string({ message: validationMessages.address.line1Required() })
-    .min(1, validationMessages.address.line1Required()),
-  line2: z
     .string()
     .max(255)
     .optional()
     .transform((val) => (val === '' ? undefined : val)),
+  line2: z
+    .string({ message: validationMessages.address.line2Required() })
+    .min(1, validationMessages.address.line2Required())
+    .max(255),
   area: z
     .string()
     .max(255)

@@ -84,10 +84,6 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: '9876543210',
             },
-            gender: {
-              type: 'string',
-              example: 'male',
-            },
             role: {
               type: 'object',
               properties: {
@@ -228,11 +224,6 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: '9876543210',
               description: 'Academy administrator mobile number used for OTP verification',
-            },
-            gender: {
-              type: 'string',
-              enum: ['male', 'female', 'other'],
-              example: 'female',
             },
             otp: {
               type: 'string',
@@ -410,11 +401,6 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: 'Doe',
             },
-            gender: {
-              type: 'string',
-              enum: ['male', 'female', 'other'],
-              example: 'male',
-            },
           },
         },
         AcademyAddressUpdateRequest: {
@@ -423,6 +409,7 @@ const options: swaggerJsdoc.Options = {
           properties: {
             address: {
               type: 'object',
+              required: ['line2', 'city', 'state', 'country', 'pincode'],
               properties: {
                 line1: { type: 'string', example: '123 Main Street' },
                 line2: { type: 'string', example: 'Suite 4B' },

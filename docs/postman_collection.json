@@ -191,7 +191,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"address\": {\n    \"line1\": \"123 Main Street\",\n    \"line2\": \"Suite 4B\",\n    \"area\": \"Downtown\",\n    \"city\": \"New Delhi\",\n    \"state\": \"Delhi\",\n    \"country\": \"India\",\n    \"pincode\": \"110001\"\n  }\n}"
+              "raw": "{\n  \"address\": {\n    \"line2\": \"Suite 4B\",\n    \"area\": \"Downtown\",\n    \"city\": \"New Delhi\",\n    \"state\": \"Delhi\",\n    \"country\": \"India\",\n    \"pincode\": \"110001\"\n  }\n}"
             },
             "url": {
               "raw": "{{base_url}}/academy/auth/address",

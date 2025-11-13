@@ -56,6 +56,7 @@ export const validationMessages = {
   },
   address: {
     line1Required: () => getValidationMessage('address.line1Required'),
+    line2Required: () => getValidationMessage('address.line2Required'),
     cityRequired: () => getValidationMessage('address.cityRequired'),
     stateRequired: () => getValidationMessage('address.stateRequired'),
     countryRequired: () => getValidationMessage('address.countryRequired'),

@@ -87,6 +87,7 @@
     },
     "address": {
       "line1Required": "पता (लाइन 1) आवश्यक है",
+      "line2Required": "पता (लाइन 2) आवश्यक है",
       "cityRequired": "शहर आवश्यक है",
       "stateRequired": "राज्य आवश्यक है",
       "countryRequired": "देश आवश्यक है",

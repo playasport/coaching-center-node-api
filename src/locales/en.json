@@ -87,6 +87,7 @@
     },
     "address": {
       "line1Required": "Address line 1 is required",
+      "line2Required": "Address line 2 is required",
       "cityRequired": "City is required",
       "stateRequired": "State is required",
       "countryRequired": "Country is required",
