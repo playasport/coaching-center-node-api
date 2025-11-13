@@ -211,14 +211,11 @@ export const academyProfileUpdateSchema = z.object({
         ])
         .optional()
         .transform((val) => (val ? val : undefined)),
-      gender: z.enum(['male', 'female', 'other']).optional(),
     })
     .refine(
       (data) =>
         Boolean(
-          data.firstName ??
-            data.lastName ??
-            data.gender
+          data.firstName ?? data.lastName
         ),
       {
         message: validationMessages.profile.noChanges(),

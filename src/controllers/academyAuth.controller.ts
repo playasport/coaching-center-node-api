@@ -10,6 +10,7 @@ import { sendPasswordResetEmail } from '../services/email.service';
 import { otpService } from '../services/otp.service';
 import { ApiError } from '../utils/ApiError';
 import { ApiResponse } from '../utils/ApiResponse';
+import { logger } from '../utils/logger';
 import type {
   AcademyRegisterInput,
   AcademyLoginInput,
@@ -21,6 +22,7 @@ import type {
   AcademyForgotPasswordVerifyInput,
 } from '../validations/auth.validation';
 import { firebaseAuthService } from '../services/firebaseAuth.service';
+import { uploadFileToS3, deleteFileFromS3 } from '../services/s3.service';
 
 export const registerAcademyUser = async (
   req: Request,
@@ -212,6 +214,7 @@ export const updateAcademyProfile = async (
     }
 
     const payload = req.body as AcademyProfileUpdateInput;
+    const file = req.file;
 
     const existingUser = await userService.findById(req.user.id);
     if (!existingUser) {
@@ -228,11 +231,48 @@ export const updateAcademyProfile = async (
       updates.lastName = payload.lastName ?? null;
     }
 
-    if (payload.gender) {
-      updates.gender = payload.gender;
+    // Handle profile image upload
+    if (file) {
+      try {
+        logger.info('Starting profile image upload', {
+          userId: existingUser.id,
+          fileName: file.originalname,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+        });
+
+        // Delete old profile image if exists
+        if (existingUser.profileImage) {
+          try {
+            await deleteFileFromS3(existingUser.profileImage);
+            logger.info('Old profile image deleted', { oldImageUrl: existingUser.profileImage });
+          } catch (deleteError) {
+            logger.warn('Failed to delete old profile image, continuing with upload', deleteError);
+            // Don't fail the upload if deletion fails
+          }
+        }
+
+        // Upload new image to S3
+        const imageUrl = await uploadFileToS3({
+          file,
+          folder: 'users',
+          userId: existingUser.id,
+        });
+
+        updates.profileImage = imageUrl;
+        logger.info('Profile image uploaded successfully', { imageUrl, userId: existingUser.id });
+      } catch (error: any) {
+        logger.error('Failed to upload profile image', {
+          error: error?.message || error,
+          stack: error?.stack,
+          userId: existingUser.id,
+          fileName: file?.originalname,
+        });
+        throw new ApiError(500, error?.message || t('auth.profile.imageUploadFailed'));
+      }
     }
 
-    if (!Object.keys(updates).length) {
+    if (!Object.keys(updates).length && !file) {
       throw new ApiError(400, t('validation.profile.noChanges'));
     }
 

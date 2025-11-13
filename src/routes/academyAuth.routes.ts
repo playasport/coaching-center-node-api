@@ -27,6 +27,7 @@ import {
 } from '../validations/auth.validation';
 import { authenticate, authorize } from '../middleware/auth.middleware';
 import { DefaultRoles } from '../models/role.model';
+import { uploadProfileImage } from '../middleware/upload.middleware';
 
 const router = Router();
 
@@ -191,9 +192,24 @@ router.post('/verify-otp', validate(academyVerifyOtpSchema), verifyAcademyOtp);
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/AcademyProfileUpdateRequest'
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *                 example: John
+ *               lastName:
+ *                 type: string
+ *                 example: Doe
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, other]
+ *                 example: male
+ *               profileImage:
+ *                 type: string
+ *                 format: binary
+ *                 description: Profile image file (JPEG, PNG, WebP, max 5MB)
  *     responses:
  *       200:
  *         description: Profile updated successfully
@@ -212,6 +228,7 @@ router.patch(
   '/profile',
   authenticate,
   authorize(DefaultRoles.ACADEMY),
+  uploadProfileImage,
   validate(academyProfileUpdateSchema),
   updateAcademyProfile
 );

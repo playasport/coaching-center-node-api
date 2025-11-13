@@ -20,6 +20,7 @@ export interface UpdateUserData {
   mobile?: string | null;
   email?: string;
   gender?: 'male' | 'female' | 'other';
+  profileImage?: string | null;
   password?: string;
   role?: string;
   isActive?: boolean;

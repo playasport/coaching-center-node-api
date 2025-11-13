@@ -16,6 +16,7 @@ export interface User {
   mobile?: string | null;
   password: string;
   gender?: 'male' | 'female' | 'other';
+  profileImage?: string | null;
   isActive: boolean;
   role?: UserRefRole | null;
   address?: Address | null;
@@ -37,6 +38,7 @@ const userSchema = new Schema<User>(
     mobile: { type: String, default: null, trim: true },
     password: { type: String, required: true },
     gender: { type: String, enum: ['male', 'female', 'other'], default: null },
+    profileImage: { type: String, default: null },
     isActive: { type: Boolean, default: true },
     role: {
       id: {

@@ -84,6 +84,16 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: '9876543210',
             },
+            gender: {
+              type: 'string',
+              enum: ['male', 'female', 'other'],
+              example: 'male',
+            },
+            profileImage: {
+              type: 'string',
+              format: 'uri',
+              example: 'https://bucket.s3.region.amazonaws.com/profile-images/user-id.jpg',
+            },
             role: {
               type: 'object',
               properties: {
@@ -451,6 +461,62 @@ const options: swaggerJsdoc.Options = {
               type: 'object',
               additionalProperties: true,
               example: { mode: 'mobile' },
+            },
+          },
+        },
+        S3TestResult: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+              description: 'Overall test result - true if all tests passed',
+            },
+            tests: {
+              type: 'object',
+              properties: {
+                clientInitialization: {
+                  type: 'object',
+                  properties: {
+                    passed: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'S3 client initialized successfully. Region: us-east-1' },
+                  },
+                },
+                bucketAccess: {
+                  type: 'object',
+                  properties: {
+                    passed: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Bucket "my-bucket" is accessible.' },
+                  },
+                },
+                writePermission: {
+                  type: 'object',
+                  properties: {
+                    passed: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Write permission verified. Test file uploaded: test/test-connection-xxx.txt' },
+                    testFileUrl: { type: 'string', format: 'uri', example: 'https://bucket.s3.region.amazonaws.com/test/test-connection-xxx.txt' },
+                  },
+                },
+                readPermission: {
+                  type: 'object',
+                  properties: {
+                    passed: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Read permission verified. Test file content retrieved successfully.' },
+                  },
+                },
+                deletePermission: {
+                  type: 'object',
+                  properties: {
+                    passed: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Delete permission verified. Test file deleted successfully.' },
+                  },
+                },
+              },
+            },
+            summary: {
+              type: 'string',
+              example: 'All S3 connection and permission tests passed successfully!',
+              description: 'Summary of all test results',
             },
           },
         },
