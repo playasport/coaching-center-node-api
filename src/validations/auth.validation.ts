@@ -12,9 +12,9 @@ const otpCodeSchema = z
 
 const passwordComplexitySchema = z
   .string({ message: validationMessages.password.required() })
-  .min(6, validationMessages.password.minLength())
+  .min(8, validationMessages.password.minLength())
   .regex(
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/,
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/,
     validationMessages.password.invalidPattern()
   );
 
@@ -109,11 +109,7 @@ export const academyRegisterSchema = z.object({
     password: passwordComplexitySchema,
     mobile: mobileNumberSchema,
     gender: z.enum(['male', 'female', 'other']).optional(),
-    isVerified: z
-      .boolean({ message: validationMessages.isVerified.required() })
-      .refine((value) => value === true, {
-        message: validationMessages.isVerified.mustBeTrue(),
-      }),
+    otp: otpCodeSchema,
   }),
 });
 

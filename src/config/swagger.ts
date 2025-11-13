@@ -204,7 +204,7 @@ const options: swaggerJsdoc.Options = {
         },
         AcademyRegisterRequest: {
           type: 'object',
-          required: ['firstName', 'email', 'password', 'isVerified'],
+          required: ['firstName', 'email', 'password', 'mobile', 'otp'],
           properties: {
             firstName: {
               type: 'string',
@@ -221,7 +221,7 @@ const options: swaggerJsdoc.Options = {
             },
             password: {
               type: 'string',
-              minLength: 6,
+              minLength: 8,
               example: 'strongPassword123',
             },
             mobile: {
@@ -234,11 +234,10 @@ const options: swaggerJsdoc.Options = {
               enum: ['male', 'female', 'other'],
               example: 'female',
             },
-            isVerified: {
-              type: 'boolean',
-              example: true,
-              description:
-                'Set to true after successfully verifying the mobile OTP via /academy/auth/verify-otp',
+            otp: {
+              type: 'string',
+              example: '123456',
+              description: 'OTP received on mobile via /academy/auth/send-otp (mode: register)',
             },
           },
         },

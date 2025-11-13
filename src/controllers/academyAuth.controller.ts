@@ -28,11 +28,28 @@ export const registerAcademyUser = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { firstName, lastName, email, password, mobile, isVerified } =
+    const { firstName, lastName, email, password, mobile, otp } =
       req.body as AcademyRegisterInput;
 
-    if (!isVerified) {
-      throw new ApiError(400, t('auth.register.mobileNotVerified'));
+    if (!otp) {
+      throw new ApiError(400, t('validation.otp.required'));
+    }
+
+    const otpStatus = await otpService.verifyOtp(
+      { channel: 'mobile', identifier: mobile },
+      otp,
+      'register'
+    );
+
+    if (otpStatus !== 'valid') {
+      const messageMap: Record<string, string> = {
+        not_found: t('auth.login.invalidOtp'),
+        consumed: t('auth.login.otpUsed'),
+        expired: t('auth.login.otpExpired'),
+        invalid: t('auth.login.invalidOtp'),
+      };
+
+      throw new ApiError(400, messageMap[otpStatus] ?? t('auth.login.invalidOtp'));
     }
 
     const existingUser = await userService.findByEmail(email);

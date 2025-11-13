@@ -21,7 +21,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"academy@example.com\",\n  \"password\": \"StrongPass@123\",\n  \"mobile\": \"9876543210\",\n  \"gender\": \"male\",\n  \"isVerified\": true\n}"
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"academy@example.com\",\n  \"password\": \"StrongPass@123\",\n  \"mobile\": \"9876543210\",\n  \"gender\": \"male\",\n  \"otp\": \"123456\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/academy/auth/register",
