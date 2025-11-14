@@ -374,6 +374,89 @@
           }
         }
       ]
+    },
+    {
+      "name": "Location",
+      "item": [
+        {
+          "name": "Get Countries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/location/countries",
+              "host": ["{{base_url}}"],
+              "path": ["location", "countries"]
+            },
+            "description": "Retrieve a list of all countries"
+          }
+        },
+        {
+          "name": "Get States by Country",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/location/states?countryCode=IN",
+              "host": ["{{base_url}}"],
+              "path": ["location", "states"],
+              "query": [
+                {
+                  "key": "countryCode",
+                  "value": "IN",
+                  "description": "Country code (ISO2) or country ID"
+                }
+              ]
+            },
+            "description": "Retrieve a list of states for a specific country"
+          }
+        },
+        {
+          "name": "Get Cities by State",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/location/cities?stateName=Delhi&countryCode=IN",
+              "host": ["{{base_url}}"],
+              "path": ["location", "cities"],
+              "query": [
+                {
+                  "key": "stateName",
+                  "value": "Delhi",
+                  "description": "State name"
+                },
+                {
+                  "key": "countryCode",
+                  "value": "IN",
+                  "description": "Country code (optional)"
+                }
+              ]
+            },
+            "description": "Retrieve a list of cities for a specific state. You can use stateName or stateId."
+          }
+        },
+        {
+          "name": "Get Cities by State ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/location/cities?stateId=state-id-123",
+              "host": ["{{base_url}}"],
+              "path": ["location", "cities"],
+              "query": [
+                {
+                  "key": "stateId",
+                  "value": "state-id-123",
+                  "description": "State ID"
+                }
+              ]
+            },
+            "description": "Retrieve a list of cities using state ID"
+          }
+        }
+      ]
     }
   ],
   "event": [],

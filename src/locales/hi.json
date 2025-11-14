@@ -132,6 +132,19 @@
   "locale": {
     "changed": "भाषा {locale} में बदल गई",
     "invalid": "अमान्य भाषा। समर्थित भाषाएं: en, hi"
+  },
+  "location": {
+    "countries": {
+      "success": "देश सफलतापूर्वक प्राप्त किए गए"
+    },
+    "states": {
+      "success": "राज्य सफलतापूर्वक प्राप्त किए गए",
+      "countryCodeRequired": "देश कोड आवश्यक है"
+    },
+    "cities": {
+      "success": "शहर सफलतापूर्वक प्राप्त किए गए",
+      "stateRequired": "राज्य नाम या राज्य आईडी आवश्यक है"
+    }
   }
 }
 

@@ -132,6 +132,19 @@
   "locale": {
     "changed": "Language changed to {locale}",
     "invalid": "Invalid locale. Supported locales: en, hi"
+  },
+  "location": {
+    "countries": {
+      "success": "Countries retrieved successfully"
+    },
+    "states": {
+      "success": "States retrieved successfully",
+      "countryCodeRequired": "Country code is required"
+    },
+    "cities": {
+      "success": "Cities retrieved successfully",
+      "stateRequired": "State name or state ID is required"
+    }
   }
 }
 
