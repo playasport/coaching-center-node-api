@@ -114,6 +114,77 @@
     },
     "locale": {
       "invalid": "Invalid locale. Supported locales: en, hi"
+    },
+    "coachingCenter": {
+      "centerName": {
+        "required": "Center name is required",
+        "maxLength": "Center name must not exceed 255 characters"
+      },
+      "description": {
+        "required": "Description is required",
+        "minLength": "Description must be at least 5 characters",
+        "maxLength": "Description must not exceed 2000 characters"
+      },
+      "rulesRegulation": {
+        "maxLength": "Rules and regulations must not exceed 5000 characters"
+      },
+      "logo": {
+        "required": "Logo is required",
+        "invalidUrl": "Logo must be a valid URL",
+        "invalidAspectRatio": "Logo must have a 1:1 aspect ratio (square image)"
+      },
+      "sports": {
+        "required": "Sports are required",
+        "minOne": "At least one sport is required"
+      },
+      "age": {
+        "minRequired": "Minimum age is required",
+        "minInteger": "Minimum age must be an integer",
+        "minRange": "Minimum age must be between 0 and 100",
+        "maxRequired": "Maximum age is required",
+        "maxInteger": "Maximum age must be an integer",
+        "maxRange": "Maximum age must be between 0 and 100",
+        "maxGreaterThanMin": "Maximum age must be greater than or equal to minimum age"
+      },
+      "location": {
+        "latitudeRequired": "Latitude is required",
+        "latitudeRange": "Latitude must be between -90 and 90",
+        "longitudeRequired": "Longitude is required",
+        "longitudeRange": "Longitude must be between -180 and 180"
+      },
+      "facility": {
+        "required": "Facility is required",
+        "invalid": "Facility must be a valid facility ID"
+      },
+      "operationalTiming": {
+        "operatingDaysRequired": "Operating days are required",
+        "operatingDaysMinOne": "At least one operating day is required",
+        "openingTimeRequired": "Opening time is required",
+        "openingTimeFormat": "Opening time must be in HH:MM format",
+        "closingTimeRequired": "Closing time is required",
+        "closingTimeFormat": "Closing time must be in HH:MM format",
+        "closingAfterOpening": "Closing time must be after opening time"
+      },
+      "media": {
+        "urlRequired": "Media URL is required",
+        "urlInvalid": "Media URL must be a valid URL"
+      },
+      "bankInformation": {
+        "bankNameRequired": "Bank name is required",
+        "bankNameMaxLength": "Bank name must not exceed 100 characters",
+        "accountNumberRequired": "Account number is required",
+        "accountNumberMinLength": "Account number must be at least 9 digits",
+        "accountNumberMaxLength": "Account number must be at most 18 digits",
+        "accountNumberDigits": "Account number must contain only digits",
+        "ifscCodeRequired": "IFSC code is required",
+        "ifscCodeFormat": "IFSC code must be in valid format (e.g., ABCD0123456)",
+        "accountHolderNameRequired": "Account holder name is required",
+        "accountHolderNameMaxLength": "Account holder name must not exceed 100 characters",
+        "gstNumberFormat": "GST number must be in valid format"
+      },
+      "status": {
+        "invalid": "Status must be either 'draft' or 'published'"
+      }
     }
   },
   "errors": {
@@ -149,6 +220,43 @@
   "sport": {
     "getAll": {
       "success": "Sports retrieved successfully"
+    }
+  },
+  "coachingCenter": {
+    "create": {
+      "success": "Coaching center created successfully",
+      "failed": "Failed to create coaching center"
+    },
+    "get": {
+      "success": "Coaching center retrieved successfully",
+      "failed": "Failed to fetch coaching center"
+    },
+    "update": {
+      "success": "Coaching center updated successfully",
+      "failed": "Failed to update coaching center"
+    },
+    "idRequired": "Coaching center ID is required",
+    "notFound": "Coaching center not found",
+    "emailExists": "Coaching center with this email already exists",
+    "mobileExists": "Coaching center with this mobile number already exists",
+    "sports": {
+      "invalid": "One or more sports are invalid"
+    },
+    "facility": {
+      "invalidId": "Invalid facility ID: {id}",
+      "notFound": "Facility not found: {id}",
+      "createFailed": "Failed to create facility"
+    },
+    "media": {
+      "uploadSuccess": "Media file uploaded successfully",
+      "uploadFailed": "Failed to upload media file",
+      "deleteSuccess": "Media file deleted successfully",
+      "deleteFailed": "Failed to delete media file"
+    }
+  },
+  "facility": {
+    "getAll": {
+      "success": "Facilities retrieved successfully"
     }
   }
 }

@@ -2,9 +2,11 @@ import multer from 'multer';
 import { Request, Response, NextFunction } from 'express';
 import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
+import { compressImage, isImage } from '../utils/imageCompression';
+import { logger } from '../utils/logger';
+import { config } from '../config/env';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 const storage = multer.memoryStorage();
 
@@ -31,7 +33,7 @@ const multerUpload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: MAX_FILE_SIZE,
+    fileSize: config.media.maxProfileImageSize,
     files: 1,
   },
 }).single('profileImage');
@@ -41,7 +43,7 @@ export const uploadProfileImage = (
   res: Response,
   next: NextFunction
 ): void => {
-  multerUpload(req, res, (err) => {
+  multerUpload(req, res, async (err) => {
     if (err) {
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
@@ -51,6 +53,28 @@ export const uploadProfileImage = (
       }
       return next(err);
     }
+
+    // Compress image if it's an image file
+    if (req.file && isImage(req.file.mimetype)) {
+      try {
+        const originalSize = req.file.buffer.length;
+        const compressedBuffer = await compressImage(req.file.buffer, req.file.mimetype);
+        
+        // Update the file buffer with compressed version
+        req.file.buffer = compressedBuffer;
+        req.file.size = compressedBuffer.length;
+
+        logger.info('Profile image compressed', {
+          originalSize: `${(originalSize / 1024).toFixed(2)} KB`,
+          compressedSize: `${(compressedBuffer.length / 1024).toFixed(2)} KB`,
+          reduction: `${(((originalSize - compressedBuffer.length) / originalSize) * 100).toFixed(1)}%`,
+        });
+      } catch (error) {
+        logger.warn('Profile image compression failed, using original', { error });
+        // Continue with original image if compression fails
+      }
+    }
+
     next();
   });
 };

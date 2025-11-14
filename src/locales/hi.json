@@ -114,6 +114,77 @@
     },
     "locale": {
       "invalid": "अमान्य भाषा। समर्थित भाषाएं: en, hi"
+    },
+    "coachingCenter": {
+      "centerName": {
+        "required": "केंद्र का नाम आवश्यक है",
+        "maxLength": "केंद्र का नाम 255 वर्णों से अधिक नहीं होना चाहिए"
+      },
+      "description": {
+        "required": "विवरण आवश्यक है",
+        "minLength": "विवरण कम से कम 5 वर्ण होना चाहिए",
+        "maxLength": "विवरण 2000 वर्णों से अधिक नहीं होना चाहिए"
+      },
+      "rulesRegulation": {
+        "maxLength": "नियम और विनियम 5000 वर्णों से अधिक नहीं होने चाहिए"
+      },
+      "logo": {
+        "required": "लोगो आवश्यक है",
+        "invalidUrl": "लोगो एक वैध URL होना चाहिए",
+        "invalidAspectRatio": "लोगो का 1:1 अनुपात होना चाहिए (वर्गाकार छवि)"
+      },
+      "sports": {
+        "required": "खेल आवश्यक हैं",
+        "minOne": "कम से कम एक खेल आवश्यक है"
+      },
+      "age": {
+        "minRequired": "न्यूनतम आयु आवश्यक है",
+        "minInteger": "न्यूनतम आयु एक पूर्णांक होनी चाहिए",
+        "minRange": "न्यूनतम आयु 0 और 100 के बीच होनी चाहिए",
+        "maxRequired": "अधिकतम आयु आवश्यक है",
+        "maxInteger": "अधिकतम आयु एक पूर्णांक होनी चाहिए",
+        "maxRange": "अधिकतम आयु 0 और 100 के बीच होनी चाहिए",
+        "maxGreaterThanMin": "अधिकतम आयु न्यूनतम आयु से अधिक या बराबर होनी चाहिए"
+      },
+      "location": {
+        "latitudeRequired": "अक्षांश आवश्यक है",
+        "latitudeRange": "अक्षांश -90 और 90 के बीच होना चाहिए",
+        "longitudeRequired": "देशांतर आवश्यक है",
+        "longitudeRange": "देशांतर -180 और 180 के बीच होना चाहिए"
+      },
+      "facility": {
+        "required": "सुविधा आवश्यक है",
+        "invalid": "सुविधा एक वैध सुविधा ID होनी चाहिए"
+      },
+      "operationalTiming": {
+        "operatingDaysRequired": "संचालन दिवस आवश्यक हैं",
+        "operatingDaysMinOne": "कम से कम एक संचालन दिवस आवश्यक है",
+        "openingTimeRequired": "खुलने का समय आवश्यक है",
+        "openingTimeFormat": "खुलने का समय HH:MM प्रारूप में होना चाहिए",
+        "closingTimeRequired": "बंद होने का समय आवश्यक है",
+        "closingTimeFormat": "बंद होने का समय HH:MM प्रारूप में होना चाहिए",
+        "closingAfterOpening": "बंद होने का समय खुलने के समय के बाद होना चाहिए"
+      },
+      "media": {
+        "urlRequired": "मीडिया URL आवश्यक है",
+        "urlInvalid": "मीडिया URL एक वैध URL होना चाहिए"
+      },
+      "bankInformation": {
+        "bankNameRequired": "बैंक का नाम आवश्यक है",
+        "bankNameMaxLength": "बैंक का नाम 100 वर्णों से अधिक नहीं होना चाहिए",
+        "accountNumberRequired": "खाता संख्या आवश्यक है",
+        "accountNumberMinLength": "खाता संख्या कम से कम 9 अंक होनी चाहिए",
+        "accountNumberMaxLength": "खाता संख्या अधिकतम 18 अंक होनी चाहिए",
+        "accountNumberDigits": "खाता संख्या में केवल अंक होने चाहिए",
+        "ifscCodeRequired": "IFSC कोड आवश्यक है",
+        "ifscCodeFormat": "IFSC कोड वैध प्रारूप में होना चाहिए (उदाहरण: ABCD0123456)",
+        "accountHolderNameRequired": "खाता धारक का नाम आवश्यक है",
+        "accountHolderNameMaxLength": "खाता धारक का नाम 100 वर्णों से अधिक नहीं होना चाहिए",
+        "gstNumberFormat": "GST संख्या वैध प्रारूप में होनी चाहिए"
+      },
+      "status": {
+        "invalid": "स्थिति 'draft' या 'published' होनी चाहिए"
+      }
     }
   },
   "errors": {
@@ -149,6 +220,43 @@
   "sport": {
     "getAll": {
       "success": "खेल सफलतापूर्वक प्राप्त किए गए"
+    }
+  },
+  "coachingCenter": {
+    "create": {
+      "success": "कोचिंग सेंटर सफलतापूर्वक बनाया गया",
+      "failed": "कोचिंग सेंटर बनाने में विफल"
+    },
+    "get": {
+      "success": "कोचिंग सेंटर सफलतापूर्वक प्राप्त किया गया",
+      "failed": "कोचिंग सेंटर प्राप्त करने में विफल"
+    },
+    "update": {
+      "success": "कोचिंग सेंटर सफलतापूर्वक अपडेट किया गया",
+      "failed": "कोचिंग सेंटर अपडेट करने में विफल"
+    },
+    "idRequired": "कोचिंग सेंटर आईडी आवश्यक है",
+    "notFound": "कोचिंग सेंटर नहीं मिला",
+    "emailExists": "इस ईमेल के साथ कोचिंग सेंटर पहले से मौजूद है",
+    "mobileExists": "इस मोबाइल नंबर के साथ कोचिंग सेंटर पहले से मौजूद है",
+    "sports": {
+      "invalid": "एक या अधिक खेल अमान्य हैं"
+    },
+    "facility": {
+      "invalidId": "अमान्य सुविधा आईडी: {id}",
+      "notFound": "सुविधा नहीं मिली: {id}",
+      "createFailed": "सुविधा बनाने में विफल"
+    },
+    "media": {
+      "uploadSuccess": "मीडिया फ़ाइल सफलतापूर्वक अपलोड की गई",
+      "uploadFailed": "मीडिया फ़ाइल अपलोड करने में विफल",
+      "deleteSuccess": "मीडिया फ़ाइल सफलतापूर्वक हटाई गई",
+      "deleteFailed": "मीडिया फ़ाइल हटाने में विफल"
+    }
+  },
+  "facility": {
+    "getAll": {
+      "success": "सुविधाएं सफलतापूर्वक प्राप्त की गईं"
     }
   }
 }

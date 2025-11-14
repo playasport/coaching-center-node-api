@@ -598,6 +598,412 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        FacilityListItem: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'MongoDB Object ID',
+            },
+            custom_id: {
+              type: 'string',
+              format: 'uuid',
+              example: '06da21af-f11c-4cd9-8ecc-b21d3de9ad2c',
+              description: 'Unique identifier for the facility',
+            },
+            name: {
+              type: 'string',
+              example: 'Swimming Pool',
+              description: 'Name of the facility',
+            },
+            description: {
+              type: 'string',
+              nullable: true,
+              example: 'Olympic size swimming pool with modern facilities',
+              description: 'Description of the facility',
+            },
+            icon: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              example: 'https://bucket.s3.region.amazonaws.com/facilities/swimming-pool-icon.png',
+              description: 'URL of the facility icon',
+            },
+          },
+        },
+        CoachingCenterCreateRequest: {
+          type: 'object',
+          required: [
+            'center_name',
+            'mobile_number',
+            'email',
+            'sports',
+            'age',
+            'location',
+            'facility',
+            'operational_timing',
+            'bank_information',
+          ],
+          properties: {
+            center_name: {
+              type: 'string',
+              example: 'Elite Sports Academy',
+              description: 'Name of the coaching center',
+            },
+            mobile_number: {
+              type: 'string',
+              example: '9876543210',
+              description: 'Mobile number (10 digits, starting with 6-9)',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'info@elitesportsacademy.com',
+              description: 'Email address',
+            },
+            description: {
+              type: 'string',
+              example: 'Premier coaching center for multiple sports',
+              description: 'Description of the coaching center',
+            },
+            rules_regulation: {
+              type: 'string',
+              example: '1. All students must wear proper sports attire\n2. Punctuality is mandatory',
+              description: 'Rules and regulations',
+            },
+            logo: {
+              type: 'string',
+              format: 'uri',
+              example: 'https://bucket.s3.region.amazonaws.com/logos/elite-academy.png',
+              description: 'Logo URL',
+            },
+            sports: {
+              type: 'array',
+              items: {
+                type: 'string',
+                description: 'Sport ObjectId',
+              },
+              example: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'],
+              description: 'Array of sport IDs',
+            },
+            age: {
+              type: 'object',
+              required: ['min', 'max'],
+              properties: {
+                min: {
+                  type: 'number',
+                  example: 5,
+                  description: 'Minimum age',
+                },
+                max: {
+                  type: 'number',
+                  example: 18,
+                  description: 'Maximum age',
+                },
+              },
+            },
+            location: {
+              type: 'object',
+              required: ['latitude', 'longitude', 'address'],
+              properties: {
+                latitude: {
+                  type: 'number',
+                  example: 28.6139,
+                  description: 'Latitude coordinate',
+                },
+                longitude: {
+                  type: 'number',
+                  example: 77.209,
+                  description: 'Longitude coordinate',
+                },
+                address: {
+                  type: 'object',
+                  required: ['line1', 'line2', 'city', 'state', 'country', 'pincode'],
+                  properties: {
+                    line1: {
+                      type: 'string',
+                      example: '123 Sports Complex',
+                    },
+                    line2: {
+                      type: 'string',
+                      example: 'Near Metro Station',
+                    },
+                    city: {
+                      type: 'string',
+                      example: 'New Delhi',
+                    },
+                    state: {
+                      type: 'string',
+                      example: 'Delhi',
+                    },
+                    country: {
+                      type: 'string',
+                      example: 'India',
+                    },
+                    pincode: {
+                      type: 'string',
+                      example: '110001',
+                    },
+                  },
+                },
+              },
+            },
+            facility: {
+              oneOf: [
+                {
+                  type: 'string',
+                  example: '507f1f77bcf86cd799439011',
+                  description: 'Facility ID (if facility already exists)',
+                },
+                {
+                  type: 'object',
+                  properties: {
+                    name: {
+                      type: 'string',
+                      example: 'Swimming Pool',
+                      description: 'Facility name (required)',
+                    },
+                    description: {
+                      type: 'string',
+                      example: 'Olympic size swimming pool',
+                      description: 'Facility description (optional)',
+                    },
+                    icon: {
+                      type: 'string',
+                      format: 'uri',
+                      example: 'https://example.com/icons/swimming.png',
+                      description: 'Facility icon URL (optional)',
+                    },
+                  },
+                  required: ['name'],
+                  description: 'Facility object (if creating new facility)',
+                },
+              ],
+              description: 'Facility ID (string) or Facility object (name, description, icon). If object is provided and facility with same name exists, existing facility ID will be used. Otherwise, new facility will be created.',
+            },
+            operational_timing: {
+              type: 'object',
+              required: ['operating_days', 'opening_time', 'closing_time'],
+              properties: {
+                operating_days: {
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                    enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+                  },
+                  example: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+                  description: 'Days of operation',
+                },
+                opening_time: {
+                  type: 'string',
+                  example: '09:00',
+                  pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$',
+                  description: 'Opening time in HH:MM format',
+                },
+                closing_time: {
+                  type: 'string',
+                  example: '18:00',
+                  pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$',
+                  description: 'Closing time in HH:MM format',
+                },
+              },
+            },
+            media: {
+              type: 'object',
+              properties: {
+                images: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      unique_id: { type: 'string' },
+                      url: { type: 'string', format: 'uri' },
+                      is_active: { type: 'boolean', default: true },
+                      is_deleted: { type: 'boolean', default: false },
+                    },
+                  },
+                },
+                videos: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      unique_id: { type: 'string' },
+                      url: { type: 'string', format: 'uri' },
+                      is_active: { type: 'boolean', default: true },
+                      is_deleted: { type: 'boolean', default: false },
+                    },
+                  },
+                },
+                documents: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      unique_id: { type: 'string' },
+                      url: { type: 'string', format: 'uri' },
+                      is_active: { type: 'boolean', default: true },
+                      is_deleted: { type: 'boolean', default: false },
+                    },
+                  },
+                },
+              },
+            },
+            bank_information: {
+              type: 'object',
+              required: ['bank_name', 'account_number', 'ifsc_code', 'account_holder_name'],
+              properties: {
+                bank_name: {
+                  type: 'string',
+                  example: 'State Bank of India',
+                },
+                account_number: {
+                  type: 'string',
+                  example: '1234567890123456',
+                },
+                ifsc_code: {
+                  type: 'string',
+                  example: 'SBIN0001234',
+                },
+                account_holder_name: {
+                  type: 'string',
+                  example: 'Elite Sports Academy',
+                },
+                gst_number: {
+                  type: 'string',
+                  example: '07AABCU9603R1ZX',
+                  description: 'GST number (optional)',
+                },
+              },
+            },
+            status: {
+              type: 'string',
+              enum: ['draft', 'published'],
+              default: 'draft',
+              example: 'draft',
+              description: 'Status of the coaching center (draft or published)',
+            },
+          },
+        },
+        CoachingCenter: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+            },
+            center_name: {
+              type: 'string',
+              example: 'Elite Sports Academy',
+            },
+            mobile_number: {
+              type: 'string',
+              example: '9876543210',
+            },
+            email: {
+              type: 'string',
+              example: 'info@elitesportsacademy.com',
+            },
+            description: {
+              type: 'string',
+            },
+            rules_regulation: {
+              type: 'string',
+            },
+            logo: {
+              type: 'string',
+              format: 'uri',
+            },
+            sports: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/SportListItem',
+              },
+            },
+            age: {
+              type: 'object',
+              properties: {
+                min: { type: 'number' },
+                max: { type: 'number' },
+              },
+            },
+            location: {
+              type: 'object',
+              properties: {
+                latitude: { type: 'number' },
+                longitude: { type: 'number' },
+                address: {
+                  type: 'object',
+                  properties: {
+                    line1: { type: 'string' },
+                    line2: { type: 'string' },
+                    city: { type: 'string' },
+                    state: { type: 'string' },
+                    country: { type: 'string' },
+                    pincode: { type: 'string' },
+                  },
+                },
+              },
+            },
+            facility: {
+              type: 'object',
+              properties: {
+                custom_id: { type: 'string' },
+                name: { type: 'string' },
+                description: { type: 'string' },
+                icon: { type: 'string' },
+              },
+            },
+            operational_timing: {
+              type: 'object',
+              properties: {
+                operating_days: {
+                  type: 'array',
+                  items: { type: 'string' },
+                },
+                opening_time: { type: 'string' },
+                closing_time: { type: 'string' },
+              },
+            },
+            media: {
+              type: 'object',
+              properties: {
+                images: { type: 'array', items: { type: 'object' } },
+                videos: { type: 'array', items: { type: 'object' } },
+                documents: { type: 'array', items: { type: 'object' } },
+              },
+            },
+            bank_information: {
+              type: 'object',
+              properties: {
+                bank_name: { type: 'string' },
+                account_number: { type: 'string' },
+                ifsc_code: { type: 'string' },
+                account_holder_name: { type: 'string' },
+                gst_number: { type: 'string' },
+              },
+            },
+            status: {
+              type: 'string',
+              enum: ['draft', 'published'],
+            },
+            is_active: {
+              type: 'boolean',
+            },
+            is_deleted: {
+              type: 'boolean',
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+          },
+        },
       },
     },
     tags: [
@@ -620,6 +1026,18 @@ const options: swaggerJsdoc.Options = {
       {
         name: 'Sport',
         description: 'Sport endpoints for retrieving sports data',
+      },
+      {
+        name: 'Coaching Center',
+        description: 'Coaching center management endpoints',
+      },
+      {
+        name: 'Coaching Center Media',
+        description: 'Coaching center media upload endpoints',
+      },
+      {
+        name: 'Basic',
+        description: 'Basic endpoints for sports and facilities lists',
       },
     ],
   },

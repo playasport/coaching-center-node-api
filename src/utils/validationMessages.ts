@@ -66,5 +66,76 @@ export const validationMessages = {
   profile: {
     noChanges: () => getValidationMessage('profile.noChanges'),
   },
+  coachingCenter: {
+    centerName: {
+      required: () => getValidationMessage('coachingCenter.centerName.required'),
+      maxLength: () => getValidationMessage('coachingCenter.centerName.maxLength'),
+    },
+    description: {
+      required: () => getValidationMessage('coachingCenter.description.required'),
+      minLength: () => getValidationMessage('coachingCenter.description.minLength'),
+      maxLength: () => getValidationMessage('coachingCenter.description.maxLength'),
+    },
+    rulesRegulation: {
+      maxLength: () => getValidationMessage('coachingCenter.rulesRegulation.maxLength'),
+    },
+    logo: {
+      required: () => getValidationMessage('coachingCenter.logo.required'),
+      invalidUrl: () => getValidationMessage('coachingCenter.logo.invalidUrl'),
+      invalidAspectRatio: () => getValidationMessage('coachingCenter.logo.invalidAspectRatio'),
+    },
+    sports: {
+      required: () => getValidationMessage('coachingCenter.sports.required'),
+      minOne: () => getValidationMessage('coachingCenter.sports.minOne'),
+    },
+    age: {
+      minRequired: () => getValidationMessage('coachingCenter.age.minRequired'),
+      minInteger: () => getValidationMessage('coachingCenter.age.minInteger'),
+      minRange: () => getValidationMessage('coachingCenter.age.minRange'),
+      maxRequired: () => getValidationMessage('coachingCenter.age.maxRequired'),
+      maxInteger: () => getValidationMessage('coachingCenter.age.maxInteger'),
+      maxRange: () => getValidationMessage('coachingCenter.age.maxRange'),
+      maxGreaterThanMin: () => getValidationMessage('coachingCenter.age.maxGreaterThanMin'),
+    },
+    location: {
+      latitudeRequired: () => getValidationMessage('coachingCenter.location.latitudeRequired'),
+      latitudeRange: () => getValidationMessage('coachingCenter.location.latitudeRange'),
+      longitudeRequired: () => getValidationMessage('coachingCenter.location.longitudeRequired'),
+      longitudeRange: () => getValidationMessage('coachingCenter.location.longitudeRange'),
+    },
+    facility: {
+      required: () => getValidationMessage('coachingCenter.facility.required'),
+      invalid: () => getValidationMessage('coachingCenter.facility.invalid'),
+    },
+    operationalTiming: {
+      operatingDaysRequired: () => getValidationMessage('coachingCenter.operationalTiming.operatingDaysRequired'),
+      operatingDaysMinOne: () => getValidationMessage('coachingCenter.operationalTiming.operatingDaysMinOne'),
+      openingTimeRequired: () => getValidationMessage('coachingCenter.operationalTiming.openingTimeRequired'),
+      openingTimeFormat: () => getValidationMessage('coachingCenter.operationalTiming.openingTimeFormat'),
+      closingTimeRequired: () => getValidationMessage('coachingCenter.operationalTiming.closingTimeRequired'),
+      closingTimeFormat: () => getValidationMessage('coachingCenter.operationalTiming.closingTimeFormat'),
+      closingAfterOpening: () => getValidationMessage('coachingCenter.operationalTiming.closingAfterOpening'),
+    },
+    media: {
+      urlRequired: () => getValidationMessage('coachingCenter.media.urlRequired'),
+      urlInvalid: () => getValidationMessage('coachingCenter.media.urlInvalid'),
+    },
+    bankInformation: {
+      bankNameRequired: () => getValidationMessage('coachingCenter.bankInformation.bankNameRequired'),
+      bankNameMaxLength: () => getValidationMessage('coachingCenter.bankInformation.bankNameMaxLength'),
+      accountNumberRequired: () => getValidationMessage('coachingCenter.bankInformation.accountNumberRequired'),
+      accountNumberMinLength: () => getValidationMessage('coachingCenter.bankInformation.accountNumberMinLength'),
+      accountNumberMaxLength: () => getValidationMessage('coachingCenter.bankInformation.accountNumberMaxLength'),
+      accountNumberDigits: () => getValidationMessage('coachingCenter.bankInformation.accountNumberDigits'),
+      ifscCodeRequired: () => getValidationMessage('coachingCenter.bankInformation.ifscCodeRequired'),
+      ifscCodeFormat: () => getValidationMessage('coachingCenter.bankInformation.ifscCodeFormat'),
+      accountHolderNameRequired: () => getValidationMessage('coachingCenter.bankInformation.accountHolderNameRequired'),
+      accountHolderNameMaxLength: () => getValidationMessage('coachingCenter.bankInformation.accountHolderNameMaxLength'),
+      gstNumberFormat: () => getValidationMessage('coachingCenter.bankInformation.gstNumberFormat'),
+    },
+    status: {
+      invalid: () => getValidationMessage('coachingCenter.status.invalid'),
+    },
+  },
 };
 

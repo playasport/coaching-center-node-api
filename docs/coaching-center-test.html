@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coaching Center API Test Page</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .config-section {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .config-section input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f3f4f6;
+            border-left: 4px solid #667eea;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .response pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 12px;
+        }
+
+        .response.success {
+            border-left-color: #10b981;
+            background: #d1fae5;
+        }
+
+        .response.error {
+            border-left-color: #ef4444;
+            background: #fee2e2;
+        }
+
+        .list-item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            background: #f9fafb;
+        }
+
+        .list-item h4 {
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .list-item p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            color: #6b7280;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .file-upload {
+            border: 2px dashed #ddd;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload:hover {
+            border-color: #667eea;
+            background: #f3f4f6;
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .uploaded-files {
+            margin-top: 10px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: #f3f4f6;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+
+        .file-item a {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏋️ Coaching Center API Test Page</h1>
+            <p>Test all coaching center endpoints including create, update, sports, facilities, and media uploads</p>
+        </div>
+
+        <div class="config-section">
+            <label><strong>API Base URL:</strong></label>
+            <input type="text" id="baseUrl" value="http://localhost:3001/api/v1" placeholder="http://localhost:3000/api/v1">
+            <label style="margin-top: 10px;"><strong>Authorization Token * (Required for creating center):</strong></label>
+            <div style="display: flex; gap: 10px; align-items: flex-end;">
+                <div style="flex: 1;">
+                    <input type="text" id="authToken" placeholder="Bearer token (required)">
+                </div>
+                <button class="btn btn-primary" onclick="loadSportsAndFacilities()">Load Sports & Facilities</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('create')">Create Center</button>
+            <button class="tab" onclick="switchTab('update')">Update Center</button>
+            <button class="tab" onclick="switchTab('view')">View Center</button>
+        </div>
+
+        <!-- Create Center Tab -->
+        <div id="create" class="tab-content active">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2 style="margin: 0;">Create Coaching Center</h2>
+                    <button type="button" class="btn btn-secondary" onclick="autoFillForm()" style="margin: 0;">🔧 Auto Fill Form</button>
+                </div>
+                <form id="createForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Center Name *</label>
+                            <input type="text" id="create_center_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Mobile Number *</label>
+                            <input type="text" id="create_mobile_number" pattern="[6-9]\d{9}" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Email *</label>
+                        <input type="email" id="create_email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description * (min 5 characters)</label>
+                        <textarea id="create_description" required minlength="5"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Rules & Regulation (optional)</label>
+                        <textarea id="create_rules_regulation"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Logo URL (optional - will be auto-filled if you upload logo file below)</label>
+                        <input type="url" id="create_logo" placeholder="Enter logo URL manually OR upload file below (file upload is recommended)">
+                        <small style="color: #6b7280; display: block; margin-top: 5px;">💡 Tip: Upload logo file in Media Files section below - URL will be set automatically</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Sports * (Select at least one)</label>
+                        <div id="create_sports_checkboxes" class="checkbox-group"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Age Min *</label>
+                            <input type="number" id="create_age_min" min="3" max="18" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Age Max *</label>
+                            <input type="number" id="create_age_max" min="3" max="18" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Latitude *</label>
+                            <input type="number" id="create_latitude" step="any" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Longitude *</label>
+                            <input type="number" id="create_longitude" step="any" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Address Line 1 (optional)</label>
+                        <input type="text" id="create_address_line1">
+                    </div>
+                    <div class="form-group">
+                        <label>Address Line 2 *</label>
+                        <input type="text" id="create_address_line2" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>City *</label>
+                            <input type="text" id="create_city" required>
+                        </div>
+                        <div class="form-group">
+                            <label>State *</label>
+                            <input type="text" id="create_state" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Pincode *</label>
+                            <input type="text" id="create_pincode" pattern="\d{6}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Country (optional)</label>
+                            <input type="text" id="create_country" value="India">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Facilities (optional - Select existing or add new)</label>
+                        <div id="create_facilities_checkboxes" class="checkbox-group"></div>
+                        <div style="margin-top: 10px; padding: 10px; background: #f9fafb; border-radius: 5px;">
+                            <label style="font-size: 14px; font-weight: 500;">Add New Facility Names (comma-separated):</label>
+                            <input type="text" id="create_new_facilities" placeholder="e.g., Swimming Pool, Gym, Parking" style="margin-top: 5px;">
+                            <small style="color: #6b7280; display: block; margin-top: 5px;">Enter facility names separated by commas. New facilities will be created automatically.</small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Media Files (optional)</label>
+                        <div style="border: 1px solid #ddd; padding: 15px; border-radius: 5px; background: #f9fafb;">
+                            <div style="margin-bottom: 15px;">
+                                <label style="font-size: 14px; font-weight: 500;">Logo (Single Image)</label>
+                                <div class="file-upload" onclick="document.getElementById('create_logo_file').click()" style="margin-top: 5px;">
+                                    <input type="file" id="create_logo_file" accept="image/*" onchange="handleCreateFileSelect('logo', this)">
+                                    <p>Click to select logo image</p>
+                                </div>
+                                <div id="create_logo_preview" class="uploaded-files"></div>
+                            </div>
+                            <div style="margin-bottom: 15px;">
+                                <label style="font-size: 14px; font-weight: 500;">Images (Multiple, up to 10)</label>
+                                <div class="file-upload" onclick="document.getElementById('create_images_file').click()" style="margin-top: 5px;">
+                                    <input type="file" id="create_images_file" accept="image/*" multiple onchange="handleCreateFileSelect('images', this)">
+                                    <p>Click to select images</p>
+                                </div>
+                                <div id="create_images_preview" class="uploaded-files"></div>
+                            </div>
+                            <div style="margin-bottom: 15px;">
+                                <label style="font-size: 14px; font-weight: 500;">Videos (Multiple, up to 10)</label>
+                                <div class="file-upload" onclick="document.getElementById('create_videos_file').click()" style="margin-top: 5px;">
+                                    <input type="file" id="create_videos_file" accept="video/*" multiple onchange="handleCreateFileSelect('videos', this)">
+                                    <p>Click to select videos</p>
+                                </div>
+                                <div id="create_videos_preview" class="uploaded-files"></div>
+                            </div>
+                            <div>
+                                <label style="font-size: 14px; font-weight: 500;">Documents (Multiple, up to 10)</label>
+                                <div class="file-upload" onclick="document.getElementById('create_documents_file').click()" style="margin-top: 5px;">
+                                    <input type="file" id="create_documents_file" accept=".pdf,.doc,.docx,.xls,.xlsx" multiple onchange="handleCreateFileSelect('documents', this)">
+                                    <p>Click to select documents</p>
+                                </div>
+                                <div id="create_documents_preview" class="uploaded-files"></div>
+                            </div>
+                        </div>
+                        <small style="color: #6b7280; display: block; margin-top: 5px;">Note: Media files will be uploaded immediately when you select them. URLs will be used in final submission.</small>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Opening Time *</label>
+                            <input type="time" id="create_opening_time" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Closing Time *</label>
+                            <input type="time" id="create_closing_time" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Operating Days *</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item"><input type="checkbox" value="monday" id="create_day_monday"><label>Monday</label></div>
+                            <div class="checkbox-item"><input type="checkbox" value="tuesday" id="create_day_tuesday"><label>Tuesday</label></div>
+                            <div class="checkbox-item"><input type="checkbox" value="wednesday" id="create_day_wednesday"><label>Wednesday</label></div>
+                            <div class="checkbox-item"><input type="checkbox" value="thursday" id="create_day_thursday"><label>Thursday</label></div>
+                            <div class="checkbox-item"><input type="checkbox" value="friday" id="create_day_friday"><label>Friday</label></div>
+                            <div class="checkbox-item"><input type="checkbox" value="saturday" id="create_day_saturday"><label>Saturday</label></div>
+                            <div class="checkbox-item"><input type="checkbox" value="sunday" id="create_day_sunday"><label>Sunday</label></div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Bank Name *</label>
+                            <input type="text" id="create_bank_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Account Number *</label>
+                            <input type="text" id="create_account_number" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>IFSC Code *</label>
+                            <input type="text" id="create_ifsc_code" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Account Holder Name *</label>
+                            <input type="text" id="create_account_holder_name" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>GST Number (optional)</label>
+                        <input type="text" id="create_gst_number">
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="button" class="btn btn-secondary" onclick="submitCoachingCenter('draft')" style="flex: 1;">Save as Draft</button>
+                        <button type="button" class="btn btn-success" onclick="submitCoachingCenter('published')" style="flex: 1;">Save as Published</button>
+                    </div>
+                </form>
+                <div id="createResponse" class="response" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Update Center Tab -->
+        <div id="update" class="tab-content">
+            <div class="card">
+                <h2>Update Coaching Center</h2>
+                <div class="form-group">
+                    <label>Coaching Center ID *</label>
+                    <input type="text" id="update_center_id" placeholder="Enter coaching center ID">
+                    <button class="btn btn-secondary" onclick="loadCenterForUpdate()" style="margin-top: 10px;">Load Center</button>
+                </div>
+                <form id="updateForm" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Center Name</label>
+                            <input type="text" id="update_center_name">
+                        </div>
+                        <div class="form-group">
+                            <label>Mobile Number</label>
+                            <input type="text" id="update_mobile_number" pattern="[6-9]\d{9}">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="update_email">
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="update_status">
+                                <option value="">Keep Current</option>
+                                <option value="draft">Draft</option>
+                                <option value="published">Published</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="update_description"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Logo URL</label>
+                        <input type="url" id="update_logo">
+                    </div>
+                    <div class="form-group">
+                        <label>Sports</label>
+                        <div id="update_sports_checkboxes" class="checkbox-group"></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Coaching Center</button>
+                </form>
+                <div id="updateResponse" class="response" style="display: none;"></div>
+            </div>
+        </div>
+
+
+        <!-- View Center Tab -->
+        <div id="view" class="tab-content">
+            <div class="card">
+                <h2>View Coaching Center</h2>
+                <div class="form-group">
+                    <label>Coaching Center ID *</label>
+                    <input type="text" id="view_center_id" placeholder="Enter coaching center ID">
+                    <button class="btn btn-primary" onclick="viewCenter()" style="margin-top: 10px;">View Center</button>
+                </div>
+                <div id="viewResponse" class="response" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = () => document.getElementById('baseUrl').value || 'http://localhost:3000/api/v1';
+        const authToken = () => document.getElementById('authToken').value;
+
+        const headers = () => {
+            const h = { 'Content-Type': 'application/json' };
+            if (authToken()) {
+                h['Authorization'] = authToken().startsWith('Bearer') ? authToken() : `Bearer ${authToken()}`;
+            }
+            return h;
+        };
+
+        const showResponse = (elementId, data, isError = false) => {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            el.className = `response ${isError ? 'error' : 'success'}`;
+            el.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        };
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        async function loadSports() {
+            try {
+                const response = await fetch(`${baseUrl()}/sports`);
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        async function loadFacilities() {
+            try {
+                const response = await fetch(`${baseUrl()}/facilities`);
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        // Load sports and facilities when Load button is clicked
+        async function loadSportsAndFacilities() {
+            if (!authToken()) {
+                alert('Please enter Authorization Token first');
+                return;
+            }
+            
+            try {
+                const [sportsData, facilitiesData] = await Promise.all([loadSports(), loadFacilities()]);
+                
+                // Populate sports checkboxes
+                if (sportsData.success && sportsData.data && sportsData.data.sports) {
+                    const container = document.getElementById('create_sports_checkboxes');
+                    container.innerHTML = '';
+                    sportsData.data.sports.forEach(sport => {
+                        const div = document.createElement('div');
+                        div.className = 'checkbox-item';
+                        div.innerHTML = `
+                            <input type="checkbox" value="${sport._id}" id="sport_${sport._id}">
+                            <label for="sport_${sport._id}">${sport.name}</label>
+                        `;
+                        container.appendChild(div);
+                    });
+                }
+                
+                // Populate facilities checkboxes
+                if (facilitiesData.success && facilitiesData.data && facilitiesData.data.facilities) {
+                    const container = document.getElementById('create_facilities_checkboxes');
+                    container.innerHTML = '';
+                    facilitiesData.data.facilities.forEach(facility => {
+                        const div = document.createElement('div');
+                        div.className = 'checkbox-item';
+                        div.innerHTML = `
+                            <input type="checkbox" value="${facility._id}" id="facility_${facility._id}">
+                            <label for="facility_${facility._id}">${facility.name}</label>
+                        `;
+                        container.appendChild(div);
+                    });
+                }
+                
+                alert('Sports and Facilities loaded successfully!');
+            } catch (error) {
+                alert('Failed to load sports and facilities: ' + error.message);
+            }
+        }
+
+
+        // Store media files and uploaded URLs for create form
+        const createMediaFiles = { logo: null, images: [], videos: [], documents: [] };
+        const uploadedMediaUrls = { logo: null, images: [], videos: [], documents: [] };
+
+        async function handleCreateFileSelect(type, input) {
+            if (!authToken()) {
+                alert('Please enter Authorization Token first');
+                input.value = '';
+                return;
+            }
+
+            try {
+                if (type === 'logo') {
+                    if (!input.files[0]) return;
+                    createMediaFiles.logo = input.files[0];
+                    showCreateFilePreview('create_logo_preview', [input.files[0]], 'logo', true);
+                    // Upload immediately
+                    await uploadMediaFile(type, input.files[0]);
+                } else {
+                    if (!input.files || input.files.length === 0) return;
+                    createMediaFiles[type] = Array.from(input.files);
+                    showCreateFilePreview(`create_${type}_preview`, createMediaFiles[type], type, true);
+                    // Upload all files immediately
+                    for (let i = 0; i < input.files.length; i++) {
+                        await uploadMediaFile(type, input.files[i], i);
+                    }
+                }
+            } catch (error) {
+                alert('Failed to upload file: ' + error.message);
+                // Remove file from selection
+                input.value = '';
+                if (type === 'logo') {
+                    createMediaFiles.logo = null;
+                    document.getElementById('create_logo_preview').innerHTML = '';
+                } else {
+                    createMediaFiles[type] = [];
+                    document.getElementById(`create_${type}_preview`).innerHTML = '';
+                }
+            }
+        }
+
+        async function uploadMediaFile(type, file, index = null) {
+            const formData = new FormData();
+            
+            if (type === 'logo') {
+                formData.append('logo', file);
+            } else {
+                formData.append(type, file);
+            }
+
+            const h = {};
+            if (authToken()) {
+                h['Authorization'] = authToken().startsWith('Bearer') ? authToken() : `Bearer ${authToken()}`;
+            }
+
+            const response = await fetch(`${baseUrl()}/coaching-center/media`, {
+                method: 'POST',
+                headers: h,
+                body: formData
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Upload failed');
+            }
+
+            // Store the uploaded URL based on response structure
+            if (type === 'logo' && data.data && data.data.logo) {
+                uploadedMediaUrls.logo = data.data.logo.url;
+                // Always update logo URL input field with uploaded URL
+                const logoInput = document.getElementById('create_logo');
+                logoInput.value = data.data.logo.url;
+                // Add visual indicator that it's auto-filled
+                logoInput.style.backgroundColor = '#d1fae5';
+                logoInput.style.borderColor = '#10b981';
+                logoInput.title = 'Logo URL auto-filled from uploaded file';
+                // Update preview
+                const fileItem = document.getElementById(`file_logo_0`);
+                if (fileItem) {
+                    fileItem.innerHTML = `
+                        <span>${file.name} <a href="${data.data.logo.url}" target="_blank" style="color: #10b981; margin-left: 10px;">✓ Uploaded</a></span>
+                        <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeCreateFile('logo', 0)">Remove</button>
+                    `;
+                }
+            } else if (type === 'images' && data.data && data.data.images && data.data.images.urls && data.data.images.urls.length > 0) {
+                const url = data.data.images.urls[0];
+                const currentIndex = uploadedMediaUrls.images.length;
+                uploadedMediaUrls.images.push(url);
+                updateFilePreviewWithUrl(`create_images_preview`, file.name, url, index !== null ? index : currentIndex);
+            } else if (type === 'videos' && data.data && data.data.videos && data.data.videos.urls && data.data.videos.urls.length > 0) {
+                const url = data.data.videos.urls[0];
+                const currentIndex = uploadedMediaUrls.videos.length;
+                uploadedMediaUrls.videos.push(url);
+                updateFilePreviewWithUrl(`create_videos_preview`, file.name, url, index !== null ? index : currentIndex);
+            } else if (type === 'documents' && data.data && data.data.documents && data.data.documents.urls && data.data.documents.urls.length > 0) {
+                const url = data.data.documents.urls[0];
+                const currentIndex = uploadedMediaUrls.documents.length;
+                uploadedMediaUrls.documents.push(url);
+                updateFilePreviewWithUrl(`create_documents_preview`, file.name, url, index !== null ? index : currentIndex);
+            }
+
+            return data;
+        }
+
+        function showCreateFilePreview(containerId, files, type, isUploading = false) {
+            const container = document.getElementById(containerId);
+            if (isUploading) {
+                // Clear and show uploading state
+                container.innerHTML = '';
+            }
+            files.forEach((file, index) => {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.id = `file_${type}_${index}`;
+                div.innerHTML = `
+                    <span>${file.name} (${(file.size / 1024).toFixed(2)} KB) ${isUploading ? '<span class="loading" style="display: inline-block; margin-left: 10px;"></span> Uploading...' : ''}</span>
+                    <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeCreateFile('${type}', ${index})">Remove</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateFilePreviewWithUrl(containerId, fileName, url, index) {
+            const type = containerId.replace('create_', '').replace('_preview', '');
+            const fileItem = document.getElementById(`file_${type}_${index}`);
+            if (fileItem) {
+                fileItem.innerHTML = `
+                    <span>${fileName} <a href="${url}" target="_blank" style="color: #10b981; margin-left: 10px;">✓ Uploaded</a></span>
+                    <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeCreateFile('${type}', ${index})">Remove</button>
+                `;
+            }
+        }
+
+
+        function removeCreateFile(type, index) {
+            if (type === 'logo') {
+                createMediaFiles.logo = null;
+                uploadedMediaUrls.logo = null;
+                document.getElementById('create_logo_file').value = '';
+                document.getElementById('create_logo_preview').innerHTML = '';
+                // Clear logo URL if it was auto-filled from upload
+                const logoInput = document.getElementById('create_logo');
+                const logoUrl = logoInput.value;
+                if (logoUrl && (logoUrl.includes('temp/') || logoUrl.includes('coaching/photo/'))) {
+                    logoInput.value = '';
+                    // Reset styling
+                    logoInput.style.backgroundColor = '';
+                    logoInput.style.borderColor = '';
+                    logoInput.title = '';
+                }
+            } else {
+                createMediaFiles[type].splice(index, 1);
+                uploadedMediaUrls[type].splice(index, 1);
+                // Rebuild preview
+                const container = document.getElementById(`create_${type}_preview`);
+                container.innerHTML = '';
+                createMediaFiles[type].forEach((file, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'file-item';
+                    div.id = `file_${type}_${idx}`;
+                    const url = uploadedMediaUrls[type][idx];
+                    div.innerHTML = `
+                        <span>${file.name} ${url ? `<a href="${url}" target="_blank" style="color: #10b981; margin-left: 10px;">✓ Uploaded</a>` : ''}</span>
+                        <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeCreateFile('${type}', ${idx})">Remove</button>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+        }
+
+        async function submitCoachingCenter(status) {
+            try {
+                if (!authToken()) {
+                    alert('Please enter Authorization Token first');
+                    return;
+                }
+
+                const selectedSports = Array.from(document.querySelectorAll('#create_sports_checkboxes input:checked')).map(cb => cb.value);
+                if (selectedSports.length === 0) {
+                    alert('Please select at least one sport');
+                    return;
+                }
+
+                const selectedDays = Array.from(document.querySelectorAll('input[type="checkbox"][id^="create_day_"]:checked')).map(cb => cb.value);
+                if (selectedDays.length === 0) {
+                    alert('Please select at least one operating day');
+                    return;
+                }
+
+                // Handle facilities - can be array of IDs or array of objects (for new facilities)
+                const selectedFacilities = Array.from(document.querySelectorAll('#create_facilities_checkboxes input:checked')).map(cb => cb.value);
+                const newFacilitiesInput = document.getElementById('create_new_facilities').value.trim();
+                
+                let facility = [];
+                
+                // Add selected existing facilities (as IDs)
+                if (selectedFacilities.length > 0) {
+                    facility = facility.concat(selectedFacilities);
+                }
+                
+                // Add new facility names (as objects)
+                if (newFacilitiesInput) {
+                    const newFacilityNames = newFacilitiesInput.split(',').map(name => name.trim()).filter(name => name.length > 0);
+                    newFacilityNames.forEach(name => {
+                        facility.push({ name: name });
+                    });
+                }
+                
+                // Set to undefined if empty
+                if (facility.length === 0) {
+                    facility = undefined;
+                }
+
+                // Handle logo - prioritize uploaded file URL over manual URL
+                let logoUrl = null;
+                
+                // First check if logo file was uploaded
+                if (uploadedMediaUrls.logo) {
+                    logoUrl = uploadedMediaUrls.logo;
+                    // Also update the input field for user visibility
+                    document.getElementById('create_logo').value = logoUrl;
+                } else {
+                    // If no file uploaded, use manual URL if provided
+                    logoUrl = document.getElementById('create_logo').value.trim() || null;
+                }
+                
+                // For published status, logo is required
+                if (status === 'published' && !logoUrl) {
+                    alert('Logo is required for published centers. Please upload a logo file or enter a logo URL.');
+                    return;
+                }
+
+                // Prepare media object from already uploaded URLs
+                const media = {
+                    images: [],
+                    videos: [],
+                    documents: []
+                };
+
+                // Use already uploaded URLs
+                if (uploadedMediaUrls.images.length > 0) {
+                    media.images = uploadedMediaUrls.images.map(url => ({
+                        unique_id: generateUUID(),
+                        url: url,
+                        is_active: true,
+                        is_deleted: false
+                    }));
+                }
+                if (uploadedMediaUrls.videos.length > 0) {
+                    media.videos = uploadedMediaUrls.videos.map(url => ({
+                        unique_id: generateUUID(),
+                        url: url,
+                        is_active: true,
+                        is_deleted: false
+                    }));
+                }
+                if (uploadedMediaUrls.documents.length > 0) {
+                    media.documents = uploadedMediaUrls.documents.map(url => ({
+                        unique_id: generateUUID(),
+                        url: url,
+                        is_active: true,
+                        is_deleted: false
+                    }));
+                }
+
+                const payload = {
+                    center_name: document.getElementById('create_center_name').value,
+                    mobile_number: document.getElementById('create_mobile_number').value,
+                    email: document.getElementById('create_email').value,
+                    description: document.getElementById('create_description').value,
+                    rules_regulation: document.getElementById('create_rules_regulation').value || null,
+                    logo: logoUrl || null,
+                    sports: selectedSports,
+                    age: {
+                        min: parseInt(document.getElementById('create_age_min').value),
+                        max: parseInt(document.getElementById('create_age_max').value)
+                    },
+                    location: {
+                        latitude: parseFloat(document.getElementById('create_latitude').value),
+                        longitude: parseFloat(document.getElementById('create_longitude').value),
+                        address: {
+                            line1: document.getElementById('create_address_line1').value || null,
+                            line2: document.getElementById('create_address_line2').value,
+                            city: document.getElementById('create_city').value,
+                            state: document.getElementById('create_state').value,
+                            country: document.getElementById('create_country').value || null,
+                            pincode: document.getElementById('create_pincode').value
+                        }
+                    },
+                    facility: facility,
+                    operational_timing: {
+                        operating_days: selectedDays,
+                        opening_time: document.getElementById('create_opening_time').value,
+                        closing_time: document.getElementById('create_closing_time').value
+                    },
+                    media: (media.images.length > 0 || media.videos.length > 0 || media.documents.length > 0) ? media : undefined,
+                    bank_information: {
+                        bank_name: document.getElementById('create_bank_name').value,
+                        account_number: document.getElementById('create_account_number').value,
+                        ifsc_code: document.getElementById('create_ifsc_code').value,
+                        account_holder_name: document.getElementById('create_account_holder_name').value,
+                        gst_number: document.getElementById('create_gst_number').value || null
+                    },
+                    status: status
+                };
+
+                const response = await fetch(`${baseUrl()}/coaching-center`, {
+                    method: 'POST',
+                    headers: headers(),
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                showResponse('createResponse', data, !response.ok);
+                
+                if (response.ok) {
+                    // Reset form
+                    document.getElementById('createForm').reset();
+                    createMediaFiles.logo = null;
+                    createMediaFiles.images = [];
+                    createMediaFiles.videos = [];
+                    createMediaFiles.documents = [];
+                    uploadedMediaUrls.logo = null;
+                    uploadedMediaUrls.images = [];
+                    uploadedMediaUrls.videos = [];
+                    uploadedMediaUrls.documents = [];
+                    document.querySelectorAll('[id^="create_"]').forEach(el => {
+                        if (el.id.includes('_preview')) el.innerHTML = '';
+                    });
+                }
+            } catch (error) {
+                showResponse('createResponse', { error: error.message }, true);
+            }
+        }
+
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function autoFillForm() {
+            // Basic Information
+            document.getElementById('create_center_name').value = 'Elite Sports Academy';
+            document.getElementById('create_mobile_number').value = '9876543210';
+            document.getElementById('create_email').value = 'contact@elitesportsacademy.com';
+            document.getElementById('create_description').value = 'Elite Sports Academy is a premier coaching center offering world-class training in multiple sports. We provide professional coaching, state-of-the-art facilities, and personalized training programs for athletes of all levels. Our experienced coaches and modern infrastructure ensure the best learning experience for our students.';
+            document.getElementById('create_rules_regulation').value = '1. All students must maintain discipline and respect towards coaches and fellow students.\n2. Regular attendance is mandatory for optimal performance.\n3. Proper sports attire is required during training sessions.\n4. Students must follow safety guidelines at all times.\n5. Any misconduct will result in immediate action.';
+
+            // Logo URL (sample)
+            document.getElementById('create_logo').value = 'https://example.com/logo.jpg';
+
+            // Age Range
+            document.getElementById('create_age_min').value = '5';
+            document.getElementById('create_age_max').value = '18';
+
+            // Location
+            document.getElementById('create_latitude').value = '28.6139';
+            document.getElementById('create_longitude').value = '77.2090';
+            document.getElementById('create_address_line1').value = '123 Sports Complex';
+            document.getElementById('create_address_line2').value = 'Near Metro Station, Sector 15';
+            document.getElementById('create_city').value = 'New Delhi';
+            document.getElementById('create_state').value = 'Delhi';
+            document.getElementById('create_pincode').value = '110015';
+            document.getElementById('create_country').value = 'India';
+
+            // Facilities will be populated when "Load Sports & Facilities" is clicked
+
+            // Operating Hours
+            document.getElementById('create_opening_time').value = '06:00';
+            document.getElementById('create_closing_time').value = '20:00';
+
+            // Operating Days - Select all weekdays
+            document.getElementById('create_day_monday').checked = true;
+            document.getElementById('create_day_tuesday').checked = true;
+            document.getElementById('create_day_wednesday').checked = true;
+            document.getElementById('create_day_thursday').checked = true;
+            document.getElementById('create_day_friday').checked = true;
+            document.getElementById('create_day_saturday').checked = true;
+            document.getElementById('create_day_sunday').checked = false;
+
+            // Bank Information
+            document.getElementById('create_bank_name').value = 'State Bank of India';
+            document.getElementById('create_account_number').value = '1234567890123456';
+            document.getElementById('create_ifsc_code').value = 'SBIN0001234';
+            document.getElementById('create_account_holder_name').value = 'Elite Sports Academy';
+            document.getElementById('create_gst_number').value = '07AABCU9603R1ZX';
+
+            // Show success message
+            alert('Form auto-filled successfully! Please select sports from the checkboxes above and click "Load Sports & Facilities" if needed.');
+        }
+
+        async function loadCenterForUpdate() {
+            const centerId = document.getElementById('update_center_id').value;
+            if (!centerId) {
+                alert('Please enter a coaching center ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${baseUrl()}/coaching-center/${centerId}`);
+                const data = await response.json();
+                
+                if (data.success && data.data && data.data.coachingCenter) {
+                    const center = data.data.coachingCenter;
+                    document.getElementById('update_center_name').value = center.center_name || '';
+                    document.getElementById('update_mobile_number').value = center.mobile_number || '';
+                    document.getElementById('update_email').value = center.email || '';
+                    document.getElementById('update_description').value = center.description || '';
+                    document.getElementById('update_logo').value = center.logo || '';
+                    document.getElementById('update_status').value = center.status || '';
+                    
+                    // Populate sports checkboxes for update
+                    const container = document.getElementById('update_sports_checkboxes');
+                    container.innerHTML = '';
+                    // Load sports and populate
+                    const sportsResponse = await fetch(`${baseUrl()}/sports`);
+                    const sportsData = await sportsResponse.json();
+                    if (sportsData.success && sportsData.data && sportsData.data.sports) {
+                        sportsData.data.sports.forEach(sport => {
+                            const div = document.createElement('div');
+                            div.className = 'checkbox-item';
+                            const isSelected = center.sports && center.sports.some(s => s._id === sport._id);
+                            div.innerHTML = `
+                                <input type="checkbox" value="${sport._id}" id="update_sport_${sport._id}" ${isSelected ? 'checked' : ''}>
+                                <label for="update_sport_${sport._id}">${sport.name}</label>
+                            `;
+                            container.appendChild(div);
+                        });
+                    }
+                    
+                    document.getElementById('updateForm').style.display = 'block';
+                    showResponse('updateResponse', data);
+                } else {
+                    showResponse('updateResponse', data, true);
+                }
+            } catch (error) {
+                showResponse('updateResponse', { error: error.message }, true);
+            }
+        }
+
+        document.getElementById('updateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const centerId = document.getElementById('update_center_id').value;
+                const selectedSports = Array.from(document.querySelectorAll('#update_sports_checkboxes input:checked')).map(cb => cb.value);
+
+                const payload = {};
+                if (document.getElementById('update_center_name').value) payload.center_name = document.getElementById('update_center_name').value;
+                if (document.getElementById('update_mobile_number').value) payload.mobile_number = document.getElementById('update_mobile_number').value;
+                if (document.getElementById('update_email').value) payload.email = document.getElementById('update_email').value;
+                if (document.getElementById('update_description').value) payload.description = document.getElementById('update_description').value;
+                if (document.getElementById('update_logo').value) payload.logo = document.getElementById('update_logo').value;
+                if (selectedSports.length > 0) payload.sports = selectedSports;
+                if (document.getElementById('update_status').value) payload.status = document.getElementById('update_status').value;
+
+                const response = await fetch(`${baseUrl()}/coaching-center/${centerId}`, {
+                    method: 'PATCH',
+                    headers: headers(),
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                showResponse('updateResponse', data, !response.ok);
+            } catch (error) {
+                showResponse('updateResponse', { error: error.message }, true);
+            }
+        });
+
+
+        async function viewCenter() {
+            const centerId = document.getElementById('view_center_id').value;
+            if (!centerId) {
+                alert('Please enter a coaching center ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${baseUrl()}/coaching-center/${centerId}`);
+                const data = await response.json();
+                showResponse('viewResponse', data, !response.ok);
+            } catch (error) {
+                showResponse('viewResponse', { error: error.message }, true);
+            }
+        }
+    </script>
+</body>
+</html>
+
