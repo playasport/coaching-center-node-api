@@ -145,6 +145,11 @@
       "success": "Cities retrieved successfully",
       "stateRequired": "State name or state ID is required"
     }
+  },
+  "sport": {
+    "getAll": {
+      "success": "Sports retrieved successfully"
+    }
   }
 }
 
