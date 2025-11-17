@@ -2,7 +2,6 @@ import cron from 'node-cron';
 import { CoachingCenterModel } from '../models/coachingCenter.model';
 import * as mediaService from '../services/coachingCenterMedia.service';
 import { logger } from '../utils/logger';
-import { config } from '../config/env';
 
 /**
  * Cleanup job to permanently delete media that has been soft deleted for 6+ months

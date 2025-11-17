@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import { Types } from 'mongoose';
 import { verifyAccessToken } from '../utils/jwt';
 import { isTokenBlacklisted } from '../utils/tokenBlacklist';
 import { UserModel } from '../models/user.model';

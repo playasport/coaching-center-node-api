@@ -7,7 +7,6 @@ import { Request, Response, NextFunction } from 'express';
 import Redis from 'ioredis';
 import { config } from '../config/env';
 import { logger } from '../utils/logger';
-import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
 
 let redisClient: Redis | null = null;
