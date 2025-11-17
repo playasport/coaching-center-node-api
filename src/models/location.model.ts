@@ -51,9 +51,9 @@ export type CityDocument = HydratedDocument<City>;
 
 const countrySchema = new Schema<Country>(
   {
-    name: { type: String, required: true, trim: true, index: true },
+    name: { type: String, required: true, trim: true },
     code: { type: String, trim: true },
-    iso2: { type: String, trim: true, index: true },
+    iso2: { type: String, trim: true },
     iso3: { type: String, trim: true },
     phoneCode: { type: String, trim: true },
     currency: { type: String, trim: true },

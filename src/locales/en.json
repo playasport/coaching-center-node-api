@@ -38,7 +38,12 @@
     },
     "token": {
       "noToken": "No token provided or invalid format",
-      "invalidToken": "Invalid or expired token"
+      "invalidToken": "Invalid or expired token",
+      "refreshed": "Token refreshed successfully"
+    },
+    "logout": {
+      "success": "Logged out successfully",
+      "allSuccess": "Logged out from all devices successfully"
     },
     "authorization": {
       "unauthorized": "Unauthorized",
@@ -50,6 +55,10 @@
       "resetUserNotFound": "No account found for the provided details",
       "resetOtpInvalid": "Password reset OTP is invalid or has expired"
     }
+  },
+  "rateLimit": {
+    "exceeded": "Too many requests. Please try again later.",
+    "loginExceeded": "Too many login attempts. Please try again later."
   },
   "validation": {
     "failed": "Validation failed",
@@ -231,9 +240,22 @@
       "success": "Coaching center retrieved successfully",
       "failed": "Failed to fetch coaching center"
     },
+    "list": {
+      "success": "Coaching centers retrieved successfully",
+      "failed": "Failed to fetch coaching centers"
+    },
     "update": {
       "success": "Coaching center updated successfully",
       "failed": "Failed to update coaching center"
+    },
+    "toggleStatus": {
+      "active": "Coaching center activated successfully",
+      "inactive": "Coaching center deactivated successfully",
+      "failed": "Failed to toggle coaching center active status"
+    },
+    "delete": {
+      "success": "Coaching center deleted successfully",
+      "failed": "Failed to delete coaching center"
     },
     "idRequired": "Coaching center ID is required",
     "notFound": "Coaching center not found",
@@ -251,7 +273,14 @@
       "uploadSuccess": "Media file uploaded successfully",
       "uploadFailed": "Failed to upload media file",
       "deleteSuccess": "Media file deleted successfully",
-      "deleteFailed": "Failed to delete media file"
+      "deleteFailed": "Failed to delete media file",
+      "removeSuccess": "Media removed successfully",
+      "removeFailed": "Failed to remove media",
+      "notFound": "Media not found",
+      "missingParams": "Media type and unique ID are required",
+      "invalidType": "Invalid media type. Must be one of: logo, document, image, video",
+      "sportIdRequired": "Sport ID is required for image/video media types",
+      "sportDetailNotFound": "Sport detail not found for the provided sport ID"
     }
   },
   "facility": {

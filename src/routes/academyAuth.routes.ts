@@ -11,6 +11,9 @@ import {
   getCurrentAcademyUser,
   requestAcademyPasswordReset,
   verifyAcademyPasswordReset,
+  refreshToken,
+  logout,
+  logoutAll,
 } from '../controllers/academyAuth.controller';
 import { validate } from '../middleware/validation.middleware';
 import {
@@ -26,6 +29,7 @@ import {
   academyForgotPasswordVerifySchema,
 } from '../validations/auth.validation';
 import { authenticate, authorize } from '../middleware/auth.middleware';
+import { loginRateLimit, generalRateLimit } from '../middleware/rateLimit.middleware';
 import { DefaultRoles } from '../models/role.model';
 import { uploadProfileImage } from '../middleware/upload.middleware';
 
@@ -85,7 +89,7 @@ router.post('/register', validate(academyRegisterSchema), registerAcademyUser);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/login', validate(academyLoginSchema), loginAcademyUser);
+router.post('/login', loginRateLimit, validate(academyLoginSchema), loginAcademyUser);
 
 /**
  * @swagger
@@ -397,6 +401,85 @@ router.post(
   validate(academyForgotPasswordVerifySchema),
   verifyAcademyPasswordReset
 );
+
+/**
+ * @swagger
+ * /academy/auth/refresh:
+ *   post:
+ *     summary: Refresh access token using refresh token
+ *     tags: [Academy Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RefreshTokenResponse'
+ *       401:
+ *         description: Invalid or expired refresh token
+ */
+router.post('/refresh', generalRateLimit, refreshToken);
+
+/**
+ * @swagger
+ * /academy/auth/logout:
+ *   post:
+ *     summary: Logout user (blacklist current tokens)
+ *     tags: [Academy Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: Optional refresh token to blacklist
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LogoutResponse'
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/logout', authenticate, authorize(DefaultRoles.ACADEMY), logout);
+
+/**
+ * @swagger
+ * /academy/auth/logout-all:
+ *   post:
+ *     summary: Logout from all devices (blacklist all user tokens)
+ *     tags: [Academy Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logged out from all devices successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LogoutResponse'
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/logout-all', authenticate, authorize(DefaultRoles.ACADEMY), logoutAll);
 
 export default router;
 

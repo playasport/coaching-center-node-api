@@ -4,7 +4,8 @@ import { t } from '../utils/i18n';
 import { userService, UpdateUserData } from '../services/user.service';
 import { DefaultRoles } from '../models/role.model';
 import { comparePassword } from '../utils';
-import { generateToken } from '../utils/jwt';
+import { generateTokenPair, verifyRefreshToken } from '../utils/jwt';
+import { blacklistToken, blacklistUserTokens } from '../utils/tokenBlacklist';
 import { sendOtpSms } from '../services/sms.service';
 import { sendPasswordResetEmail } from '../services/email.service';
 import { otpService } from '../services/otp.service';
@@ -70,7 +71,7 @@ export const registerAcademyUser = async (
       isActive: true,
     });
 
-    const token = generateToken({
+    const { accessToken, refreshToken } = generateTokenPair({
       id: user.id,
       email: user.email,
       role: user.role?.id ?? DefaultRoles.USER,
@@ -80,7 +81,8 @@ export const registerAcademyUser = async (
       201,
       {
         user,
-        token,
+        accessToken,
+        refreshToken,
       },
       t('auth.register.success')
     );
@@ -118,7 +120,7 @@ export const loginAcademyUser = async (
       throw new ApiError(401, t('auth.login.invalidCredentials'));
     }
 
-    const token = generateToken({
+    const { accessToken, refreshToken } = generateTokenPair({
       id: user.id,
       email: user.email,
       role: user.role?.id ?? DefaultRoles.USER,
@@ -126,7 +128,8 @@ export const loginAcademyUser = async (
 
     const response = new ApiResponse(200, {
       user: userService.sanitize(user),
-      token,
+      accessToken,
+      refreshToken,
     }, t('auth.login.success'));
     res.json(response);
   } catch (error) {
@@ -182,7 +185,7 @@ export const socialLoginAcademyUser = async (
       throw new ApiError(403, t('auth.login.inactive'));
     }
 
-    const token = generateToken({
+    const { accessToken, refreshToken } = generateTokenPair({
       id: user.id,
       email: user.email,
       role: user.role?.id ?? DefaultRoles.USER,
@@ -192,7 +195,8 @@ export const socialLoginAcademyUser = async (
       200,
       {
         user,
-        token,
+        accessToken,
+        refreshToken,
         provider: payload.provider ?? decodedToken.firebase?.sign_in_provider,
       },
       t('auth.social.loginSuccess')
@@ -466,7 +470,7 @@ export const verifyAcademyPasswordReset = async (
       throw new ApiError(500, t('errors.internalServerError'));
     }
 
-    const token = generateToken({
+    const { accessToken, refreshToken } = generateTokenPair({
       id: updatedUser.id,
       email: updatedUser.email,
       role: updatedUser.role?.id ?? DefaultRoles.USER,
@@ -476,7 +480,8 @@ export const verifyAcademyPasswordReset = async (
       200,
       {
         user: updatedUser,
-        token,
+        accessToken,
+        refreshToken,
       },
       t('auth.password.resetSuccess')
     );
@@ -607,7 +612,7 @@ export const verifyAcademyOtp = async (
         throw new ApiError(403, t('auth.login.inactive'));
       }
 
-      const token = generateToken({
+      const { accessToken, refreshToken } = generateTokenPair({
         id: user.id,
         email: user.email,
         role: user.role?.id ?? DefaultRoles.USER,
@@ -617,7 +622,8 @@ export const verifyAcademyOtp = async (
         200,
         {
           user,
-          token,
+          accessToken,
+          refreshToken,
         },
         t('auth.login.success')
       );
@@ -633,4 +639,112 @@ export const verifyAcademyOtp = async (
   }
 };
 
+/**
+ * Refresh access token using refresh token
+ */
+export const refreshToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { refreshToken: token } = req.body as { refreshToken: string };
+
+    if (!token) {
+      throw new ApiError(400, t('auth.token.noToken'));
+    }
+
+    // Verify refresh token
+    let decoded;
+    try {
+      decoded = verifyRefreshToken(token);
+    } catch (error) {
+      throw new ApiError(401, t('auth.token.invalidToken'));
+    }
+
+    // Check if user still exists and is active
+    const user = await userService.findById(decoded.id);
+    if (!user || !user.isActive || user.isDeleted) {
+      throw new ApiError(401, t('auth.token.invalidToken'));
+    }
+
+    // Generate new token pair
+    const { accessToken, refreshToken: newRefreshToken } = generateTokenPair({
+      id: user.id,
+      email: user.email,
+      role: user.role?.id ?? DefaultRoles.USER,
+    });
+
+    // Blacklist old refresh token
+    await blacklistToken(token);
+
+    const response = new ApiResponse(
+      200,
+      {
+        accessToken,
+        refreshToken: newRefreshToken,
+      },
+      t('auth.token.refreshed')
+    );
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Logout user - blacklist current tokens
+ */
+export const logout = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      // Blacklist the access token
+      await blacklistToken(token);
+    }
+
+    // If refresh token is provided in body, blacklist it too
+    const { refreshToken } = req.body as { refreshToken?: string };
+    if (refreshToken) {
+      await blacklistToken(refreshToken);
+    }
+
+    const response = new ApiResponse(200, null, t('auth.logout.success'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Logout from all devices - blacklist all user tokens
+ */
+export const logoutAll = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    // Blacklist all tokens for this user
+    await blacklistUserTokens(req.user.id);
+
+    const response = new ApiResponse(200, null, t('auth.logout.allSuccess'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
 

@@ -322,8 +322,10 @@
 
         <div class="tabs">
             <button class="tab active" onclick="switchTab('create')">Create Center</button>
+            <button class="tab" onclick="switchTab('list')">My Centers</button>
             <button class="tab" onclick="switchTab('update')">Update Center</button>
             <button class="tab" onclick="switchTab('view')">View Center</button>
+            <button class="tab" onclick="switchTab('actions')">Actions</button>
         </div>
 
         <!-- Create Center Tab -->
@@ -349,12 +351,12 @@
                         <input type="email" id="create_email" required>
                     </div>
                     <div class="form-group">
-                        <label>Description * (min 5 characters)</label>
-                        <textarea id="create_description" required minlength="5"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Rules & Regulation (optional)</label>
-                        <textarea id="create_rules_regulation"></textarea>
+                        <label>Rules & Regulation (optional - Add multiple rules)</label>
+                        <div id="rules_regulation_container" style="border: 1px solid #ddd; padding: 15px; border-radius: 5px; background: #f9fafb;">
+                            <div id="rules_list"></div>
+                            <button type="button" class="btn btn-secondary" onclick="addRule()" style="margin-top: 10px; padding: 8px 15px; font-size: 14px;">+ Add Rule</button>
+                        </div>
+                        <small style="color: #6b7280; display: block; margin-top: 5px;">Click "Add Rule" to add multiple rules. Each rule can be up to 500 characters.</small>
                     </div>
                     <div class="form-group">
                         <label>Logo URL (optional - will be auto-filled if you upload logo file below)</label>
@@ -364,6 +366,11 @@
                     <div class="form-group">
                         <label>Sports * (Select at least one)</label>
                         <div id="create_sports_checkboxes" class="checkbox-group"></div>
+                        <small style="color: #6b7280; display: block; margin-top: 5px;">After selecting sports, you'll be able to add sport-specific descriptions, images, and videos below.</small>
+                    </div>
+                    <div class="form-group" id="sport_details_section" style="display: none;">
+                        <label>Sport Details * (Add description, images, and videos for each selected sport)</label>
+                        <div id="sport_details_container" style="border: 1px solid #ddd; padding: 15px; border-radius: 5px; background: #f9fafb;"></div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -423,7 +430,7 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Media Files (optional)</label>
+                        <label>General Documents (optional - not sport-specific)</label>
                         <div style="border: 1px solid #ddd; padding: 15px; border-radius: 5px; background: #f9fafb;">
                             <div style="margin-bottom: 15px;">
                                 <label style="font-size: 14px; font-weight: 500;">Logo (Single Image)</label>
@@ -432,22 +439,6 @@
                                     <p>Click to select logo image</p>
                                 </div>
                                 <div id="create_logo_preview" class="uploaded-files"></div>
-                            </div>
-                            <div style="margin-bottom: 15px;">
-                                <label style="font-size: 14px; font-weight: 500;">Images (Multiple, up to 10)</label>
-                                <div class="file-upload" onclick="document.getElementById('create_images_file').click()" style="margin-top: 5px;">
-                                    <input type="file" id="create_images_file" accept="image/*" multiple onchange="handleCreateFileSelect('images', this)">
-                                    <p>Click to select images</p>
-                                </div>
-                                <div id="create_images_preview" class="uploaded-files"></div>
-                            </div>
-                            <div style="margin-bottom: 15px;">
-                                <label style="font-size: 14px; font-weight: 500;">Videos (Multiple, up to 10)</label>
-                                <div class="file-upload" onclick="document.getElementById('create_videos_file').click()" style="margin-top: 5px;">
-                                    <input type="file" id="create_videos_file" accept="video/*" multiple onchange="handleCreateFileSelect('videos', this)">
-                                    <p>Click to select videos</p>
-                                </div>
-                                <div id="create_videos_preview" class="uploaded-files"></div>
                             </div>
                             <div>
                                 <label style="font-size: 14px; font-weight: 500;">Documents (Multiple, up to 10)</label>
@@ -458,7 +449,7 @@
                                 <div id="create_documents_preview" class="uploaded-files"></div>
                             </div>
                         </div>
-                        <small style="color: #6b7280; display: block; margin-top: 5px;">Note: Media files will be uploaded immediately when you select them. URLs will be used in final submission.</small>
+                        <small style="color: #6b7280; display: block; margin-top: 5px;">Note: Logo and documents will be uploaded immediately when you select them. Sport-specific images and videos should be added in the Sport Details section above.</small>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -515,6 +506,28 @@
             </div>
         </div>
 
+        <!-- List My Centers Tab -->
+        <div id="list" class="tab-content">
+            <div class="card">
+                <h2>My Coaching Centers</h2>
+                <div class="form-group">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Page</label>
+                            <input type="number" id="list_page" value="1" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Limit (records per page)</label>
+                            <input type="number" id="list_limit" value="10" min="1" max="100">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="loadMyCenters()">Load My Centers</button>
+                </div>
+                <div id="listResponse" class="response" style="display: none;"></div>
+                <div id="centersList" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+
         <!-- Update Center Tab -->
         <div id="update" class="tab-content">
             <div class="card">
@@ -525,6 +538,9 @@
                     <button class="btn btn-secondary" onclick="loadCenterForUpdate()" style="margin-top: 10px;">Load Center</button>
                 </div>
                 <form id="updateForm" style="display: none;">
+                    <div style="background: #f0f9ff; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #667eea;">
+                        <strong>ℹ️ Note:</strong> All fields are optional. Only fill in the fields you want to update. If status is set to "published", all required fields must be present (either from existing data or in this form).
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Center Name</label>
@@ -535,33 +551,166 @@
                             <input type="text" id="update_mobile_number" pattern="[6-9]\d{9}">
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="update_email">
+                    </div>
+                    <div class="form-group">
+                        <label>Rules & Regulation (optional - Add multiple rules)</label>
+                        <div id="update_rules_regulation_container" style="border: 1px solid #ddd; padding: 15px; border-radius: 5px; background: #f9fafb;">
+                            <div id="update_rules_list"></div>
+                            <button type="button" class="btn btn-secondary" onclick="addUpdateRule()" style="margin-top: 10px; padding: 8px 15px; font-size: 14px;">+ Add Rule</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Logo URL (optional - will be auto-filled if you upload logo file below)</label>
+                        <input type="url" id="update_logo" placeholder="Enter logo URL manually OR upload file below">
+                        <div style="margin-top: 10px;">
+                            <div class="file-upload" onclick="document.getElementById('update_logo_file').click()" style="margin-top: 5px;">
+                                <input type="file" id="update_logo_file" accept="image/*" onchange="handleUpdateFileSelect('logo', this)">
+                                <p>Click to select logo image</p>
+                            </div>
+                            <div id="update_logo_preview" class="uploaded-files"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Sports (optional)</label>
+                        <div id="update_sports_checkboxes" class="checkbox-group"></div>
+                        <small style="color: #6b7280; display: block; margin-top: 5px;">After selecting sports, you'll be able to add sport-specific descriptions, images, and videos below.</small>
+                    </div>
+                    <div class="form-group" id="update_sport_details_section" style="display: none;">
+                        <label>Sport Details (optional - Add description, images, and videos for each selected sport)</label>
+                        <div id="update_sport_details_container" style="border: 1px solid #ddd; padding: 15px; border-radius: 5px; background: #f9fafb;"></div>
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" id="update_email">
+                            <label>Age Min</label>
+                            <input type="number" id="update_age_min" min="3" max="18">
                         </div>
                         <div class="form-group">
-                            <label>Status</label>
-                            <select id="update_status">
-                                <option value="">Keep Current</option>
-                                <option value="draft">Draft</option>
-                                <option value="published">Published</option>
-                            </select>
+                            <label>Age Max</label>
+                            <input type="number" id="update_age_max" min="3" max="18">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Latitude</label>
+                            <input type="number" id="update_latitude" step="any">
+                        </div>
+                        <div class="form-group">
+                            <label>Longitude</label>
+                            <input type="number" id="update_longitude" step="any">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Description</label>
-                        <textarea id="update_description"></textarea>
+                        <label>Address Line 1 (optional)</label>
+                        <input type="text" id="update_address_line1">
                     </div>
                     <div class="form-group">
-                        <label>Logo URL</label>
-                        <input type="url" id="update_logo">
+                        <label>Address Line 2</label>
+                        <input type="text" id="update_address_line2">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>City</label>
+                            <input type="text" id="update_city">
+                        </div>
+                        <div class="form-group">
+                            <label>State</label>
+                            <input type="text" id="update_state">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Pincode</label>
+                            <input type="text" id="update_pincode" pattern="\d{6}">
+                        </div>
+                        <div class="form-group">
+                            <label>Country (optional)</label>
+                            <input type="text" id="update_country">
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label>Sports</label>
-                        <div id="update_sports_checkboxes" class="checkbox-group"></div>
+                        <label>Facilities (optional - Select existing or add new)</label>
+                        <div id="update_facilities_checkboxes" class="checkbox-group"></div>
+                        <div style="margin-top: 10px; padding: 10px; background: #f9fafb; border-radius: 5px;">
+                            <label style="font-size: 14px; font-weight: 500;">Add New Facility Names (comma-separated):</label>
+                            <input type="text" id="update_new_facilities" placeholder="e.g., Swimming Pool, Gym, Parking" style="margin-top: 5px;">
+                            <small style="color: #6b7280; display: block; margin-top: 5px;">Enter facility names separated by commas. New facilities will be created automatically.</small>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Update Coaching Center</button>
+                    <div class="form-group">
+                        <label>General Documents (optional - not sport-specific)</label>
+                        <div style="border: 1px solid #ddd; padding: 15px; border-radius: 5px; background: #f9fafb;">
+                            <div>
+                                <label style="font-size: 14px; font-weight: 500;">Documents (Multiple, up to 10)</label>
+                                <div class="file-upload" onclick="document.getElementById('update_documents_file').click()" style="margin-top: 5px;">
+                                    <input type="file" id="update_documents_file" accept=".pdf,.doc,.docx,.xls,.xlsx" multiple onchange="handleUpdateFileSelect('documents', this)">
+                                    <p>Click to select documents</p>
+                                </div>
+                                <div id="update_documents_preview" class="uploaded-files"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Opening Time</label>
+                            <input type="time" id="update_opening_time">
+                        </div>
+                        <div class="form-group">
+                            <label>Closing Time</label>
+                            <input type="time" id="update_closing_time">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Operating Days</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item"><input type="checkbox" value="monday" id="update_day_monday"><label>Monday</label></div>
+                            <div class="checkbox-item"><input type="checkbox" value="tuesday" id="update_day_tuesday"><label>Tuesday</label></div>
+                            <div class="checkbox-item"><input type="checkbox" value="wednesday" id="update_day_wednesday"><label>Wednesday</label></div>
+                            <div class="checkbox-item"><input type="checkbox" value="thursday" id="update_day_thursday"><label>Thursday</label></div>
+                            <div class="checkbox-item"><input type="checkbox" value="friday" id="update_day_friday"><label>Friday</label></div>
+                            <div class="checkbox-item"><input type="checkbox" value="saturday" id="update_day_saturday"><label>Saturday</label></div>
+                            <div class="checkbox-item"><input type="checkbox" value="sunday" id="update_day_sunday"><label>Sunday</label></div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Bank Name</label>
+                            <input type="text" id="update_bank_name">
+                        </div>
+                        <div class="form-group">
+                            <label>Account Number</label>
+                            <input type="text" id="update_account_number">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>IFSC Code</label>
+                            <input type="text" id="update_ifsc_code">
+                        </div>
+                        <div class="form-group">
+                            <label>Account Holder Name</label>
+                            <input type="text" id="update_account_holder_name">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>GST Number (optional)</label>
+                        <input type="text" id="update_gst_number">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="update_status">
+                            <option value="">Keep Current</option>
+                            <option value="draft">Draft</option>
+                            <option value="published">Published</option>
+                        </select>
+                        <small style="color: #6b7280; display: block; margin-top: 5px;">⚠️ If setting to "published", ensure all required fields are filled (either in this form or already in the center data).</small>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">Update Coaching Center</button>
+                        <button type="button" class="btn btn-secondary" onclick="clearUpdateForm()" style="flex: 1;">Clear Form</button>
+                    </div>
                 </form>
                 <div id="updateResponse" class="response" style="display: none;"></div>
             </div>
@@ -578,6 +727,24 @@
                     <button class="btn btn-primary" onclick="viewCenter()" style="margin-top: 10px;">View Center</button>
                 </div>
                 <div id="viewResponse" class="response" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Actions Tab -->
+        <div id="actions" class="tab-content">
+            <div class="card">
+                <h2>Coaching Center Actions</h2>
+                <div class="form-group">
+                    <label>Coaching Center ID *</label>
+                    <input type="text" id="action_center_id" placeholder="Enter coaching center ID">
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="toggleActiveStatus()">Toggle Active/Inactive</button>
+                    <button class="btn btn-danger" onclick="deleteCenter()">Delete Center</button>
+                    <button class="btn btn-secondary" onclick="loadCenterForAction()">Load Center Info</button>
+                </div>
+                <div id="actionResponse" class="response" style="display: none; margin-top: 20px;"></div>
+                <div id="centerInfo" style="margin-top: 20px;"></div>
             </div>
         </div>
     </div>
@@ -604,8 +771,28 @@
         function switchTab(tabName) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
+            
+            // Find the clicked tab and activate it
+            const tabs = Array.from(document.querySelectorAll('.tab'));
+            tabs.forEach(tab => {
+                const tabText = tab.textContent.trim().toLowerCase();
+                if (
+                    (tabName === 'create' && tabText.includes('create')) ||
+                    (tabName === 'list' && tabText.includes('my')) ||
+                    (tabName === 'update' && tabText.includes('update')) ||
+                    (tabName === 'view' && tabText.includes('view')) ||
+                    (tabName === 'actions' && tabText.includes('actions'))
+                ) {
+                    tab.classList.add('active');
+                }
+            });
+            
             document.getElementById(tabName).classList.add('active');
+            
+            // Auto-load list when switching to list tab
+            if (tabName === 'list' && authToken()) {
+                loadMyCenters();
+            }
         }
 
         async function loadSports() {
@@ -646,7 +833,7 @@
                         const div = document.createElement('div');
                         div.className = 'checkbox-item';
                         div.innerHTML = `
-                            <input type="checkbox" value="${sport._id}" id="sport_${sport._id}">
+                            <input type="checkbox" value="${sport._id}" id="sport_${sport._id}" onchange="handleSportSelection('${sport._id}', '${sport.name}', this.checked)">
                             <label for="sport_${sport._id}">${sport.name}</label>
                         `;
                         container.appendChild(div);
@@ -676,8 +863,14 @@
 
 
         // Store media files and uploaded URLs for create form
-        const createMediaFiles = { logo: null, images: [], videos: [], documents: [] };
-        const uploadedMediaUrls = { logo: null, images: [], videos: [], documents: [] };
+        const createMediaFiles = { logo: null, documents: [] };
+        const uploadedMediaUrls = { logo: null, documents: [] };
+        
+        // Store sport-specific media URLs: { sportId: { images: [], videos: [] } }
+        const sportMediaUrls = {};
+        
+        // Store sport details: { sportId: { description: '', images: [], videos: [] } }
+        const sportDetails = {};
 
         async function handleCreateFileSelect(type, input) {
             if (!authToken()) {
@@ -759,16 +952,6 @@
                         <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeCreateFile('logo', 0)">Remove</button>
                     `;
                 }
-            } else if (type === 'images' && data.data && data.data.images && data.data.images.urls && data.data.images.urls.length > 0) {
-                const url = data.data.images.urls[0];
-                const currentIndex = uploadedMediaUrls.images.length;
-                uploadedMediaUrls.images.push(url);
-                updateFilePreviewWithUrl(`create_images_preview`, file.name, url, index !== null ? index : currentIndex);
-            } else if (type === 'videos' && data.data && data.data.videos && data.data.videos.urls && data.data.videos.urls.length > 0) {
-                const url = data.data.videos.urls[0];
-                const currentIndex = uploadedMediaUrls.videos.length;
-                uploadedMediaUrls.videos.push(url);
-                updateFilePreviewWithUrl(`create_videos_preview`, file.name, url, index !== null ? index : currentIndex);
             } else if (type === 'documents' && data.data && data.data.documents && data.data.documents.urls && data.data.documents.urls.length > 0) {
                 const url = data.data.documents.urls[0];
                 const currentIndex = uploadedMediaUrls.documents.length;
@@ -845,6 +1028,199 @@
             }
         }
 
+        // Handle sport selection - show/hide sport details section
+        function handleSportSelection(sportId, sportName, isChecked) {
+            if (isChecked) {
+                // Initialize sport details if not exists
+                if (!sportDetails[sportId]) {
+                    sportDetails[sportId] = {
+                        description: '',
+                        images: [],
+                        videos: []
+                    };
+                }
+                if (!sportMediaUrls[sportId]) {
+                    sportMediaUrls[sportId] = {
+                        images: [],
+                        videos: []
+                    };
+                }
+            } else {
+                // Remove sport details when unchecked
+                delete sportDetails[sportId];
+                delete sportMediaUrls[sportId];
+            }
+            updateSportDetailsUI();
+        }
+
+        // Update sport details UI
+        function updateSportDetailsUI() {
+            const section = document.getElementById('sport_details_section');
+            const container = document.getElementById('sport_details_container');
+            const selectedSports = Array.from(document.querySelectorAll('#create_sports_checkboxes input:checked'));
+            
+            if (selectedSports.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            section.style.display = 'block';
+            container.innerHTML = '';
+            
+            selectedSports.forEach(checkbox => {
+                const sportId = checkbox.value;
+                const sportName = checkbox.nextElementSibling.textContent;
+                const sportDetail = sportDetails[sportId] || { description: '', images: [], videos: [] };
+                
+                const sportDiv = document.createElement('div');
+                sportDiv.style.marginBottom = '20px';
+                sportDiv.style.padding = '15px';
+                sportDiv.style.border = '1px solid #ddd';
+                sportDiv.style.borderRadius = '5px';
+                sportDiv.style.background = 'white';
+                sportDiv.innerHTML = `
+                    <h4 style="margin-bottom: 15px; color: #667eea;">${sportName}</h4>
+                    <div class="form-group">
+                        <label>Description * (min 5 characters)</label>
+                        <textarea id="sport_desc_${sportId}" class="sport-description" data-sport-id="${sportId}" minlength="5" required>${sportDetail.description}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Images (optional)</label>
+                        <div class="file-upload" onclick="document.getElementById('sport_images_${sportId}').click()" style="margin-top: 5px;">
+                            <input type="file" id="sport_images_${sportId}" accept="image/*" multiple onchange="handleSportMediaSelect('${sportId}', 'images', this)" style="display: none;">
+                            <p>Click to select images for ${sportName}</p>
+                        </div>
+                        <div id="sport_images_preview_${sportId}" class="uploaded-files"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Videos (optional - thumbnail will be auto-generated)</label>
+                        <div class="file-upload" onclick="document.getElementById('sport_videos_${sportId}').click()" style="margin-top: 5px;">
+                            <input type="file" id="sport_videos_${sportId}" accept="video/*" multiple onchange="handleSportMediaSelect('${sportId}', 'videos', this)" style="display: none;">
+                            <p>Click to select videos for ${sportName}</p>
+                        </div>
+                        <div id="sport_videos_preview_${sportId}" class="uploaded-files"></div>
+                    </div>
+                `;
+                container.appendChild(sportDiv);
+                
+                // Update previews for existing media
+                if (sportMediaUrls[sportId]) {
+                    sportMediaUrls[sportId].images.forEach((url, idx) => {
+                        updateSportMediaPreview(sportId, 'images', url, idx);
+                    });
+                    sportMediaUrls[sportId].videos.forEach((url, idx) => {
+                        updateSportMediaPreview(sportId, 'videos', url, idx);
+                    });
+                }
+            });
+            
+            // Add event listeners for description changes
+            container.querySelectorAll('.sport-description').forEach(textarea => {
+                textarea.addEventListener('input', function() {
+                    const sportId = this.getAttribute('data-sport-id');
+                    if (!sportDetails[sportId]) sportDetails[sportId] = { description: '', images: [], videos: [] };
+                    sportDetails[sportId].description = this.value;
+                });
+            });
+        }
+
+        // Handle sport-specific media upload
+        async function handleSportMediaSelect(sportId, type, input) {
+            if (!authToken()) {
+                alert('Please enter Authorization Token first');
+                input.value = '';
+                return;
+            }
+
+            try {
+                if (!input.files || input.files.length === 0) return;
+                
+                for (let i = 0; i < input.files.length; i++) {
+                    await uploadSportMediaFile(sportId, type, input.files[i], i);
+                }
+            } catch (error) {
+                alert('Failed to upload file: ' + error.message);
+                input.value = '';
+            }
+        }
+
+        async function uploadSportMediaFile(sportId, type, file, index) {
+            const formData = new FormData();
+            formData.append(type, file);
+
+            const h = {};
+            if (authToken()) {
+                h['Authorization'] = authToken().startsWith('Bearer') ? authToken() : `Bearer ${authToken()}`;
+            }
+
+            const response = await fetch(`${baseUrl()}/coaching-center/media`, {
+                method: 'POST',
+                headers: h,
+                body: formData
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Upload failed');
+            }
+
+            // Store the uploaded URL
+            if (type === 'images' && data.data && data.data.images && data.data.images.urls && data.data.images.urls.length > 0) {
+                const url = data.data.images.urls[0];
+                if (!sportMediaUrls[sportId]) sportMediaUrls[sportId] = { images: [], videos: [] };
+                sportMediaUrls[sportId].images.push(url);
+                updateSportMediaPreview(sportId, 'images', url, sportMediaUrls[sportId].images.length - 1);
+            } else if (type === 'videos' && data.data && data.data.videos && data.data.videos.urls && data.data.videos.urls.length > 0) {
+                const url = data.data.videos.urls[0];
+                const thumbnail = data.data.videos.thumbnails && data.data.videos.thumbnails.length > 0 ? data.data.videos.thumbnails[0] : null;
+                if (!sportMediaUrls[sportId]) sportMediaUrls[sportId] = { images: [], videos: [] };
+                sportMediaUrls[sportId].videos.push({ url, thumbnail });
+                updateSportMediaPreview(sportId, 'videos', url, sportMediaUrls[sportId].videos.length - 1, thumbnail);
+            }
+
+            return data;
+        }
+
+        function updateSportMediaPreview(sportId, type, url, index, thumbnail = null) {
+            const container = document.getElementById(`sport_${type}_preview_${sportId}`);
+            if (!container) return;
+            
+            const fileItem = document.getElementById(`sport_file_${type}_${sportId}_${index}`);
+            if (!fileItem) {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.id = `sport_file_${type}_${sportId}_${index}`;
+                div.innerHTML = `
+                    <span>File ${index + 1} <a href="${url}" target="_blank" style="color: #10b981; margin-left: 10px;">✓ Uploaded</a>${thumbnail ? ` <a href="${thumbnail}" target="_blank" style="color: #667eea; margin-left: 5px;">📷 Thumbnail</a>` : ''}</span>
+                    <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeSportMedia('${sportId}', '${type}', ${index})">Remove</button>
+                `;
+                container.appendChild(div);
+            } else {
+                fileItem.innerHTML = `
+                    <span>File ${index + 1} <a href="${url}" target="_blank" style="color: #10b981; margin-left: 10px;">✓ Uploaded</a>${thumbnail ? ` <a href="${thumbnail}" target="_blank" style="color: #667eea; margin-left: 5px;">📷 Thumbnail</a>` : ''}</span>
+                    <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeSportMedia('${sportId}', '${type}', ${index})">Remove</button>
+                `;
+            }
+        }
+
+        function removeSportMedia(sportId, type, index) {
+            if (sportMediaUrls[sportId] && sportMediaUrls[sportId][type]) {
+                sportMediaUrls[sportId][type].splice(index, 1);
+                const container = document.getElementById(`sport_${type}_preview_${sportId}`);
+                if (container) {
+                    const fileItem = document.getElementById(`sport_file_${type}_${sportId}_${index}`);
+                    if (fileItem) fileItem.remove();
+                    // Rebuild remaining previews
+                    container.innerHTML = '';
+                    sportMediaUrls[sportId][type].forEach((item, idx) => {
+                        const url = typeof item === 'string' ? item : item.url;
+                        const thumbnail = typeof item === 'object' ? item.thumbnail : null;
+                        updateSportMediaPreview(sportId, type, url, idx, thumbnail);
+                    });
+                }
+            }
+        }
+
         async function submitCoachingCenter(status) {
             try {
                 if (!authToken()) {
@@ -907,32 +1283,58 @@
                     return;
                 }
 
-                // Prepare media object from already uploaded URLs
-                const media = {
-                    images: [],
-                    videos: [],
-                    documents: []
-                };
+                // Build sport_details array
+                const sportDetailsArray = [];
+                selectedSports.forEach(sportId => {
+                    const sportDetail = sportDetails[sportId] || { description: '' };
+                    const description = document.getElementById(`sport_desc_${sportId}`)?.value || sportDetail.description;
+                    
+                    // Validate description for published status
+                    if (status === 'published' && (!description || description.trim().length < 5)) {
+                        throw new Error(`Description for selected sport is required (min 5 characters) for published status`);
+                    }
+                    
+                    const sportDetailObj = {
+                        sport_id: sportId,
+                        description: description,
+                        images: [],
+                        videos: []
+                    };
+                    
+                    // Add images for this sport
+                    if (sportMediaUrls[sportId] && sportMediaUrls[sportId].images && sportMediaUrls[sportId].images.length > 0) {
+                        sportDetailObj.images = sportMediaUrls[sportId].images.map(url => ({
+                            unique_id: generateUUID(),
+                            url: url,
+                            is_active: true,
+                            is_deleted: false
+                        }));
+                    }
+                    
+                    // Add videos for this sport (with thumbnails)
+                    if (sportMediaUrls[sportId] && sportMediaUrls[sportId].videos && sportMediaUrls[sportId].videos.length > 0) {
+                        sportDetailObj.videos = sportMediaUrls[sportId].videos.map(item => {
+                            const videoObj = {
+                                unique_id: generateUUID(),
+                                url: typeof item === 'string' ? item : item.url,
+                                is_active: true,
+                                is_deleted: false
+                            };
+                            // Add thumbnail if available
+                            if (typeof item === 'object' && item.thumbnail) {
+                                videoObj.thumbnail = item.thumbnail;
+                            }
+                            return videoObj;
+                        });
+                    }
+                    
+                    sportDetailsArray.push(sportDetailObj);
+                });
 
-                // Use already uploaded URLs
-                if (uploadedMediaUrls.images.length > 0) {
-                    media.images = uploadedMediaUrls.images.map(url => ({
-                        unique_id: generateUUID(),
-                        url: url,
-                        is_active: true,
-                        is_deleted: false
-                    }));
-                }
-                if (uploadedMediaUrls.videos.length > 0) {
-                    media.videos = uploadedMediaUrls.videos.map(url => ({
-                        unique_id: generateUUID(),
-                        url: url,
-                        is_active: true,
-                        is_deleted: false
-                    }));
-                }
+                // Prepare general documents array
+                let documents = [];
                 if (uploadedMediaUrls.documents.length > 0) {
-                    media.documents = uploadedMediaUrls.documents.map(url => ({
+                    documents = uploadedMediaUrls.documents.map(url => ({
                         unique_id: generateUUID(),
                         url: url,
                         is_active: true,
@@ -944,10 +1346,10 @@
                     center_name: document.getElementById('create_center_name').value,
                     mobile_number: document.getElementById('create_mobile_number').value,
                     email: document.getElementById('create_email').value,
-                    description: document.getElementById('create_description').value,
-                    rules_regulation: document.getElementById('create_rules_regulation').value || null,
+                    rules_regulation: getRulesRegulationArray(),
                     logo: logoUrl || null,
                     sports: selectedSports,
+                    sport_details: sportDetailsArray,
                     age: {
                         min: parseInt(document.getElementById('create_age_min').value),
                         max: parseInt(document.getElementById('create_age_max').value)
@@ -970,7 +1372,7 @@
                         opening_time: document.getElementById('create_opening_time').value,
                         closing_time: document.getElementById('create_closing_time').value
                     },
-                    media: (media.images.length > 0 || media.videos.length > 0 || media.documents.length > 0) ? media : undefined,
+                    documents: documents.length > 0 ? documents : undefined,
                     bank_information: {
                         bank_name: document.getElementById('create_bank_name').value,
                         account_number: document.getElementById('create_account_number').value,
@@ -993,14 +1395,15 @@
                 if (response.ok) {
                     // Reset form
                     document.getElementById('createForm').reset();
+                    document.getElementById('rules_list').innerHTML = '';
+                    ruleCounter = 0;
                     createMediaFiles.logo = null;
-                    createMediaFiles.images = [];
-                    createMediaFiles.videos = [];
                     createMediaFiles.documents = [];
                     uploadedMediaUrls.logo = null;
-                    uploadedMediaUrls.images = [];
-                    uploadedMediaUrls.videos = [];
                     uploadedMediaUrls.documents = [];
+                    sportMediaUrls = {};
+                    sportDetails = {};
+                    document.getElementById('sport_details_section').style.display = 'none';
                     document.querySelectorAll('[id^="create_"]').forEach(el => {
                         if (el.id.includes('_preview')) el.innerHTML = '';
                     });
@@ -1018,13 +1421,82 @@
             });
         }
 
+        // Rules & Regulation functions
+        let ruleCounter = 0;
+        
+        function addRule(value = '') {
+            const rulesList = document.getElementById('rules_list');
+            const ruleDiv = document.createElement('div');
+            ruleDiv.className = 'form-group';
+            ruleDiv.style.marginBottom = '10px';
+            ruleDiv.style.display = 'flex';
+            ruleDiv.style.gap = '10px';
+            ruleDiv.style.alignItems = 'flex-start';
+            ruleDiv.id = `rule_${ruleCounter}`;
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'form-group';
+            input.style.flex = '1';
+            input.style.padding = '10px';
+            input.style.border = '1px solid #ddd';
+            input.style.borderRadius = '5px';
+            input.placeholder = 'Enter a rule (max 500 characters)';
+            input.maxLength = 500;
+            input.value = value;
+            input.id = `rule_input_${ruleCounter}`;
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-danger';
+            removeBtn.style.padding = '10px 15px';
+            removeBtn.style.fontSize = '14px';
+            removeBtn.textContent = 'Remove';
+            removeBtn.onclick = () => removeRule(ruleCounter);
+            
+            ruleDiv.appendChild(input);
+            ruleDiv.appendChild(removeBtn);
+            rulesList.appendChild(ruleDiv);
+            
+            ruleCounter++;
+        }
+        
+        function removeRule(id) {
+            const ruleDiv = document.getElementById(`rule_${id}`);
+            if (ruleDiv) {
+                ruleDiv.remove();
+            }
+        }
+        
+        function getRulesRegulationArray() {
+            const rules = [];
+            const ruleInputs = document.querySelectorAll('[id^="rule_input_"]');
+            ruleInputs.forEach(input => {
+                const value = input.value.trim();
+                if (value) {
+                    rules.push(value);
+                }
+            });
+            return rules.length > 0 ? rules : null;
+        }
+
         function autoFillForm() {
             // Basic Information
             document.getElementById('create_center_name').value = 'Elite Sports Academy';
             document.getElementById('create_mobile_number').value = '9876543210';
             document.getElementById('create_email').value = 'contact@elitesportsacademy.com';
-            document.getElementById('create_description').value = 'Elite Sports Academy is a premier coaching center offering world-class training in multiple sports. We provide professional coaching, state-of-the-art facilities, and personalized training programs for athletes of all levels. Our experienced coaches and modern infrastructure ensure the best learning experience for our students.';
-            document.getElementById('create_rules_regulation').value = '1. All students must maintain discipline and respect towards coaches and fellow students.\n2. Regular attendance is mandatory for optimal performance.\n3. Proper sports attire is required during training sessions.\n4. Students must follow safety guidelines at all times.\n5. Any misconduct will result in immediate action.';
+            
+            // Clear existing rules and add sample rules
+            document.getElementById('rules_list').innerHTML = '';
+            ruleCounter = 0;
+            const sampleRules = [
+                'All students must maintain discipline and respect towards coaches and fellow students',
+                'Regular attendance is mandatory for optimal performance',
+                'Proper sports attire is required during training sessions',
+                'Students must follow safety guidelines at all times',
+                'Any misconduct will result in immediate action'
+            ];
+            sampleRules.forEach(rule => addRule(rule));
 
             // Logo URL (sample)
             document.getElementById('create_logo').value = 'https://example.com/logo.jpg';
@@ -1069,7 +1541,25 @@
             alert('Form auto-filled successfully! Please select sports from the checkboxes above and click "Load Sports & Facilities" if needed.');
         }
 
+        // Store update media files and uploaded URLs
+        const updateMediaFiles = { logo: null, documents: [] };
+        const updateUploadedMediaUrls = { logo: null, documents: [] };
+        
+        // Store update sport-specific media URLs: { sportId: { images: [], videos: [] } }
+        const updateSportMediaUrls = {};
+        
+        // Store update sport details: { sportId: { description: '', images: [], videos: [] } }
+        const updateSportDetails = {};
+        
+        // Update rules counter
+        let updateRuleCounter = 0;
+
         async function loadCenterForUpdate() {
+            if (!authToken()) {
+                alert('Please enter Authorization Token first');
+                return;
+            }
+
             const centerId = document.getElementById('update_center_id').value;
             if (!centerId) {
                 alert('Please enter a coaching center ID');
@@ -1082,29 +1572,183 @@
                 
                 if (data.success && data.data && data.data.coachingCenter) {
                     const center = data.data.coachingCenter;
+                    
+                    // Basic information
                     document.getElementById('update_center_name').value = center.center_name || '';
                     document.getElementById('update_mobile_number').value = center.mobile_number || '';
                     document.getElementById('update_email').value = center.email || '';
-                    document.getElementById('update_description').value = center.description || '';
                     document.getElementById('update_logo').value = center.logo || '';
                     document.getElementById('update_status').value = center.status || '';
                     
-                    // Populate sports checkboxes for update
+                    // Store existing logo URL for removal API (logo doesn't have unique_id, just URL)
+                    if (center.logo) {
+                        updateUploadedMediaUrls.logo = {
+                            url: center.logo,
+                            is_existing: true
+                        };
+                    }
+                    
+                    // Load documents with unique_id for removal API
+                    if (center.documents && Array.isArray(center.documents)) {
+                        updateUploadedMediaUrls.documents = center.documents
+                            .filter(doc => doc && !doc.is_deleted) // Filter out soft-deleted documents
+                            .map(doc => ({
+                                unique_id: doc.unique_id,
+                                url: doc.url,
+                                is_existing: true // Mark as existing document from database
+                            }));
+                        
+                        // Display existing documents
+                        const documentsPreview = document.getElementById('update_documents_preview');
+                        if (documentsPreview) {
+                            documentsPreview.innerHTML = '';
+                            updateUploadedMediaUrls.documents.forEach((doc, idx) => {
+                                const div = document.createElement('div');
+                                div.className = 'file-item';
+                                div.id = `update_file_documents_${idx}`;
+                                div.innerHTML = `
+                                    <span>Document ${idx + 1} <a href="${doc.url}" target="_blank" style="color: #10b981; margin-left: 10px;">✓ Uploaded</a></span>
+                                    <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeUpdateFile('documents', ${idx})">Remove</button>
+                                `;
+                                documentsPreview.appendChild(div);
+                            });
+                        }
+                    }
+                    
+                    // Rules & Regulation
+                    document.getElementById('update_rules_list').innerHTML = '';
+                    updateRuleCounter = 0;
+                    if (center.rules_regulation && Array.isArray(center.rules_regulation)) {
+                        center.rules_regulation.forEach(rule => addUpdateRule(rule));
+                    }
+                    
+                    // Age
+                    if (center.age) {
+                        document.getElementById('update_age_min').value = center.age.min || '';
+                        document.getElementById('update_age_max').value = center.age.max || '';
+                    }
+                    
+                    // Location
+                    if (center.location) {
+                        document.getElementById('update_latitude').value = center.location.latitude || '';
+                        document.getElementById('update_longitude').value = center.location.longitude || '';
+                        if (center.location.address) {
+                            document.getElementById('update_address_line1').value = center.location.address.line1 || '';
+                            document.getElementById('update_address_line2').value = center.location.address.line2 || '';
+                            document.getElementById('update_city').value = center.location.address.city || '';
+                            document.getElementById('update_state').value = center.location.address.state || '';
+                            document.getElementById('update_pincode').value = center.location.address.pincode || '';
+                            document.getElementById('update_country').value = center.location.address.country || '';
+                        }
+                    }
+                    
+                    // Operational timing
+                    if (center.operational_timing) {
+                        document.getElementById('update_opening_time').value = center.operational_timing.opening_time || '';
+                        document.getElementById('update_closing_time').value = center.operational_timing.closing_time || '';
+                        if (center.operational_timing.operating_days && Array.isArray(center.operational_timing.operating_days)) {
+                            center.operational_timing.operating_days.forEach(day => {
+                                const checkbox = document.getElementById(`update_day_${day}`);
+                                if (checkbox) checkbox.checked = true;
+                            });
+                        }
+                    }
+                    
+                    // Bank information
+                    if (center.bank_information) {
+                        document.getElementById('update_bank_name').value = center.bank_information.bank_name || '';
+                        document.getElementById('update_account_number').value = center.bank_information.account_number || '';
+                        document.getElementById('update_ifsc_code').value = center.bank_information.ifsc_code || '';
+                        document.getElementById('update_account_holder_name').value = center.bank_information.account_holder_name || '';
+                        document.getElementById('update_gst_number').value = center.bank_information.gst_number || '';
+                    }
+                    
+                    // Sports and sport details
                     const container = document.getElementById('update_sports_checkboxes');
                     container.innerHTML = '';
+                    
                     // Load sports and populate
-                    const sportsResponse = await fetch(`${baseUrl()}/sports`);
+                    const [sportsResponse, facilitiesResponse] = await Promise.all([
+                        fetch(`${baseUrl()}/sports`),
+                        fetch(`${baseUrl()}/facilities`)
+                    ]);
                     const sportsData = await sportsResponse.json();
+                    const facilitiesData = await facilitiesResponse.json();
+                    
+                    // Populate sports checkboxes
                     if (sportsData.success && sportsData.data && sportsData.data.sports) {
                         sportsData.data.sports.forEach(sport => {
                             const div = document.createElement('div');
                             div.className = 'checkbox-item';
-                            const isSelected = center.sports && center.sports.some(s => s._id === sport._id);
+                            const sportId = sport._id || sport.id;
+                            const isSelected = center.sports && center.sports.some(s => {
+                                const sId = s._id || s.id || s;
+                                return sId === sportId || sId.toString() === sportId.toString();
+                            });
                             div.innerHTML = `
-                                <input type="checkbox" value="${sport._id}" id="update_sport_${sport._id}" ${isSelected ? 'checked' : ''}>
-                                <label for="update_sport_${sport._id}">${sport.name}</label>
+                                <input type="checkbox" value="${sportId}" id="update_sport_${sportId}" ${isSelected ? 'checked' : ''} onchange="handleUpdateSportSelection('${sportId}', '${sport.name}', this.checked)">
+                                <label for="update_sport_${sportId}">${sport.name}</label>
                             `;
                             container.appendChild(div);
+                            
+                            // Initialize sport details if selected
+                            if (isSelected) {
+                                const sportDetail = center.sport_details?.find(sd => {
+                                    const sdSportId = sd.sport_id?._id || sd.sport_id?.id || sd.sport_id;
+                                    return sdSportId === sportId || sdSportId?.toString() === sportId.toString();
+                                });
+                                if (sportDetail) {
+                                    updateSportDetails[sportId] = {
+                                        description: sportDetail.description || '',
+                                        images: sportDetail.images || [],
+                                        videos: sportDetail.videos || []
+                                    };
+                                    if (sportDetail.images && Array.isArray(sportDetail.images)) {
+                                        if (!updateSportMediaUrls[sportId]) updateSportMediaUrls[sportId] = { images: [], videos: [] };
+                                        updateSportMediaUrls[sportId].images = sportDetail.images
+                                            .filter(img => img && !img.is_deleted) // Filter out soft-deleted media
+                                            .map(img => ({
+                                                unique_id: img.unique_id,
+                                                url: img.url,
+                                                is_existing: true // Mark as existing media from database
+                                            }));
+                                    }
+                                    if (sportDetail.videos && Array.isArray(sportDetail.videos)) {
+                                        if (!updateSportMediaUrls[sportId]) updateSportMediaUrls[sportId] = { images: [], videos: [] };
+                                        updateSportMediaUrls[sportId].videos = sportDetail.videos
+                                            .filter(vid => vid && !vid.is_deleted) // Filter out soft-deleted media
+                                            .map(vid => ({
+                                                unique_id: vid.unique_id,
+                                                url: vid.url,
+                                                thumbnail: vid.thumbnail || null,
+                                                is_existing: true // Mark as existing media from database
+                                            }));
+                                    }
+                                }
+                            }
+                        });
+                        
+                        // Update sport details UI if any sports are selected
+                        updateUpdateSportDetailsUI();
+                    }
+                    
+                    // Populate facilities checkboxes
+                    const facilitiesContainer = document.getElementById('update_facilities_checkboxes');
+                    facilitiesContainer.innerHTML = '';
+                    if (facilitiesData.success && facilitiesData.data && facilitiesData.data.facilities) {
+                        facilitiesData.data.facilities.forEach(facility => {
+                            const div = document.createElement('div');
+                            div.className = 'checkbox-item';
+                            const facilityId = facility._id || facility.id;
+                            const isSelected = center.facility && center.facility.some(f => {
+                                const fId = f._id || f.id || f;
+                                return fId === facilityId || fId?.toString() === facilityId.toString();
+                            });
+                            div.innerHTML = `
+                                <input type="checkbox" value="${facilityId}" id="update_facility_${facilityId}" ${isSelected ? 'checked' : ''}>
+                                <label for="update_facility_${facilityId}">${facility.name}</label>
+                            `;
+                            facilitiesContainer.appendChild(div);
                         });
                     }
                     
@@ -1118,20 +1762,754 @@
             }
         }
 
+        // Update Rules & Regulation functions
+        function addUpdateRule(value = '') {
+            const rulesList = document.getElementById('update_rules_list');
+            const ruleDiv = document.createElement('div');
+            ruleDiv.className = 'form-group';
+            ruleDiv.style.marginBottom = '10px';
+            ruleDiv.style.display = 'flex';
+            ruleDiv.style.gap = '10px';
+            ruleDiv.style.alignItems = 'flex-start';
+            ruleDiv.id = `update_rule_${updateRuleCounter}`;
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'form-group';
+            input.style.flex = '1';
+            input.style.padding = '10px';
+            input.style.border = '1px solid #ddd';
+            input.style.borderRadius = '5px';
+            input.placeholder = 'Enter a rule (max 500 characters)';
+            input.maxLength = 500;
+            input.value = value;
+            input.id = `update_rule_input_${updateRuleCounter}`;
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-danger';
+            removeBtn.style.padding = '10px 15px';
+            removeBtn.style.fontSize = '14px';
+            removeBtn.textContent = 'Remove';
+            removeBtn.onclick = () => removeUpdateRule(updateRuleCounter);
+            
+            ruleDiv.appendChild(input);
+            ruleDiv.appendChild(removeBtn);
+            rulesList.appendChild(ruleDiv);
+            
+            updateRuleCounter++;
+        }
+        
+        function removeUpdateRule(id) {
+            const ruleDiv = document.getElementById(`update_rule_${id}`);
+            if (ruleDiv) {
+                ruleDiv.remove();
+            }
+        }
+        
+        function getUpdateRulesRegulationArray() {
+            const rules = [];
+            const ruleInputs = document.querySelectorAll('[id^="update_rule_input_"]');
+            ruleInputs.forEach(input => {
+                const value = input.value.trim();
+                if (value) {
+                    rules.push(value);
+                }
+            });
+            return rules.length > 0 ? rules : undefined;
+        }
+
+        // Handle update file uploads
+        async function handleUpdateFileSelect(type, input) {
+            if (!authToken()) {
+                alert('Please enter Authorization Token first');
+                input.value = '';
+                return;
+            }
+
+            try {
+                if (type === 'logo') {
+                    if (!input.files[0]) return;
+                    updateMediaFiles.logo = input.files[0];
+                    showUpdateFilePreview('update_logo_preview', [input.files[0]], 'logo', true);
+                    await uploadUpdateMediaFile(type, input.files[0]);
+                } else {
+                    if (!input.files || input.files.length === 0) return;
+                    updateMediaFiles[type] = Array.from(input.files);
+                    showUpdateFilePreview(`update_${type}_preview`, updateMediaFiles[type], type, true);
+                    for (let i = 0; i < input.files.length; i++) {
+                        await uploadUpdateMediaFile(type, input.files[i], i);
+                    }
+                }
+            } catch (error) {
+                alert('Failed to upload file: ' + error.message);
+                input.value = '';
+            }
+        }
+
+        async function uploadUpdateMediaFile(type, file, index = null) {
+            const formData = new FormData();
+            if (type === 'logo') {
+                formData.append('logo', file);
+            } else {
+                formData.append(type, file);
+            }
+
+            const h = {};
+            if (authToken()) {
+                h['Authorization'] = authToken().startsWith('Bearer') ? authToken() : `Bearer ${authToken()}`;
+            }
+
+            const response = await fetch(`${baseUrl()}/coaching-center/media`, {
+                method: 'POST',
+                headers: h,
+                body: formData
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Upload failed');
+            }
+
+            if (type === 'logo' && data.data && data.data.logo) {
+                updateUploadedMediaUrls.logo = {
+                    url: data.data.logo.url,
+                    is_existing: false // Mark as newly uploaded logo
+                };
+                document.getElementById('update_logo').value = data.data.logo.url;
+            } else if (type === 'documents' && data.data && data.data.documents && data.data.documents.urls && data.data.documents.urls.length > 0) {
+                const url = data.data.documents.urls[0];
+                const currentIndex = updateUploadedMediaUrls.documents.length;
+                updateUploadedMediaUrls.documents.push({
+                    url: url,
+                    is_existing: false // Mark as newly uploaded document
+                });
+                updateUpdateFilePreviewWithUrl(`update_documents_preview`, file.name, url, index !== null ? index : currentIndex);
+            }
+
+            return data;
+        }
+
+        function showUpdateFilePreview(containerId, files, type, isUploading = false) {
+            const container = document.getElementById(containerId);
+            if (isUploading) {
+                container.innerHTML = '';
+            }
+            files.forEach((file, index) => {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.id = `update_file_${type}_${index}`;
+                div.innerHTML = `
+                    <span>${file.name} (${(file.size / 1024).toFixed(2)} KB) ${isUploading ? '<span class="loading" style="display: inline-block; margin-left: 10px;"></span> Uploading...' : ''}</span>
+                    <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeUpdateFile('${type}', ${index})">Remove</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateUpdateFilePreviewWithUrl(containerId, fileName, url, index) {
+            const type = containerId.replace('update_', '').replace('_preview', '');
+            const fileItem = document.getElementById(`update_file_${type}_${index}`);
+            if (fileItem) {
+                fileItem.innerHTML = `
+                    <span>${fileName} <a href="${url}" target="_blank" style="color: #10b981; margin-left: 10px;">✓ Uploaded</a></span>
+                    <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeUpdateFile('${type}', ${index})">Remove</button>
+                `;
+            }
+        }
+
+        async function removeUpdateFile(type, index) {
+            const centerId = document.getElementById('update_center_id').value;
+            if (!centerId && type !== 'documents') {
+                // For logo, we need center ID for API call
+                alert('Please load a coaching center first');
+                return;
+            }
+
+            if (!authToken()) {
+                alert('Please enter Authorization Token first');
+                return;
+            }
+
+            if (type === 'logo') {
+                const logoItem = updateUploadedMediaUrls.logo;
+                // Check if this is existing logo (has is_existing flag)
+                if (logoItem && logoItem.is_existing && logoItem.url) {
+                    // Call API to remove existing logo
+                    try {
+                        // Note: Logo removal doesn't require uniqueId, just setting logo to null
+                        // But we should still call the API for consistency
+                        // Actually, the API requires uniqueId for logo too, but logo doesn't have one
+                        // So we'll just clear it locally and let the update API handle it
+                        // Or we can update the logo to null via the update API
+                        // For now, just clear it locally and include logo: null in update payload
+                        updateMediaFiles.logo = null;
+                        updateUploadedMediaUrls.logo = null;
+                        document.getElementById('update_logo_file').value = '';
+                        document.getElementById('update_logo_preview').innerHTML = '';
+                        document.getElementById('update_logo').value = '';
+                        // The update API will handle setting logo to null
+                        alert('Logo will be removed on next save');
+                    } catch (error) {
+                        alert('Failed to remove logo: ' + error.message);
+                    }
+                } else {
+                    // Newly uploaded logo - just remove from local
+                    updateMediaFiles.logo = null;
+                    updateUploadedMediaUrls.logo = null;
+                    document.getElementById('update_logo_file').value = '';
+                    document.getElementById('update_logo_preview').innerHTML = '';
+                    document.getElementById('update_logo').value = '';
+                }
+            } else if (type === 'documents') {
+                const docItem = updateUploadedMediaUrls.documents[index];
+                if (!docItem) return;
+
+                // Check if this is existing document (has unique_id and is_existing flag)
+                if (docItem.unique_id && docItem.is_existing) {
+                    // Call API to soft delete existing document
+                    try {
+                        const response = await fetch(`${baseUrl()}/coaching-center/${centerId}/media`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': authToken().startsWith('Bearer') ? authToken() : `Bearer ${authToken()}`
+                            },
+                            body: JSON.stringify({
+                                mediaType: 'document',
+                                uniqueId: docItem.unique_id
+                            })
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok) {
+                            throw new Error(data.message || 'Failed to remove document');
+                        }
+
+                        // Remove from local array after successful API call
+                        updateMediaFiles[type].splice(index, 1);
+                        updateUploadedMediaUrls[type].splice(index, 1);
+                        const container = document.getElementById(`update_${type}_preview`);
+                        container.innerHTML = '';
+                        updateMediaFiles[type].forEach((file, idx) => {
+                            const div = document.createElement('div');
+                            div.className = 'file-item';
+                            div.id = `update_file_${type}_${idx}`;
+                            const doc = updateUploadedMediaUrls[type][idx];
+                            const url = typeof doc === 'string' ? doc : doc.url;
+                            div.innerHTML = `
+                                <span>${file.name} ${url ? `<a href="${url}" target="_blank" style="color: #10b981; margin-left: 10px;">✓ Uploaded</a>` : ''}</span>
+                                <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeUpdateFile('${type}', ${idx})">Remove</button>
+                            `;
+                            container.appendChild(div);
+                        });
+                        // Also rebuild for existing documents
+                        updateUploadedMediaUrls[type].forEach((doc, idx) => {
+                            if (doc.is_existing) {
+                                const div = document.createElement('div');
+                                div.className = 'file-item';
+                                div.id = `update_file_${type}_${idx + updateMediaFiles[type].length}`;
+                                div.innerHTML = `
+                                    <span>Document ${idx + updateMediaFiles[type].length + 1} <a href="${doc.url}" target="_blank" style="color: #10b981; margin-left: 10px;">✓ Uploaded</a></span>
+                                    <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeUpdateFile('${type}', ${idx + updateMediaFiles[type].length})">Remove</button>
+                                `;
+                                container.appendChild(div);
+                            }
+                        });
+                        alert('Document removed successfully');
+                    } catch (error) {
+                        alert('Failed to remove document: ' + error.message);
+                    }
+                } else {
+                    // Newly uploaded document - just remove from local array
+                    updateMediaFiles[type].splice(index, 1);
+                    updateUploadedMediaUrls[type].splice(index, 1);
+                    const container = document.getElementById(`update_${type}_preview`);
+                    container.innerHTML = '';
+                    updateMediaFiles[type].forEach((file, idx) => {
+                        const div = document.createElement('div');
+                        div.className = 'file-item';
+                        div.id = `update_file_${type}_${idx}`;
+                        const doc = updateUploadedMediaUrls[type][idx];
+                        const url = typeof doc === 'string' ? doc : doc.url;
+                        div.innerHTML = `
+                            <span>${file.name} ${url ? `<a href="${url}" target="_blank" style="color: #10b981; margin-left: 10px;">✓ Uploaded</a>` : ''}</span>
+                            <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeUpdateFile('${type}', ${idx})">Remove</button>
+                        `;
+                        container.appendChild(div);
+                    });
+                }
+            }
+        }
+
+        // Handle update sport selection
+        function handleUpdateSportSelection(sportId, sportName, isChecked) {
+            if (isChecked) {
+                if (!updateSportDetails[sportId]) {
+                    updateSportDetails[sportId] = { description: '', images: [], videos: [] };
+                }
+                if (!updateSportMediaUrls[sportId]) {
+                    updateSportMediaUrls[sportId] = { images: [], videos: [] };
+                }
+            } else {
+                delete updateSportDetails[sportId];
+                delete updateSportMediaUrls[sportId];
+            }
+            updateUpdateSportDetailsUI();
+        }
+
+        // Update sport details UI for update form
+        function updateUpdateSportDetailsUI() {
+            const section = document.getElementById('update_sport_details_section');
+            const container = document.getElementById('update_sport_details_container');
+            const selectedSports = Array.from(document.querySelectorAll('#update_sports_checkboxes input:checked'));
+            
+            if (selectedSports.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            section.style.display = 'block';
+            container.innerHTML = '';
+            
+            selectedSports.forEach(checkbox => {
+                const sportId = checkbox.value;
+                const sportName = checkbox.nextElementSibling.textContent;
+                const sportDetail = updateSportDetails[sportId] || { description: '', images: [], videos: [] };
+                
+                const sportDiv = document.createElement('div');
+                sportDiv.style.marginBottom = '20px';
+                sportDiv.style.padding = '15px';
+                sportDiv.style.border = '1px solid #ddd';
+                sportDiv.style.borderRadius = '5px';
+                sportDiv.style.background = 'white';
+                sportDiv.innerHTML = `
+                    <h4 style="margin-bottom: 15px; color: #667eea;">${sportName}</h4>
+                    <div class="form-group">
+                        <label>Description (min 5 characters)</label>
+                        <textarea id="update_sport_desc_${sportId}" class="update-sport-description" data-sport-id="${sportId}" minlength="5">${sportDetail.description}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Images (optional)</label>
+                        <div class="file-upload" onclick="document.getElementById('update_sport_images_${sportId}').click()" style="margin-top: 5px;">
+                            <input type="file" id="update_sport_images_${sportId}" accept="image/*" multiple onchange="handleUpdateSportMediaSelect('${sportId}', 'images', this)" style="display: none;">
+                            <p>Click to select images for ${sportName}</p>
+                        </div>
+                        <div id="update_sport_images_preview_${sportId}" class="uploaded-files"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Videos (optional - thumbnail will be auto-generated)</label>
+                        <div class="file-upload" onclick="document.getElementById('update_sport_videos_${sportId}').click()" style="margin-top: 5px;">
+                            <input type="file" id="update_sport_videos_${sportId}" accept="video/*" multiple onchange="handleUpdateSportMediaSelect('${sportId}', 'videos', this)" style="display: none;">
+                            <p>Click to select videos for ${sportName}</p>
+                        </div>
+                        <div id="update_sport_videos_preview_${sportId}" class="uploaded-files"></div>
+                    </div>
+                `;
+                container.appendChild(sportDiv);
+                
+                // Update previews for existing media
+                if (updateSportMediaUrls[sportId]) {
+                    updateSportMediaUrls[sportId].images.forEach((url, idx) => {
+                        updateUpdateSportMediaPreview(sportId, 'images', url, idx);
+                    });
+                    updateSportMediaUrls[sportId].videos.forEach((item, idx) => {
+                        const url = typeof item === 'string' ? item : item.url;
+                        const thumbnail = typeof item === 'object' ? item.thumbnail : null;
+                        updateUpdateSportMediaPreview(sportId, 'videos', url, idx, thumbnail);
+                    });
+                }
+                
+                // Add event listener for description
+                const textarea = document.getElementById(`update_sport_desc_${sportId}`);
+                if (textarea) {
+                    textarea.addEventListener('input', function() {
+                        const sportId = this.getAttribute('data-sport-id');
+                        if (!updateSportDetails[sportId]) updateSportDetails[sportId] = { description: '', images: [], videos: [] };
+                        updateSportDetails[sportId].description = this.value;
+                    });
+                }
+            });
+        }
+
+        // Handle update sport-specific media upload
+        async function handleUpdateSportMediaSelect(sportId, type, input) {
+            if (!authToken()) {
+                alert('Please enter Authorization Token first');
+                input.value = '';
+                return;
+            }
+
+            try {
+                if (!input.files || input.files.length === 0) return;
+                for (let i = 0; i < input.files.length; i++) {
+                    await uploadUpdateSportMediaFile(sportId, type, input.files[i], i);
+                }
+            } catch (error) {
+                alert('Failed to upload file: ' + error.message);
+                input.value = '';
+            }
+        }
+
+        async function uploadUpdateSportMediaFile(sportId, type, file, index) {
+            const formData = new FormData();
+            formData.append(type, file);
+
+            const h = {};
+            if (authToken()) {
+                h['Authorization'] = authToken().startsWith('Bearer') ? authToken() : `Bearer ${authToken()}`;
+            }
+
+            const response = await fetch(`${baseUrl()}/coaching-center/media`, {
+                method: 'POST',
+                headers: h,
+                body: formData
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Upload failed');
+            }
+
+            if (type === 'images' && data.data && data.data.images && data.data.images.urls && data.data.images.urls.length > 0) {
+                const url = data.data.images.urls[0];
+                if (!updateSportMediaUrls[sportId]) updateSportMediaUrls[sportId] = { images: [], videos: [] };
+                updateSportMediaUrls[sportId].images.push({
+                    url: url,
+                    is_existing: false // Mark as newly uploaded media
+                });
+                updateUpdateSportMediaPreview(sportId, 'images', url, updateSportMediaUrls[sportId].images.length - 1);
+            } else if (type === 'videos' && data.data && data.data.videos && data.data.videos.urls && data.data.videos.urls.length > 0) {
+                const url = data.data.videos.urls[0];
+                const thumbnail = data.data.videos.thumbnails && data.data.videos.thumbnails.length > 0 ? data.data.videos.thumbnails[0] : null;
+                if (!updateSportMediaUrls[sportId]) updateSportMediaUrls[sportId] = { images: [], videos: [] };
+                updateSportMediaUrls[sportId].videos.push({
+                    url: url,
+                    thumbnail: thumbnail,
+                    is_existing: false // Mark as newly uploaded media
+                });
+                updateUpdateSportMediaPreview(sportId, 'videos', url, updateSportMediaUrls[sportId].videos.length - 1, thumbnail);
+            }
+
+            return data;
+        }
+
+        function updateUpdateSportMediaPreview(sportId, type, url, index, thumbnail = null) {
+            const container = document.getElementById(`update_sport_${type}_preview_${sportId}`);
+            if (!container) return;
+            
+            const fileItem = document.getElementById(`update_sport_file_${type}_${sportId}_${index}`);
+            if (!fileItem) {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.id = `update_sport_file_${type}_${sportId}_${index}`;
+                div.innerHTML = `
+                    <span>File ${index + 1} <a href="${url}" target="_blank" style="color: #10b981; margin-left: 10px;">✓ Uploaded</a>${thumbnail ? ` <a href="${thumbnail}" target="_blank" style="color: #667eea; margin-left: 5px;">📷 Thumbnail</a>` : ''}</span>
+                    <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeUpdateSportMedia('${sportId}', '${type}', ${index})">Remove</button>
+                `;
+                container.appendChild(div);
+            } else {
+                fileItem.innerHTML = `
+                    <span>File ${index + 1} <a href="${url}" target="_blank" style="color: #10b981; margin-left: 10px;">✓ Uploaded</a>${thumbnail ? ` <a href="${thumbnail}" target="_blank" style="color: #667eea; margin-left: 5px;">📷 Thumbnail</a>` : ''}</span>
+                    <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeUpdateSportMedia('${sportId}', '${type}', ${index})">Remove</button>
+                `;
+            }
+        }
+
+        async function removeUpdateSportMedia(sportId, type, index) {
+            if (!updateSportMediaUrls[sportId] || !updateSportMediaUrls[sportId][type]) return;
+            
+            const mediaItem = updateSportMediaUrls[sportId][type][index];
+            if (!mediaItem) return;
+
+            // Check if this is existing media (has unique_id and is_existing flag)
+            if (mediaItem.unique_id && mediaItem.is_existing) {
+                // Call API to soft delete existing media
+                const centerId = document.getElementById('update_center_id').value;
+                if (!centerId) {
+                    alert('Please load a coaching center first');
+                    return;
+                }
+
+                if (!authToken()) {
+                    alert('Please enter Authorization Token first');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${baseUrl()}/coaching-center/${centerId}/media`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': authToken().startsWith('Bearer') ? authToken() : `Bearer ${authToken()}`
+                        },
+                        body: JSON.stringify({
+                            mediaType: type === 'images' ? 'image' : 'video',
+                            uniqueId: mediaItem.unique_id,
+                            sportId: sportId
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Failed to remove media');
+                    }
+
+                    // Remove from local array after successful API call
+                    updateSportMediaUrls[sportId][type].splice(index, 1);
+                    const container = document.getElementById(`update_sport_${type}_preview_${sportId}`);
+                    if (container) {
+                        const fileItem = document.getElementById(`update_sport_file_${type}_${sportId}_${index}`);
+                        if (fileItem) fileItem.remove();
+                        container.innerHTML = '';
+                        updateSportMediaUrls[sportId][type].forEach((item, idx) => {
+                            const url = typeof item === 'string' ? item : item.url;
+                            const thumbnail = typeof item === 'object' ? item.thumbnail : null;
+                            updateUpdateSportMediaPreview(sportId, type, url, idx, thumbnail);
+                        });
+                    }
+                    alert('Media removed successfully');
+                } catch (error) {
+                    alert('Failed to remove media: ' + error.message);
+                }
+            } else {
+                // Newly uploaded media (not yet saved to database) - just remove from local array
+                updateSportMediaUrls[sportId][type].splice(index, 1);
+                const container = document.getElementById(`update_sport_${type}_preview_${sportId}`);
+                if (container) {
+                    const fileItem = document.getElementById(`update_sport_file_${type}_${sportId}_${index}`);
+                    if (fileItem) fileItem.remove();
+                    container.innerHTML = '';
+                    updateSportMediaUrls[sportId][type].forEach((item, idx) => {
+                        const url = typeof item === 'string' ? item : item.url;
+                        const thumbnail = typeof item === 'object' ? item.thumbnail : null;
+                        updateUpdateSportMediaPreview(sportId, type, url, idx, thumbnail);
+                    });
+                }
+            }
+        }
+
+        function clearUpdateForm() {
+            document.getElementById('updateForm').reset();
+            document.getElementById('update_rules_list').innerHTML = '';
+            updateRuleCounter = 0;
+            updateMediaFiles.logo = null;
+            updateMediaFiles.documents = [];
+            updateUploadedMediaUrls.logo = null;
+            updateUploadedMediaUrls.documents = [];
+            updateSportMediaUrls = {};
+            updateSportDetails = {};
+            document.getElementById('update_sport_details_section').style.display = 'none';
+            document.querySelectorAll('[id^="update_"]').forEach(el => {
+                if (el.id.includes('_preview')) el.innerHTML = '';
+            });
+        }
+
         document.getElementById('updateForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
-                const centerId = document.getElementById('update_center_id').value;
-                const selectedSports = Array.from(document.querySelectorAll('#update_sports_checkboxes input:checked')).map(cb => cb.value);
+                if (!authToken()) {
+                    alert('Please enter Authorization Token first');
+                    return;
+                }
 
+                const centerId = document.getElementById('update_center_id').value;
                 const payload = {};
-                if (document.getElementById('update_center_name').value) payload.center_name = document.getElementById('update_center_name').value;
-                if (document.getElementById('update_mobile_number').value) payload.mobile_number = document.getElementById('update_mobile_number').value;
-                if (document.getElementById('update_email').value) payload.email = document.getElementById('update_email').value;
-                if (document.getElementById('update_description').value) payload.description = document.getElementById('update_description').value;
-                if (document.getElementById('update_logo').value) payload.logo = document.getElementById('update_logo').value;
-                if (selectedSports.length > 0) payload.sports = selectedSports;
-                if (document.getElementById('update_status').value) payload.status = document.getElementById('update_status').value;
+
+                // Basic information
+                const centerName = document.getElementById('update_center_name').value.trim();
+                if (centerName) payload.center_name = centerName;
+                
+                const mobileNumber = document.getElementById('update_mobile_number').value.trim();
+                if (mobileNumber) payload.mobile_number = mobileNumber;
+                
+                const email = document.getElementById('update_email').value.trim();
+                if (email) payload.email = email;
+
+                // Rules & Regulation
+                const rules = getUpdateRulesRegulationArray();
+                if (rules !== undefined) payload.rules_regulation = rules;
+
+                // Logo - prioritize uploaded file URL
+                let logoUrl = null;
+                if (updateUploadedMediaUrls.logo) {
+                    logoUrl = updateUploadedMediaUrls.logo;
+                    document.getElementById('update_logo').value = logoUrl;
+                } else {
+                    logoUrl = document.getElementById('update_logo').value.trim() || null;
+                }
+                if (logoUrl) payload.logo = logoUrl;
+
+                // Sports
+                const selectedSports = Array.from(document.querySelectorAll('#update_sports_checkboxes input:checked')).map(cb => cb.value);
+                if (selectedSports.length > 0) {
+                    payload.sports = selectedSports;
+                    
+                    // Build sport_details array
+                    const sportDetailsArray = [];
+                    selectedSports.forEach(sportId => {
+                        const sportDetail = updateSportDetails[sportId] || { description: '' };
+                        const description = document.getElementById(`update_sport_desc_${sportId}`)?.value || sportDetail.description;
+                        
+                        const sportDetailObj = {
+                            sport_id: sportId,
+                            description: description,
+                            images: [],
+                            videos: []
+                        };
+                        
+                        // Add images for this sport
+                        // Only include newly uploaded media (not existing with unique_id)
+                        // Existing media is already in database and will be merged by the API
+                        if (updateSportMediaUrls[sportId] && updateSportMediaUrls[sportId].images && updateSportMediaUrls[sportId].images.length > 0) {
+                            const newImages = updateSportMediaUrls[sportId].images
+                                .filter(img => !img.is_existing) // Only include newly uploaded images
+                                .map(img => ({
+                                    unique_id: generateUUID(),
+                                    url: typeof img === 'string' ? img : img.url,
+                                    is_active: true,
+                                    is_deleted: false
+                                }));
+                            if (newImages.length > 0) {
+                                sportDetailObj.images = newImages;
+                            }
+                        }
+                        
+                        // Add videos for this sport
+                        // Only include newly uploaded media (not existing with unique_id)
+                        // Existing media is already in database and will be merged by the API
+                        if (updateSportMediaUrls[sportId] && updateSportMediaUrls[sportId].videos && updateSportMediaUrls[sportId].videos.length > 0) {
+                            const newVideos = updateSportMediaUrls[sportId].videos
+                                .filter(vid => !vid.is_existing) // Only include newly uploaded videos
+                                .map(item => {
+                                    const videoObj = {
+                                        unique_id: generateUUID(),
+                                        url: typeof item === 'string' ? item : item.url,
+                                        is_active: true,
+                                        is_deleted: false
+                                    };
+                                    if (typeof item === 'object' && item.thumbnail) {
+                                        videoObj.thumbnail = item.thumbnail;
+                                    }
+                                    return videoObj;
+                                });
+                            if (newVideos.length > 0) {
+                                sportDetailObj.videos = newVideos;
+                            }
+                        }
+                        
+                        sportDetailsArray.push(sportDetailObj);
+                    });
+                    if (sportDetailsArray.length > 0) payload.sport_details = sportDetailsArray;
+                }
+
+                // Age
+                const ageMin = document.getElementById('update_age_min').value;
+                const ageMax = document.getElementById('update_age_max').value;
+                if (ageMin || ageMax) {
+                    payload.age = {
+                        min: ageMin ? parseInt(ageMin) : undefined,
+                        max: ageMax ? parseInt(ageMax) : undefined
+                    };
+                }
+
+                // Location
+                const latitude = document.getElementById('update_latitude').value;
+                const longitude = document.getElementById('update_longitude').value;
+                const addressLine1 = document.getElementById('update_address_line1').value.trim();
+                const addressLine2 = document.getElementById('update_address_line2').value.trim();
+                const city = document.getElementById('update_city').value.trim();
+                const state = document.getElementById('update_state').value.trim();
+                const pincode = document.getElementById('update_pincode').value.trim();
+                const country = document.getElementById('update_country').value.trim();
+                
+                if (latitude || longitude || addressLine2 || city || state || pincode) {
+                    payload.location = {};
+                    if (latitude) payload.location.latitude = parseFloat(latitude);
+                    if (longitude) payload.location.longitude = parseFloat(longitude);
+                    if (addressLine1 || addressLine2 || city || state || pincode || country) {
+                        payload.location.address = {};
+                        if (addressLine1) payload.location.address.line1 = addressLine1;
+                        if (addressLine2) payload.location.address.line2 = addressLine2;
+                        if (city) payload.location.address.city = city;
+                        if (state) payload.location.address.state = state;
+                        if (pincode) payload.location.address.pincode = pincode;
+                        if (country) payload.location.address.country = country;
+                    }
+                }
+
+                // Facilities
+                const selectedFacilities = Array.from(document.querySelectorAll('#update_facilities_checkboxes input:checked')).map(cb => cb.value);
+                const newFacilitiesInput = document.getElementById('update_new_facilities').value.trim();
+                let facility = [];
+                if (selectedFacilities.length > 0) {
+                    facility = facility.concat(selectedFacilities);
+                }
+                if (newFacilitiesInput) {
+                    const newFacilityNames = newFacilitiesInput.split(',').map(name => name.trim()).filter(name => name.length > 0);
+                    newFacilityNames.forEach(name => {
+                        facility.push({ name: name });
+                    });
+                }
+                if (facility.length > 0) {
+                    payload.facility = facility;
+                } else if (document.getElementById('update_new_facilities').value.trim() === '' && selectedFacilities.length === 0) {
+                    // If facilities section was cleared, don't include it (will keep existing)
+                }
+
+                // Documents
+                // Documents - only include newly uploaded documents (not existing with unique_id)
+                // Existing documents are already in database and will be merged by the API
+                if (updateUploadedMediaUrls.documents.length > 0) {
+                    const newDocuments = updateUploadedMediaUrls.documents
+                        .filter(doc => !doc.is_existing) // Only include newly uploaded documents
+                        .map(doc => ({
+                            unique_id: generateUUID(),
+                            url: typeof doc === 'string' ? doc : doc.url,
+                            is_active: true,
+                            is_deleted: false
+                        }));
+                    if (newDocuments.length > 0) {
+                        payload.documents = newDocuments;
+                    }
+                }
+
+                // Operational timing
+                const openingTime = document.getElementById('update_opening_time').value;
+                const closingTime = document.getElementById('update_closing_time').value;
+                const selectedDays = Array.from(document.querySelectorAll('input[type="checkbox"][id^="update_day_"]:checked')).map(cb => cb.value);
+                if (openingTime || closingTime || selectedDays.length > 0) {
+                    payload.operational_timing = {};
+                    if (openingTime) payload.operational_timing.opening_time = openingTime;
+                    if (closingTime) payload.operational_timing.closing_time = closingTime;
+                    if (selectedDays.length > 0) payload.operational_timing.operating_days = selectedDays;
+                }
+
+                // Bank information
+                const bankName = document.getElementById('update_bank_name').value.trim();
+                const accountNumber = document.getElementById('update_account_number').value.trim();
+                const ifscCode = document.getElementById('update_ifsc_code').value.trim();
+                const accountHolderName = document.getElementById('update_account_holder_name').value.trim();
+                const gstNumber = document.getElementById('update_gst_number').value.trim();
+                
+                if (bankName || accountNumber || ifscCode || accountHolderName || gstNumber) {
+                    payload.bank_information = {};
+                    if (bankName) payload.bank_information.bank_name = bankName;
+                    if (accountNumber) payload.bank_information.account_number = accountNumber;
+                    if (ifscCode) payload.bank_information.ifsc_code = ifscCode;
+                    if (accountHolderName) payload.bank_information.account_holder_name = accountHolderName;
+                    if (gstNumber) payload.bank_information.gst_number = gstNumber;
+                }
+
+                // Status
+                const status = document.getElementById('update_status').value;
+                if (status) payload.status = status;
+
+                // Check if at least one field is provided
+                if (Object.keys(payload).length === 0) {
+                    alert('Please fill in at least one field to update');
+                    return;
+                }
 
                 const response = await fetch(`${baseUrl()}/coaching-center/${centerId}`, {
                     method: 'PATCH',
@@ -1141,6 +2519,13 @@
 
                 const data = await response.json();
                 showResponse('updateResponse', data, !response.ok);
+
+                if (response.ok) {
+                    // Reload list if on list tab
+                    if (document.getElementById('list').classList.contains('active')) {
+                        loadMyCenters();
+                    }
+                }
             } catch (error) {
                 showResponse('updateResponse', { error: error.message }, true);
             }
@@ -1160,6 +2545,224 @@
                 showResponse('viewResponse', data, !response.ok);
             } catch (error) {
                 showResponse('viewResponse', { error: error.message }, true);
+            }
+        }
+
+        // List My Centers
+        async function loadMyCenters() {
+            if (!authToken()) {
+                alert('Please enter Authorization Token first');
+                return;
+            }
+
+            try {
+                const page = parseInt(document.getElementById('list_page').value) || 1;
+                const limit = parseInt(document.getElementById('list_limit').value) || 10;
+
+                const response = await fetch(`${baseUrl()}/coaching-center/my/list?page=${page}&limit=${limit}`, {
+                    method: 'GET',
+                    headers: headers()
+                });
+
+                const data = await response.json();
+                showResponse('listResponse', data, !response.ok);
+
+                if (response.ok && data.data && data.data.data) {
+                    displayCentersList(data.data);
+                }
+            } catch (error) {
+                showResponse('listResponse', { error: error.message }, true);
+            }
+        }
+
+        function displayCentersList(result) {
+            const container = document.getElementById('centersList');
+            container.innerHTML = '';
+
+            if (!result.data || result.data.length === 0) {
+                container.innerHTML = '<p style="color: #6b7280; padding: 20px; text-align: center;">No coaching centers found.</p>';
+                return;
+            }
+
+            // Pagination info
+            const pagination = result.pagination;
+            const paginationDiv = document.createElement('div');
+            paginationDiv.style.marginBottom = '20px';
+            paginationDiv.style.padding = '15px';
+            paginationDiv.style.background = '#f3f4f6';
+            paginationDiv.style.borderRadius = '5px';
+            paginationDiv.innerHTML = `
+                <strong>Page ${pagination.page} of ${pagination.totalPages}</strong> | 
+                Total: ${pagination.total} centers | 
+                ${pagination.hasNextPage ? '<button class="btn btn-secondary" onclick="loadPage(' + (pagination.page + 1) + ')">Next</button>' : ''}
+                ${pagination.hasPrevPage ? '<button class="btn btn-secondary" onclick="loadPage(' + (pagination.page - 1) + ')">Prev</button>' : ''}
+            `;
+            container.appendChild(paginationDiv);
+
+            // Centers list
+            result.data.forEach(center => {
+                const centerDiv = document.createElement('div');
+                centerDiv.className = 'list-item';
+                centerDiv.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <h4>${center.center_name || 'N/A'}</h4>
+                            <p><strong>ID:</strong> ${center._id}</p>
+                            <p><strong>Email:</strong> ${center.email || 'N/A'}</p>
+                            <p><strong>Mobile:</strong> ${center.mobile_number || 'N/A'}</p>
+                            <p><strong>Status:</strong> <span style="color: ${center.status === 'published' ? '#10b981' : '#6b7280'}">${center.status || 'draft'}</span></p>
+                            <p><strong>Active:</strong> <span style="color: ${center.is_active ? '#10b981' : '#ef4444'}">${center.is_active ? 'Active' : 'Inactive'}</span></p>
+                            <p><strong>Sports:</strong> ${center.sports ? center.sports.map(s => s.name).join(', ') : 'None'}</p>
+                            <p><strong>Created:</strong> ${new Date(center.createdAt).toLocaleString()}</p>
+                        </div>
+                        <div style="display: flex; gap: 5px; flex-direction: column;">
+                            <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;" onclick="loadCenterInUpdateForm('${center._id}')">Edit</button>
+                            <button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;" onclick="toggleCenterStatus('${center._id}')">Toggle Active</button>
+                            <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="deleteCenterById('${center._id}')">Delete</button>
+                            <button class="btn btn-success" style="padding: 5px 10px; font-size: 12px;" onclick="viewCenterById('${center._id}')">View</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(centerDiv);
+            });
+        }
+
+        function loadPage(page) {
+            document.getElementById('list_page').value = page;
+            loadMyCenters();
+        }
+
+        function loadCenterInUpdateForm(centerId) {
+            document.getElementById('update_center_id').value = centerId;
+            switchTab('update');
+            setTimeout(() => loadCenterForUpdate(), 100);
+        }
+
+        function toggleCenterStatus(centerId) {
+            document.getElementById('action_center_id').value = centerId;
+            switchTab('actions');
+            setTimeout(() => toggleActiveStatus(), 100);
+        }
+
+        function deleteCenterById(centerId) {
+            if (confirm('Are you sure you want to delete this coaching center?')) {
+                document.getElementById('action_center_id').value = centerId;
+                switchTab('actions');
+                setTimeout(() => deleteCenter(), 100);
+            }
+        }
+
+        function viewCenterById(centerId) {
+            document.getElementById('view_center_id').value = centerId;
+            switchTab('view');
+            setTimeout(() => viewCenter(), 100);
+        }
+
+        // Toggle Active Status
+        async function toggleActiveStatus() {
+            if (!authToken()) {
+                alert('Please enter Authorization Token first');
+                return;
+            }
+
+            const centerId = document.getElementById('action_center_id').value;
+            if (!centerId) {
+                alert('Please enter a coaching center ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${baseUrl()}/coaching-center/${centerId}/toggle-status`, {
+                    method: 'PATCH',
+                    headers: headers()
+                });
+
+                const data = await response.json();
+                showResponse('actionResponse', data, !response.ok);
+
+                if (response.ok) {
+                    // Reload center info
+                    loadCenterForAction();
+                    // Reload list if on list tab
+                    if (document.getElementById('list').classList.contains('active')) {
+                        loadMyCenters();
+                    }
+                }
+            } catch (error) {
+                showResponse('actionResponse', { error: error.message }, true);
+            }
+        }
+
+        // Delete Center
+        async function deleteCenter() {
+            if (!authToken()) {
+                alert('Please enter Authorization Token first');
+                return;
+            }
+
+            const centerId = document.getElementById('action_center_id').value;
+            if (!centerId) {
+                alert('Please enter a coaching center ID');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to delete this coaching center? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${baseUrl()}/coaching-center/${centerId}`, {
+                    method: 'DELETE',
+                    headers: headers()
+                });
+
+                const data = await response.json();
+                showResponse('actionResponse', data, !response.ok);
+
+                if (response.ok) {
+                    document.getElementById('centerInfo').innerHTML = '<p style="color: #10b981;">Coaching center deleted successfully!</p>';
+                    // Reload list if on list tab
+                    if (document.getElementById('list').classList.contains('active')) {
+                        loadMyCenters();
+                    }
+                }
+            } catch (error) {
+                showResponse('actionResponse', { error: error.message }, true);
+            }
+        }
+
+        // Load Center Info for Actions
+        async function loadCenterForAction() {
+            const centerId = document.getElementById('action_center_id').value;
+            if (!centerId) {
+                alert('Please enter a coaching center ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${baseUrl()}/coaching-center/${centerId}`);
+                const data = await response.json();
+                
+                if (data.success && data.data && data.data.coachingCenter) {
+                    const center = data.data.coachingCenter;
+                    const infoDiv = document.getElementById('centerInfo');
+                    infoDiv.innerHTML = `
+                        <div class="list-item">
+                            <h4>${center.center_name || 'N/A'}</h4>
+                            <p><strong>ID:</strong> ${center._id}</p>
+                            <p><strong>Email:</strong> ${center.email || 'N/A'}</p>
+                            <p><strong>Mobile:</strong> ${center.mobile_number || 'N/A'}</p>
+                            <p><strong>Status:</strong> <span style="color: ${center.status === 'published' ? '#10b981' : '#6b7280'}">${center.status || 'draft'}</span></p>
+                            <p><strong>Active:</strong> <span style="color: ${center.is_active ? '#10b981' : '#ef4444'}">${center.is_active ? 'Active' : 'Inactive'}</span></p>
+                            <p><strong>Sports:</strong> ${center.sports ? center.sports.map(s => s.name).join(', ') : 'None'}</p>
+                            <p><strong>Created:</strong> ${new Date(center.createdAt).toLocaleString()}</p>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('centerInfo').innerHTML = '<p style="color: #ef4444;">Center not found</p>';
+                }
+            } catch (error) {
+                document.getElementById('centerInfo').innerHTML = `<p style="color: #ef4444;">Error: ${error.message}</p>`;
             }
         }
     </script>

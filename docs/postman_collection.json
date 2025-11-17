@@ -151,7 +151,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "body": {
@@ -198,7 +198,7 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "body": {
@@ -229,7 +229,7 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "body": {
@@ -256,7 +256,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "url": {
@@ -326,6 +326,90 @@
                 "verify"
               ]
             }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/academy/auth/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academy",
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Refresh access token using refresh token. Returns new access token and refresh token. The old refresh token is automatically blacklisted."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/academy/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academy",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Logout user and blacklist current tokens. Optionally provide refreshToken in body to blacklist it as well. **Requires authentication (Bearer accessToken).**"
+          }
+        },
+        {
+          "name": "Logout All Devices",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/academy/auth/logout-all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academy",
+                "auth",
+                "logout-all"
+              ]
+            },
+            "description": "Logout from all devices by blacklisting all tokens for the authenticated user. **Requires authentication (Bearer accessToken).**"
           }
         }
       ]
@@ -508,7 +592,7 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "body": {
@@ -521,6 +605,38 @@
               "path": ["coaching-center"]
             },
             "description": "Create a new coaching center. Can be saved as draft or published. **Requires authentication (Bearer token with ACADEMY role).**\n\n**Facility Field:**\n- Can be a string (Facility ID) if facility already exists: `\"facility\": \"507f1f77bcf86cd799439011\"`\n- Can be an object to create new facility: `\"facility\": { \"name\": \"Swimming Pool\", \"description\": \"Olympic size pool\", \"icon\": \"https://example.com/icon.png\" }`\n- If object is provided and facility with same name exists, existing facility ID will be used automatically."
+          }
+        },
+        {
+          "name": "Get My Coaching Centers (List with Pagination)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/coaching-center/my/list?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["coaching-center", "my", "list"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (starts from 1, default: 1)",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page (default: 10, max: 100)",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Retrieve a paginated list of coaching centers belonging to the authenticated user. Returns only non-deleted centers. **Requires authentication (Bearer token with ACADEMY role).**\n\n**Query Parameters:**\n- `page` (optional): Page number, starts from 1 (default: 1)\n- `limit` (optional): Number of records per page (default: 10, maximum: 100)\n\n**Response includes:**\n- `data`: Array of coaching centers with populated sports, facilities, and user information\n- `pagination`: Pagination metadata (page, limit, total, totalPages, hasNextPage, hasPrevPage)"
           }
         },
         {
@@ -554,7 +670,7 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "body": {
@@ -575,6 +691,94 @@
             },
             "description": "Update coaching center details. All fields are optional. If status changes from 'draft' to 'published', media files are automatically moved to permanent locations. **Requires authentication (Bearer token with ACADEMY role).**"
           }
+        },
+        {
+          "name": "Toggle Coaching Center Active Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/coaching-center/:id/toggle-status",
+              "host": ["{{base_url}}"],
+              "path": ["coaching-center", ":id", "toggle-status"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Coaching center ID"
+                }
+              ]
+            },
+            "description": "Toggle coaching center active/inactive status. The `is_active` field will be automatically toggled (if current is `true`, it becomes `false` and vice versa). This controls whether the coaching center is active or inactive, not the draft/published status. **Requires authentication (Bearer token with ACADEMY role).**"
+          }
+        },
+        {
+          "name": "Delete Coaching Center",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/coaching-center/:id",
+              "host": ["{{base_url}}"],
+              "path": ["coaching-center", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Coaching center ID"
+                }
+              ]
+            },
+            "description": "Soft delete a coaching center by setting is_deleted to true. The coaching center will no longer appear in regular queries but data is preserved in the database. **Requires authentication (Bearer token with ACADEMY role).**"
+          }
+        },
+        {
+          "name": "Remove Media from Coaching Center",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mediaType\": \"image\",\n  \"uniqueId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"sportId\": \"507f1f77bcf86cd799439011\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/coaching-center/:id/media",
+              "host": ["{{base_url}}"],
+              "path": ["coaching-center", ":id", "media"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Coaching center ID"
+                }
+              ]
+            },
+            "description": "Soft delete media from coaching center. Media is marked as deleted but remains in database. Supports: logo, documents, and sport-specific images/videos. For images/videos, sportId is required. **Requires authentication (Bearer token with ACADEMY role).**\n\n**Request Body:**\n- `mediaType` (required): Type of media to remove. Must be one of: `logo`, `document`, `image`, `video`\n- `uniqueId` (required): Unique ID of the media item\n- `sportId` (optional, required for `image`/`video`): Sport ID for sport-specific media\n\n**Examples:**\n\nRemove logo:\n```json\n{\n  \"mediaType\": \"logo\",\n  \"uniqueId\": \"logo-uuid\"\n}\n```\n\nRemove document:\n```json\n{\n  \"mediaType\": \"document\",\n  \"uniqueId\": \"doc-uuid\"\n}\n```\n\nRemove image:\n```json\n{\n  \"mediaType\": \"image\",\n  \"uniqueId\": \"img-uuid\",\n  \"sportId\": \"507f1f77bcf86cd799439011\"\n}\n```\n\nRemove video:\n```json\n{\n  \"mediaType\": \"video\",\n  \"uniqueId\": \"video-uuid\",\n  \"sportId\": \"507f1f77bcf86cd799439011\"\n}\n```"
+          }
         }
       ]
     },
@@ -588,7 +792,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "body": {
@@ -644,7 +848,18 @@
     },
     {
       "key": "token",
-      "value": ""
+      "value": "",
+      "description": "Legacy token variable (use accessToken instead)"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "description": "JWT access token (short-lived, 15 minutes). Use this for API requests."
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "description": "JWT refresh token (long-lived, 7 days). Use this to get new access tokens."
     }
   ]
 }

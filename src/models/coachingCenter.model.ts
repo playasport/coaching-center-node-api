@@ -1,12 +1,23 @@
 import { Schema, model, HydratedDocument, Types } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 
-// Media item interface
+// Media item interface (for images and documents)
 export interface MediaItem {
   unique_id: string;
   url: string;
   is_active: boolean;
   is_deleted: boolean;
+  deletedAt?: Date | null; // Track when media was soft deleted
+}
+
+// Video item interface (with thumbnail)
+export interface VideoItem {
+  unique_id: string;
+  url: string;
+  thumbnail?: string | null; // Thumbnail URL (auto-generated if not provided)
+  is_active: boolean;
+  is_deleted: boolean;
+  deletedAt?: Date | null; // Track when media was soft deleted
 }
 
 // Age range interface
@@ -39,11 +50,12 @@ export interface OperationalTiming {
   closing_time: string; // e.g., '18:00'
 }
 
-// Media interface
-export interface CenterMedia {
-  images: MediaItem[];
-  videos: MediaItem[];
-  documents: MediaItem[];
+// Sport detail interface (NEW)
+export interface SportDetail {
+  sport_id: Types.ObjectId; // Reference to Sport model
+  description: string; // Sport-specific description
+  images: MediaItem[]; // Sport-specific images
+  videos: VideoItem[]; // Sport-specific videos with thumbnails
 }
 
 // Bank information interface
@@ -57,18 +69,19 @@ export interface BankInformation {
 
 // Main Coaching Center interface
 export interface CoachingCenter {
+  user: Types.ObjectId; // Reference to User model (_id)
   center_name: string;
   mobile_number: string;
   email: string;
-  description?: string | null;
-  rules_regulation?: string | null;
+  rules_regulation?: string[] | null;
   logo?: string | null;
-  sports: Types.ObjectId[]; // References to Sport model
+  sports: Types.ObjectId[]; // References to Sport model (for quick search)
+  sport_details: SportDetail[]; // Sport-specific data (description, images, videos)
   age: AgeRange;
   location: CenterLocation;
   facility: Types.ObjectId[]; // Array of references to Facility model
   operational_timing: OperationalTiming;
-  media: CenterMedia;
+  documents: MediaItem[]; // General documents (not sport-specific)
   bank_information: BankInformation;
   status: 'draft' | 'published';
   is_active: boolean;
@@ -99,6 +112,10 @@ const mediaItemSchema = new Schema<MediaItem>(
     is_deleted: {
       type: Boolean,
       default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
     },
   },
   { _id: false }
@@ -187,23 +204,62 @@ const operationalTimingSchema = new Schema<OperationalTiming>(
   { _id: false }
 );
 
-const centerMediaSchema = new Schema<CenterMedia>(
+// Video item schema (with thumbnail)
+const videoItemSchema = new Schema<VideoItem>(
   {
+    unique_id: {
+      type: String,
+      required: true,
+      default: () => uuidv4(),
+    },
+    url: {
+      type: String,
+      required: true,
+    },
+    thumbnail: {
+      type: String,
+      default: null,
+    },
+    is_active: {
+      type: Boolean,
+      default: true,
+    },
+    is_deleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  { _id: false }
+);
+
+// Sport detail schema
+const sportDetailSchema = new Schema<SportDetail>(
+  {
+    sport_id: {
+      type: Schema.Types.ObjectId,
+      ref: 'Sport',
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
     images: {
       type: [mediaItemSchema],
       default: [],
     },
     videos: {
-      type: [mediaItemSchema],
-      default: [],
-    },
-    documents: {
-      type: [mediaItemSchema],
+      type: [videoItemSchema],
       default: [],
     },
   },
   { _id: false }
 );
+
 
 const bankInformationSchema = new Schema<BankInformation>(
   {
@@ -235,31 +291,30 @@ const bankInformationSchema = new Schema<BankInformation>(
 // Main schema
 const coachingCenterSchema = new Schema<CoachingCenter>(
   {
+    user: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: 'User',
+      index: true,
+    },
     center_name: {
       type: String,
       required: true,
       trim: true,
-      index: true,
     },
     mobile_number: {
       type: String,
       required: true,
       trim: true,
-      index: true,
     },
     email: {
       type: String,
       required: true,
       lowercase: true,
       trim: true,
-      index: true,
-    },
-    description: {
-      type: String,
-      default: null,
     },
     rules_regulation: {
-      type: String,
+      type: [String],
       default: null,
     },
     logo: {
@@ -269,6 +324,11 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
     sports: {
       type: [Schema.Types.ObjectId],
       ref: 'Sport',
+      required: true,
+      default: [],
+    },
+    sport_details: {
+      type: [sportDetailSchema],
       required: true,
       default: [],
     },
@@ -289,13 +349,9 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
       type: operationalTimingSchema,
       required: true,
     },
-    media: {
-      type: centerMediaSchema,
-      default: () => ({
-        images: [],
-        videos: [],
-        documents: [],
-      }),
+    documents: {
+      type: [mediaItemSchema],
+      default: [],
     },
     bank_information: {
       type: bankInformationSchema,
@@ -305,7 +361,6 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
       type: String,
       enum: ['draft', 'published'],
       default: 'draft',
-      index: true,
     },
     is_active: {
       type: Boolean,
@@ -328,15 +383,19 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
 );
 
 // Indexes
+coachingCenterSchema.index({ user: 1 });
 coachingCenterSchema.index({ center_name: 1 });
 coachingCenterSchema.index({ email: 1 });
 coachingCenterSchema.index({ mobile_number: 1 });
 coachingCenterSchema.index({ 'location.latitude': 1, 'location.longitude': 1 });
 coachingCenterSchema.index({ sports: 1 });
+coachingCenterSchema.index({ 'sport_details.sport_id': 1 });
 coachingCenterSchema.index({ facility: 1 });
 coachingCenterSchema.index({ status: 1 });
 coachingCenterSchema.index({ is_active: 1, is_deleted: 1 });
 coachingCenterSchema.index({ status: 1, is_active: 1, is_deleted: 1 });
+coachingCenterSchema.index({ user: 1, is_deleted: 1 });
+coachingCenterSchema.index({ user: 1, status: 1, is_deleted: 1 });
 
 export const CoachingCenterModel = model<CoachingCenter>('CoachingCenter', coachingCenterSchema);
 

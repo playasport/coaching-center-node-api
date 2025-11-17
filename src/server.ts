@@ -3,6 +3,11 @@ import { config } from './config/env';
 import { connectDatabase, disconnectDatabase } from './config/database';
 import { setLocale } from './utils/i18n';
 import { logger } from './utils/logger';
+import { thumbnailWorker, thumbnailQueue } from './queue/thumbnailQueue';
+import { closeUserCache } from './utils/userCache';
+import { closeTokenBlacklist } from './utils/tokenBlacklist';
+import { closeRateLimit } from './middleware/rateLimit.middleware';
+import { startMediaCleanupJob } from './jobs/mediaCleanup.job';
 
 const startServer = async (): Promise<void> => {
   try {
@@ -13,6 +18,9 @@ const startServer = async (): Promise<void> => {
     // Test database connection
     await connectDatabase();
     logger.info('MongoDB connected successfully');
+
+    // Start media cleanup cron job (runs daily at 2 AM)
+    startMediaCleanupJob();
 
     // Start server
     app.listen(config.port, () => {
@@ -29,17 +37,39 @@ const startServer = async (): Promise<void> => {
 };
 
 // Graceful shutdown
-process.on('SIGTERM', async () => {
-  logger.warn('SIGTERM signal received: closing HTTP server');
-  await disconnectDatabase();
-  process.exit(0);
-});
+const gracefulShutdown = async (signal: string) => {
+  logger.warn(`${signal} signal received: closing HTTP server`);
+  
+  try {
+    // Close thumbnail worker
+    await thumbnailWorker.close();
+    logger.info('Thumbnail worker closed');
+    
+    // Close thumbnail queue
+    await thumbnailQueue.close();
+    logger.info('Thumbnail queue closed');
+    
+    // Close user cache Redis connection
+    await closeUserCache();
+    
+    // Close token blacklist Redis connection
+    await closeTokenBlacklist();
+    
+    // Close rate limit Redis connection
+    await closeRateLimit();
+    
+    // Disconnect database
+    await disconnectDatabase();
+    
+    process.exit(0);
+  } catch (error) {
+    logger.error('Error during graceful shutdown', error);
+    process.exit(1);
+  }
+};
 
-process.on('SIGINT', async () => {
-  logger.warn('SIGINT signal received: closing HTTP server');
-  await disconnectDatabase();
-  process.exit(0);
-});
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 startServer();
 

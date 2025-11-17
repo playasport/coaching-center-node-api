@@ -26,7 +26,14 @@ export const config = {
   defaultLocale: (process.env.DEFAULT_LOCALE || 'en') as 'en' | 'hi',
   jwt: {
     secret: process.env.JWT_SECRET || 'your-secret-key',
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    refreshSecret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'your-refresh-secret-key',
+    accessTokenExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
+    refreshTokenExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+  },
+  rateLimit: {
+    windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000), // 15 minutes
+    maxRequests: Number(process.env.RATE_LIMIT_MAX_REQUESTS || 100), // 100 requests per window
+    loginMaxAttempts: Number(process.env.RATE_LIMIT_LOGIN_MAX || 5), // 5 login attempts per window
   },
   database: {
     mongoUri:
@@ -73,5 +80,26 @@ export const config = {
       maxWidth: Number(process.env.IMAGE_MAX_WIDTH || 1500), // Default: 1500px
       maxSizeKB: Number(process.env.IMAGE_MAX_SIZE_KB || 500), // Default: 500KB
     },
+  },
+  redis: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: Number(process.env.REDIS_PORT || 6379),
+    password: process.env.REDIS_PASSWORD || undefined,
+    // Shared connection settings
+    connection: {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    },
+    // Database assignments for different services
+    db: {
+      bullmq: Number(process.env.REDIS_DB_BULLMQ || 0), // DB 0: BullMQ (thumbnail queue)
+      userCache: Number(process.env.REDIS_DB_USER_CACHE || 1), // DB 1: User cache
+      tokenBlacklist: Number(process.env.REDIS_DB_TOKEN_BLACKLIST || 2), // DB 2: Token blacklist
+      rateLimit: Number(process.env.REDIS_DB_RATE_LIMIT || 3), // DB 3: Rate limiting
+    },
+  },
+  pagination: {
+    defaultLimit: Number(process.env.PAGINATION_DEFAULT_LIMIT || 10),
+    maxLimit: Number(process.env.PAGINATION_MAX_LIMIT || 100),
   },
 };

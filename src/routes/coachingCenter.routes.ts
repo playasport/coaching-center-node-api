@@ -61,6 +61,87 @@ router.post(
 
 /**
  * @swagger
+ * /coaching-center/my/list:
+ *   get:
+ *     summary: Get list of coaching centers for logged-in user
+ *     tags: [Coaching Center]
+ *     description: Retrieve a paginated list of coaching centers belonging to the authenticated user. Requires authentication and ACADEMY role.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number (starts from 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of records per page
+ *     responses:
+ *       200:
+ *         description: Coaching centers retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Coaching centers retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/CoachingCenter'
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 10
+ *                         total:
+ *                           type: integer
+ *                           example: 25
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 3
+ *                         hasNextPage:
+ *                           type: boolean
+ *                           example: true
+ *                         hasPrevPage:
+ *                           type: boolean
+ *                           example: false
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - ACADEMY role required
+ *       500:
+ *         description: Internal server error
+ */
+router.get(
+  '/my/list',
+  authenticate,
+  authorize(DefaultRoles.ACADEMY),
+  coachingCenterController.getMyCoachingCenters
+);
+
+/**
+ * @swagger
  * /coaching-center/{id}:
  *   get:
  *     summary: Get coaching center by ID
@@ -118,58 +199,7 @@ router.get('/:id', coachingCenterController.getCoachingCenter);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               center_name:
- *                 type: string
- *                 maxLength: 255
- *               mobile_number:
- *                 type: string
- *                 pattern: '^[6-9]\d{9}$'
- *                 description: 10 digits, starting with 6-9
- *               email:
- *                 type: string
- *                 format: email
- *               description:
- *                 type: string
- *                 maxLength: 2000
- *               rules_regulation:
- *                 type: string
- *                 maxLength: 5000
- *               logo:
- *                 type: string
- *                 format: uri
- *               sports:
- *                 type: array
- *                 items:
- *                   type: string
- *               age:
- *                 type: object
- *                 properties:
- *                   min:
- *                     type: number
- *                   max:
- *                     type: number
- *               location:
- *                 type: object
- *                 properties:
- *                   latitude:
- *                     type: number
- *                   longitude:
- *                     type: number
- *                   address:
- *                     type: object
- *               facility:
- *                 type: string
- *               operational_timing:
- *                 type: object
- *               media:
- *                 type: object
- *               bank_information:
- *                 type: object
- *               status:
- *                 type: string
- *                 enum: [draft, published]
+ *             $ref: '#/components/schemas/CoachingCenterUpdateRequest'
  *     responses:
  *       200:
  *         description: Coaching center updated successfully
@@ -206,6 +236,190 @@ router.patch(
   authorize(DefaultRoles.ACADEMY),
   validate(coachingCenterUpdateSchema),
   coachingCenterController.updateCoachingCenter
+);
+
+/**
+ * @swagger
+ * /coaching-center/{id}/toggle-status:
+ *   patch:
+ *     summary: Toggle coaching center active status
+ *     tags: [Coaching Center]
+ *     description: Toggle coaching center active/inactive status. The is_active field will be automatically toggled (if current is true, it becomes false and vice versa). This controls whether the coaching center is active or inactive, not the draft/published status. Requires authentication and ACADEMY role.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Coaching center ID
+ *     responses:
+ *       200:
+ *         description: Coaching center active status toggled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Coaching center activated successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     coachingCenter:
+ *                       $ref: '#/components/schemas/CoachingCenter'
+ *       400:
+ *         description: Invalid request - ID required
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - ACADEMY role required
+ *       404:
+ *         description: Coaching center not found
+ *       500:
+ *         description: Internal server error
+ */
+router.patch(
+  '/:id/toggle-status',
+  authenticate,
+  authorize(DefaultRoles.ACADEMY),
+  coachingCenterController.toggleCoachingCenterStatus
+);
+
+/**
+ * @swagger
+ * /coaching-center/{id}:
+ *   delete:
+ *     summary: Delete coaching center
+ *     tags: [Coaching Center]
+ *     description: Soft delete a coaching center by setting is_deleted to true. The coaching center will no longer appear in regular queries. Requires authentication and ACADEMY role.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Coaching center ID
+ *     responses:
+ *       200:
+ *         description: Coaching center deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Coaching center deleted successfully"
+ *                 data:
+ *                   type: object
+ *                   example: {}
+ *       400:
+ *         description: Invalid request - ID required
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - ACADEMY role required
+ *       404:
+ *         description: Coaching center not found
+ *       500:
+ *         description: Internal server error
+ */
+router.delete(
+  '/:id',
+  authenticate,
+  authorize(DefaultRoles.ACADEMY),
+  coachingCenterController.deleteCoachingCenter
+);
+
+/**
+ * @swagger
+ * /coaching-center/{id}/media:
+ *   delete:
+ *     summary: Remove media from coaching center (soft delete)
+ *     tags: [Coaching Center]
+ *     description: |
+ *       Soft delete media from coaching center. Media is marked as deleted but remains in database.
+ *       Supports: logo, documents, and sport-specific images/videos.
+ *       For images/videos, sportId is required.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Coaching center ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - mediaType
+ *               - uniqueId
+ *             properties:
+ *               mediaType:
+ *                 type: string
+ *                 enum: [logo, document, image, video]
+ *                 example: image
+ *                 description: Type of media to remove
+ *               uniqueId:
+ *                 type: string
+ *                 example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+ *                 description: Unique ID of the media item
+ *               sportId:
+ *                 type: string
+ *                 example: "507f1f77bcf86cd799439011"
+ *                 description: Sport ID (required for image/video types)
+ *     responses:
+ *       200:
+ *         description: Media removed successfully (soft deleted)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Media removed successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     success:
+ *                       type: boolean
+ *                       example: true
+ *       400:
+ *         description: Validation error or invalid data
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - ACADEMY role required
+ *       404:
+ *         description: Coaching center or media not found
+ *       500:
+ *         description: Server error
+ */
+router.delete(
+  '/:id/media',
+  authenticate,
+  authorize(DefaultRoles.ACADEMY),
+  coachingCenterController.removeMedia
 );
 
 // Media upload routes
