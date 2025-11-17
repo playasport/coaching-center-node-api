@@ -3,6 +3,7 @@ node_modules/
 package-lock.json
 yarn.lock
 my_existing_database/
+mongodb_dump/
 
 # Build output
 dist/
