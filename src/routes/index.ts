@@ -16,8 +16,8 @@ router.use('/locale', localeRoutes);
 router.use('/academy/auth', academyAuthRoutes);
 router.use('/location', locationRoutes);
 router.use('/', basicRoutes);
-router.use('/coaching-center', coachingCenterRoutes);
-router.use('/employee', employeeRoutes);
+router.use('/academy/coaching-center', coachingCenterRoutes);
+router.use('/academy/employee', employeeRoutes);
 router.use('/role', roleRoutes);
 router.get('/health', (_req, res) => {
   const response = new ApiResponse(200, { timestamp: new Date().toISOString() }, t('health.serverRunning'));

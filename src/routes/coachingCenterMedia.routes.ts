@@ -8,7 +8,7 @@ const router = Router();
 
 /**
  * @swagger
- * /coaching-center/media:
+ * /academy/coaching-center/media:
  *   post:
  *     summary: Upload coaching center media files
  *     tags: [Coaching Center Media]

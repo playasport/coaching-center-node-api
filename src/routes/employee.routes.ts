@@ -2,14 +2,15 @@ import { Router } from 'express';
 import * as employeeController from '../controllers/employee.controller';
 import { validate } from '../middleware/validation.middleware';
 import { employeeCreateSchema, employeeUpdateSchema } from '../validations/employee.validation';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, authorize } from '../middleware/auth.middleware';
 import employeeMediaRoutes from './employeeMedia.routes';
+import { DefaultRoles } from '../models/role.model';
 
 const router = Router();
 
 /**
  * @swagger
- * /employee:
+ * /academy/employee:
  *   post:
  *     summary: Create a new employee
  *     tags: [Employee]
@@ -80,13 +81,14 @@ const router = Router();
 router.post(
   '/',
   authenticate,
+  authorize(DefaultRoles.ACADEMY),
   validate(employeeCreateSchema),
   employeeController.createEmployee
 );
 
 /**
  * @swagger
- * /employee/my/list:
+ * /academy/employee/my/list:
  *   get:
  *     summary: Get list of employees for logged-in user
  *     tags: [Employee]
@@ -118,16 +120,19 @@ router.post(
 router.get(
   '/my/list',
   authenticate,
+  authorize(DefaultRoles.ACADEMY),
   employeeController.getMyEmployees
 );
 
 /**
  * @swagger
- * /employee/{id}:
+ * /academy/employee/{id}:
  *   get:
  *     summary: Get employee by ID
  *     tags: [Employee]
- *     description: Retrieve an employee by its ID
+ *     description: Retrieve an employee by its ID. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -138,14 +143,16 @@ router.get(
  *     responses:
  *       200:
  *         description: Employee retrieved successfully
+ *       401:
+ *         description: Unauthorized - Authentication required
  *       404:
  *         description: Employee not found
  */
-router.get('/:id', employeeController.getEmployee);
+router.get('/:id', authenticate, authorize(DefaultRoles.ACADEMY), employeeController.getEmployee);
 
 /**
  * @swagger
- * /employee/{id}:
+ * /academy/employee/{id}:
  *   patch:
  *     summary: Update employee details
  *     tags: [Employee]
@@ -203,13 +210,14 @@ router.get('/:id', employeeController.getEmployee);
 router.patch(
   '/:id',
   authenticate,
+  authorize(DefaultRoles.ACADEMY),
   validate(employeeUpdateSchema),
   employeeController.updateEmployee
 );
 
 /**
  * @swagger
- * /employee/{id}/toggle-status:
+ * /academy/employee/{id}/toggle-status:
  *   patch:
  *     summary: Toggle employee active status
  *     tags: [Employee]
@@ -234,12 +242,13 @@ router.patch(
 router.patch(
   '/:id/toggle-status',
   authenticate,
+  authorize(DefaultRoles.ACADEMY),
   employeeController.toggleEmployeeStatus
 );
 
 /**
  * @swagger
- * /employee/{id}:
+ * /academy/employee/{id}:
  *   delete:
  *     summary: Delete employee (soft delete)
  *     tags: [Employee]
@@ -264,11 +273,12 @@ router.patch(
 router.delete(
   '/:id',
   authenticate,
+  authorize(DefaultRoles.ACADEMY),
   employeeController.deleteEmployee
 );
 
 // Media upload routes for certifications
-router.use('/media', employeeMediaRoutes);
+router.use('/media', authenticate, authorize(DefaultRoles.ACADEMY), employeeMediaRoutes);
 
 export default router;
 

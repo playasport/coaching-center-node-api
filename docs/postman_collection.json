@@ -600,9 +600,9 @@
               "raw": "{\n  \"center_name\": \"Elite Sports Academy\",\n  \"mobile_number\": \"9876543210\",\n  \"email\": \"info@elitesportsacademy.com\",\n  \"description\": \"Premier coaching center for multiple sports\",\n  \"sports\": [\"507f1f77bcf86cd799439011\"],\n  \"age\": {\n    \"min\": 3,\n    \"max\": 18\n  },\n  \"location\": {\n    \"latitude\": 28.6139,\n    \"longitude\": 77.209,\n    \"address\": {\n      \"line2\": \"Near Metro Station\",\n      \"city\": \"New Delhi\",\n      \"state\": \"Delhi\",\n      \"country\": \"India\",\n      \"pincode\": \"110001\"\n    }\n  },\n  \"facility\": \"507f1f77bcf86cd799439011\",\n  \"operational_timing\": {\n    \"operating_days\": [\"monday\", \"tuesday\", \"wednesday\", \"thursday\", \"friday\"],\n    \"opening_time\": \"09:00\",\n    \"closing_time\": \"18:00\"\n  },\n  \"bank_information\": {\n    \"bank_name\": \"State Bank of India\",\n    \"account_number\": \"1234567890123456\",\n    \"ifsc_code\": \"SBIN0001234\",\n    \"account_holder_name\": \"Elite Sports Academy\"\n  },\n  \"status\": \"draft\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/coaching-center",
+              "raw": "{{base_url}}/academy/coaching-center",
               "host": ["{{base_url}}"],
-              "path": ["coaching-center"]
+              "path": ["academy", "coaching-center"]
             },
             "description": "Create a new coaching center. Can be saved as draft or published. **Requires authentication (Bearer token with ACADEMY role).**\n\n**Facility Field:**\n- Can be a string (Facility ID) if facility already exists: `\"facility\": \"507f1f77bcf86cd799439011\"`\n- Can be an object to create new facility: `\"facility\": { \"name\": \"Swimming Pool\", \"description\": \"Olympic size pool\", \"icon\": \"https://example.com/icon.png\" }`\n- If object is provided and facility with same name exists, existing facility ID will be used automatically."
           }
@@ -618,9 +618,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/coaching-center/my/list?page=1&limit=10",
+              "raw": "{{base_url}}/academy/coaching-center/my/list?page=1&limit=10",
               "host": ["{{base_url}}"],
-              "path": ["coaching-center", "my", "list"],
+              "path": ["academy", "coaching-center", "my", "list"],
               "query": [
                 {
                   "key": "page",
@@ -643,11 +643,16 @@
           "name": "Get Coaching Center by ID",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": {
-              "raw": "{{base_url}}/coaching-center/:id",
+              "raw": "{{base_url}}/academy/coaching-center/:id",
               "host": ["{{base_url}}"],
-              "path": ["coaching-center", ":id"],
+              "path": ["academy", "coaching-center", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -656,7 +661,7 @@
                 }
               ]
             },
-            "description": "Retrieve a coaching center by its ID"
+            "description": "Retrieve a coaching center by its ID. **Requires authentication (Bearer token).**"
           }
         },
         {
@@ -678,9 +683,9 @@
               "raw": "{\n  \"center_name\": \"Updated Elite Sports Academy\",\n  \"description\": \"Updated description\",\n  \"status\": \"published\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/coaching-center/:id",
+              "raw": "{{base_url}}/academy/coaching-center/:id",
               "host": ["{{base_url}}"],
-              "path": ["coaching-center", ":id"],
+              "path": ["academy", "coaching-center", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -703,9 +708,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/coaching-center/:id/toggle-status",
+              "raw": "{{base_url}}/academy/coaching-center/:id/toggle-status",
               "host": ["{{base_url}}"],
-              "path": ["coaching-center", ":id", "toggle-status"],
+              "path": ["academy", "coaching-center", ":id", "toggle-status"],
               "variable": [
                 {
                   "key": "id",
@@ -728,9 +733,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/coaching-center/:id",
+              "raw": "{{base_url}}/academy/coaching-center/:id",
               "host": ["{{base_url}}"],
-              "path": ["coaching-center", ":id"],
+              "path": ["academy", "coaching-center", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -766,9 +771,9 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/coaching-center/:id/media",
+              "raw": "{{base_url}}/academy/coaching-center/:id/media",
               "host": ["{{base_url}}"],
-              "path": ["coaching-center", ":id", "media"],
+              "path": ["academy", "coaching-center", ":id", "media"],
               "variable": [
                 {
                   "key": "id",
@@ -830,9 +835,9 @@
               ]
             },
             "url": {
-              "raw": "{{base_url}}/coaching-center/media",
+              "raw": "{{base_url}}/academy/coaching-center/media",
               "host": ["{{base_url}}"],
-              "path": ["coaching-center", "media"]
+              "path": ["academy", "coaching-center", "media"]
             },
             "description": "Upload media files (logo, images, videos, documents) in a single request. You can upload any combination of these file types. Files are saved in temp folder and automatically moved to permanent location when coaching center is published. Images (logo and images) are automatically compressed. **Requires authentication (Bearer token).**"
           }
@@ -866,9 +871,9 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/employee",
+              "raw": "{{base_url}}/academy/employee",
               "host": ["{{base_url}}"],
-              "path": ["employee"]
+              "path": ["academy", "employee"]
             },
             "description": "Create a new employee. **Requires authentication (Bearer token).**\n\n**Note:** `userId` is automatically set from the logged-in user. Any `userId` value provided in the request body will be ignored.\n\n**Required Fields:**\n- `fullName`: Full name (letters and spaces only, no numbers or special characters)\n- `role`: Role ObjectId\n- `mobileNo`: Mobile number (10 digits, starting with 6-9)\n- `workingHours`: Working hours string\n\n**Optional Fields:**\n- `email`: Email address\n- `sport`: Sport ObjectId\n- `center`: Coaching Center ObjectId\n- `experience`: Years of experience (number)\n- `extraHours`: Extra hours string\n- `certification`: Array of certification objects with `name` and `fileUrl`\n- `salary`: Salary amount (number)"
           }
@@ -884,9 +889,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/employee/my/list?page=1&limit=10",
+              "raw": "{{base_url}}/academy/employee/my/list?page=1&limit=10",
               "host": ["{{base_url}}"],
-              "path": ["employee", "my", "list"],
+              "path": ["academy", "employee", "my", "list"],
               "query": [
                 {
                   "key": "page",
@@ -909,11 +914,16 @@
           "name": "Get Employee by ID",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": {
-              "raw": "{{base_url}}/employee/:id",
+              "raw": "{{base_url}}/academy/employee/:id",
               "host": ["{{base_url}}"],
-              "path": ["employee", ":id"],
+              "path": ["academy", "employee", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -922,7 +932,7 @@
                 }
               ]
             },
-            "description": "Retrieve an employee by its ID. No authentication required."
+            "description": "Retrieve an employee by its ID. **Requires authentication (Bearer token).**"
           }
         },
         {
@@ -949,9 +959,9 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/employee/:id",
+              "raw": "{{base_url}}/academy/employee/:id",
               "host": ["{{base_url}}"],
-              "path": ["employee", ":id"],
+              "path": ["academy", "employee", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -974,9 +984,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/employee/:id/toggle-status",
+              "raw": "{{base_url}}/academy/employee/:id/toggle-status",
               "host": ["{{base_url}}"],
-              "path": ["employee", ":id", "toggle-status"],
+              "path": ["academy", "employee", ":id", "toggle-status"],
               "variable": [
                 {
                   "key": "id",
@@ -999,9 +1009,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/employee/:id",
+              "raw": "{{base_url}}/academy/employee/:id",
               "host": ["{{base_url}}"],
-              "path": ["employee", ":id"],
+              "path": ["academy", "employee", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -1045,9 +1055,9 @@
               ]
             },
             "url": {
-              "raw": "{{base_url}}/employee/media",
+              "raw": "{{base_url}}/academy/employee/media",
               "host": ["{{base_url}}"],
-              "path": ["employee", "media"]
+              "path": ["academy", "employee", "media"]
             },
             "description": "Upload certification documents for employees. Files are saved in `temp/images/coaching/employee/` folder. **Requires authentication (Bearer token).**\n\n**File Limits:**\n- Certifications: up to 10 files (PDF, JPEG, PNG, WebP) - max 10MB each\n\n**Supported File Types:**\n- Images: JPEG, PNG, WebP\n- Documents: PDF"
           }

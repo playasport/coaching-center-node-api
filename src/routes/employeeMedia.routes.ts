@@ -7,7 +7,7 @@ const router = Router();
 
 /**
  * @swagger
- * /employee/media:
+ * /academy/employee/media:
  *   post:
  *     summary: Upload employee certification files
  *     tags: [Employee Media]
