@@ -1,9 +1,10 @@
 import { Schema, model, HydratedDocument } from 'mongoose';
 
 export interface Role {
-  id: string;
+  _id?: string;
   name: string;
   description?: string | null;
+  visibleToRoles?: string[] | null; // Array of role names that can view/list this role
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,9 +20,14 @@ export enum DefaultRoles {
 
 const roleSchema = new Schema<Role>(
   {
-    id: { type: String, required: true, unique: true, index: true },
-    name: { type: String, required: true, unique: true, trim: true },
+    name: { type: String, required: true, unique: true, trim: true, index: true },
     description: { type: String, default: null },
+    visibleToRoles: { 
+      type: [String], 
+      default: null,
+      index: true, // Index for better query performance
+      description: 'Array of multiple role names that can view/list this role. One role can be visible to multiple roles. If null or empty, only SUPER_ADMIN and ADMIN can view it.'
+    },
   },
   {
     timestamps: true,
@@ -29,14 +35,14 @@ const roleSchema = new Schema<Role>(
     toJSON: {
       transform(_doc, ret) {
         const result = ret as any;
-        result.id = result.id ?? result._id;
+        result.id = result._id?.toString();
         delete result._id;
       },
     },
     toObject: {
       transform(_doc, ret) {
         const result = ret as any;
-        result.id = result.id ?? result._id;
+        result.id = result._id?.toString();
         delete result._id;
       },
     },

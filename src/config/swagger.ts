@@ -1411,6 +1411,271 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        Employee: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+            },
+            userId: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                id: { type: 'string' },
+                firstName: { type: 'string' },
+                lastName: { type: 'string' },
+                email: { type: 'string' },
+              },
+            },
+            fullName: {
+              type: 'string',
+              example: 'John Doe',
+            },
+            role: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                id: { type: 'string' },
+                name: { type: 'string' },
+              },
+            },
+            mobileNo: {
+              type: 'string',
+              example: '9876543210',
+            },
+            email: {
+              type: 'string',
+              example: 'john@example.com',
+              nullable: true,
+            },
+            sport: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                custom_id: { type: 'string' },
+                name: { type: 'string' },
+                logo: { type: 'string' },
+              },
+              nullable: true,
+            },
+            center: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                center_name: { type: 'string' },
+                email: { type: 'string' },
+                mobile_number: { type: 'string' },
+              },
+              nullable: true,
+            },
+            experience: {
+              type: 'number',
+              example: 5,
+              nullable: true,
+            },
+            workingHours: {
+              type: 'string',
+              example: '9:00 AM - 6:00 PM',
+            },
+            extraHours: {
+              type: 'string',
+              example: '2 hours',
+              nullable: true,
+            },
+            certification: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', example: 'CPR Certification' },
+                  fileUrl: { type: 'string', format: 'uri', example: 'https://bucket.s3.region.amazonaws.com/temp/images/coaching/employee/uuid.pdf' },
+                },
+              },
+              nullable: true,
+            },
+            salary: {
+              type: 'number',
+              example: 50000,
+              nullable: true,
+            },
+            is_active: {
+              type: 'boolean',
+              example: true,
+            },
+            is_deleted: {
+              type: 'boolean',
+              example: false,
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+          },
+        },
+        EmployeeCreateRequest: {
+          type: 'object',
+          required: ['fullName', 'role', 'mobileNo', 'workingHours'],
+          properties: {
+            fullName: {
+              type: 'string',
+              example: 'John Doe',
+              description: 'Full name (letters and spaces only)',
+            },
+            role: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Role ObjectId',
+            },
+            mobileNo: {
+              type: 'string',
+              pattern: '^[6-9]\\d{9}$',
+              example: '9876543210',
+              description: 'Mobile number (10 digits, starting with 6-9)',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'john@example.com',
+              description: 'Email address (optional)',
+            },
+            sport: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Sport ObjectId (optional)',
+            },
+            center: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Coaching Center ObjectId (optional)',
+            },
+            experience: {
+              type: 'number',
+              example: 5,
+              description: 'Years of experience (optional)',
+            },
+            workingHours: {
+              type: 'string',
+              example: '9:00 AM - 6:00 PM',
+              description: 'Working hours',
+            },
+            extraHours: {
+              type: 'string',
+              example: '2 hours',
+              description: 'Extra hours (optional)',
+            },
+            certification: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', example: 'CPR Certification' },
+                  fileUrl: { type: 'string', format: 'uri', example: 'https://bucket.s3.region.amazonaws.com/temp/images/coaching/employee/uuid.pdf' },
+                },
+              },
+              description: 'Certification documents (optional)',
+            },
+            salary: {
+              type: 'number',
+              example: 50000,
+              description: 'Salary (optional)',
+            },
+          },
+        },
+        EmployeeUpdateRequest: {
+          type: 'object',
+          description: 'Update employee request. All fields are optional.',
+          properties: {
+            fullName: {
+              type: 'string',
+              example: 'John Doe',
+              description: 'Full name (letters and spaces only)',
+            },
+            role: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Role ObjectId',
+            },
+            mobileNo: {
+              type: 'string',
+              pattern: '^[6-9]\\d{9}$',
+              example: '9876543210',
+              description: 'Mobile number (10 digits, starting with 6-9)',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'john@example.com',
+              description: 'Email address',
+            },
+            sport: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Sport ObjectId',
+            },
+            center: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Coaching Center ObjectId',
+            },
+            experience: {
+              type: 'number',
+              example: 5,
+              description: 'Years of experience',
+            },
+            workingHours: {
+              type: 'string',
+              example: '9:00 AM - 6:00 PM',
+              description: 'Working hours',
+            },
+            extraHours: {
+              type: 'string',
+              example: '2 hours',
+              description: 'Extra hours',
+            },
+            certification: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', example: 'CPR Certification' },
+                  fileUrl: { type: 'string', format: 'uri', example: 'https://bucket.s3.region.amazonaws.com/temp/images/coaching/employee/uuid.pdf' },
+                },
+              },
+              description: 'Certification documents',
+            },
+            salary: {
+              type: 'number',
+              example: 50000,
+              description: 'Salary',
+            },
+          },
+        },
+        Role: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Role ObjectId (MongoDB _id)',
+            },
+            name: {
+              type: 'string',
+              example: 'academy',
+              description: 'Role name',
+            },
+            description: {
+              type: 'string',
+              example: 'Academy user with coaching center management permissions',
+              nullable: true,
+              description: 'Role description',
+            },
+          },
+        },
       },
     },
     tags: [
@@ -1445,6 +1710,18 @@ const options: swaggerJsdoc.Options = {
       {
         name: 'Basic',
         description: 'Basic endpoints for sports and facilities lists',
+      },
+      {
+        name: 'Employee',
+        description: 'Employee management endpoints',
+      },
+      {
+        name: 'Employee Media',
+        description: 'Employee certification file upload endpoints',
+      },
+      {
+        name: 'Role',
+        description: 'Role management endpoints',
       },
     ],
   },

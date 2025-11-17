@@ -71,10 +71,13 @@ export const registerAcademyUser = async (
       isActive: true,
     });
 
+    // Get role name from populated role object
+    const roleName = (user.role as any)?.name ?? DefaultRoles.USER;
+
     const { accessToken, refreshToken } = generateTokenPair({
       id: user.id,
       email: user.email,
-      role: user.role?.id ?? DefaultRoles.USER,
+      role: roleName,
     });
 
     const response = new ApiResponse(
@@ -106,7 +109,7 @@ export const loginAcademyUser = async (
       throw new ApiError(401, t('auth.login.invalidCredentials'));
     }
 
-    if (user.role?.id !== DefaultRoles.ACADEMY) {
+    if ((user.role as any)?.name !== DefaultRoles.ACADEMY) {
       throw new ApiError(403, t('auth.login.invalidRole'));
     }
 
@@ -123,7 +126,7 @@ export const loginAcademyUser = async (
     const { accessToken, refreshToken } = generateTokenPair({
       id: user.id,
       email: user.email,
-      role: user.role?.id ?? DefaultRoles.USER,
+      role: (user.role as any)?.name ?? DefaultRoles.USER,
     });
 
     const response = new ApiResponse(200, {
@@ -177,7 +180,7 @@ export const socialLoginAcademyUser = async (
       });
     }
 
-    if (user.role?.id !== DefaultRoles.ACADEMY) {
+    if ((user.role as any)?.name !== DefaultRoles.ACADEMY) {
       throw new ApiError(403, t('auth.login.invalidRole'));
     }
 
@@ -188,7 +191,7 @@ export const socialLoginAcademyUser = async (
     const { accessToken, refreshToken } = generateTokenPair({
       id: user.id,
       email: user.email,
-      role: user.role?.id ?? DefaultRoles.USER,
+      role: (user.role as any)?.name ?? DefaultRoles.USER,
     });
 
     const response = new ApiResponse(
@@ -374,7 +377,7 @@ export const requestAcademyPasswordReset = async (
         throw new ApiError(404, t('auth.password.resetUserNotFound'));
       }
 
-      if (user.role?.id !== DefaultRoles.ACADEMY) {
+      if ((user.role as any)?.name !== DefaultRoles.ACADEMY) {
         throw new ApiError(403, t('auth.login.invalidRole'));
       }
 
@@ -394,7 +397,7 @@ export const requestAcademyPasswordReset = async (
         throw new ApiError(404, t('auth.password.resetUserNotFound'));
       }
 
-      if (user.role?.id !== DefaultRoles.ACADEMY) {
+      if ((user.role as any)?.name !== DefaultRoles.ACADEMY) {
         throw new ApiError(403, t('auth.login.invalidRole'));
       }
 
@@ -458,7 +461,7 @@ export const verifyAcademyPasswordReset = async (
       throw new ApiError(404, t('auth.password.resetUserNotFound'));
     }
 
-    if (user.role?.id !== DefaultRoles.ACADEMY) {
+    if ((user.role as any)?.name !== DefaultRoles.ACADEMY) {
       throw new ApiError(403, t('auth.login.invalidRole'));
     }
 
@@ -604,7 +607,7 @@ export const verifyAcademyOtp = async (
         throw new ApiError(404, t('auth.login.mobileNotFound'));
       }
 
-      if (user.role?.id !== DefaultRoles.ACADEMY) {
+      if ((user.role as any)?.name !== DefaultRoles.ACADEMY) {
         throw new ApiError(403, t('auth.login.invalidRole'));
       }
 
@@ -615,7 +618,7 @@ export const verifyAcademyOtp = async (
       const { accessToken, refreshToken } = generateTokenPair({
         id: user.id,
         email: user.email,
-        role: user.role?.id ?? DefaultRoles.USER,
+        role: (user.role as any)?.name ?? DefaultRoles.USER,
       });
 
       const response = new ApiResponse(
@@ -672,7 +675,7 @@ export const refreshToken = async (
     const { accessToken, refreshToken: newRefreshToken } = generateTokenPair({
       id: user.id,
       email: user.email,
-      role: user.role?.id ?? DefaultRoles.USER,
+      role: (user.role as any)?.name ?? DefaultRoles.USER,
     });
 
     // Blacklist old refresh token

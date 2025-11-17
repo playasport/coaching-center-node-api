@@ -287,6 +287,52 @@
     "getAll": {
       "success": "Facilities retrieved successfully"
     }
+  },
+  "employee": {
+    "create": {
+      "success": "Employee created successfully",
+      "failed": "Failed to create employee"
+    },
+    "get": {
+      "success": "Employee retrieved successfully",
+      "failed": "Failed to fetch employee"
+    },
+    "list": {
+      "success": "Employees retrieved successfully",
+      "failed": "Failed to fetch employees"
+    },
+    "update": {
+      "success": "Employee updated successfully",
+      "failed": "Failed to update employee"
+    },
+    "toggleStatus": {
+      "active": "Employee activated successfully",
+      "inactive": "Employee deactivated successfully",
+      "failed": "Failed to toggle employee active status"
+    },
+    "delete": {
+      "success": "Employee deleted successfully",
+      "failed": "Failed to delete employee"
+    },
+    "idRequired": "Employee ID is required",
+    "notFound": "Employee not found",
+    "emailExists": "Employee with this email already exists",
+    "mobileExists": "Employee with this mobile number already exists",
+    "invalidId": "Invalid employee ID",
+    "unauthorizedUpdate": "You can only update your own employees",
+    "unauthorizedToggle": "You can only toggle status of your own employees",
+    "unauthorizedDelete": "You can only delete your own employees",
+    "media": {
+      "uploadSuccess": "Certification files uploaded successfully",
+      "uploadFailed": "Failed to upload certification files",
+      "fileRequired": "At least one certification file is required"
+    }
+  },
+  "role": {
+    "list": {
+      "success": "Roles retrieved successfully",
+      "failed": "Failed to fetch roles"
+    }
   }
 }
 

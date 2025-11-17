@@ -1,4 +1,5 @@
 import { UserModel, User, UserDocument } from '../models/user.model';
+import { RoleModel } from '../models/role.model';
 import { Address } from '../models/address.model';
 import { hashPassword } from '../utils/password';
 
@@ -45,9 +46,6 @@ const toPlain = (document: any): User | null => {
   return rest as User;
 };
 
-const fetchRawByQuery = (query: Record<string, unknown>) =>
-  UserModel.findOne(query).lean<User & { password: string } | null>();
-
 export const userService = {
   sanitize(document: User | UserDocument | (User & { password?: string }) | null): User | null {
     return toPlain(document);
@@ -55,6 +53,13 @@ export const userService = {
 
   async create(data: CreateUserData): Promise<User> {
     const hashedPassword = await hashPassword(data.password);
+
+    // Find role by name to get ObjectId (default to 'user' if not provided)
+    const roleName = data.role || 'user';
+    const role = await RoleModel.findOne({ name: roleName });
+    if (!role) {
+      throw new Error(`Role with name '${roleName}' not found`);
+    }
 
     const doc = await UserModel.create({
       id: data.id,
@@ -64,14 +69,16 @@ export const userService = {
       mobile: data.mobile ?? null,
       gender: data.gender ?? null,
       password: hashedPassword,
-      role: {
-        id: data.role,
-        name: data.role,
-      },
+      role: role._id, // Use Role ObjectId
       isActive: data.isActive ?? true,
     });
 
-    const sanitized = this.sanitize(doc);
+    // Populate role before returning
+    const populatedDoc = await UserModel.findById(doc._id)
+      .populate('role', 'name description')
+      .lean();
+
+    const sanitized = this.sanitize(populatedDoc);
     if (!sanitized) {
       throw new Error('Failed to sanitize user document after creation');
     }
@@ -79,7 +86,7 @@ export const userService = {
   },
 
   async update(id: string, data: UpdateUserData): Promise<User | null> {
-    const update: UpdateUserData = { ...data };
+    const update: any = { ...data };
 
     if (data.password) {
       update.password = await hashPassword(data.password);
@@ -89,10 +96,21 @@ export const userService = {
       update.email = data.email.toLowerCase();
     }
 
+    // If role is being updated, find role ObjectId by name
+    if (data.role) {
+      const role = await RoleModel.findOne({ name: data.role });
+      if (!role) {
+        throw new Error(`Role with name '${data.role}' not found`);
+      }
+      update.role = role._id;
+    }
+
     const doc = await UserModel.findOneAndUpdate({ id }, update, {
       new: true,
       projection: defaultProjection,
-    });
+    })
+      .populate('role', 'name description')
+      .lean();
 
     return this.sanitize(doc);
   },
@@ -100,34 +118,46 @@ export const userService = {
   async findByEmail(email: string): Promise<User | null> {
     const doc = await UserModel.findOne({ email: email.toLowerCase() })
       .select(defaultProjection)
+      .populate('role', 'name description')
       .lean<User | null>();
     return this.sanitize(doc);
   },
 
   async findByEmailWithPassword(email: string) {
-    return fetchRawByQuery({ email: email.toLowerCase() });
+    const doc = await UserModel.findOne({ email: email.toLowerCase() })
+      .populate('role', 'name description')
+      .lean<User & { password: string } | null>();
+    return doc;
   },
 
   async findByMobile(mobile: string): Promise<User | null> {
     const doc = await UserModel.findOne({ mobile })
       .select(defaultProjection)
+      .populate('role', 'name description')
       .lean<User | null>();
     return this.sanitize(doc);
   },
 
   async findByMobileWithPassword(mobile: string) {
-    return fetchRawByQuery({ mobile });
+    const doc = await UserModel.findOne({ mobile })
+      .populate('role', 'name description')
+      .lean<User & { password: string } | null>();
+    return doc;
   },
 
   async findById(id: string): Promise<User | null> {
     const doc = await UserModel.findOne({ id })
       .select(defaultProjection)
+      .populate('role', 'name description')
       .lean<User | null>();
     return this.sanitize(doc);
   },
 
   async findByIdWithPassword(id: string) {
-    return fetchRawByQuery({ id });
+    const doc = await UserModel.findOne({ id })
+      .populate('role', 'name description')
+      .lean<User & { password: string } | null>();
+    return doc;
   },
 };
 

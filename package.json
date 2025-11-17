@@ -8,7 +8,10 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "import:locations": "tsx scripts/import-location-data.ts",
-    "import:sports": "tsx scripts/import-sports-data.ts"
+    "import:sports": "tsx scripts/import-sports-data.ts",
+    "convert:bson-to-json": "tsx scripts/convert-bson-to-json.ts",
+    "seed:roles": "tsx scripts/seed-roles.ts",
+    "drop:role-index": "tsx scripts/drop-role-id-index.ts"
   },
   "keywords": [
     "nodejs",

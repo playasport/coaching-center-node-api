@@ -1,11 +1,5 @@
-import { Schema, model, HydratedDocument } from 'mongoose';
+import { Schema, model, HydratedDocument, Types } from 'mongoose';
 import { addressSchema, Address } from './address.model';
-import { DefaultRoles } from './role.model';
-
-export interface UserRefRole {
-  id: string;
-  name: string;
-}
 
 export interface User {
   id: string;
@@ -18,7 +12,7 @@ export interface User {
   gender?: 'male' | 'female' | 'other';
   profileImage?: string | null;
   isActive: boolean;
-  role?: UserRefRole | null;
+  role?: Types.ObjectId; // Reference to Role model
   address?: Address | null;
   isDeleted: boolean;
   deletedAt?: Date | null;
@@ -41,18 +35,10 @@ const userSchema = new Schema<User>(
     profileImage: { type: String, default: null },
     isActive: { type: Boolean, default: true },
     role: {
-      id: {
-        type: String,
-        enum: Object.values(DefaultRoles),
-        required: true,
-        default: DefaultRoles.USER,
-      },
-      name: {
-        type: String,
-        enum: Object.values(DefaultRoles),
-        required: true,
-        default: DefaultRoles.USER,
-      },
+      type: Schema.Types.ObjectId,
+      ref: 'Role',
+      required: true,
+      index: true,
     },
     address: { type: addressSchema, default: null },
     isDeleted: { type: Boolean, default: false },

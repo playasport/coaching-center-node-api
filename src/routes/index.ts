@@ -5,6 +5,8 @@ import academyAuthRoutes from './academyAuth.routes';
 import locationRoutes from './location.routes';
 import basicRoutes from './basic.routes';
 import coachingCenterRoutes from './coachingCenter.routes';
+import employeeRoutes from './employee.routes';
+import roleRoutes from './role.routes';
 import { t } from '../utils/i18n';
 import { ApiResponse } from '../utils/ApiResponse';
 
@@ -15,6 +17,8 @@ router.use('/academy/auth', academyAuthRoutes);
 router.use('/location', locationRoutes);
 router.use('/', basicRoutes);
 router.use('/coaching-center', coachingCenterRoutes);
+router.use('/employee', employeeRoutes);
+router.use('/role', roleRoutes);
 router.get('/health', (_req, res) => {
   const response = new ApiResponse(200, { timestamp: new Date().toISOString() }, t('health.serverRunning'));
   res.json(response);

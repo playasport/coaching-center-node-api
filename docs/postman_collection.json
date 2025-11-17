@@ -838,6 +838,244 @@
           }
         }
       ]
+    },
+    {
+      "name": "Employee",
+      "item": [
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Doe\",\n  \"role\": \"507f1f77bcf86cd799439011\",\n  \"mobileNo\": \"9876543210\",\n  \"email\": \"john@example.com\",\n  \"sport\": \"507f1f77bcf86cd799439011\",\n  \"center\": \"507f1f77bcf86cd799439011\",\n  \"experience\": 5,\n  \"workingHours\": \"9:00 AM - 6:00 PM\",\n  \"extraHours\": \"2 hours\",\n  \"certification\": [\n    {\n      \"name\": \"CPR Certification\",\n      \"fileUrl\": \"https://bucket.s3.region.amazonaws.com/temp/employees/certifications/uuid.pdf\"\n    }\n  ],\n  \"salary\": 50000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/employee",
+              "host": ["{{base_url}}"],
+              "path": ["employee"]
+            },
+            "description": "Create a new employee. **Requires authentication (Bearer token).**\n\n**Note:** `userId` is automatically set from the logged-in user. Any `userId` value provided in the request body will be ignored.\n\n**Required Fields:**\n- `fullName`: Full name (letters and spaces only, no numbers or special characters)\n- `role`: Role ObjectId\n- `mobileNo`: Mobile number (10 digits, starting with 6-9)\n- `workingHours`: Working hours string\n\n**Optional Fields:**\n- `email`: Email address\n- `sport`: Sport ObjectId\n- `center`: Coaching Center ObjectId\n- `experience`: Years of experience (number)\n- `extraHours`: Extra hours string\n- `certification`: Array of certification objects with `name` and `fileUrl`\n- `salary`: Salary amount (number)"
+          }
+        },
+        {
+          "name": "Get My Employees (List with Pagination)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/employee/my/list?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["employee", "my", "list"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (starts from 1, default: 1)",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page (default: 10, max: 100)",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Retrieve a paginated list of employees belonging to the authenticated user. **Requires authentication (Bearer token).**"
+          }
+        },
+        {
+          "name": "Get Employee by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/employee/:id",
+              "host": ["{{base_url}}"],
+              "path": ["employee", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Employee ID"
+                }
+              ]
+            },
+            "description": "Retrieve an employee by its ID. No authentication required."
+          }
+        },
+        {
+          "name": "Update Employee",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Doe Updated\",\n  \"mobileNo\": \"9876543211\",\n  \"experience\": 6,\n  \"salary\": 55000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/employee/:id",
+              "host": ["{{base_url}}"],
+              "path": ["employee", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Employee ID"
+                }
+              ]
+            },
+            "description": "Update employee details. All fields are optional. You can only update your own employees. **Requires authentication (Bearer token).**"
+          }
+        },
+        {
+          "name": "Toggle Employee Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/employee/:id/toggle-status",
+              "host": ["{{base_url}}"],
+              "path": ["employee", ":id", "toggle-status"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Employee ID"
+                }
+              ]
+            },
+            "description": "Toggle employee active/inactive status. The `is_active` field will be automatically toggled. You can only toggle status of your own employees. **Requires authentication (Bearer token).**"
+          }
+        },
+        {
+          "name": "Delete Employee (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/employee/:id",
+              "host": ["{{base_url}}"],
+              "path": ["employee", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Employee ID"
+                }
+              ]
+            },
+            "description": "Soft delete an employee by setting `is_deleted` to true. The employee will no longer appear in regular queries. You can only delete your own employees. **Requires authentication (Bearer token).**"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employee Media",
+      "item": [
+        {
+          "name": "Upload Certification Files",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "certifications",
+                  "type": "file",
+                  "src": [],
+                  "description": "Certification files (PDF, JPEG, PNG, WebP) - up to 10 files, max 10MB each"
+                },
+                {
+                  "key": "certifications",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/employee/media",
+              "host": ["{{base_url}}"],
+              "path": ["employee", "media"]
+            },
+            "description": "Upload certification documents for employees. Files are saved in `temp/images/coaching/employee/` folder. **Requires authentication (Bearer token).**\n\n**File Limits:**\n- Certifications: up to 10 files (PDF, JPEG, PNG, WebP) - max 10MB each\n\n**Supported File Types:**\n- Images: JPEG, PNG, WebP\n- Documents: PDF"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Role",
+      "item": [
+        {
+          "name": "Get Roles (Visible to User)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/role",
+              "host": ["{{base_url}}"],
+              "path": ["role"]
+            },
+            "description": "Get list of roles visible to the logged-in user based on their role. **Requires authentication (Bearer token).**\n\n**Visibility Rules:**\n- **SUPER_ADMIN** and **ADMIN**: Can see all roles\n- **Other roles**: Can only see roles where their role name is included in the `visibleToRoles` array\n- Roles with `visibleToRoles: null` are only visible to SUPER_ADMIN and ADMIN\n\n**Response includes:**\n- `roles`: Array of role objects with only `id`, `name`, and `description` fields\n- `count`: Number of roles returned\n\n**Note:** `visibleToRoles`, `createdAt`, and `updatedAt` are excluded from the response."
+          }
+        }
+      ]
     }
   ],
   "event": [],
