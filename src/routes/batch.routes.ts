@@ -3,7 +3,7 @@ import * as batchController from '../controllers/batch.controller';
 import { validate } from '../middleware/validation.middleware';
 import { batchCreateSchema, batchUpdateSchema } from '../validations/batch.validation';
 import { authenticate, authorize } from '../middleware/auth.middleware';
-import { DefaultRoles } from '../models/role.model';
+import { DefaultRoles } from '../enums/defaultRoles.enum';
 
 const router = Router();
 
@@ -30,6 +30,7 @@ const router = Router();
  *               - duration
  *               - capacity
  *               - age
+ *               - fee_structure
  *             properties:
  *               name:
  *                 type: string
@@ -94,6 +95,28 @@ const router = Router();
  *               admission_fee:
  *                 type: number
  *                 example: 5000
+ *               fee_structure:
+ *                 type: object
+ *                 required:
+ *                   - fee_type
+ *                   - fee_configuration
+ *                 properties:
+ *                   fee_type:
+ *                     type: string
+ *                     enum: [monthly, daily, weekly, hourly, per_batch, per_session, age_based, coach_license_based, player_level_based, seasonal, package_based, group_discount, advance_booking, weekend_pricing, peak_hours, membership_based, custom]
+ *                     example: "monthly"
+ *                     description: Fee type (see /academy/fee-type-config endpoint for available types)
+ *                   fee_configuration:
+ *                     type: object
+ *                     additionalProperties: true
+ *                     description: Dynamic configuration object based on fee_type (see /academy/fee-type-config/:feeType endpoint for form structure)
+ *                     example:
+ *                       base_price: 2000
+ *                       classes_per_week_options:
+ *                         - days_per_week: 2
+ *                           price: 1500
+ *                         - days_per_week: 3
+ *                           price: 2000
  *               status:
  *                 type: string
  *                 enum: [published, draft, inactive]
@@ -101,8 +124,16 @@ const router = Router();
  *     responses:
  *       201:
  *         description: Batch created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BatchResponse'
  *       400:
  *         description: Validation error or invalid data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       401:
  *         description: Unauthorized - Authentication required
  *       403:
@@ -146,6 +177,10 @@ router.post(
  *     responses:
  *       200:
  *         description: Batches retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BatchListResponse'
  *       401:
  *         description: Unauthorized - Authentication required
  *       403:
@@ -192,6 +227,10 @@ router.get(
  *     responses:
  *       200:
  *         description: Batches retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BatchListResponse'
  *       401:
  *         description: Unauthorized - Authentication required
  *       403:
@@ -225,6 +264,22 @@ router.get(
  *     responses:
  *       200:
  *         description: Batch retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Batch retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     batch:
+ *                       $ref: '#/components/schemas/Batch'
  *       401:
  *         description: Unauthorized - Authentication required
  *       404:

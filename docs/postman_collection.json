@@ -1083,7 +1083,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Morning Batch\",\n  \"sportId\": \"507f1f77bcf86cd799439011\",\n  \"centerId\": \"507f1f77bcf86cd799439011\",\n  \"coach\": \"507f1f77bcf86cd799439011\",\n  \"scheduled\": {\n    \"start_date\": \"2024-01-15\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": {\n    \"count\": 3,\n    \"type\": \"month\"\n  },\n  \"capacity\": {\n    \"min\": 10,\n    \"max\": 30\n  },\n  \"age\": {\n    \"min\": 8,\n    \"max\": 12\n  },\n  \"admission_fee\": 5000,\n  \"status\": \"draft\"\n}",
+              "raw": "{\n  \"name\": \"Morning Batch\",\n  \"sportId\": \"507f1f77bcf86cd799439011\",\n  \"centerId\": \"507f1f77bcf86cd799439011\",\n  \"coach\": \"507f1f77bcf86cd799439011\",\n  \"scheduled\": {\n    \"start_date\": \"2024-01-15\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": {\n    \"count\": 3,\n    \"type\": \"month\"\n  },\n  \"capacity\": {\n    \"min\": 10,\n    \"max\": 30\n  },\n  \"age\": {\n    \"min\": 8,\n    \"max\": 12\n  },\n  \"admission_fee\": 5000,\n  \"fee_structure\": {\n    \"fee_type\": \"monthly\",\n    \"fee_configuration\": {\n      \"base_price\": 2000,\n      \"classes_per_week_options\": [\n        {\n          \"days_per_week\": 2,\n          \"price\": 1500\n        },\n        {\n          \"days_per_week\": 3,\n          \"price\": 2000\n        },\n        {\n          \"days_per_week\": 5,\n          \"price\": 3000\n        }\n      ]\n    },\n    \"admission_fee\": 500,\n    \"installment_enabled\": true\n  },\n  \"status\": \"draft\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1095,7 +1095,7 @@
               "host": ["{{base_url}}"],
               "path": ["academy", "batch"]
             },
-            "description": "Create a new batch. **Requires authentication (Bearer token).**\n\n**Note:** `userId` is automatically set from the logged-in user. Any `userId` value provided in the request body will be ignored.\n\n**Required Fields:**\n- `name`: Batch name (string, max 255 characters)\n- `sportId`: Sport ObjectId (must exist and be active)\n- `centerId`: Coaching Center ObjectId (must belong to logged-in user)\n- `scheduled`: Object with:\n  - `start_date`: Start date (ISO date string)\n  - `start_time`: Start time in HH:MM format (24-hour)\n  - `end_time`: End time in HH:MM format (24-hour, must be after start_time)\n  - `training_days`: Array of days (monday, tuesday, wednesday, thursday, friday, saturday, sunday)\n- `duration`: Object with:\n  - `count`: Duration count (integer, min 1)\n  - `type`: Duration type (day, month, week, year)\n- `capacity`: Object with:\n  - `min`: Minimum capacity (integer, min 1)\n  - `max`: Maximum capacity (integer, optional, must be >= min)\n- `age`: Object with:\n  - `min`: Minimum age (integer, between 3 and 18)\n  - `max`: Maximum age (integer, between 3 and 18, must be >= min)\n\n**Optional Fields:**\n- `coach`: Employee ObjectId (must belong to the specified center)\n- `admission_fee`: Admission fee (number, min 0)\n- `status`: Status (published, draft, inactive) - default: draft"
+            "description": "Create a new batch. **Requires authentication (Bearer token).**\n\n**Note:** `userId` is automatically set from the logged-in user. Any `userId` value provided in the request body will be ignored.\n\n**Required Fields:**\n- `name`: Batch name (string, max 255 characters)\n- `sportId`: Sport ObjectId (must exist and be active)\n- `centerId`: Coaching Center ObjectId (must belong to logged-in user)\n- `scheduled`: Object with:\n  - `start_date`: Start date (ISO date string)\n  - `start_time`: Start time in HH:MM format (24-hour)\n  - `end_time`: End time in HH:MM format (24-hour, must be after start_time)\n  - `training_days`: Array of days (monday, tuesday, wednesday, thursday, friday, saturday, sunday)\n- `duration`: Object with:\n  - `count`: Duration count (integer, min 1)\n  - `type`: Duration type (day, month, week, year)\n- `capacity`: Object with:\n  - `min`: Minimum capacity (integer, min 1)\n  - `max`: Maximum capacity (integer, optional, must be >= min)\n- `age`: Object with:\n  - `min`: Minimum age (integer, between 3 and 18)\n  - `max`: Maximum age (integer, between 3 and 18, must be >= min)\n\n**Optional Fields:**\n- `coach`: Employee ObjectId (must belong to the specified center)\n- `admission_fee`: Admission fee (number, min 0)\n- `fee_structure`: Fee structure object (optional):\n  - `fee_type`: Fee type (monthly, daily, weekly, hourly, per_batch, per_session, age_based, coach_license_based, player_level_based, seasonal, package_based, group_discount, advance_booking, weekend_pricing, peak_hours, membership_based, custom)\n  - `fee_configuration`: Dynamic configuration object based on fee_type (see `/academy/fee-type-config/:feeType` endpoint for form structure)\n  - `admission_fee`: Admission fee for this fee structure (number, min 0, optional)\n  - `installment_enabled`: Enable installments (boolean, optional)\n- `status`: Status (published, draft, inactive) - default: draft\n\n**Note:** To get the form structure for a specific fee type, call `GET /academy/fee-type-config/:feeType` endpoint first."
           }
         },
         {
@@ -1276,6 +1276,54 @@
               ]
             },
             "description": "Soft delete a batch by setting `is_deleted` to true. The batch will no longer appear in regular queries. You can only delete your own batches. **Requires authentication (Bearer token).**"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fee Type",
+      "item": [
+        {
+          "name": "Get All Fee Types",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/academy/fee-type-config",
+              "host": ["{{base_url}}"],
+              "path": ["academy", "fee-type-config"]
+            },
+            "description": "Get all available fee types with their labels and descriptions. **Requires authentication (Bearer token) and ACADEMY role.**\n\n**Response includes:**\n- `feeTypes`: Array of fee type objects with `value`, `label`, and `description`"
+          }
+        },
+        {
+          "name": "Get Fee Type Form Structure",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/academy/fee-type-config/:feeType",
+              "host": ["{{base_url}}"],
+              "path": ["academy", "fee-type-config", ":feeType"],
+              "variable": [
+                {
+                  "key": "feeType",
+                  "value": "monthly",
+                  "description": "Fee type (monthly, daily, weekly, hourly, per_batch, per_session, age_based, coach_license_based, player_level_based, seasonal, package_based, group_discount, advance_booking, weekend_pricing, peak_hours, membership_based, custom)"
+                }
+              ]
+            },
+            "description": "Get the form structure (fields) required for a specific fee type. This helps in building dynamic forms. **Requires authentication (Bearer token) and ACADEMY role.**\n\n**Response includes:**\n- `config`: Fee type configuration object with:\n  - `fee_type`: Fee type value\n  - `label`: Display label\n  - `description`: Description\n  - `formFields`: Array of form field definitions with field names, types, validation rules, etc."
           }
         }
       ]

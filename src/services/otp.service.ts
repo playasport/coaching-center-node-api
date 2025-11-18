@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
-import { OtpModel, Otp, OtpMode, OtpChannel } from '../models/otp.model';
+import { OtpModel, Otp } from '../models/otp.model';
+import { OtpMode } from '../enums/otpMode.enum';
+import { OtpChannel } from '../enums/otpChannel.enum';
 
 const OTP_EXPIRY_MINUTES = 5;
 

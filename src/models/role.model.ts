@@ -1,4 +1,5 @@
 import { Schema, model, HydratedDocument } from 'mongoose';
+import { DefaultRoles } from '../enums/defaultRoles.enum';
 
 export interface Role {
   _id?: string;
@@ -11,12 +12,8 @@ export interface Role {
 
 export type RoleDocument = HydratedDocument<Role>;
 
-export enum DefaultRoles {
-  SUPER_ADMIN = 'super_admin',
-  ADMIN = 'admin',
-  USER = 'user',
-  ACADEMY = 'academy',
-}
+// Re-export for backward compatibility
+export { DefaultRoles };
 
 const roleSchema = new Schema<Role>(
   {

@@ -3,7 +3,7 @@ import * as coachingCenterController from '../controllers/coachingCenter.control
 import { validate } from '../middleware/validation.middleware';
 import { coachingCenterCreateSchema, coachingCenterUpdateSchema } from '../validations/coachingCenter.validation';
 import { authenticate, authorize } from '../middleware/auth.middleware';
-import { DefaultRoles } from '../models/role.model';
+import { DefaultRoles } from '../enums/defaultRoles.enum';
 import coachingCenterMediaRoutes from './coachingCenterMedia.routes';
 
 const router = Router();

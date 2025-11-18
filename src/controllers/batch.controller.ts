@@ -133,7 +133,15 @@ export const getMyBatches = async (req: Request, res: Response, next: NextFuncti
 
     const result = await batchService.getBatchesByUser(req.user.id, page, limit);
 
-    const response = new ApiResponse(200, result, t('batch.list.success'));
+    // Transform response to match expected structure: { batches: [...], pagination: {...} }
+    const response = new ApiResponse(
+      200,
+      {
+        batches: result.data,
+        pagination: result.pagination,
+      },
+      t('batch.list.success')
+    );
     res.json(response);
   } catch (error) {
     next(error);

@@ -10,6 +10,34 @@ const durationTypeEnum = z.enum(['day', 'month', 'week', 'year']);
 // Status enum
 const statusEnum = z.enum(['published', 'draft', 'inactive']);
 
+// Fee type enum
+const feeTypeEnum = z.enum([
+  'monthly',
+  'daily',
+  'weekly',
+  'hourly',
+  'per_batch',
+  'per_session',
+  'age_based',
+  'coach_license_based',
+  'player_level_based',
+  'seasonal',
+  'package_based',
+  'group_discount',
+  'advance_booking',
+  'weekend_pricing',
+  'peak_hours',
+  'membership_based',
+  'custom',
+]);
+
+// Fee structure schema (flexible based on fee_type)
+const feeStructureSchema = z.object({
+  fee_type: feeTypeEnum,
+  fee_configuration: z.record(z.string(), z.any()), // Dynamic configuration
+  admission_fee: z.number().min(0, 'Admission fee cannot be negative').optional().nullable(),
+});
+
 // Scheduled schema
 const scheduledSchema = z
   .object({
@@ -24,6 +52,20 @@ const scheduledSchema = z
       .array(trainingDaysEnum, { message: t('validation.batch.scheduled.trainingDaysRequired') })
       .min(1, t('validation.batch.scheduled.trainingDaysMinOne')),
   })
+  .refine(
+    (data) => {
+      // Check if start_date is today or in the future
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Set to start of today
+      const startDate = new Date(data.start_date);
+      startDate.setHours(0, 0, 0, 0); // Set to start of the day for comparison
+      return startDate >= today;
+    },
+    {
+      message: t('validation.batch.scheduled.startDateNotPast'),
+      path: ['start_date'],
+    }
+  )
   .refine(
     (data) => {
       const [startHour, startMin] = data.start_time.split(':').map(Number);
@@ -112,6 +154,7 @@ export const batchCreateSchema = z.object({
     capacity: capacitySchema,
     age: ageRangeSchema,
     admission_fee: z.number().min(0, t('validation.batch.admissionFee.invalid')).optional().nullable(),
+    fee_structure: feeStructureSchema, // Required
     status: statusEnum.default('draft'),
   }),
 });
@@ -135,6 +178,7 @@ export const batchUpdateSchema = z.object({
       capacity: capacitySchema.optional(),
       age: ageRangeSchema.optional(),
       admission_fee: z.number().min(0, t('validation.batch.admissionFee.invalid')).optional().nullable(),
+      fee_structure: feeStructureSchema.optional().nullable(), // Optional in update
       status: statusEnum.optional(),
     })
     .refine((data) => Object.keys(data).length > 0, {

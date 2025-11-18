@@ -1,5 +1,6 @@
 import { Schema, model, HydratedDocument, Types } from 'mongoose';
 import { addressSchema, Address } from './address.model';
+import { Gender } from '../enums/gender.enum';
 
 export interface User {
   id: string;
@@ -9,7 +10,7 @@ export interface User {
   email: string;
   mobile?: string | null;
   password: string;
-  gender?: 'male' | 'female' | 'other';
+  gender?: Gender;
   profileImage?: string | null;
   isActive: boolean;
   role?: Types.ObjectId; // Reference to Role model
@@ -31,7 +32,7 @@ const userSchema = new Schema<User>(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     mobile: { type: String, default: null, trim: true },
     password: { type: String, required: true },
-    gender: { type: String, enum: ['male', 'female', 'other'], default: null },
+    gender: { type: String, enum: Object.values(Gender), default: null },
     profileImage: { type: String, default: null },
     isActive: { type: Boolean, default: true },
     role: {

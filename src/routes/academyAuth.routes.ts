@@ -30,7 +30,7 @@ import {
 } from '../validations/auth.validation';
 import { authenticate, authorize } from '../middleware/auth.middleware';
 import { loginRateLimit, generalRateLimit } from '../middleware/rateLimit.middleware';
-import { DefaultRoles } from '../models/role.model';
+import { DefaultRoles } from '../enums/defaultRoles.enum';
 import { uploadProfileImage } from '../middleware/upload.middleware';
 
 const router = Router();

@@ -194,6 +194,100 @@
       "status": {
         "invalid": "Status must be either 'draft' or 'published'"
       }
+    },
+    "batch": {
+      "name": {
+        "required": "Batch name is required",
+        "maxLength": "Batch name must not exceed 255 characters"
+      },
+      "sportId": {
+        "required": "Sport ID is required",
+        "invalid": "Invalid sport ID"
+      },
+      "centerId": {
+        "required": "Center ID is required",
+        "invalid": "Invalid center ID"
+      },
+      "coach": {
+        "invalid": "Invalid coach ID"
+      },
+      "scheduled": {
+        "startDateRequired": "Start date is required",
+        "startDateInvalid": "Start date must be a valid date",
+        "startDateNotPast": "Start date must be today or in the future",
+        "startTimeRequired": "Start time is required",
+        "startTimeFormat": "Start time must be in HH:MM format (24-hour)",
+        "endTimeRequired": "End time is required",
+        "endTimeFormat": "End time must be in HH:MM format (24-hour)",
+        "endTimeAfterStart": "End time must be after start time",
+        "trainingDaysRequired": "Training days are required",
+        "trainingDaysMinOne": "At least one training day is required",
+        "trainingDaysInvalid": "Training days must be valid days (monday, tuesday, wednesday, thursday, friday, saturday, sunday)"
+      },
+      "duration": {
+        "countRequired": "Duration count is required",
+        "countInteger": "Duration count must be an integer",
+        "countMin": "Duration count must be at least 1",
+        "typeRequired": "Duration type is required",
+        "typeInvalid": "Duration type must be one of: day, month, week, year"
+      },
+      "capacity": {
+        "minRequired": "Minimum capacity is required",
+        "minInteger": "Minimum capacity must be an integer",
+        "minMin": "Minimum capacity must be at least 1",
+        "maxInteger": "Maximum capacity must be an integer",
+        "maxMin": "Maximum capacity must be at least 1",
+        "maxGreaterThanMin": "Maximum capacity must be greater than or equal to minimum capacity"
+      },
+      "admissionFee": {
+        "invalid": "Admission fee cannot be negative"
+      },
+      "age": {
+        "minRequired": "Minimum age is required",
+        "minInteger": "Minimum age must be an integer",
+        "minRange": "Minimum age must be between 3 and 18",
+        "maxRequired": "Maximum age is required",
+        "maxInteger": "Maximum age must be an integer",
+        "maxRange": "Maximum age must be between 3 and 18",
+        "maxGreaterThanMin": "Maximum age must be greater than or equal to minimum age"
+      },
+      "status": {
+        "invalid": "Status must be one of: published, draft, inactive"
+      }
+    },
+    "feeStructure": {
+      "batchId": {
+        "required": "Batch ID is required",
+        "invalid": "Invalid batch ID"
+      },
+      "name": {
+        "required": "Fee structure name is required",
+        "maxLength": "Fee structure name must not exceed 255 characters"
+      },
+      "description": {
+        "maxLength": "Description must not exceed 1000 characters"
+      },
+      "feeType": {
+        "required": "Fee type is required",
+        "invalid": "Invalid fee type"
+      },
+      "admissionFee": {
+        "invalid": "Admission fee cannot be negative"
+      },
+      "configuration": {
+        "basePriceRequired": "Base price is required for this fee type",
+        "basePriceOrOptionsRequired": "Base price or classes/sessions options are required for this fee type",
+        "packagesRequired": "At least one package is required for package-based fee type",
+        "ageGroupsRequired": "At least one age group is required for age-based fee type",
+        "coachLevelsRequired": "At least one coach level is required for coach license-based fee type",
+        "playerLevelsRequired": "At least one player level is required for player level-based fee type",
+        "seasonsRequired": "At least one season is required for seasonal fee type",
+        "groupDiscountsRequired": "At least one group discount is required for group discount fee type",
+        "membershipLevelsRequired": "At least one membership level is required for membership-based fee type",
+        "weekendPricingRequired": "Weekend multiplier or weekend price is required for weekend pricing fee type",
+        "peakHoursRequired": "Peak hours are required for peak hours fee type",
+        "peakHourPricingRequired": "Peak hour multiplier or peak hour price is required for peak hours fee type"
+      }
     }
   },
   "errors": {
@@ -372,67 +466,6 @@
     "sportNotFound": "Sport not found or inactive",
     "coachNotFound": "Coach (employee) not found",
     "coachNotInCenter": "Coach does not belong to the specified center"
-  },
-  "validation": {
-    "batch": {
-      "name": {
-        "required": "Batch name is required",
-        "maxLength": "Batch name must not exceed 255 characters"
-      },
-      "sportId": {
-        "required": "Sport ID is required",
-        "invalid": "Invalid sport ID"
-      },
-      "centerId": {
-        "required": "Center ID is required",
-        "invalid": "Invalid center ID"
-      },
-      "coach": {
-        "invalid": "Invalid coach ID"
-      },
-      "scheduled": {
-        "startDateRequired": "Start date is required",
-        "startDateInvalid": "Start date must be a valid date",
-        "startTimeRequired": "Start time is required",
-        "startTimeFormat": "Start time must be in HH:MM format (24-hour)",
-        "endTimeRequired": "End time is required",
-        "endTimeFormat": "End time must be in HH:MM format (24-hour)",
-        "endTimeAfterStart": "End time must be after start time",
-        "trainingDaysRequired": "Training days are required",
-        "trainingDaysMinOne": "At least one training day is required",
-        "trainingDaysInvalid": "Training days must be valid days (monday, tuesday, wednesday, thursday, friday, saturday, sunday)"
-      },
-      "duration": {
-        "countRequired": "Duration count is required",
-        "countInteger": "Duration count must be an integer",
-        "countMin": "Duration count must be at least 1",
-        "typeRequired": "Duration type is required",
-        "typeInvalid": "Duration type must be one of: day, month, week, year"
-      },
-      "capacity": {
-        "minRequired": "Minimum capacity is required",
-        "minInteger": "Minimum capacity must be an integer",
-        "minMin": "Minimum capacity must be at least 1",
-        "maxInteger": "Maximum capacity must be an integer",
-        "maxMin": "Maximum capacity must be at least 1",
-        "maxGreaterThanMin": "Maximum capacity must be greater than or equal to minimum capacity"
-      },
-      "admissionFee": {
-        "invalid": "Admission fee cannot be negative"
-      },
-      "age": {
-        "minRequired": "Minimum age is required",
-        "minInteger": "Minimum age must be an integer",
-        "minRange": "Minimum age must be between 3 and 18",
-        "maxRequired": "Maximum age is required",
-        "maxInteger": "Maximum age must be an integer",
-        "maxRange": "Maximum age must be between 3 and 18",
-        "maxGreaterThanMin": "Maximum age must be greater than or equal to minimum age"
-      },
-      "status": {
-        "invalid": "Status must be one of: published, draft, inactive"
-      }
-    }
   }
 }
 

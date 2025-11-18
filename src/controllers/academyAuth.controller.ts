@@ -2,7 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { t } from '../utils/i18n';
 import { userService, UpdateUserData } from '../services/user.service';
-import { DefaultRoles } from '../models/role.model';
+import { DefaultRoles } from '../enums/defaultRoles.enum';
+import { OtpChannel } from '../enums/otpChannel.enum';
+import { OtpMode } from '../enums/otpMode.enum';
+import { config } from '../config/env';
 import { comparePassword } from '../utils';
 import { generateTokenPair, verifyRefreshToken } from '../utils/jwt';
 import { blacklistToken, blacklistUserTokens } from '../utils/tokenBlacklist';
@@ -39,9 +42,9 @@ export const registerAcademyUser = async (
     }
 
     const otpStatus = await otpService.verifyOtp(
-      { channel: 'mobile', identifier: mobile },
+      { channel: OtpChannel.MOBILE, identifier: mobile },
       otp,
-      'register'
+      OtpMode.REGISTER
     );
 
     if (otpStatus !== 'valid') {
@@ -368,7 +371,7 @@ export const requestAcademyPasswordReset = async (
 ): Promise<void> => {
   try {
     const payload = req.body as AcademyForgotPasswordRequestInput;
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = config.nodeEnv === 'development' ? '111111' : Math.floor(100000 + Math.random() * 900000).toString();
 
     if (payload.mode === 'mobile') {
       const user = await userService.findByMobile(payload.mobile);
@@ -382,9 +385,9 @@ export const requestAcademyPasswordReset = async (
       }
 
       await otpService.createOtp(
-        { channel: 'mobile', identifier: payload.mobile },
+        { channel: OtpChannel.MOBILE, identifier: payload.mobile },
         otp,
-        'forgot_password'
+        OtpMode.FORGOT_PASSWORD
       );
 
       const mobileNumber = `+91${payload.mobile}`;
@@ -402,9 +405,9 @@ export const requestAcademyPasswordReset = async (
       }
 
       await otpService.createOtp(
-        { channel: 'email', identifier: emailLower },
+        { channel: OtpChannel.EMAIL, identifier: emailLower },
         otp,
-        'forgot_password'
+        OtpMode.FORGOT_PASSWORD
       );
 
       await sendPasswordResetEmail(emailLower, otp, {
@@ -433,12 +436,12 @@ export const verifyAcademyPasswordReset = async (
 
     const identifier =
       payload.mode === 'mobile' ? payload.mobile : payload.email.toLowerCase();
-    const channel = payload.mode === 'mobile' ? 'mobile' : 'email';
+    const channel = payload.mode === 'mobile' ? OtpChannel.MOBILE : OtpChannel.EMAIL;
 
     const status = await otpService.verifyOtp(
       { channel, identifier },
       payload.otp,
-      'forgot_password'
+      OtpMode.FORGOT_PASSWORD
     );
 
     if (status !== 'valid') {
@@ -476,7 +479,7 @@ export const verifyAcademyPasswordReset = async (
     const { accessToken, refreshToken } = generateTokenPair({
       id: updatedUser.id,
       email: updatedUser.email,
-      role: updatedUser.role?.id ?? DefaultRoles.USER,
+      role: (updatedUser.role as any)?.name ?? DefaultRoles.USER,
     });
 
     const response = new ApiResponse(
@@ -530,12 +533,20 @@ export const sendAcademyOtp = async (
 
     const existingUser = await userService.findByMobile(mobile);
 
+    const otpModeMap: Record<string, OtpMode> = {
+      login: OtpMode.LOGIN,
+      register: OtpMode.REGISTER,
+      profile_update: OtpMode.PROFILE_UPDATE,
+      forgot_password: OtpMode.FORGOT_PASSWORD,
+    };
+    const otpMode = otpModeMap[mode] || OtpMode.LOGIN;
+
     if (mode === 'login') {
       if (!existingUser) {
         throw new ApiError(404, t('auth.login.mobileNotFound'));
       }
 
-      if (existingUser.role?.id !== DefaultRoles.ACADEMY) {
+      if ((existingUser.role as any)?.name !== DefaultRoles.ACADEMY) {
         throw new ApiError(403, t('auth.login.invalidRole'));
       }
     } else if (mode === 'register') {
@@ -546,13 +557,13 @@ export const sendAcademyOtp = async (
       if (!existingUser) {
         throw new ApiError(404, t('auth.password.resetUserNotFound'));
       }
-      if (existingUser.role?.id !== DefaultRoles.ACADEMY) {
+      if ((existingUser.role as any)?.name !== DefaultRoles.ACADEMY) {
         throw new ApiError(403, t('auth.login.invalidRole'));
       }
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    await otpService.createOtp({ channel: 'mobile', identifier: mobile }, otp, mode);
+    const otp = config.nodeEnv === 'development' ? '111111' : Math.floor(100000 + Math.random() * 900000).toString();
+    await otpService.createOtp({ channel: OtpChannel.MOBILE, identifier: mobile }, otp, otpMode);
     // add +91 to the mobile number
     const mobileNumber = `+91${mobile}`;
     await sendOtpSms(mobileNumber, otp);
@@ -580,7 +591,15 @@ export const verifyAcademyOtp = async (
       mode?: 'login' | 'register' | 'profile_update' | 'forgot_password';
     };
 
-    const status = await otpService.verifyOtp({ channel: 'mobile', identifier: mobile }, otp, mode);
+    const otpModeMap: Record<string, OtpMode> = {
+      login: OtpMode.LOGIN,
+      register: OtpMode.REGISTER,
+      profile_update: OtpMode.PROFILE_UPDATE,
+      forgot_password: OtpMode.FORGOT_PASSWORD,
+    };
+    const otpMode = otpModeMap[mode] || OtpMode.LOGIN;
+
+    const status = await otpService.verifyOtp({ channel: OtpChannel.MOBILE, identifier: mobile }, otp, otpMode);
 
     if (status !== 'valid') {
       const messageMap: Record<string, string> = {

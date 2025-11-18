@@ -4,7 +4,7 @@ import { validate } from '../middleware/validation.middleware';
 import { employeeCreateSchema, employeeUpdateSchema } from '../validations/employee.validation';
 import { authenticate, authorize } from '../middleware/auth.middleware';
 import employeeMediaRoutes from './employeeMedia.routes';
-import { DefaultRoles } from '../models/role.model';
+import { DefaultRoles } from '../enums/defaultRoles.enum';
 
 const router = Router();
 

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import * as mediaController from '../controllers/coachingCenterMedia.controller';
 import { uploadMedia } from '../middleware/coachingCenterUpload.middleware';
 import { authenticate, authorize } from '../middleware/auth.middleware';
-import { DefaultRoles } from '../models/role.model';
+import { DefaultRoles } from '../enums/defaultRoles.enum';
 
 const router = Router();
 

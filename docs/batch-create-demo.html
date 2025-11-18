@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Batch with Fee Structure - Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .required {
+            color: #dc3545;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .fee-config-section {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .fee-config-section.active {
+            display: block;
+        }
+
+        .config-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .config-item h4 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .array-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+            position: relative;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .response.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            display: block;
+        }
+
+        .response.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            display: block;
+        }
+
+        .response pre {
+            margin-top: 10px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .info-box strong {
+            color: #2196F3;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .training-days {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .day-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .day-checkbox:hover {
+            border-color: #667eea;
+        }
+
+        .day-checkbox input[type="checkbox"]:checked + label {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .day-checkbox input[type="checkbox"]:checked ~ .day-checkbox {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Create Batch with Fee Structure</h1>
+            <p>Create a new batch with dynamic fee structure configuration</p>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <strong>📌 Instructions:</strong> Fill in all required fields to create a batch. Select a fee type to configure the fee structure dynamically. The form will adapt based on your fee type selection.
+            </div>
+
+            <form id="batchForm">
+                <!-- Configuration Section -->
+                <div class="section">
+                    <h2>⚙️ Configuration</h2>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label for="baseUrl">Base URL *</label>
+                            <input type="text" id="baseUrl" value="http://localhost:3000/api/v1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="accessToken">Access Token *</label>
+                            <input type="text" id="accessToken" placeholder="Enter your Bearer token" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Basic Information -->
+                <div class="section">
+                    <h2>📋 Basic Information</h2>
+                    <div class="form-group">
+                        <label for="name">Batch Name <span class="required">*</span></label>
+                        <input type="text" id="name" placeholder="e.g., Morning Batch" required>
+                    </div>
+                    <div class="form-group">
+                        <button type="button" class="btn" id="loadDataBtn" onclick="loadAllData()">
+                            📥 Load Data (Sports, Centers, Employees, Fee Types)
+                        </button>
+                        <span id="loadDataLoading" class="loading" style="display: none;"></span>
+                        <div id="loadDataStatus" style="margin-top: 10px; font-size: 14px; color: #28a745;"></div>
+                    </div>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label for="sportId">Sport <span class="required">*</span></label>
+                            <select id="sportId" required>
+                                <option value="">Select Sport</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="centerId">Coaching Center <span class="required">*</span></label>
+                            <select id="centerId" required>
+                                <option value="">Select Coaching Center</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="coach">Coach (Optional)</label>
+                            <select id="coach">
+                                <option value="">Select Coach (Optional)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="admissionFee">Admission Fee</label>
+                            <input type="number" id="admissionFee" placeholder="0" min="0" step="0.01">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scheduled Information -->
+                <div class="section">
+                    <h2>📅 Scheduled Information</h2>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label for="startDate">Start Date <span class="required">*</span></label>
+                            <input type="date" id="startDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="startTime">Start Time <span class="required">*</span></label>
+                            <input type="time" id="startTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="endTime">End Time <span class="required">*</span></label>
+                            <input type="time" id="endTime" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Training Days <span class="required">*</span></label>
+                        <div class="training-days">
+                            <div class="day-checkbox">
+                                <input type="checkbox" id="monday" value="monday">
+                                <label for="monday">Monday</label>
+                            </div>
+                            <div class="day-checkbox">
+                                <input type="checkbox" id="tuesday" value="tuesday">
+                                <label for="tuesday">Tuesday</label>
+                            </div>
+                            <div class="day-checkbox">
+                                <input type="checkbox" id="wednesday" value="wednesday">
+                                <label for="wednesday">Wednesday</label>
+                            </div>
+                            <div class="day-checkbox">
+                                <input type="checkbox" id="thursday" value="thursday">
+                                <label for="thursday">Thursday</label>
+                            </div>
+                            <div class="day-checkbox">
+                                <input type="checkbox" id="friday" value="friday">
+                                <label for="friday">Friday</label>
+                            </div>
+                            <div class="day-checkbox">
+                                <input type="checkbox" id="saturday" value="saturday">
+                                <label for="saturday">Saturday</label>
+                            </div>
+                            <div class="day-checkbox">
+                                <input type="checkbox" id="sunday" value="sunday">
+                                <label for="sunday">Sunday</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Duration & Capacity -->
+                <div class="section">
+                    <h2>⏱️ Duration & Capacity</h2>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label for="durationCount">Duration Count <span class="required">*</span></label>
+                            <input type="number" id="durationCount" placeholder="e.g., 3" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="durationType">Duration Type <span class="required">*</span></label>
+                            <select id="durationType" required>
+                                <option value="">Select Type</option>
+                                <option value="day">Day</option>
+                                <option value="week">Week</option>
+                                <option value="month">Month</option>
+                                <option value="year">Year</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="capacityMin">Min Capacity <span class="required">*</span></label>
+                            <input type="number" id="capacityMin" placeholder="e.g., 10" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="capacityMax">Max Capacity (Optional)</label>
+                            <input type="number" id="capacityMax" placeholder="e.g., 30" min="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Age Range -->
+                <div class="section">
+                    <h2>👥 Age Range</h2>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label for="ageMin">Min Age <span class="required">*</span></label>
+                            <input type="number" id="ageMin" placeholder="e.g., 8" min="3" max="18" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ageMax">Max Age <span class="required">*</span></label>
+                            <input type="number" id="ageMax" placeholder="e.g., 16" min="3" max="18" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fee Structure Section -->
+                <div class="section">
+                    <h2>💰 Fee Structure <span class="required">*</span></h2>
+                    <div class="form-group">
+                        <label for="feeType">Fee Type <span class="required">*</span></label>
+                        <select id="feeType" onchange="loadFeeTypeConfig()" required>
+                            <option value="">Select Fee Type</option>
+                        </select>
+                        <span id="feeTypeLoading" class="loading" style="display: none;"></span>
+                    </div>
+
+                    <div id="feeConfigSection" class="fee-config-section">
+                        <div id="feeConfigFields"></div>
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div class="section">
+                    <h2>📊 Status</h2>
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status">
+                            <option value="draft">Draft</option>
+                            <option value="published">Published</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn" id="submitBtn">Create Batch</button>
+                <button type="button" class="btn btn-secondary" onclick="resetForm()">Reset Form</button>
+
+                <div id="response" class="response"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let feeTypeConfig = null;
+        let feeTypes = [];
+        let sports = [];
+        let coachingCenters = [];
+        let employees = [];
+
+        // Load fee types on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Don't auto-load, wait for user to click Load Data button
+        });
+
+        async function loadAllData() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const token = document.getElementById('accessToken').value;
+            const loadBtn = document.getElementById('loadDataBtn');
+            const loading = document.getElementById('loadDataLoading');
+            const status = document.getElementById('loadDataStatus');
+
+            if (!token) {
+                alert('Please enter access token first');
+                return;
+            }
+
+            loadBtn.disabled = true;
+            loading.style.display = 'inline-block';
+            status.textContent = 'Loading data...';
+            status.style.color = '#667eea';
+
+            const results = {
+                sports: false,
+                feeTypes: false,
+                centers: false,
+                employees: false
+            };
+
+            try {
+                // Load Sports (no auth required)
+                try {
+                    const response = await fetch(`${baseUrl}/sports`);
+                    if (response.ok) {
+                        const result = await response.json();
+                        sports = result.data.sports || [];
+                        populateSports();
+                        results.sports = true;
+                    }
+                } catch (error) {
+                    console.error('Failed to load sports:', error);
+                }
+
+                // Load Fee Types (auth required)
+                try {
+                    const response = await fetch(`${baseUrl}/academy/fee-type-config`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (response.ok) {
+                        const result = await response.json();
+                        feeTypes = result.data.feeTypes || [];
+                        populateFeeTypes();
+                        results.feeTypes = true;
+                    }
+                } catch (error) {
+                    console.error('Failed to load fee types:', error);
+                }
+
+                // Load Coaching Centers (auth required)
+                try {
+                    const response = await fetch(`${baseUrl}/academy/coaching-center/my/list?limit=100`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (response.ok) {
+                        const result = await response.json();
+                        // Response structure: { data: { data: [...], pagination: {...} } }
+                        coachingCenters = result.data?.data || result.data?.coachingCenters || [];
+                        console.log('Loaded coaching centers:', coachingCenters.length, coachingCenters);
+                        populateCoachingCenters();
+                        results.centers = true;
+                    } else {
+                        const errorData = await response.json();
+                        console.error('Failed to load coaching centers:', response.status, errorData);
+                        status.textContent += ` | Centers: ${errorData.message || 'Failed'}`;
+                    }
+                } catch (error) {
+                    console.error('Failed to load coaching centers:', error);
+                    status.textContent += ` | Centers: ${error.message}`;
+                }
+
+                // Load Employees (auth required)
+                try {
+                    const response = await fetch(`${baseUrl}/academy/employee/my/list?limit=100`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (response.ok) {
+                        const result = await response.json();
+                        employees = result.data.employees || [];
+                        populateEmployees();
+                        results.employees = true;
+                    }
+                } catch (error) {
+                    console.error('Failed to load employees:', error);
+                }
+
+                // Update status
+                const successCount = Object.values(results).filter(v => v).length;
+                const totalCount = Object.keys(results).length;
+                
+                if (successCount === totalCount) {
+                    status.textContent = `✅ Successfully loaded all data (${successCount}/${totalCount})`;
+                    status.style.color = '#28a745';
+                } else {
+                    status.textContent = `⚠️ Loaded ${successCount}/${totalCount} data sources. Some may have failed.`;
+                    status.style.color = '#ffc107';
+                }
+
+            } catch (error) {
+                status.textContent = `❌ Error loading data: ${error.message}`;
+                status.style.color = '#dc3545';
+            } finally {
+                loadBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+
+        function populateSports() {
+            const select = document.getElementById('sportId');
+            select.innerHTML = '<option value="">Select Sport</option>';
+            sports.forEach(sport => {
+                const option = document.createElement('option');
+                option.value = sport._id;
+                option.textContent = `${sport.name}${sport.is_popular ? ' ⭐' : ''}`;
+                select.appendChild(option);
+            });
+        }
+
+        function populateFeeTypes() {
+            const select = document.getElementById('feeType');
+            select.innerHTML = '<option value="">Select Fee Type</option>';
+            feeTypes.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type.value;
+                option.textContent = `${type.label} - ${type.description}`;
+                select.appendChild(option);
+            });
+        }
+
+        function populateCoachingCenters() {
+            const select = document.getElementById('centerId');
+            select.innerHTML = '<option value="">Select Coaching Center</option>';
+            
+            if (!coachingCenters || coachingCenters.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No coaching centers found';
+                option.disabled = true;
+                select.appendChild(option);
+                console.warn('No coaching centers to populate');
+                return;
+            }
+            
+            console.log('Populating coaching centers:', coachingCenters.length);
+            coachingCenters.forEach(center => {
+                const option = document.createElement('option');
+                // Try different possible ID fields
+                option.value = center._id || center.id || center._id?.toString() || '';
+                // Try different possible name fields
+                option.textContent = center.center_name || center.name || center._id || center.id || 'Unnamed Center';
+                select.appendChild(option);
+            });
+        }
+
+        function populateEmployees() {
+            const select = document.getElementById('coach');
+            select.innerHTML = '<option value="">Select Coach (Optional)</option>';
+            employees.forEach(employee => {
+                const option = document.createElement('option');
+                option.value = employee._id;
+                const name = employee.fullName || (employee.userId?.firstName && employee.userId?.lastName 
+                    ? `${employee.userId.firstName} ${employee.userId.lastName}` 
+                    : employee._id);
+                option.textContent = name;
+                select.appendChild(option);
+            });
+        }
+
+        // Update employees when center changes
+        document.getElementById('centerId').addEventListener('change', async () => {
+            const centerId = document.getElementById('centerId').value;
+            const baseUrl = document.getElementById('baseUrl').value;
+            const token = document.getElementById('accessToken').value;
+            const coachSelect = document.getElementById('coach');
+
+            if (!centerId || !token) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${baseUrl}/academy/employee/my/list?limit=100`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    const centerEmployees = (result.data.employees || []).filter(emp => 
+                        emp.center && emp.center.toString() === centerId
+                    );
+                    
+                    coachSelect.innerHTML = '<option value="">Select Coach (Optional)</option>';
+                    centerEmployees.forEach(employee => {
+                        const option = document.createElement('option');
+                        option.value = employee._id;
+                        const name = employee.fullName || (employee.userId?.firstName && employee.userId?.lastName 
+                            ? `${employee.userId.firstName} ${employee.userId.lastName}` 
+                            : employee._id);
+                        option.textContent = name;
+                        coachSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load employees for center:', error);
+            }
+        });
+
+        async function loadFeeTypes() {
+            // This function is kept for backward compatibility but loadAllData is preferred
+            await loadAllData();
+        }
+
+        async function loadFeeTypeConfig() {
+            const feeType = document.getElementById('feeType').value;
+            const baseUrl = document.getElementById('baseUrl').value;
+            const token = document.getElementById('accessToken').value;
+            const configSection = document.getElementById('feeConfigSection');
+            const configFields = document.getElementById('feeConfigFields');
+            const loading = document.getElementById('feeTypeLoading');
+
+            if (!feeType) {
+                configSection.classList.remove('active');
+                return;
+            }
+
+            if (!token) {
+                alert('Please enter access token first');
+                return;
+            }
+
+            loading.style.display = 'inline-block';
+            configFields.innerHTML = '';
+
+            try {
+                const response = await fetch(`${baseUrl}/academy/fee-type-config/${feeType}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    feeTypeConfig = result.data.config;
+                    renderFeeConfigForm(feeTypeConfig.formFields, configFields);
+                    configSection.classList.add('active');
+                } else {
+                    const error = await response.json();
+                    alert(`Failed to load fee type config: ${error.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function renderFeeConfigForm(fields, container) {
+            fields.forEach(field => {
+                const fieldDiv = document.createElement('div');
+                fieldDiv.className = 'config-item';
+                
+                const label = document.createElement('label');
+                label.textContent = field.label + (field.required ? ' *' : '');
+                if (field.description) {
+                    label.title = field.description;
+                }
+                fieldDiv.appendChild(label);
+
+                if (field.type === 'array') {
+                    const addBtn = document.createElement('button');
+                    addBtn.type = 'button';
+                    addBtn.className = 'btn';
+                    addBtn.textContent = `Add ${field.label}`;
+                    addBtn.onclick = () => addArrayItem(field, fieldDiv);
+                    fieldDiv.appendChild(addBtn);
+                    const arrayContainer = document.createElement('div');
+                    arrayContainer.className = 'array-container';
+                    arrayContainer.setAttribute('data-field', field.name);
+                    fieldDiv.appendChild(arrayContainer);
+                } else if (field.type === 'object') {
+                    const nestedContainer = document.createElement('div');
+                    nestedContainer.className = 'nested-fields';
+                    if (field.fields) {
+                        renderFeeConfigForm(field.fields, nestedContainer);
+                    }
+                    fieldDiv.appendChild(nestedContainer);
+                } else {
+                    const input = createInputForField(field);
+                    fieldDiv.appendChild(input);
+                }
+
+                container.appendChild(fieldDiv);
+            });
+        }
+
+        function createInputForField(field) {
+            let input;
+
+            if (field.type === 'select') {
+                input = document.createElement('select');
+                input.name = field.name;
+                input.required = field.required;
+                if (field.options) {
+                    field.options.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt.value;
+                        option.textContent = opt.label;
+                        input.appendChild(option);
+                    });
+                }
+            } else if (field.type === 'checkbox') {
+                input = document.createElement('input');
+                input.type = 'checkbox';
+                input.name = field.name;
+            } else {
+                input = document.createElement('input');
+                input.type = field.type === 'number' ? 'number' : 'text';
+                input.name = field.name;
+                input.required = field.required;
+                if (field.placeholder) input.placeholder = field.placeholder;
+                if (field.min !== undefined) input.min = field.min;
+                if (field.max !== undefined) input.max = field.max;
+                if (field.step !== undefined) input.step = field.step;
+            }
+
+            return input;
+        }
+
+        function addArrayItem(field, container) {
+            const arrayContainer = container.querySelector('.array-container');
+            const item = document.createElement('div');
+            item.className = 'array-item';
+            
+            if (field.fields) {
+                field.fields.forEach(subField => {
+                    const subDiv = document.createElement('div');
+                    subDiv.style.marginBottom = '10px';
+                    const label = document.createElement('label');
+                    label.textContent = subField.label + (subField.required ? ' *' : '');
+                    subDiv.appendChild(label);
+                    const input = createInputForField(subField);
+                    input.name = `${field.name}[][${subField.name}]`;
+                    subDiv.appendChild(input);
+                    item.appendChild(subDiv);
+                });
+            }
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'remove-btn';
+            removeBtn.textContent = '×';
+            removeBtn.onclick = () => item.remove();
+            item.appendChild(removeBtn);
+
+            arrayContainer.appendChild(item);
+        }
+
+        function buildFeeConfiguration() {
+            if (!feeTypeConfig) return null;
+
+            const config = {};
+            
+            feeTypeConfig.formFields.forEach(field => {
+                if (field.type === 'array') {
+                    const arrayContainer = document.querySelector(`[data-field="${field.name}"]`);
+                    if (!arrayContainer) return;
+                    
+                    const items = [];
+                    const arrayItems = arrayContainer.querySelectorAll('.array-item');
+                    
+                    arrayItems.forEach(itemEl => {
+                        const item = {};
+                        if (field.fields) {
+                            field.fields.forEach(subField => {
+                                const input = itemEl.querySelector(`input[name*="${subField.name}"], select[name*="${subField.name}"]`);
+                                if (input) {
+                                    let value = input.type === 'checkbox' ? input.checked : input.value;
+                                    if (input.type === 'number' && value !== '') {
+                                        value = parseFloat(value);
+                                    }
+                                    if (value !== '' && value !== null && value !== undefined && (input.type !== 'checkbox' || value === true)) {
+                                        item[subField.name] = value;
+                                    }
+                                }
+                            });
+                        }
+                        if (Object.keys(item).length > 0) {
+                            items.push(item);
+                        }
+                    });
+                    
+                    if (items.length > 0) {
+                        config[field.name] = items;
+                    }
+                } else if (field.type === 'object') {
+                    // Handle nested objects if needed
+                } else {
+                    const input = document.querySelector(`[name="${field.name}"]`);
+                    if (input) {
+                        let value = input.type === 'checkbox' ? input.checked : input.value;
+                        if (input.type === 'number' && value !== '') {
+                            value = parseFloat(value);
+                        }
+                        if (value !== '' && value !== null && value !== undefined && (input.type !== 'checkbox' || value === true)) {
+                            config[field.name] = value;
+                        }
+                    }
+                }
+            });
+
+            return Object.keys(config).length > 0 ? config : null;
+        }
+
+        document.getElementById('batchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const baseUrl = document.getElementById('baseUrl').value;
+            const token = document.getElementById('accessToken').value;
+            const responseDiv = document.getElementById('response');
+            const submitBtn = document.getElementById('submitBtn');
+
+            // Get training days
+            const trainingDays = [];
+            ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
+                if (document.getElementById(day).checked) {
+                    trainingDays.push(day);
+                }
+            });
+
+            if (trainingDays.length === 0) {
+                responseDiv.className = 'response error';
+                responseDiv.innerHTML = '<strong>Error!</strong> Please select at least one training day';
+                return;
+            }
+
+            // Build fee structure (required)
+            const feeType = document.getElementById('feeType').value;
+            if (!feeType) {
+                responseDiv.className = 'response error';
+                responseDiv.innerHTML = '<strong>Error!</strong> Fee type is required';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Batch';
+                return;
+            }
+
+            const feeConfig = buildFeeConfiguration();
+            if (!feeConfig || Object.keys(feeConfig).length === 0) {
+                responseDiv.className = 'response error';
+                responseDiv.innerHTML = '<strong>Error!</strong> Fee configuration is required. Please fill in the fee structure fields.';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Batch';
+                return;
+            }
+
+            const feeStructure = {
+                fee_type: feeType,
+                fee_configuration: feeConfig,
+                admission_fee: document.getElementById('admissionFee').value ? parseFloat(document.getElementById('admissionFee').value) : null
+            };
+
+            const data = {
+                name: document.getElementById('name').value,
+                sportId: document.getElementById('sportId').value,
+                centerId: document.getElementById('centerId').value,
+                coach: document.getElementById('coach').value || null,
+                scheduled: {
+                    start_date: document.getElementById('startDate').value,
+                    start_time: document.getElementById('startTime').value,
+                    end_time: document.getElementById('endTime').value,
+                    training_days: trainingDays
+                },
+                duration: {
+                    count: parseInt(document.getElementById('durationCount').value),
+                    type: document.getElementById('durationType').value
+                },
+                capacity: {
+                    min: parseInt(document.getElementById('capacityMin').value),
+                    max: document.getElementById('capacityMax').value ? parseInt(document.getElementById('capacityMax').value) : null
+                },
+                age: {
+                    min: parseInt(document.getElementById('ageMin').value),
+                    max: parseInt(document.getElementById('ageMax').value)
+                },
+                admission_fee: document.getElementById('admissionFee').value ? parseFloat(document.getElementById('admissionFee').value) : null,
+                fee_structure: feeStructure,
+                status: document.getElementById('status').value
+            };
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating...';
+
+            try {
+                const response = await fetch(`${baseUrl}/academy/batch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    responseDiv.className = 'response success';
+                    responseDiv.innerHTML = `<strong>Success!</strong><pre>${JSON.stringify(result, null, 2)}</pre>`;
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.innerHTML = `<strong>Error!</strong><pre>${JSON.stringify(result, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                responseDiv.className = 'response error';
+                responseDiv.innerHTML = `<strong>Error!</strong><pre>${error.message}</pre>`;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Batch';
+            }
+        });
+
+        function resetForm() {
+            document.getElementById('batchForm').reset();
+            document.getElementById('feeConfigSection').classList.remove('active');
+            document.getElementById('feeConfigFields').innerHTML = '';
+            document.getElementById('response').className = 'response';
+            document.getElementById('response').innerHTML = '';
+            feeTypeConfig = null;
+        }
+
+        // Note: User should click "Load Data" button to load all data
+    </script>
+</body>
+</html>
+

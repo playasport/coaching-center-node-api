@@ -1,4 +1,8 @@
 import { Schema, model, HydratedDocument, Types } from 'mongoose';
+import { FeeType } from '../enums/feeType.enum';
+import { BatchStatus } from '../enums/batchStatus.enum';
+import { DurationType } from '../enums/durationType.enum';
+import { OperatingDays } from '../enums/operatingDays.enum';
 
 // Scheduled interface
 export interface Scheduled {
@@ -11,7 +15,7 @@ export interface Scheduled {
 // Duration interface
 export interface Duration {
   count: number;
-  type: 'day' | 'month' | 'week' | 'year';
+  type: DurationType;
 }
 
 // Capacity interface
@@ -26,6 +30,13 @@ export interface AgeRange {
   max: number;
 }
 
+// Fee Structure interface (embedded in Batch)
+export interface FeeStructure {
+  fee_type: FeeType;
+  fee_configuration: Record<string, any>; // Dynamic configuration based on fee_type
+  admission_fee?: number | null;
+}
+
 // Batch interface
 export interface Batch {
   user: Types.ObjectId; // Reference to User model (_id)
@@ -38,7 +49,8 @@ export interface Batch {
   capacity: Capacity;
   age: AgeRange;
   admission_fee?: number | null;
-  status: 'published' | 'draft' | 'inactive';
+  fee_structure?: FeeStructure | null; // Embedded fee structure (optional)
+  status: BatchStatus;
   is_active: boolean;
   is_deleted: boolean;
   deletedAt?: Date | null;
@@ -49,13 +61,13 @@ export interface Batch {
 export type BatchDocument = HydratedDocument<Batch>;
 
 // Training days enum
-const trainingDaysEnum = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const trainingDaysEnum = Object.values(OperatingDays) as string[];
 
 // Duration type enum
-const durationTypeEnum = ['day', 'month', 'week', 'year'];
+const durationTypeEnum = Object.values(DurationType) as string[];
 
 // Status enum
-const statusEnum = ['published', 'draft', 'inactive'];
+const statusEnum = Object.values(BatchStatus) as string[];
 
 // Scheduled sub-schema
 const scheduledSchema = new Schema<Scheduled>(
@@ -213,13 +225,32 @@ const batchSchema = new Schema<Batch>(
       default: null,
       min: [0, 'Admission fee cannot be negative'],
     },
+    fee_structure: {
+      type: {
+        fee_type: {
+          type: String,
+          enum: Object.values(FeeType),
+        },
+        fee_configuration: {
+          type: Schema.Types.Mixed,
+          default: {},
+        },
+        admission_fee: {
+          type: Number,
+          default: null,
+          min: [0, 'Admission fee cannot be negative'],
+        },
+      },
+      default: null,
+      _id: false,
+    },
     status: {
       type: String,
       enum: {
         values: statusEnum,
         message: `Status must be one of: ${statusEnum.join(', ')}`,
       },
-      default: 'draft',
+      default: BatchStatus.DRAFT,
       index: true,
     },
     is_active: {
@@ -257,6 +288,7 @@ batchSchema.index({ center: 1, sport: 1 });
 batchSchema.index({ center: 1, status: 1 });
 batchSchema.index({ user: 1, center: 1 });
 batchSchema.index({ center: 1, is_active: 1, is_deleted: 1 });
+batchSchema.index({ 'fee_structure.fee_type': 1 });
 
 // Validate that end_time is after start_time and max capacity >= min capacity
 batchSchema.pre('save', function (next) {

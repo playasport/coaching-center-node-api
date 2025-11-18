@@ -1,4 +1,5 @@
-import { RoleModel, DefaultRoles } from '../models/role.model';
+import { RoleModel } from '../models/role.model';
+import { DefaultRoles } from '../enums/defaultRoles.enum';
 import { logger } from '../utils/logger';
 import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';

@@ -1,5 +1,6 @@
 import { connectDatabase, disconnectDatabase } from '../src/config/database';
-import { RoleModel, DefaultRoles } from '../src/models/role.model';
+import { RoleModel } from '../src/models/role.model';
+import { DefaultRoles } from '../src/enums/defaultRoles.enum';
 import { logger } from '../src/utils/logger';
 
 // Default roles to seed

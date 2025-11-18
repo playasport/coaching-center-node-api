@@ -1,4 +1,5 @@
 import swaggerJsdoc from 'swagger-jsdoc';
+import path from 'path';
 import { config } from './env';
 
 const options: swaggerJsdoc.Options = {
@@ -1676,6 +1677,405 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        FeeType: {
+          type: 'object',
+          properties: {
+            value: {
+              type: 'string',
+              enum: ['monthly', 'daily', 'weekly', 'hourly', 'per_batch', 'per_session', 'age_based', 'coach_license_based', 'player_level_based', 'seasonal', 'package_based', 'group_discount', 'advance_booking', 'weekend_pricing', 'peak_hours', 'membership_based', 'custom'],
+              example: 'monthly',
+              description: 'Fee type value',
+            },
+            label: {
+              type: 'string',
+              example: 'Monthly',
+              description: 'Display label for the fee type',
+            },
+            description: {
+              type: 'string',
+              example: 'Fixed monthly fee structure',
+              description: 'Description of the fee type',
+            },
+          },
+        },
+        FormField: {
+          type: 'object',
+          properties: {
+            name: {
+              type: 'string',
+              example: 'base_price',
+              description: 'Field name',
+            },
+            label: {
+              type: 'string',
+              example: 'Base Price',
+              description: 'Display label',
+            },
+            type: {
+              type: 'string',
+              enum: ['text', 'number', 'select', 'checkbox', 'date', 'time', 'array', 'object'],
+              example: 'number',
+              description: 'Field type',
+            },
+            required: {
+              type: 'boolean',
+              example: true,
+              description: 'Whether the field is required',
+            },
+            placeholder: {
+              type: 'string',
+              example: 'Enter base price',
+              nullable: true,
+              description: 'Placeholder text',
+            },
+            min: {
+              type: 'number',
+              example: 0,
+              nullable: true,
+              description: 'Minimum value (for number fields)',
+            },
+            max: {
+              type: 'number',
+              example: 1000000,
+              nullable: true,
+              description: 'Maximum value (for number fields)',
+            },
+            step: {
+              type: 'number',
+              example: 0.01,
+              nullable: true,
+              description: 'Step value (for number fields)',
+            },
+            options: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  value: {
+                    oneOf: [{ type: 'string' }, { type: 'number' }],
+                  },
+                  label: { type: 'string' },
+                },
+              },
+              nullable: true,
+              description: 'Options for select fields',
+            },
+            fields: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/FormField',
+              },
+              nullable: true,
+              description: 'Nested fields for array/object types',
+            },
+            description: {
+              type: 'string',
+              nullable: true,
+              description: 'Field description',
+            },
+          },
+        },
+        FeeTypeConfig: {
+          type: 'object',
+          properties: {
+            fee_type: {
+              type: 'string',
+              enum: ['monthly', 'daily', 'weekly', 'hourly', 'per_batch', 'per_session', 'age_based', 'coach_license_based', 'player_level_based', 'seasonal', 'package_based', 'group_discount', 'advance_booking', 'weekend_pricing', 'peak_hours', 'membership_based', 'custom'],
+              example: 'monthly',
+            },
+            label: {
+              type: 'string',
+              example: 'Monthly',
+            },
+            description: {
+              type: 'string',
+              example: 'Fixed monthly fee structure',
+            },
+            formFields: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/FormField',
+              },
+            },
+          },
+        },
+        FeeTypesResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Fee types retrieved successfully',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                feeTypes: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/FeeType',
+                  },
+                },
+              },
+            },
+          },
+        },
+        FeeTypeConfigResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Fee type form structure retrieved successfully',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                config: {
+                  $ref: '#/components/schemas/FeeTypeConfig',
+                },
+              },
+            },
+          },
+        },
+        FeeStructure: {
+          type: 'object',
+          required: ['fee_type', 'fee_configuration'],
+          properties: {
+            fee_type: {
+              type: 'string',
+              enum: ['monthly', 'daily', 'weekly', 'hourly', 'per_batch', 'per_session', 'age_based', 'coach_license_based', 'player_level_based', 'seasonal', 'package_based', 'group_discount', 'advance_booking', 'weekend_pricing', 'peak_hours', 'membership_based', 'custom'],
+              example: 'monthly',
+              description: 'Fee type',
+            },
+            fee_configuration: {
+              type: 'object',
+              additionalProperties: true,
+              description: 'Dynamic configuration object based on fee_type',
+              example: {
+                base_price: 2000,
+              },
+            },
+          },
+        },
+        Batch: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Batch ObjectId',
+            },
+            user: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'User ObjectId reference',
+            },
+            name: {
+              type: 'string',
+              example: 'Morning Batch',
+              description: 'Batch name',
+            },
+            sport: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Sport ObjectId reference',
+            },
+            center: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Coaching Center ObjectId reference',
+            },
+            coach: {
+              type: 'string',
+              nullable: true,
+              example: '507f1f77bcf86cd799439011',
+              description: 'Employee ObjectId reference (optional)',
+            },
+            scheduled: {
+              type: 'object',
+              properties: {
+                start_date: {
+                  type: 'string',
+                  format: 'date',
+                  example: '2024-01-15',
+                },
+                start_time: {
+                  type: 'string',
+                  example: '09:00',
+                },
+                end_time: {
+                  type: 'string',
+                  example: '11:00',
+                },
+                training_days: {
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                    enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+                  },
+                  example: ['monday', 'wednesday', 'friday'],
+                },
+              },
+            },
+            duration: {
+              type: 'object',
+              properties: {
+                count: {
+                  type: 'number',
+                  example: 3,
+                },
+                type: {
+                  type: 'string',
+                  enum: ['day', 'month', 'week', 'year'],
+                  example: 'month',
+                },
+              },
+            },
+            capacity: {
+              type: 'object',
+              properties: {
+                min: {
+                  type: 'number',
+                  example: 10,
+                },
+                max: {
+                  type: 'number',
+                  nullable: true,
+                  example: 30,
+                },
+              },
+            },
+            age: {
+              type: 'object',
+              properties: {
+                min: {
+                  type: 'number',
+                  example: 8,
+                  minimum: 3,
+                  maximum: 18,
+                },
+                max: {
+                  type: 'number',
+                  example: 16,
+                  minimum: 3,
+                  maximum: 18,
+                },
+              },
+            },
+            admission_fee: {
+              type: 'number',
+              nullable: true,
+              example: 5000,
+              description: 'Admission fee',
+            },
+            fee_structure: {
+              $ref: '#/components/schemas/FeeStructure',
+              description: 'Fee structure configuration (required)',
+            },
+            status: {
+              type: 'string',
+              enum: ['published', 'draft', 'inactive'],
+              example: 'draft',
+            },
+            is_active: {
+              type: 'boolean',
+              example: true,
+            },
+            is_deleted: {
+              type: 'boolean',
+              example: false,
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+          },
+        },
+        BatchResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Batch created successfully',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                batch: {
+                  $ref: '#/components/schemas/Batch',
+                },
+              },
+            },
+          },
+        },
+        BatchListResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Batches retrieved successfully',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                batches: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/Batch',
+                  },
+                },
+                pagination: {
+                  type: 'object',
+                  properties: {
+                    page: {
+                      type: 'number',
+                      example: 1,
+                    },
+                    limit: {
+                      type: 'number',
+                      example: 10,
+                    },
+                    total: {
+                      type: 'number',
+                      example: 50,
+                    },
+                    totalPages: {
+                      type: 'number',
+                      example: 5,
+                    },
+                    hasNextPage: {
+                      type: 'boolean',
+                      example: true,
+                    },
+                    hasPrevPage: {
+                      type: 'boolean',
+                      example: false,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     },
     tags: [
@@ -1723,9 +2123,20 @@ const options: swaggerJsdoc.Options = {
         name: 'Role',
         description: 'Role management endpoints',
       },
+      {
+        name: 'Batch',
+        description: 'Batch management endpoints',
+      },
+      {
+        name: 'Fee Type',
+        description: 'Fee type configuration endpoints for dynamic form generation',
+      },
     ],
   },
-  apis: ['./src/routes/**/*.ts', './src/controllers/**/*.ts'],
+  apis: [
+    path.join(process.cwd(), 'src/routes/**/*.ts'),
+    path.join(process.cwd(), 'src/controllers/**/*.ts'),
+  ],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

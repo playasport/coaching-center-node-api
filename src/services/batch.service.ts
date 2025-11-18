@@ -50,6 +50,9 @@ export const createBatch = async (data: BatchCreateInput, loggedInUserId: string
 
     // Verify center belongs to logged-in user
     const loggedInUserObjectId = await getUserObjectId(loggedInUserId);
+    if (!loggedInUserObjectId) {
+      throw new ApiError(404, t('batch.userNotFound'));
+    }
     if (center.user.toString() !== loggedInUserObjectId.toString()) {
       throw new ApiError(403, t('batch.centerNotOwned'));
     }
@@ -95,6 +98,7 @@ export const createBatch = async (data: BatchCreateInput, loggedInUserId: string
         max: data.age.max,
       },
       admission_fee: data.admission_fee || null,
+      fee_structure: data.fee_structure, // Required
       status: data.status || 'draft',
       is_active: true,
       is_deleted: false,
@@ -181,12 +185,28 @@ export const getBatchesByUser = async (
     // Get total count
     const total = await BatchModel.countDocuments(query);
 
-    // Get paginated results
+    // Get paginated results with populated references
     const batches = await BatchModel.find(query)
-      .populate('user', 'id firstName lastName email')
-      .populate('sport', 'custom_id name logo')
-      .populate('center', 'center_name email mobile_number')
-      .populate('coach', 'fullName mobileNo email')
+      .populate({
+        path: 'user',
+        select: 'id firstName lastName email mobile',
+        match: { isDeleted: false },
+      })
+      .populate({
+        path: 'sport',
+        select: 'custom_id name logo is_popular',
+        match: { is_active: true },
+      })
+      .populate({
+        path: 'center',
+        select: 'center_name email mobile_number status',
+        match: { is_deleted: false },
+      })
+      .populate({
+        path: 'coach',
+        select: 'fullName mobileNo email role',
+        match: { is_deleted: false },
+      })
       .sort({ createdAt: -1 }) // Sort by newest first
       .skip(skip)
       .limit(pageSize)
@@ -249,6 +269,9 @@ export const getBatchesByCenter = async (
     }
 
     const userObjectId = await getUserObjectId(userId);
+    if (!userObjectId) {
+      throw new ApiError(404, t('batch.userNotFound'));
+    }
     if (center.user.toString() !== userObjectId.toString()) {
       throw new ApiError(403, t('batch.centerNotOwned'));
     }
@@ -400,6 +423,7 @@ export const updateBatch = async (id: string, data: BatchUpdateInput, loggedInUs
       };
     }
     if (data.admission_fee !== undefined) updateData.admission_fee = data.admission_fee || null;
+    if (data.fee_structure !== undefined) updateData.fee_structure = data.fee_structure || null;
     if (data.status !== undefined) updateData.status = data.status;
 
     // Update batch
