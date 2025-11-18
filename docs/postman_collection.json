@@ -1065,6 +1065,222 @@
       ]
     },
     {
+      "name": "Batch",
+      "item": [
+        {
+          "name": "Create Batch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Morning Batch\",\n  \"sportId\": \"507f1f77bcf86cd799439011\",\n  \"centerId\": \"507f1f77bcf86cd799439011\",\n  \"coach\": \"507f1f77bcf86cd799439011\",\n  \"scheduled\": {\n    \"start_date\": \"2024-01-15\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": {\n    \"count\": 3,\n    \"type\": \"month\"\n  },\n  \"capacity\": {\n    \"min\": 10,\n    \"max\": 30\n  },\n  \"age\": {\n    \"min\": 8,\n    \"max\": 12\n  },\n  \"admission_fee\": 5000,\n  \"status\": \"draft\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/academy/batch",
+              "host": ["{{base_url}}"],
+              "path": ["academy", "batch"]
+            },
+            "description": "Create a new batch. **Requires authentication (Bearer token).**\n\n**Note:** `userId` is automatically set from the logged-in user. Any `userId` value provided in the request body will be ignored.\n\n**Required Fields:**\n- `name`: Batch name (string, max 255 characters)\n- `sportId`: Sport ObjectId (must exist and be active)\n- `centerId`: Coaching Center ObjectId (must belong to logged-in user)\n- `scheduled`: Object with:\n  - `start_date`: Start date (ISO date string)\n  - `start_time`: Start time in HH:MM format (24-hour)\n  - `end_time`: End time in HH:MM format (24-hour, must be after start_time)\n  - `training_days`: Array of days (monday, tuesday, wednesday, thursday, friday, saturday, sunday)\n- `duration`: Object with:\n  - `count`: Duration count (integer, min 1)\n  - `type`: Duration type (day, month, week, year)\n- `capacity`: Object with:\n  - `min`: Minimum capacity (integer, min 1)\n  - `max`: Maximum capacity (integer, optional, must be >= min)\n- `age`: Object with:\n  - `min`: Minimum age (integer, between 3 and 18)\n  - `max`: Maximum age (integer, between 3 and 18, must be >= min)\n\n**Optional Fields:**\n- `coach`: Employee ObjectId (must belong to the specified center)\n- `admission_fee`: Admission fee (number, min 0)\n- `status`: Status (published, draft, inactive) - default: draft"
+          }
+        },
+        {
+          "name": "Get My Batches (List with Pagination)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/academy/batch/my/list?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["academy", "batch", "my", "list"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (starts from 1, default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page (default: 10, max: 100)"
+                }
+              ]
+            },
+            "description": "Get a paginated list of batches belonging to the logged-in user. **Requires authentication (Bearer token).**\n\n**Response includes:**\n- `data`: Array of batch objects with populated references (user, sport, center, coach)\n- `pagination`: Pagination metadata (page, limit, total, totalPages, hasNextPage, hasPrevPage)"
+          }
+        },
+        {
+          "name": "Get Batches by Center",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/academy/batch/center/:centerId?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["academy", "batch", "center", ":centerId"],
+              "variable": [
+                {
+                  "key": "centerId",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Coaching Center ID"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (starts from 1, default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page (default: 10, max: 100)"
+                }
+              ]
+            },
+            "description": "Get a paginated list of batches for a specific coaching center. The center must belong to the logged-in user. **Requires authentication (Bearer token).**\n\n**Response includes:**\n- `data`: Array of batch objects with populated references (user, sport, center, coach)\n- `pagination`: Pagination metadata (page, limit, total, totalPages, hasNextPage, hasPrevPage)"
+          }
+        },
+        {
+          "name": "Get Batch by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/academy/batch/:id",
+              "host": ["{{base_url}}"],
+              "path": ["academy", "batch", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Batch ID"
+                }
+              ]
+            },
+            "description": "Get a batch by its ID. **Requires authentication (Bearer token).**\n\n**Response includes:**\n- Batch object with populated references (user, sport, center, coach)"
+          }
+        },
+        {
+          "name": "Update Batch",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Evening Batch\",\n  \"scheduled\": {\n    \"start_date\": \"2024-01-15\",\n    \"start_time\": \"18:00\",\n    \"end_time\": \"20:00\",\n    \"training_days\": [\"tuesday\", \"thursday\"]\n  },\n  \"capacity\": {\n    \"min\": 15,\n    \"max\": 25\n  },\n  \"age\": {\n    \"min\": 10,\n    \"max\": 14\n  },\n  \"status\": \"published\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/academy/batch/:id",
+              "host": ["{{base_url}}"],
+              "path": ["academy", "batch", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Batch ID"
+                }
+              ]
+            },
+            "description": "Update batch details. All fields are optional, but at least one field must be provided. You can only update your own batches. **Requires authentication (Bearer token).**\n\n**Updatable Fields:**\n- `name`: Batch name\n- `sportId`: Sport ObjectId\n- `centerId`: Coaching Center ObjectId (must belong to logged-in user)\n- `coach`: Employee ObjectId (must belong to the center)\n- `scheduled`: Scheduled information object\n- `duration`: Duration object\n- `capacity`: Capacity object\n- `age`: Age range object (min and max between 3 and 18)\n- `admission_fee`: Admission fee\n- `status`: Status (published, draft, inactive)"
+          }
+        },
+        {
+          "name": "Toggle Batch Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/academy/batch/:id/toggle-status",
+              "host": ["{{base_url}}"],
+              "path": ["academy", "batch", ":id", "toggle-status"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Batch ID"
+                }
+              ]
+            },
+            "description": "Toggle batch active/inactive status. You can only toggle status of your own batches. **Requires authentication (Bearer token).**\n\n**Response includes:**\n- Updated batch object with `is_active` status toggled"
+          }
+        },
+        {
+          "name": "Delete Batch (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/academy/batch/:id",
+              "host": ["{{base_url}}"],
+              "path": ["academy", "batch", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Batch ID"
+                }
+              ]
+            },
+            "description": "Soft delete a batch by setting `is_deleted` to true. The batch will no longer appear in regular queries. You can only delete your own batches. **Requires authentication (Bearer token).**"
+          }
+        }
+      ]
+    },
+    {
       "name": "Role",
       "item": [
         {

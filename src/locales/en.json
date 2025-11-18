@@ -333,6 +333,106 @@
       "success": "Roles retrieved successfully",
       "failed": "Failed to fetch roles"
     }
+  },
+  "batch": {
+    "create": {
+      "success": "Batch created successfully",
+      "failed": "Failed to create batch"
+    },
+    "get": {
+      "success": "Batch retrieved successfully",
+      "failed": "Failed to fetch batch"
+    },
+    "list": {
+      "success": "Batches retrieved successfully",
+      "failed": "Failed to fetch batches"
+    },
+    "update": {
+      "success": "Batch updated successfully",
+      "failed": "Failed to update batch"
+    },
+    "toggleStatus": {
+      "active": "Batch activated successfully",
+      "inactive": "Batch deactivated successfully",
+      "failed": "Failed to toggle batch active status"
+    },
+    "delete": {
+      "success": "Batch deleted successfully",
+      "failed": "Failed to delete batch"
+    },
+    "idRequired": "Batch ID is required",
+    "notFound": "Batch not found",
+    "invalidId": "Invalid batch ID",
+    "unauthorizedUpdate": "You can only update your own batches",
+    "unauthorizedToggle": "You can only toggle status of your own batches",
+    "unauthorizedDelete": "You can only delete your own batches",
+    "centerIdRequired": "Center ID is required",
+    "centerNotFound": "Coaching center not found",
+    "centerNotOwned": "You can only create batches for your own coaching centers",
+    "sportNotFound": "Sport not found or inactive",
+    "coachNotFound": "Coach (employee) not found",
+    "coachNotInCenter": "Coach does not belong to the specified center"
+  },
+  "validation": {
+    "batch": {
+      "name": {
+        "required": "Batch name is required",
+        "maxLength": "Batch name must not exceed 255 characters"
+      },
+      "sportId": {
+        "required": "Sport ID is required",
+        "invalid": "Invalid sport ID"
+      },
+      "centerId": {
+        "required": "Center ID is required",
+        "invalid": "Invalid center ID"
+      },
+      "coach": {
+        "invalid": "Invalid coach ID"
+      },
+      "scheduled": {
+        "startDateRequired": "Start date is required",
+        "startDateInvalid": "Start date must be a valid date",
+        "startTimeRequired": "Start time is required",
+        "startTimeFormat": "Start time must be in HH:MM format (24-hour)",
+        "endTimeRequired": "End time is required",
+        "endTimeFormat": "End time must be in HH:MM format (24-hour)",
+        "endTimeAfterStart": "End time must be after start time",
+        "trainingDaysRequired": "Training days are required",
+        "trainingDaysMinOne": "At least one training day is required",
+        "trainingDaysInvalid": "Training days must be valid days (monday, tuesday, wednesday, thursday, friday, saturday, sunday)"
+      },
+      "duration": {
+        "countRequired": "Duration count is required",
+        "countInteger": "Duration count must be an integer",
+        "countMin": "Duration count must be at least 1",
+        "typeRequired": "Duration type is required",
+        "typeInvalid": "Duration type must be one of: day, month, week, year"
+      },
+      "capacity": {
+        "minRequired": "Minimum capacity is required",
+        "minInteger": "Minimum capacity must be an integer",
+        "minMin": "Minimum capacity must be at least 1",
+        "maxInteger": "Maximum capacity must be an integer",
+        "maxMin": "Maximum capacity must be at least 1",
+        "maxGreaterThanMin": "Maximum capacity must be greater than or equal to minimum capacity"
+      },
+      "admissionFee": {
+        "invalid": "Admission fee cannot be negative"
+      },
+      "age": {
+        "minRequired": "Minimum age is required",
+        "minInteger": "Minimum age must be an integer",
+        "minRange": "Minimum age must be between 3 and 18",
+        "maxRequired": "Maximum age is required",
+        "maxInteger": "Maximum age must be an integer",
+        "maxRange": "Maximum age must be between 3 and 18",
+        "maxGreaterThanMin": "Maximum age must be greater than or equal to minimum age"
+      },
+      "status": {
+        "invalid": "Status must be one of: published, draft, inactive"
+      }
+    }
   }
 }
 

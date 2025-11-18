@@ -6,6 +6,7 @@ import locationRoutes from './location.routes';
 import basicRoutes from './basic.routes';
 import coachingCenterRoutes from './coachingCenter.routes';
 import employeeRoutes from './employee.routes';
+import batchRoutes from './batch.routes';
 import roleRoutes from './role.routes';
 import { t } from '../utils/i18n';
 import { ApiResponse } from '../utils/ApiResponse';
@@ -18,6 +19,7 @@ router.use('/location', locationRoutes);
 router.use('/', basicRoutes);
 router.use('/academy/coaching-center', coachingCenterRoutes);
 router.use('/academy/employee', employeeRoutes);
+router.use('/academy/batch', batchRoutes);
 router.use('/role', roleRoutes);
 router.get('/health', (_req, res) => {
   const response = new ApiResponse(200, { timestamp: new Date().toISOString() }, t('health.serverRunning'));
