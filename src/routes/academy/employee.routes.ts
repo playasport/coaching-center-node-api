@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import * as employeeController from '../controllers/employee.controller';
-import { validate } from '../middleware/validation.middleware';
-import { employeeCreateSchema, employeeUpdateSchema } from '../validations/employee.validation';
-import { authenticate, authorize } from '../middleware/auth.middleware';
+import * as employeeController from '../../controllers/academy/employee.controller';
+import { validate } from '../../middleware/validation.middleware';
+import { employeeCreateSchema, employeeUpdateSchema } from '../../validations/employee.validation';
+import { authenticate, authorize } from '../../middleware/auth.middleware';
 import employeeMediaRoutes from './employeeMedia.routes';
-import { DefaultRoles } from '../enums/defaultRoles.enum';
+import { DefaultRoles } from '../../enums/defaultRoles.enum';
 
 const router = Router();
 

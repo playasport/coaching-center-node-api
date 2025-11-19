@@ -292,7 +292,8 @@
   },
   "errors": {
     "internalServerError": "Internal Server Error",
-    "routeNotFound": "Route {route} not found"
+    "routeNotFound": "Route {route} not found",
+    "roleNotFound": "Role with name '{role}' not found"
   },
   "health": {
     "serverRunning": "Server is running"

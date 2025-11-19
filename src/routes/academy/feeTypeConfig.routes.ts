@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import * as feeTypeConfigController from '../controllers/feeTypeConfig.controller';
-import { authenticate, authorize } from '../middleware/auth.middleware';
-import { DefaultRoles } from '../enums/defaultRoles.enum';
+import * as feeTypeConfigController from '../../controllers/academy/feeTypeConfig.controller';
+import { authenticate, authorize } from '../../middleware/auth.middleware';
+import { DefaultRoles } from '../../enums/defaultRoles.enum';
 
 const router = Router();
 

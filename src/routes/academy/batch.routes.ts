@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import * as batchController from '../controllers/batch.controller';
-import { validate } from '../middleware/validation.middleware';
-import { batchCreateSchema, batchUpdateSchema } from '../validations/batch.validation';
-import { authenticate, authorize } from '../middleware/auth.middleware';
-import { DefaultRoles } from '../enums/defaultRoles.enum';
+import * as batchController from '../../controllers/academy/batch.controller';
+import { validate } from '../../middleware/validation.middleware';
+import { batchCreateSchema, batchUpdateSchema } from '../../validations/batch.validation';
+import { authenticate, authorize } from '../../middleware/auth.middleware';
+import { DefaultRoles } from '../../enums/defaultRoles.enum';
 
 const router = Router();
 

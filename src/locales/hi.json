@@ -189,7 +189,8 @@
   },
   "errors": {
     "internalServerError": "आंतरिक सर्वर त्रुटि",
-    "routeNotFound": "रूट {route} नहीं मिला"
+    "routeNotFound": "रूट {route} नहीं मिला",
+    "roleNotFound": "नाम '{role}' के साथ भूमिका नहीं मिली"
   },
   "health": {
     "serverRunning": "सर्वर चल रहा है"

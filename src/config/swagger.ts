@@ -79,32 +79,40 @@ const options: swaggerJsdoc.Options = {
             },
             email: {
               type: 'string',
-              example: 'academy@example.com',
+              example: 'user@example.com',
             },
             mobile: {
               type: 'string',
               example: '9876543210',
             },
+            dob: {
+              type: 'string',
+              format: 'date',
+              example: '2000-01-15',
+              nullable: true,
+            },
             gender: {
               type: 'string',
               enum: ['male', 'female', 'other'],
               example: 'male',
+              nullable: true,
             },
             profileImage: {
               type: 'string',
               format: 'uri',
               example: 'https://bucket.s3.region.amazonaws.com/profile-images/user-id.jpg',
+              nullable: true,
             },
             role: {
               type: 'object',
               properties: {
                 id: {
                   type: 'string',
-                  example: 'academy',
+                  example: 'student',
                 },
                 name: {
                   type: 'string',
-                  example: 'academy',
+                  example: 'student',
                 },
               },
             },
@@ -495,6 +503,254 @@ const options: swaggerJsdoc.Options = {
             newPassword: {
               type: 'string',
               example: 'NewPass@123',
+            },
+          },
+        },
+        UserRegisterRequest: {
+          type: 'object',
+          required: ['firstName', 'email', 'password', 'mobile', 'role', 'dob', 'gender', 'otp'],
+          properties: {
+            firstName: {
+              type: 'string',
+              example: 'John',
+            },
+            lastName: {
+              type: 'string',
+              example: 'Doe',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'user@example.com',
+            },
+            password: {
+              type: 'string',
+              minLength: 8,
+              example: 'StrongPass@123',
+            },
+            mobile: {
+              type: 'string',
+              example: '9876543210',
+              description: 'User mobile number used for OTP verification',
+            },
+            role: {
+              type: 'string',
+              enum: ['student', 'guardian'],
+              example: 'student',
+              description: 'User role - either student or guardian',
+            },
+            dob: {
+              type: 'string',
+              format: 'date',
+              example: '2000-01-15',
+              description: 'Date of birth in YYYY-MM-DD format (age must be at least 3 years)',
+            },
+            gender: {
+              type: 'string',
+              enum: ['male', 'female', 'other'],
+              example: 'male',
+            },
+            otp: {
+              type: 'string',
+              example: '123456',
+              description: 'OTP received on mobile via /user/auth/send-otp (mode: register)',
+            },
+          },
+        },
+        UserLoginRequest: {
+          type: 'object',
+          required: ['email', 'password'],
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'user@example.com',
+            },
+            password: {
+              type: 'string',
+              example: 'StrongPass@123',
+            },
+          },
+        },
+        UserSocialLoginRequest: {
+          type: 'object',
+          required: ['idToken'],
+          properties: {
+            provider: {
+              type: 'string',
+              enum: ['google', 'facebook', 'instagram', 'apple'],
+              example: 'google',
+              description: 'Optional hint for analytics/logging. Token verification relies on Firebase.',
+            },
+            idToken: {
+              type: 'string',
+              example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjUxOG... (Firebase ID token)',
+            },
+            firstName: {
+              type: 'string',
+              example: 'John',
+            },
+            lastName: {
+              type: 'string',
+              example: 'Doe',
+            },
+            role: {
+              type: 'string',
+              enum: ['student', 'guardian'],
+              example: 'student',
+              description: 'User role - defaults to student if not provided',
+            },
+          },
+          example: {
+            provider: 'google',
+            idToken: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjUxOG...',
+            firstName: 'John',
+            lastName: 'Doe',
+            role: 'student',
+          },
+        },
+        UserOtpRequest: {
+          type: 'object',
+          required: ['mobile'],
+          properties: {
+            mobile: {
+              type: 'string',
+              example: '9876543210',
+            },
+            mode: {
+              type: 'string',
+              enum: ['login', 'register', 'profile_update', 'forgot_password'],
+              example: 'register',
+              description:
+                'Purpose of OTP. Defaults to login when omitted. Use profile_update for mobile change verification, forgot_password for password reset.',
+            },
+          },
+        },
+        UserVerifyOtpRequest: {
+          type: 'object',
+          required: ['mobile', 'otp'],
+          properties: {
+            mobile: {
+              type: 'string',
+              example: '9876543210',
+            },
+            otp: {
+              type: 'string',
+              example: '123456',
+            },
+            mode: {
+              type: 'string',
+              enum: ['login', 'register', 'profile_update', 'forgot_password'],
+              example: 'login',
+            },
+          },
+        },
+        UserProfileUpdateRequest: {
+          type: 'object',
+          properties: {
+            firstName: {
+              type: 'string',
+              example: 'John',
+            },
+            lastName: {
+              type: 'string',
+              example: 'Doe',
+            },
+            dob: {
+              type: 'string',
+              format: 'date',
+              example: '2000-01-15',
+              description: 'Date of birth in YYYY-MM-DD format',
+            },
+            gender: {
+              type: 'string',
+              enum: ['male', 'female', 'other'],
+              example: 'male',
+            },
+          },
+        },
+        UserAddressUpdateRequest: {
+          type: 'object',
+          required: ['address'],
+          properties: {
+            address: {
+              type: 'object',
+              required: ['line2', 'city', 'state', 'country', 'pincode'],
+              properties: {
+                line1: { type: 'string', example: '123 Main Street' },
+                line2: { type: 'string', example: 'Suite 4B' },
+                area: { type: 'string', example: 'Downtown' },
+                city: { type: 'string', example: 'New Delhi' },
+                state: { type: 'string', example: 'Delhi' },
+                country: { type: 'string', example: 'India' },
+                pincode: { type: 'string', example: '110001' },
+              },
+            },
+          },
+        },
+        UserPasswordChangeRequest: {
+          type: 'object',
+          required: ['currentPassword', 'newPassword'],
+          properties: {
+            currentPassword: {
+              type: 'string',
+              example: 'CurrentPass@123',
+            },
+            newPassword: {
+              type: 'string',
+              example: 'NewPass@123',
+            },
+          },
+        },
+        UserForgotPasswordRequest: {
+          type: 'object',
+          required: ['mode'],
+          properties: {
+            mode: {
+              type: 'string',
+              enum: ['mobile', 'email'],
+              example: 'mobile',
+            },
+            mobile: {
+              type: 'string',
+              example: '9876543210',
+              description: 'Required when mode is mobile.',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'user@example.com',
+              description: 'Required when mode is email.',
+            },
+          },
+        },
+        UserForgotPasswordVerify: {
+          type: 'object',
+          required: ['mode', 'otp', 'newPassword'],
+          properties: {
+            mode: {
+              type: 'string',
+              enum: ['mobile', 'email'],
+              example: 'mobile',
+            },
+            mobile: {
+              type: 'string',
+              example: '9876543210',
+              description: 'Required when mode is mobile.',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'user@example.com',
+              description: 'Required when mode is email.',
+            },
+            otp: {
+              type: 'string',
+              example: '123456',
+            },
+            newPassword: {
+              type: 'string',
+              example: 'StrongPass@123',
             },
           },
         },
@@ -2082,6 +2338,10 @@ const options: swaggerJsdoc.Options = {
       {
         name: 'Academy Auth',
         description: 'Academy user authentication endpoints',
+      },
+      {
+        name: 'User Auth',
+        description: 'User (student/guardian) authentication endpoints',
       },
       {
         name: 'Health',

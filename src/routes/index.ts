@@ -1,13 +1,14 @@
 import { Router } from 'express';
 import path from 'path';
 import localeRoutes from './locale.routes';
-import academyAuthRoutes from './academyAuth.routes';
+import academyAuthRoutes from './academy/academyAuth.routes';
+import userAuthRoutes from './userAuth.routes';
 import locationRoutes from './location.routes';
 import basicRoutes from './basic.routes';
-import coachingCenterRoutes from './coachingCenter.routes';
-import employeeRoutes from './employee.routes';
-import batchRoutes from './batch.routes';
-import feeTypeConfigRoutes from './feeTypeConfig.routes';
+import coachingCenterRoutes from './academy/coachingCenter.routes';
+import employeeRoutes from './academy/employee.routes';
+import batchRoutes from './academy/batch.routes';
+import feeTypeConfigRoutes from './academy/feeTypeConfig.routes';
 import roleRoutes from './role.routes';
 import { t } from '../utils/i18n';
 import { ApiResponse } from '../utils/ApiResponse';
@@ -16,6 +17,7 @@ const router = Router();
 
 router.use('/locale', localeRoutes);
 router.use('/academy/auth', academyAuthRoutes);
+router.use('/user/auth', userAuthRoutes);
 router.use('/location', locationRoutes);
 router.use('/', basicRoutes);
 router.use('/academy/coaching-center', coachingCenterRoutes);

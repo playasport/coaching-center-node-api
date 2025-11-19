@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { ApiResponse } from '../utils/ApiResponse';
-import { ApiError } from '../utils/ApiError';
-import { t } from '../utils/i18n';
-import * as batchService from '../services/batch.service';
-import type { BatchCreateInput, BatchUpdateInput } from '../validations/batch.validation';
+import { ApiResponse } from '../../utils/ApiResponse';
+import { ApiError } from '../../utils/ApiError';
+import { t } from '../../utils/i18n';
+import * as batchService from '../../services/batch.service';
+import type { BatchCreateInput, BatchUpdateInput } from '../../validations/batch.validation';
 
 export const createBatch = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {

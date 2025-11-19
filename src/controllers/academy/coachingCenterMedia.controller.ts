@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { ApiResponse } from '../utils/ApiResponse';
-import { ApiError } from '../utils/ApiError';
-import { t } from '../utils/i18n';
-import * as mediaService from '../services/coachingCenterMedia.service';
+import { ApiResponse } from '../../utils/ApiResponse';
+import { ApiError } from '../../utils/ApiError';
+import { t } from '../../utils/i18n';
+import * as mediaService from '../../services/coachingCenterMedia.service';
 
 /**
  * Unified media upload controller

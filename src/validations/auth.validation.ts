@@ -261,3 +261,172 @@ export type AcademyForgotPasswordVerifyInput = z.infer<
   typeof academyForgotPasswordVerifySchema
 >['body'];
 
+// User Auth Validation Schemas
+export const userRegisterSchema = z.object({
+  body: z.object({
+    firstName: z
+      .string({ message: validationMessages.firstName.required() })
+      .min(1, validationMessages.firstName.required())
+      .regex(/^[A-Z][a-zA-Z\s]*$/, validationMessages.firstName.invalidFormat()),
+    lastName: z
+      .union([
+        z
+          .string({ message: validationMessages.lastName.invalidFormat() })
+          .regex(/^[A-Z][a-zA-Z\s]*$/, validationMessages.lastName.invalidFormat()),
+        z.literal(''),
+      ])
+      .optional()
+      .transform((val) => (val ? val : undefined)),
+    email: z
+      .string({ message: validationMessages.email.required() })
+      .min(1, validationMessages.email.required())
+      .email(validationMessages.email.invalid()),
+    password: passwordComplexitySchema,
+    mobile: mobileNumberSchema,
+    role: z.enum(['student', 'guardian'], {
+      message: 'Role must be either student or guardian',
+    }),
+    dob: z
+      .string({ message: 'Date of birth is required' })
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format')
+      .refine(
+        (date) => {
+          const dob = new Date(date);
+          const today = new Date();
+          const age = today.getFullYear() - dob.getFullYear();
+          const monthDiff = today.getMonth() - dob.getMonth();
+          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+            return age - 1 >= 3;
+          }
+          return age >= 3;
+        },
+        { message: 'Age must be at least 3 years' }
+      ),
+    gender: z.enum(['male', 'female', 'other'], {
+      message: 'Gender must be male, female, or other',
+    }),
+    otp: otpCodeSchema,
+  }),
+});
+
+export const userLoginSchema = z.object({
+  body: z.object({
+    email: z
+      .string({ message: validationMessages.email.required() })
+      .min(1, validationMessages.email.required())
+      .email(validationMessages.email.invalid()),
+    password: z
+      .string({ message: validationMessages.password.required() })
+      .min(1, validationMessages.password.required()),
+  }),
+});
+
+export const userSocialLoginSchema = z.object({
+  body: z.object({
+    provider: z.enum(['google', 'facebook', 'instagram', 'apple']).optional(),
+    idToken: z
+      .string({ message: 'ID token is required' })
+      .min(1, 'ID token is required'),
+    firstName: z
+      .string()
+      .min(1, validationMessages.firstName.required())
+      .optional(),
+    lastName: z
+      .string()
+      .optional(),
+    role: z.enum(['student', 'guardian']).optional(),
+  }),
+});
+
+export const userOtpSchema = z.object({
+  body: z.object({
+    mobile: mobileNumberSchema,
+    mode: z.enum(['login', 'register', 'profile_update', 'forgot_password']).optional(),
+  }),
+});
+
+export const userVerifyOtpSchema = z.object({
+  body: z.object({
+    mobile: mobileNumberSchema,
+    otp: otpCodeSchema,
+    mode: z.enum(['login', 'register', 'profile_update', 'forgot_password']).optional(),
+  }),
+});
+
+export const userForgotPasswordRequestSchema = z.object({
+  body: forgotPasswordRequestBodySchema,
+});
+
+export const userForgotPasswordVerifySchema = z.object({
+  body: forgotPasswordVerifyBodySchema,
+});
+
+export const userProfileUpdateSchema = z.object({
+  body: z
+    .object({
+      firstName: z
+        .string({ message: validationMessages.firstName.required() })
+        .regex(nameRegex, validationMessages.firstName.invalidFormat())
+        .optional(),
+      lastName: z
+        .union([
+          z
+            .string({ message: validationMessages.lastName.invalidFormat() })
+            .regex(nameRegex, validationMessages.lastName.invalidFormat()),
+          z.literal(''),
+        ])
+        .optional()
+        .transform((val) => (val ? val : undefined)),
+      dob: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format')
+        .optional(),
+      gender: z.enum(['male', 'female', 'other']).optional(),
+    })
+    .refine(
+      (data) =>
+        Boolean(
+          data.firstName ?? data.lastName ?? data.dob ?? data.gender
+        ),
+      {
+        message: validationMessages.profile.noChanges(),
+        path: ['body'],
+      }
+    ),
+});
+
+export const userAddressUpdateSchema = z.object({
+  body: z.object({
+    address: addressInputSchema,
+  }),
+});
+
+export const userPasswordChangeSchema = z.object({
+  body: z
+    .object({
+      currentPassword: z
+        .string({ message: validationMessages.password.required() })
+        .min(6, validationMessages.password.minLength()),
+      newPassword: passwordComplexitySchema,
+    })
+    .refine((data) => data.currentPassword !== data.newPassword, {
+      message: validationMessages.password.sameAsCurrent(),
+      path: ['newPassword'],
+    }),
+});
+
+export type UserRegisterInput = z.infer<typeof userRegisterSchema>['body'];
+export type UserLoginInput = z.infer<typeof userLoginSchema>['body'];
+export type UserSocialLoginInput = z.infer<typeof userSocialLoginSchema>['body'];
+export type UserProfileUpdateInput = z.infer<typeof userProfileUpdateSchema>['body'];
+export type UserAddressUpdateInput = z.infer<typeof userAddressUpdateSchema>['body'];
+export type UserPasswordChangeInput = z.infer<
+  typeof userPasswordChangeSchema
+>['body'];
+export type UserForgotPasswordRequestInput = z.infer<
+  typeof userForgotPasswordRequestSchema
+>['body'];
+export type UserForgotPasswordVerifyInput = z.infer<
+  typeof userForgotPasswordVerifySchema
+>['body'];
+

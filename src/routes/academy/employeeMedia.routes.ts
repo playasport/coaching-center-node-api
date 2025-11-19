@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import * as mediaController from '../controllers/employeeMedia.controller';
-import { uploadCertification } from '../middleware/employeeUpload.middleware';
-import { authenticate } from '../middleware/auth.middleware';
+import * as mediaController from '../../controllers/academy/employeeMedia.controller';
+import { uploadCertification } from '../../middleware/employeeUpload.middleware';
+import { authenticate } from '../../middleware/auth.middleware';
 
 const router = Router();
 

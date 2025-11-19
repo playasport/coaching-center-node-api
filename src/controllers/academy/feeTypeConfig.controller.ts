@@ -1,8 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { ApiResponse } from '../utils/ApiResponse';
-import { ApiError } from '../utils/ApiError';
-import { FeeTypeConfigModel } from '../models/feeTypeConfig.model';
-import { FeeType } from '../enums/feeType.enum';
+import { ApiResponse } from '../../utils/ApiResponse';
+import { ApiError } from '../../utils/ApiError';
+import { FeeTypeConfigModel, FeeType } from '../../models/feeTypeConfig.model';
 
 /**
  * Get all available fee types

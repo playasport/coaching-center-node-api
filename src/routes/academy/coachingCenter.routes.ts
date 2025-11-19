@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import * as coachingCenterController from '../controllers/coachingCenter.controller';
-import { validate } from '../middleware/validation.middleware';
-import { coachingCenterCreateSchema, coachingCenterUpdateSchema } from '../validations/coachingCenter.validation';
-import { authenticate, authorize } from '../middleware/auth.middleware';
-import { DefaultRoles } from '../enums/defaultRoles.enum';
+import * as coachingCenterController from '../../controllers/academy/coachingCenter.controller';
+import { validate } from '../../middleware/validation.middleware';
+import { coachingCenterCreateSchema, coachingCenterUpdateSchema } from '../../validations/coachingCenter.validation';
+import { authenticate, authorize } from '../../middleware/auth.middleware';
+import { DefaultRoles } from '../../enums/defaultRoles.enum';
 import coachingCenterMediaRoutes from './coachingCenterMedia.routes';
 
 const router = Router();

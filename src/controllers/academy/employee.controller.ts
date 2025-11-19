@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { ApiResponse } from '../utils/ApiResponse';
-import { ApiError } from '../utils/ApiError';
-import { t } from '../utils/i18n';
-import * as employeeService from '../services/employee.service';
-import type { EmployeeCreateInput, EmployeeUpdateInput } from '../validations/employee.validation';
+import { ApiResponse } from '../../utils/ApiResponse';
+import { ApiError } from '../../utils/ApiError';
+import { t } from '../../utils/i18n';
+import * as employeeService from '../../services/employee.service';
+import type { EmployeeCreateInput, EmployeeUpdateInput } from '../../validations/employee.validation';
 
 export const createEmployee = async (
   req: Request,

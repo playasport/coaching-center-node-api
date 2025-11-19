@@ -2,6 +2,8 @@ import { UserModel, User, UserDocument } from '../models/user.model';
 import { RoleModel } from '../models/role.model';
 import { Address } from '../models/address.model';
 import { hashPassword } from '../utils/password';
+import { ApiError } from '../utils/ApiError';
+import { t } from '../utils/i18n';
 
 export interface CreateUserData {
   id: string;
@@ -10,6 +12,7 @@ export interface CreateUserData {
   lastName?: string | null;
   mobile?: string | null;
   gender?: 'male' | 'female' | 'other';
+  dob?: Date | null;
   password: string;
   role: string;
   isActive?: boolean;
@@ -21,6 +24,7 @@ export interface UpdateUserData {
   mobile?: string | null;
   email?: string;
   gender?: 'male' | 'female' | 'other';
+  dob?: Date | null;
   profileImage?: string | null;
   password?: string;
   role?: string;
@@ -58,7 +62,7 @@ export const userService = {
     const roleName = data.role || 'user';
     const role = await RoleModel.findOne({ name: roleName });
     if (!role) {
-      throw new Error(`Role with name '${roleName}' not found`);
+      throw new ApiError(404, t('errors.roleNotFound', { role: roleName }));
     }
 
     const doc = await UserModel.create({
@@ -68,6 +72,7 @@ export const userService = {
       lastName: data.lastName ?? null,
       mobile: data.mobile ?? null,
       gender: data.gender ?? null,
+      dob: data.dob ?? null,
       password: hashedPassword,
       role: role._id, // Use Role ObjectId
       isActive: data.isActive ?? true,
@@ -80,7 +85,7 @@ export const userService = {
 
     const sanitized = this.sanitize(populatedDoc);
     if (!sanitized) {
-      throw new Error('Failed to sanitize user document after creation');
+      throw new ApiError(500, t('errors.internalServerError'));
     }
     return sanitized;
   },
@@ -100,7 +105,7 @@ export const userService = {
     if (data.role) {
       const role = await RoleModel.findOne({ name: data.role });
       if (!role) {
-        throw new Error(`Role with name '${data.role}' not found`);
+        throw new ApiError(404, t('errors.roleNotFound', { role: data.role }));
       }
       update.role = role._id;
     }

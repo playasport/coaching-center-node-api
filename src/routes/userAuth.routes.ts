@@ -1,32 +1,32 @@
 import { Router } from 'express';
 import {
-  registerAcademyUser,
-  loginAcademyUser,
-  socialLoginAcademyUser,
-  sendAcademyOtp,
-  verifyAcademyOtp,
-  updateAcademyProfile,
-  updateAcademyAddress,
-  changeAcademyPassword,
-  getCurrentAcademyUser,
-  requestAcademyPasswordReset,
-  verifyAcademyPasswordReset,
+  registerUser,
+  loginUser,
+  socialLoginUser,
+  sendUserOtp,
+  verifyUserOtp,
+  updateUserProfile,
+  updateUserAddress,
+  changeUserPassword,
+  getCurrentUser,
+  requestUserPasswordReset,
+  verifyUserPasswordReset,
   refreshToken,
   logout,
   logoutAll,
-} from '../controllers/academyAuth.controller';
+} from '../controllers/userAuth.controller';
 import { validate } from '../middleware/validation.middleware';
 import {
-  academyRegisterSchema,
-  academyLoginSchema,
-  academySocialLoginSchema,
-  academyOtpSchema,
-  academyVerifyOtpSchema,
-  academyProfileUpdateSchema,
-  academyAddressUpdateSchema,
-  academyPasswordChangeSchema,
-  academyForgotPasswordRequestSchema,
-  academyForgotPasswordVerifySchema,
+  userRegisterSchema,
+  userLoginSchema,
+  userSocialLoginSchema,
+  userOtpSchema,
+  userVerifyOtpSchema,
+  userProfileUpdateSchema,
+  userAddressUpdateSchema,
+  userPasswordChangeSchema,
+  userForgotPasswordRequestSchema,
+  userForgotPasswordVerifySchema,
 } from '../validations/auth.validation';
 import { authenticate, authorize } from '../middleware/auth.middleware';
 import { loginRateLimit, generalRateLimit } from '../middleware/rateLimit.middleware';
@@ -37,23 +37,65 @@ const router = Router();
 
 /**
  * @swagger
- * /academy/auth/register:
+ * /user/auth/register:
  *   post:
- *     summary: Register a new academy user
- *     tags: [Academy Auth]
+ *     summary: Register a new user (student or guardian)
+ *     tags: [User Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/AcademyRegisterRequest'
+ *             type: object
+ *             required:
+ *               - firstName
+ *               - email
+ *               - password
+ *               - mobile
+ *               - role
+ *               - dob
+ *               - gender
+ *               - otp
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *                 example: John
+ *               lastName:
+ *                 type: string
+ *                 example: Doe
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: john@example.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: Password@123
+ *               mobile:
+ *                 type: string
+ *                 example: "9876543210"
+ *               role:
+ *                 type: string
+ *                 enum: [student, guardian]
+ *                 example: student
+ *               dob:
+ *                 type: string
+ *                 format: date
+ *                 example: "2000-01-15"
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, other]
+ *                 example: male
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
  *     responses:
  *       201:
- *         description: Academy user registered successfully
+ *         description: User registered successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/AcademyRegisterResponse'
+ *               $ref: '#/components/schemas/UserTokenResponse'
  *       400:
  *         description: Validation error or user already exists
  *         content:
@@ -61,20 +103,32 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/register', validate(academyRegisterSchema), registerAcademyUser);
+router.post('/register', validate(userRegisterSchema), registerUser);
 
 /**
  * @swagger
- * /academy/auth/login:
+ * /user/auth/login:
  *   post:
- *     summary: Login academy user with email and password
- *     tags: [Academy Auth]
+ *     summary: Login user with email and password
+ *     tags: [User Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/AcademyLoginRequest'
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: john@example.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: Password@123
  *     responses:
  *       200:
  *         description: Login successful
@@ -89,25 +143,40 @@ router.post('/register', validate(academyRegisterSchema), registerAcademyUser);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/login', loginRateLimit, validate(academyLoginSchema), loginAcademyUser);
+router.post('/login', loginRateLimit, validate(userLoginSchema), loginUser);
 
 /**
  * @swagger
- * /academy/auth/social-login:
+ * /user/auth/social-login:
  *   post:
- *     summary: Login or register an academy user via social providers (Firebase)
- *     tags: [Academy Auth]
+ *     summary: Login or register a user via social providers (Firebase)
+ *     tags: [User Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/AcademySocialLoginRequest'
- *           example:
- *             provider: google
- *             idToken: eyJhbGciOiJSUzI1NiIsImtpZCI6IjUxOG...
- *             firstName: John
- *             lastName: Doe
+ *             type: object
+ *             required:
+ *               - idToken
+ *             properties:
+ *               provider:
+ *                 type: string
+ *                 enum: [google, facebook, instagram, apple]
+ *                 example: google
+ *               idToken:
+ *                 type: string
+ *                 example: eyJhbGciOiJSUzI1NiIsImtpZCI6IjUxOG...
+ *               firstName:
+ *                 type: string
+ *                 example: John
+ *               lastName:
+ *                 type: string
+ *                 example: Doe
+ *               role:
+ *                 type: string
+ *                 enum: [student, guardian]
+ *                 example: student
  *     responses:
  *       200:
  *         description: Social login successful
@@ -122,20 +191,30 @@ router.post('/login', loginRateLimit, validate(academyLoginSchema), loginAcademy
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/social-login', validate(academySocialLoginSchema), socialLoginAcademyUser);
+router.post('/social-login', validate(userSocialLoginSchema), socialLoginUser);
 
 /**
  * @swagger
- * /academy/auth/send-otp:
+ * /user/auth/send-otp:
  *   post:
  *     summary: Send OTP to a mobile number for login or registration
- *     tags: [Academy Auth]
+ *     tags: [User Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/AcademyOtpRequest'
+ *             type: object
+ *             required:
+ *               - mobile
+ *             properties:
+ *               mobile:
+ *                 type: string
+ *                 example: "9876543210"
+ *               mode:
+ *                 type: string
+ *                 enum: [login, register, profile_update, forgot_password]
+ *                 default: login
  *     responses:
  *       200:
  *         description: OTP sent successfully
@@ -150,20 +229,34 @@ router.post('/social-login', validate(academySocialLoginSchema), socialLoginAcad
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/send-otp', validate(academyOtpSchema), sendAcademyOtp);
+router.post('/send-otp', validate(userOtpSchema), sendUserOtp);
 
 /**
  * @swagger
- * /academy/auth/verify-otp:
+ * /user/auth/verify-otp:
  *   post:
  *     summary: Verify an OTP for login or registration
- *     tags: [Academy Auth]
+ *     tags: [User Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/AcademyVerifyOtpRequest'
+ *             type: object
+ *             required:
+ *               - mobile
+ *               - otp
+ *             properties:
+ *               mobile:
+ *                 type: string
+ *                 example: "9876543210"
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *               mode:
+ *                 type: string
+ *                 enum: [login, register, profile_update, forgot_password]
+ *                 default: login
  *     responses:
  *       200:
  *         description: OTP verified successfully
@@ -183,14 +276,14 @@ router.post('/send-otp', validate(academyOtpSchema), sendAcademyOtp);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/verify-otp', validate(academyVerifyOtpSchema), verifyAcademyOtp);
+router.post('/verify-otp', validate(userVerifyOtpSchema), verifyUserOtp);
 
 /**
  * @swagger
- * /academy/auth/profile:
+ * /user/auth/profile:
  *   patch:
- *     summary: Update academy profile details
- *     tags: [Academy Auth]
+ *     summary: Update user profile details
+ *     tags: [User Auth]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -206,6 +299,10 @@ router.post('/verify-otp', validate(academyVerifyOtpSchema), verifyAcademyOtp);
  *               lastName:
  *                 type: string
  *                 example: Doe
+ *               dob:
+ *                 type: string
+ *                 format: date
+ *                 example: "2000-01-15"
  *               gender:
  *                 type: string
  *                 enum: [male, female, other]
@@ -231,18 +328,18 @@ router.post('/verify-otp', validate(academyVerifyOtpSchema), verifyAcademyOtp);
 router.patch(
   '/profile',
   authenticate,
-  authorize(DefaultRoles.ACADEMY),
+  authorize(DefaultRoles.STUDENT, DefaultRoles.GUARDIAN),
   uploadProfileImage,
-  validate(academyProfileUpdateSchema),
-  updateAcademyProfile
+  validate(userProfileUpdateSchema),
+  updateUserProfile
 );
 
 /**
  * @swagger
- * /academy/auth/address:
+ * /user/auth/address:
  *   patch:
- *     summary: Update academy address
- *     tags: [Academy Auth]
+ *     summary: Update user address
+ *     tags: [User Auth]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -250,7 +347,7 @@ router.patch(
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/AcademyAddressUpdateRequest'
+ *             $ref: '#/components/schemas/UserAddressUpdateRequest'
  *     responses:
  *       200:
  *         description: Address updated successfully
@@ -268,17 +365,17 @@ router.patch(
 router.patch(
   '/address',
   authenticate,
-  authorize(DefaultRoles.ACADEMY),
-  validate(academyAddressUpdateSchema),
-  updateAcademyAddress
+  authorize(DefaultRoles.STUDENT, DefaultRoles.GUARDIAN),
+  validate(userAddressUpdateSchema),
+  updateUserAddress
 );
 
 /**
  * @swagger
- * /academy/auth/password:
+ * /user/auth/password:
  *   patch:
- *     summary: Change academy user password
- *     tags: [Academy Auth]
+ *     summary: Change user password
+ *     tags: [User Auth]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -286,7 +383,17 @@ router.patch(
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/AcademyPasswordChangeRequest'
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *               newPassword:
+ *                 type: string
+ *                 format: password
  *     responses:
  *       200:
  *         description: Password updated successfully
@@ -304,17 +411,17 @@ router.patch(
 router.patch(
   '/password',
   authenticate,
-  authorize(DefaultRoles.ACADEMY),
-  validate(academyPasswordChangeSchema),
-  changeAcademyPassword
+  authorize(DefaultRoles.STUDENT, DefaultRoles.GUARDIAN),
+  validate(userPasswordChangeSchema),
+  changeUserPassword
 );
 
 /**
  * @swagger
- * /academy/auth/me:
+ * /user/auth/me:
  *   get:
- *     summary: Get current academy user profile
- *     tags: [Academy Auth]
+ *     summary: Get current user profile
+ *     tags: [User Auth]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -334,22 +441,44 @@ router.patch(
 router.get(
   '/me',
   authenticate,
-  authorize(DefaultRoles.ACADEMY),
-  getCurrentAcademyUser
+  authorize(DefaultRoles.STUDENT, DefaultRoles.GUARDIAN),
+  getCurrentUser
 );
 
 /**
  * @swagger
- * /academy/auth/forgot-password/request:
+ * /user/auth/forgot-password/request:
  *   post:
  *     summary: Request password reset OTP via mobile or email
- *     tags: [Academy Auth]
+ *     tags: [User Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/AcademyForgotPasswordRequest'
+ *             oneOf:
+ *               - type: object
+ *                 required:
+ *                   - mode
+ *                   - mobile
+ *                 properties:
+ *                   mode:
+ *                     type: string
+ *                     enum: [mobile]
+ *                   mobile:
+ *                     type: string
+ *                     example: "9876543210"
+ *               - type: object
+ *                 required:
+ *                   - mode
+ *                   - email
+ *                 properties:
+ *                   mode:
+ *                     type: string
+ *                     enum: [email]
+ *                   email:
+ *                     type: string
+ *                     format: email
  *     responses:
  *       200:
  *         description: Password reset OTP sent successfully
@@ -366,22 +495,57 @@ router.get(
  */
 router.post(
   '/forgot-password/request',
-  validate(academyForgotPasswordRequestSchema),
-  requestAcademyPasswordReset
+  validate(userForgotPasswordRequestSchema),
+  requestUserPasswordReset
 );
 
 /**
  * @swagger
- * /academy/auth/forgot-password/verify:
+ * /user/auth/forgot-password/verify:
  *   post:
  *     summary: Verify password reset OTP and set new password
- *     tags: [Academy Auth]
+ *     tags: [User Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/AcademyForgotPasswordVerify'
+ *             oneOf:
+ *               - type: object
+ *                 required:
+ *                   - mode
+ *                   - mobile
+ *                   - otp
+ *                   - newPassword
+ *                 properties:
+ *                   mode:
+ *                     type: string
+ *                     enum: [mobile]
+ *                   mobile:
+ *                     type: string
+ *                   otp:
+ *                     type: string
+ *                   newPassword:
+ *                     type: string
+ *                     format: password
+ *               - type: object
+ *                 required:
+ *                   - mode
+ *                   - email
+ *                   - otp
+ *                   - newPassword
+ *                 properties:
+ *                   mode:
+ *                     type: string
+ *                     enum: [email]
+ *                   email:
+ *                     type: string
+ *                     format: email
+ *                   otp:
+ *                     type: string
+ *                   newPassword:
+ *                     type: string
+ *                     format: password
  *     responses:
  *       200:
  *         description: Password reset successfully
@@ -398,16 +562,16 @@ router.post(
  */
 router.post(
   '/forgot-password/verify',
-  validate(academyForgotPasswordVerifySchema),
-  verifyAcademyPasswordReset
+  validate(userForgotPasswordVerifySchema),
+  verifyUserPasswordReset
 );
 
 /**
  * @swagger
- * /academy/auth/refresh:
+ * /user/auth/refresh:
  *   post:
  *     summary: Refresh access token using refresh token
- *     tags: [Academy Auth]
+ *     tags: [User Auth]
  *     requestBody:
  *       required: true
  *       content:
@@ -434,10 +598,10 @@ router.post('/refresh', generalRateLimit, refreshToken);
 
 /**
  * @swagger
- * /academy/auth/logout:
+ * /user/auth/logout:
  *   post:
  *     summary: Logout user (blacklist current tokens)
- *     tags: [Academy Auth]
+ *     tags: [User Auth]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -459,14 +623,14 @@ router.post('/refresh', generalRateLimit, refreshToken);
  *       401:
  *         description: Unauthorized
  */
-router.post('/logout', authenticate, authorize(DefaultRoles.ACADEMY), logout);
+router.post('/logout', authenticate, authorize(DefaultRoles.STUDENT, DefaultRoles.GUARDIAN), logout);
 
 /**
  * @swagger
- * /academy/auth/logout-all:
+ * /user/auth/logout-all:
  *   post:
  *     summary: Logout from all devices (blacklist all user tokens)
- *     tags: [Academy Auth]
+ *     tags: [User Auth]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -479,8 +643,7 @@ router.post('/logout', authenticate, authorize(DefaultRoles.ACADEMY), logout);
  *       401:
  *         description: Unauthorized
  */
-router.post('/logout-all', authenticate, authorize(DefaultRoles.ACADEMY), logoutAll);
+router.post('/logout-all', authenticate, authorize(DefaultRoles.STUDENT, DefaultRoles.GUARDIAN), logoutAll);
 
 export default router;
-
 
