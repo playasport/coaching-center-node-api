@@ -16,7 +16,7 @@ export type OtpTarget =
 
 const normalizeTarget = (target: OtpTarget): { channel: OtpChannel; identifier: string } => {
   if (typeof target === 'string') {
-    return { channel: 'mobile', identifier: target };
+    return { channel: OtpChannel.MOBILE, identifier: target };
   }
   return target;
 };

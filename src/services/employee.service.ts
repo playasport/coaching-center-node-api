@@ -3,7 +3,6 @@ import { EmployeeModel, Employee } from '../models/employee.model';
 import { RoleModel } from '../models/role.model';
 import { SportModel } from '../models/sport.model';
 import { CoachingCenterModel } from '../models/coachingCenter.model';
-import { UserModel } from '../models/user.model';
 import { logger } from '../utils/logger';
 import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
@@ -25,13 +24,16 @@ export interface PaginatedResult<T> {
 
 export const createEmployee = async (
   data: EmployeeCreateInput,
-  loggedInUserId: string
+  _loggedInUserId: string
 ): Promise<Employee> => {
   try {
     // Validate user exists
+    if (!data.userId) {
+      throw new ApiError(400, t('employee.idRequired'));
+    }
     const userObjectId = await getUserObjectId(data.userId);
     if (!userObjectId) {
-      throw new ApiError(404, 'User not found');
+      throw new ApiError(404, t('employee.notFound'));
     }
 
     // Validate role exists
