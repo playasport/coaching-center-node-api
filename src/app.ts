@@ -1,10 +1,10 @@
-import express, { Application } from 'express';
+import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
-import swaggerUi from 'swagger-ui-express';
 import routes from './routes';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import { localeMiddleware } from './middleware/locale.middleware';
 import { swaggerSpec } from './config/swagger';
+import { generateSwaggerHtml } from './utils/swaggerHtmlTemplate';
 
 const app: Application = express();
 
@@ -16,11 +16,12 @@ app.use(express.urlencoded({ extended: true }));
 // Locale middleware (should be early in the middleware chain)
 app.use(localeMiddleware);
 
-// Swagger Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'Coaching Center Panel API Documentation',
-}));
+// Swagger Documentation - Using custom HTML template with CDN assets for production compatibility
+app.get('/api-docs', (_req: Request, res: Response) => {
+  const html = generateSwaggerHtml(swaggerSpec);
+  res.setHeader('Content-Type', 'text/html');
+  res.send(html);
+});
 
 // Routes
 app.use('/api/v1', routes);
