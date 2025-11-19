@@ -194,11 +194,106 @@
       "status": {
         "invalid": "Status must be either 'draft' or 'published'"
       }
+    },
+    "batch": {
+      "name": {
+        "required": "Batch name is required",
+        "maxLength": "Batch name must not exceed 255 characters"
+      },
+      "sportId": {
+        "required": "Sport ID is required",
+        "invalid": "Invalid sport ID"
+      },
+      "centerId": {
+        "required": "Center ID is required",
+        "invalid": "Invalid center ID"
+      },
+      "coach": {
+        "invalid": "Invalid coach ID"
+      },
+      "scheduled": {
+        "startDateRequired": "Start date is required",
+        "startDateInvalid": "Start date must be a valid date",
+        "startDateNotPast": "Start date must be today or in the future",
+        "startTimeRequired": "Start time is required",
+        "startTimeFormat": "Start time must be in HH:MM format (24-hour)",
+        "endTimeRequired": "End time is required",
+        "endTimeFormat": "End time must be in HH:MM format (24-hour)",
+        "endTimeAfterStart": "End time must be after start time",
+        "trainingDaysRequired": "Training days are required",
+        "trainingDaysMinOne": "At least one training day is required",
+        "trainingDaysInvalid": "Training days must be valid days (monday, tuesday, wednesday, thursday, friday, saturday, sunday)"
+      },
+      "duration": {
+        "countRequired": "Duration count is required",
+        "countInteger": "Duration count must be an integer",
+        "countMin": "Duration count must be at least 1",
+        "typeRequired": "Duration type is required",
+        "typeInvalid": "Duration type must be one of: day, month, week, year"
+      },
+      "capacity": {
+        "minRequired": "Minimum capacity is required",
+        "minInteger": "Minimum capacity must be an integer",
+        "minMin": "Minimum capacity must be at least 1",
+        "maxInteger": "Maximum capacity must be an integer",
+        "maxMin": "Maximum capacity must be at least 1",
+        "maxGreaterThanMin": "Maximum capacity must be greater than or equal to minimum capacity"
+      },
+      "admissionFee": {
+        "invalid": "Admission fee cannot be negative"
+      },
+      "age": {
+        "minRequired": "Minimum age is required",
+        "minInteger": "Minimum age must be an integer",
+        "minRange": "Minimum age must be between 3 and 18",
+        "maxRequired": "Maximum age is required",
+        "maxInteger": "Maximum age must be an integer",
+        "maxRange": "Maximum age must be between 3 and 18",
+        "maxGreaterThanMin": "Maximum age must be greater than or equal to minimum age"
+      },
+      "status": {
+        "invalid": "Status must be one of: published, draft, inactive"
+      }
+    },
+    "feeStructure": {
+      "batchId": {
+        "required": "Batch ID is required",
+        "invalid": "Invalid batch ID"
+      },
+      "name": {
+        "required": "Fee structure name is required",
+        "maxLength": "Fee structure name must not exceed 255 characters"
+      },
+      "description": {
+        "maxLength": "Description must not exceed 1000 characters"
+      },
+      "feeType": {
+        "required": "Fee type is required",
+        "invalid": "Invalid fee type"
+      },
+      "admissionFee": {
+        "invalid": "Admission fee cannot be negative"
+      },
+      "configuration": {
+        "basePriceRequired": "Base price is required for this fee type",
+        "basePriceOrOptionsRequired": "Base price or classes/sessions options are required for this fee type",
+        "packagesRequired": "At least one package is required for package-based fee type",
+        "ageGroupsRequired": "At least one age group is required for age-based fee type",
+        "coachLevelsRequired": "At least one coach level is required for coach license-based fee type",
+        "playerLevelsRequired": "At least one player level is required for player level-based fee type",
+        "seasonsRequired": "At least one season is required for seasonal fee type",
+        "groupDiscountsRequired": "At least one group discount is required for group discount fee type",
+        "membershipLevelsRequired": "At least one membership level is required for membership-based fee type",
+        "weekendPricingRequired": "Weekend multiplier or weekend price is required for weekend pricing fee type",
+        "peakHoursRequired": "Peak hours are required for peak hours fee type",
+        "peakHourPricingRequired": "Peak hour multiplier or peak hour price is required for peak hours fee type"
+      }
     }
   },
   "errors": {
     "internalServerError": "Internal Server Error",
-    "routeNotFound": "Route {route} not found"
+    "routeNotFound": "Route {route} not found",
+    "roleNotFound": "Role with name '{role}' not found"
   },
   "health": {
     "serverRunning": "Server is running"
@@ -287,6 +382,91 @@
     "getAll": {
       "success": "Facilities retrieved successfully"
     }
+  },
+  "employee": {
+    "create": {
+      "success": "Employee created successfully",
+      "failed": "Failed to create employee"
+    },
+    "get": {
+      "success": "Employee retrieved successfully",
+      "failed": "Failed to fetch employee"
+    },
+    "list": {
+      "success": "Employees retrieved successfully",
+      "failed": "Failed to fetch employees"
+    },
+    "update": {
+      "success": "Employee updated successfully",
+      "failed": "Failed to update employee"
+    },
+    "toggleStatus": {
+      "active": "Employee activated successfully",
+      "inactive": "Employee deactivated successfully",
+      "failed": "Failed to toggle employee active status"
+    },
+    "delete": {
+      "success": "Employee deleted successfully",
+      "failed": "Failed to delete employee"
+    },
+    "idRequired": "Employee ID is required",
+    "notFound": "Employee not found",
+    "emailExists": "Employee with this email already exists",
+    "mobileExists": "Employee with this mobile number already exists",
+    "invalidId": "Invalid employee ID",
+    "unauthorizedUpdate": "You can only update your own employees",
+    "unauthorizedToggle": "You can only toggle status of your own employees",
+    "unauthorizedDelete": "You can only delete your own employees",
+    "media": {
+      "uploadSuccess": "Certification files uploaded successfully",
+      "uploadFailed": "Failed to upload certification files",
+      "fileRequired": "At least one certification file is required"
+    }
+  },
+  "role": {
+    "list": {
+      "success": "Roles retrieved successfully",
+      "failed": "Failed to fetch roles"
+    }
+  },
+  "batch": {
+    "create": {
+      "success": "Batch created successfully",
+      "failed": "Failed to create batch"
+    },
+    "get": {
+      "success": "Batch retrieved successfully",
+      "failed": "Failed to fetch batch"
+    },
+    "list": {
+      "success": "Batches retrieved successfully",
+      "failed": "Failed to fetch batches"
+    },
+    "update": {
+      "success": "Batch updated successfully",
+      "failed": "Failed to update batch"
+    },
+    "toggleStatus": {
+      "active": "Batch activated successfully",
+      "inactive": "Batch deactivated successfully",
+      "failed": "Failed to toggle batch active status"
+    },
+    "delete": {
+      "success": "Batch deleted successfully",
+      "failed": "Failed to delete batch"
+    },
+    "idRequired": "Batch ID is required",
+    "notFound": "Batch not found",
+    "invalidId": "Invalid batch ID",
+    "unauthorizedUpdate": "You can only update your own batches",
+    "unauthorizedToggle": "You can only toggle status of your own batches",
+    "unauthorizedDelete": "You can only delete your own batches",
+    "centerIdRequired": "Center ID is required",
+    "centerNotFound": "Coaching center not found",
+    "centerNotOwned": "You can only create batches for your own coaching centers",
+    "sportNotFound": "Sport not found or inactive",
+    "coachNotFound": "Coach (employee) not found",
+    "coachNotInCenter": "Coach does not belong to the specified center"
   }
 }
 

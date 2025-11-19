@@ -1,5 +1,7 @@
 import { Schema, model, HydratedDocument, Types } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
+import { CoachingCenterStatus } from '../enums/coachingCenterStatus.enum';
+import { OperatingDays } from '../enums/operatingDays.enum';
 
 // Media item interface (for images and documents)
 export interface MediaItem {
@@ -83,7 +85,7 @@ export interface CoachingCenter {
   operational_timing: OperationalTiming;
   documents: MediaItem[]; // General documents (not sport-specific)
   bank_information: BankInformation;
-  status: 'draft' | 'published';
+  status: CoachingCenterStatus;
   is_active: boolean;
   is_deleted: boolean;
   deletedAt?: Date | null;
@@ -188,7 +190,7 @@ const operationalTimingSchema = new Schema<OperationalTiming>(
     operating_days: {
       type: [String],
       required: true,
-      enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+      enum: Object.values(OperatingDays),
     },
     opening_time: {
       type: String,
@@ -359,8 +361,8 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
     },
     status: {
       type: String,
-      enum: ['draft', 'published'],
-      default: 'draft',
+      enum: Object.values(CoachingCenterStatus),
+      default: CoachingCenterStatus.DRAFT,
     },
     is_active: {
       type: Boolean,

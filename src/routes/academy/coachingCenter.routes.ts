@@ -1,16 +1,16 @@
 import { Router } from 'express';
-import * as coachingCenterController from '../controllers/coachingCenter.controller';
-import { validate } from '../middleware/validation.middleware';
-import { coachingCenterCreateSchema, coachingCenterUpdateSchema } from '../validations/coachingCenter.validation';
-import { authenticate, authorize } from '../middleware/auth.middleware';
-import { DefaultRoles } from '../models/role.model';
+import * as coachingCenterController from '../../controllers/academy/coachingCenter.controller';
+import { validate } from '../../middleware/validation.middleware';
+import { coachingCenterCreateSchema, coachingCenterUpdateSchema } from '../../validations/coachingCenter.validation';
+import { authenticate, authorize } from '../../middleware/auth.middleware';
+import { DefaultRoles } from '../../enums/defaultRoles.enum';
 import coachingCenterMediaRoutes from './coachingCenterMedia.routes';
 
 const router = Router();
 
 /**
  * @swagger
- * /coaching-center:
+ * /academy/coaching-center:
  *   post:
  *     summary: Create a new coaching center
  *     tags: [Coaching Center]
@@ -61,7 +61,7 @@ router.post(
 
 /**
  * @swagger
- * /coaching-center/my/list:
+ * /academy/coaching-center/my/list:
  *   get:
  *     summary: Get list of coaching centers for logged-in user
  *     tags: [Coaching Center]
@@ -142,11 +142,13 @@ router.get(
 
 /**
  * @swagger
- * /coaching-center/{id}:
+ * /academy/coaching-center/{id}:
  *   get:
  *     summary: Get coaching center by ID
  *     tags: [Coaching Center]
- *     description: Retrieve a coaching center by its ID
+ *     description: Retrieve a coaching center by its ID. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -173,14 +175,16 @@ router.get(
  *                   properties:
  *                     coachingCenter:
  *                       $ref: '#/components/schemas/CoachingCenter'
+ *       401:
+ *         description: Unauthorized - Authentication required
  *       404:
  *         description: Coaching center not found
  */
-router.get('/:id', coachingCenterController.getCoachingCenter);
+router.get('/:id', authenticate, authorize(DefaultRoles.ACADEMY), coachingCenterController.getCoachingCenter);
 
 /**
  * @swagger
- * /coaching-center/{id}:
+ * /academy/coaching-center/{id}:
  *   patch:
  *     summary: Update coaching center details
  *     tags: [Coaching Center]
@@ -240,7 +244,7 @@ router.patch(
 
 /**
  * @swagger
- * /coaching-center/{id}/toggle-status:
+ * /academy/coaching-center/{id}/toggle-status:
  *   patch:
  *     summary: Toggle coaching center active status
  *     tags: [Coaching Center]
@@ -293,7 +297,7 @@ router.patch(
 
 /**
  * @swagger
- * /coaching-center/{id}:
+ * /academy/coaching-center/{id}:
  *   delete:
  *     summary: Delete coaching center
  *     tags: [Coaching Center]
@@ -344,7 +348,7 @@ router.delete(
 
 /**
  * @swagger
- * /coaching-center/{id}/media:
+ * /academy/coaching-center/{id}/media:
  *   delete:
  *     summary: Remove media from coaching center (soft delete)
  *     tags: [Coaching Center]
@@ -423,7 +427,7 @@ router.delete(
 );
 
 // Media upload routes
-router.use('/media', coachingCenterMediaRoutes);
+router.use('/media', authenticate, authorize(DefaultRoles.ACADEMY), coachingCenterMediaRoutes);
 
 export default router;
 

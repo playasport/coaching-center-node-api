@@ -1,4 +1,5 @@
 import swaggerJsdoc from 'swagger-jsdoc';
+import path from 'path';
 import { config } from './env';
 
 const options: swaggerJsdoc.Options = {
@@ -78,32 +79,40 @@ const options: swaggerJsdoc.Options = {
             },
             email: {
               type: 'string',
-              example: 'academy@example.com',
+              example: 'user@example.com',
             },
             mobile: {
               type: 'string',
               example: '9876543210',
             },
+            dob: {
+              type: 'string',
+              format: 'date',
+              example: '2000-01-15',
+              nullable: true,
+            },
             gender: {
               type: 'string',
               enum: ['male', 'female', 'other'],
               example: 'male',
+              nullable: true,
             },
             profileImage: {
               type: 'string',
               format: 'uri',
               example: 'https://bucket.s3.region.amazonaws.com/profile-images/user-id.jpg',
+              nullable: true,
             },
             role: {
               type: 'object',
               properties: {
                 id: {
                   type: 'string',
-                  example: 'academy',
+                  example: 'student',
                 },
                 name: {
                   type: 'string',
-                  example: 'academy',
+                  example: 'student',
                 },
               },
             },
@@ -494,6 +503,254 @@ const options: swaggerJsdoc.Options = {
             newPassword: {
               type: 'string',
               example: 'NewPass@123',
+            },
+          },
+        },
+        UserRegisterRequest: {
+          type: 'object',
+          required: ['firstName', 'email', 'password', 'mobile', 'role', 'dob', 'gender', 'otp'],
+          properties: {
+            firstName: {
+              type: 'string',
+              example: 'John',
+            },
+            lastName: {
+              type: 'string',
+              example: 'Doe',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'user@example.com',
+            },
+            password: {
+              type: 'string',
+              minLength: 8,
+              example: 'StrongPass@123',
+            },
+            mobile: {
+              type: 'string',
+              example: '9876543210',
+              description: 'User mobile number used for OTP verification',
+            },
+            role: {
+              type: 'string',
+              enum: ['student', 'guardian'],
+              example: 'student',
+              description: 'User role - either student or guardian',
+            },
+            dob: {
+              type: 'string',
+              format: 'date',
+              example: '2000-01-15',
+              description: 'Date of birth in YYYY-MM-DD format (age must be at least 3 years)',
+            },
+            gender: {
+              type: 'string',
+              enum: ['male', 'female', 'other'],
+              example: 'male',
+            },
+            otp: {
+              type: 'string',
+              example: '123456',
+              description: 'OTP received on mobile via /user/auth/send-otp (mode: register)',
+            },
+          },
+        },
+        UserLoginRequest: {
+          type: 'object',
+          required: ['email', 'password'],
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'user@example.com',
+            },
+            password: {
+              type: 'string',
+              example: 'StrongPass@123',
+            },
+          },
+        },
+        UserSocialLoginRequest: {
+          type: 'object',
+          required: ['idToken'],
+          properties: {
+            provider: {
+              type: 'string',
+              enum: ['google', 'facebook', 'instagram', 'apple'],
+              example: 'google',
+              description: 'Optional hint for analytics/logging. Token verification relies on Firebase.',
+            },
+            idToken: {
+              type: 'string',
+              example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjUxOG... (Firebase ID token)',
+            },
+            firstName: {
+              type: 'string',
+              example: 'John',
+            },
+            lastName: {
+              type: 'string',
+              example: 'Doe',
+            },
+            role: {
+              type: 'string',
+              enum: ['student', 'guardian'],
+              example: 'student',
+              description: 'User role - defaults to student if not provided',
+            },
+          },
+          example: {
+            provider: 'google',
+            idToken: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjUxOG...',
+            firstName: 'John',
+            lastName: 'Doe',
+            role: 'student',
+          },
+        },
+        UserOtpRequest: {
+          type: 'object',
+          required: ['mobile'],
+          properties: {
+            mobile: {
+              type: 'string',
+              example: '9876543210',
+            },
+            mode: {
+              type: 'string',
+              enum: ['login', 'register', 'profile_update', 'forgot_password'],
+              example: 'register',
+              description:
+                'Purpose of OTP. Defaults to login when omitted. Use profile_update for mobile change verification, forgot_password for password reset.',
+            },
+          },
+        },
+        UserVerifyOtpRequest: {
+          type: 'object',
+          required: ['mobile', 'otp'],
+          properties: {
+            mobile: {
+              type: 'string',
+              example: '9876543210',
+            },
+            otp: {
+              type: 'string',
+              example: '123456',
+            },
+            mode: {
+              type: 'string',
+              enum: ['login', 'register', 'profile_update', 'forgot_password'],
+              example: 'login',
+            },
+          },
+        },
+        UserProfileUpdateRequest: {
+          type: 'object',
+          properties: {
+            firstName: {
+              type: 'string',
+              example: 'John',
+            },
+            lastName: {
+              type: 'string',
+              example: 'Doe',
+            },
+            dob: {
+              type: 'string',
+              format: 'date',
+              example: '2000-01-15',
+              description: 'Date of birth in YYYY-MM-DD format',
+            },
+            gender: {
+              type: 'string',
+              enum: ['male', 'female', 'other'],
+              example: 'male',
+            },
+          },
+        },
+        UserAddressUpdateRequest: {
+          type: 'object',
+          required: ['address'],
+          properties: {
+            address: {
+              type: 'object',
+              required: ['line2', 'city', 'state', 'country', 'pincode'],
+              properties: {
+                line1: { type: 'string', example: '123 Main Street' },
+                line2: { type: 'string', example: 'Suite 4B' },
+                area: { type: 'string', example: 'Downtown' },
+                city: { type: 'string', example: 'New Delhi' },
+                state: { type: 'string', example: 'Delhi' },
+                country: { type: 'string', example: 'India' },
+                pincode: { type: 'string', example: '110001' },
+              },
+            },
+          },
+        },
+        UserPasswordChangeRequest: {
+          type: 'object',
+          required: ['currentPassword', 'newPassword'],
+          properties: {
+            currentPassword: {
+              type: 'string',
+              example: 'CurrentPass@123',
+            },
+            newPassword: {
+              type: 'string',
+              example: 'NewPass@123',
+            },
+          },
+        },
+        UserForgotPasswordRequest: {
+          type: 'object',
+          required: ['mode'],
+          properties: {
+            mode: {
+              type: 'string',
+              enum: ['mobile', 'email'],
+              example: 'mobile',
+            },
+            mobile: {
+              type: 'string',
+              example: '9876543210',
+              description: 'Required when mode is mobile.',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'user@example.com',
+              description: 'Required when mode is email.',
+            },
+          },
+        },
+        UserForgotPasswordVerify: {
+          type: 'object',
+          required: ['mode', 'otp', 'newPassword'],
+          properties: {
+            mode: {
+              type: 'string',
+              enum: ['mobile', 'email'],
+              example: 'mobile',
+            },
+            mobile: {
+              type: 'string',
+              example: '9876543210',
+              description: 'Required when mode is mobile.',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'user@example.com',
+              description: 'Required when mode is email.',
+            },
+            otp: {
+              type: 'string',
+              example: '123456',
+            },
+            newPassword: {
+              type: 'string',
+              example: 'StrongPass@123',
             },
           },
         },
@@ -1411,12 +1668,680 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        Employee: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+            },
+            userId: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                id: { type: 'string' },
+                firstName: { type: 'string' },
+                lastName: { type: 'string' },
+                email: { type: 'string' },
+              },
+            },
+            fullName: {
+              type: 'string',
+              example: 'John Doe',
+            },
+            role: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                id: { type: 'string' },
+                name: { type: 'string' },
+              },
+            },
+            mobileNo: {
+              type: 'string',
+              example: '9876543210',
+            },
+            email: {
+              type: 'string',
+              example: 'john@example.com',
+              nullable: true,
+            },
+            sport: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                custom_id: { type: 'string' },
+                name: { type: 'string' },
+                logo: { type: 'string' },
+              },
+              nullable: true,
+            },
+            center: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                center_name: { type: 'string' },
+                email: { type: 'string' },
+                mobile_number: { type: 'string' },
+              },
+              nullable: true,
+            },
+            experience: {
+              type: 'number',
+              example: 5,
+              nullable: true,
+            },
+            workingHours: {
+              type: 'string',
+              example: '9:00 AM - 6:00 PM',
+            },
+            extraHours: {
+              type: 'string',
+              example: '2 hours',
+              nullable: true,
+            },
+            certification: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', example: 'CPR Certification' },
+                  fileUrl: { type: 'string', format: 'uri', example: 'https://bucket.s3.region.amazonaws.com/temp/images/coaching/employee/uuid.pdf' },
+                },
+              },
+              nullable: true,
+            },
+            salary: {
+              type: 'number',
+              example: 50000,
+              nullable: true,
+            },
+            is_active: {
+              type: 'boolean',
+              example: true,
+            },
+            is_deleted: {
+              type: 'boolean',
+              example: false,
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+          },
+        },
+        EmployeeCreateRequest: {
+          type: 'object',
+          required: ['fullName', 'role', 'mobileNo', 'workingHours'],
+          properties: {
+            fullName: {
+              type: 'string',
+              example: 'John Doe',
+              description: 'Full name (letters and spaces only)',
+            },
+            role: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Role ObjectId',
+            },
+            mobileNo: {
+              type: 'string',
+              pattern: '^[6-9]\\d{9}$',
+              example: '9876543210',
+              description: 'Mobile number (10 digits, starting with 6-9)',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'john@example.com',
+              description: 'Email address (optional)',
+            },
+            sport: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Sport ObjectId (optional)',
+            },
+            center: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Coaching Center ObjectId (optional)',
+            },
+            experience: {
+              type: 'number',
+              example: 5,
+              description: 'Years of experience (optional)',
+            },
+            workingHours: {
+              type: 'string',
+              example: '9:00 AM - 6:00 PM',
+              description: 'Working hours',
+            },
+            extraHours: {
+              type: 'string',
+              example: '2 hours',
+              description: 'Extra hours (optional)',
+            },
+            certification: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', example: 'CPR Certification' },
+                  fileUrl: { type: 'string', format: 'uri', example: 'https://bucket.s3.region.amazonaws.com/temp/images/coaching/employee/uuid.pdf' },
+                },
+              },
+              description: 'Certification documents (optional)',
+            },
+            salary: {
+              type: 'number',
+              example: 50000,
+              description: 'Salary (optional)',
+            },
+          },
+        },
+        EmployeeUpdateRequest: {
+          type: 'object',
+          description: 'Update employee request. All fields are optional.',
+          properties: {
+            fullName: {
+              type: 'string',
+              example: 'John Doe',
+              description: 'Full name (letters and spaces only)',
+            },
+            role: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Role ObjectId',
+            },
+            mobileNo: {
+              type: 'string',
+              pattern: '^[6-9]\\d{9}$',
+              example: '9876543210',
+              description: 'Mobile number (10 digits, starting with 6-9)',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'john@example.com',
+              description: 'Email address',
+            },
+            sport: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Sport ObjectId',
+            },
+            center: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Coaching Center ObjectId',
+            },
+            experience: {
+              type: 'number',
+              example: 5,
+              description: 'Years of experience',
+            },
+            workingHours: {
+              type: 'string',
+              example: '9:00 AM - 6:00 PM',
+              description: 'Working hours',
+            },
+            extraHours: {
+              type: 'string',
+              example: '2 hours',
+              description: 'Extra hours',
+            },
+            certification: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', example: 'CPR Certification' },
+                  fileUrl: { type: 'string', format: 'uri', example: 'https://bucket.s3.region.amazonaws.com/temp/images/coaching/employee/uuid.pdf' },
+                },
+              },
+              description: 'Certification documents',
+            },
+            salary: {
+              type: 'number',
+              example: 50000,
+              description: 'Salary',
+            },
+          },
+        },
+        Role: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Role ObjectId (MongoDB _id)',
+            },
+            name: {
+              type: 'string',
+              example: 'academy',
+              description: 'Role name',
+            },
+            description: {
+              type: 'string',
+              example: 'Academy user with coaching center management permissions',
+              nullable: true,
+              description: 'Role description',
+            },
+          },
+        },
+        FeeType: {
+          type: 'object',
+          properties: {
+            value: {
+              type: 'string',
+              enum: ['monthly', 'daily', 'weekly', 'hourly', 'per_batch', 'per_session', 'age_based', 'coach_license_based', 'player_level_based', 'seasonal', 'package_based', 'group_discount', 'advance_booking', 'weekend_pricing', 'peak_hours', 'membership_based', 'custom'],
+              example: 'monthly',
+              description: 'Fee type value',
+            },
+            label: {
+              type: 'string',
+              example: 'Monthly',
+              description: 'Display label for the fee type',
+            },
+            description: {
+              type: 'string',
+              example: 'Fixed monthly fee structure',
+              description: 'Description of the fee type',
+            },
+          },
+        },
+        FormField: {
+          type: 'object',
+          properties: {
+            name: {
+              type: 'string',
+              example: 'base_price',
+              description: 'Field name',
+            },
+            label: {
+              type: 'string',
+              example: 'Base Price',
+              description: 'Display label',
+            },
+            type: {
+              type: 'string',
+              enum: ['text', 'number', 'select', 'checkbox', 'date', 'time', 'array', 'object'],
+              example: 'number',
+              description: 'Field type',
+            },
+            required: {
+              type: 'boolean',
+              example: true,
+              description: 'Whether the field is required',
+            },
+            placeholder: {
+              type: 'string',
+              example: 'Enter base price',
+              nullable: true,
+              description: 'Placeholder text',
+            },
+            min: {
+              type: 'number',
+              example: 0,
+              nullable: true,
+              description: 'Minimum value (for number fields)',
+            },
+            max: {
+              type: 'number',
+              example: 1000000,
+              nullable: true,
+              description: 'Maximum value (for number fields)',
+            },
+            step: {
+              type: 'number',
+              example: 0.01,
+              nullable: true,
+              description: 'Step value (for number fields)',
+            },
+            options: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  value: {
+                    oneOf: [{ type: 'string' }, { type: 'number' }],
+                  },
+                  label: { type: 'string' },
+                },
+              },
+              nullable: true,
+              description: 'Options for select fields',
+            },
+            fields: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/FormField',
+              },
+              nullable: true,
+              description: 'Nested fields for array/object types',
+            },
+            description: {
+              type: 'string',
+              nullable: true,
+              description: 'Field description',
+            },
+          },
+        },
+        FeeTypeConfig: {
+          type: 'object',
+          properties: {
+            fee_type: {
+              type: 'string',
+              enum: ['monthly', 'daily', 'weekly', 'hourly', 'per_batch', 'per_session', 'age_based', 'coach_license_based', 'player_level_based', 'seasonal', 'package_based', 'group_discount', 'advance_booking', 'weekend_pricing', 'peak_hours', 'membership_based', 'custom'],
+              example: 'monthly',
+            },
+            label: {
+              type: 'string',
+              example: 'Monthly',
+            },
+            description: {
+              type: 'string',
+              example: 'Fixed monthly fee structure',
+            },
+            formFields: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/FormField',
+              },
+            },
+          },
+        },
+        FeeTypesResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Fee types retrieved successfully',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                feeTypes: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/FeeType',
+                  },
+                },
+              },
+            },
+          },
+        },
+        FeeTypeConfigResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Fee type form structure retrieved successfully',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                config: {
+                  $ref: '#/components/schemas/FeeTypeConfig',
+                },
+              },
+            },
+          },
+        },
+        FeeStructure: {
+          type: 'object',
+          required: ['fee_type', 'fee_configuration'],
+          properties: {
+            fee_type: {
+              type: 'string',
+              enum: ['monthly', 'daily', 'weekly', 'hourly', 'per_batch', 'per_session', 'age_based', 'coach_license_based', 'player_level_based', 'seasonal', 'package_based', 'group_discount', 'advance_booking', 'weekend_pricing', 'peak_hours', 'membership_based', 'custom'],
+              example: 'monthly',
+              description: 'Fee type',
+            },
+            fee_configuration: {
+              type: 'object',
+              additionalProperties: true,
+              description: 'Dynamic configuration object based on fee_type',
+              example: {
+                base_price: 2000,
+              },
+            },
+          },
+        },
+        Batch: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Batch ObjectId',
+            },
+            user: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'User ObjectId reference',
+            },
+            name: {
+              type: 'string',
+              example: 'Morning Batch',
+              description: 'Batch name',
+            },
+            sport: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Sport ObjectId reference',
+            },
+            center: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Coaching Center ObjectId reference',
+            },
+            coach: {
+              type: 'string',
+              nullable: true,
+              example: '507f1f77bcf86cd799439011',
+              description: 'Employee ObjectId reference (optional)',
+            },
+            scheduled: {
+              type: 'object',
+              properties: {
+                start_date: {
+                  type: 'string',
+                  format: 'date',
+                  example: '2024-01-15',
+                },
+                start_time: {
+                  type: 'string',
+                  example: '09:00',
+                },
+                end_time: {
+                  type: 'string',
+                  example: '11:00',
+                },
+                training_days: {
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                    enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+                  },
+                  example: ['monday', 'wednesday', 'friday'],
+                },
+              },
+            },
+            duration: {
+              type: 'object',
+              properties: {
+                count: {
+                  type: 'number',
+                  example: 3,
+                },
+                type: {
+                  type: 'string',
+                  enum: ['day', 'month', 'week', 'year'],
+                  example: 'month',
+                },
+              },
+            },
+            capacity: {
+              type: 'object',
+              properties: {
+                min: {
+                  type: 'number',
+                  example: 10,
+                },
+                max: {
+                  type: 'number',
+                  nullable: true,
+                  example: 30,
+                },
+              },
+            },
+            age: {
+              type: 'object',
+              properties: {
+                min: {
+                  type: 'number',
+                  example: 8,
+                  minimum: 3,
+                  maximum: 18,
+                },
+                max: {
+                  type: 'number',
+                  example: 16,
+                  minimum: 3,
+                  maximum: 18,
+                },
+              },
+            },
+            admission_fee: {
+              type: 'number',
+              nullable: true,
+              example: 5000,
+              description: 'Admission fee',
+            },
+            fee_structure: {
+              $ref: '#/components/schemas/FeeStructure',
+              description: 'Fee structure configuration (required)',
+            },
+            status: {
+              type: 'string',
+              enum: ['published', 'draft', 'inactive'],
+              example: 'draft',
+            },
+            is_active: {
+              type: 'boolean',
+              example: true,
+            },
+            is_deleted: {
+              type: 'boolean',
+              example: false,
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+          },
+        },
+        BatchResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Batch created successfully',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                batch: {
+                  $ref: '#/components/schemas/Batch',
+                },
+              },
+            },
+          },
+        },
+        BatchListResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Batches retrieved successfully',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                batches: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/Batch',
+                  },
+                },
+                pagination: {
+                  type: 'object',
+                  properties: {
+                    page: {
+                      type: 'number',
+                      example: 1,
+                    },
+                    limit: {
+                      type: 'number',
+                      example: 10,
+                    },
+                    total: {
+                      type: 'number',
+                      example: 50,
+                    },
+                    totalPages: {
+                      type: 'number',
+                      example: 5,
+                    },
+                    hasNextPage: {
+                      type: 'boolean',
+                      example: true,
+                    },
+                    hasPrevPage: {
+                      type: 'boolean',
+                      example: false,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     },
     tags: [
       {
         name: 'Academy Auth',
         description: 'Academy user authentication endpoints',
+      },
+      {
+        name: 'User Auth',
+        description: 'User (student/guardian) authentication endpoints',
       },
       {
         name: 'Health',
@@ -1446,9 +2371,32 @@ const options: swaggerJsdoc.Options = {
         name: 'Basic',
         description: 'Basic endpoints for sports and facilities lists',
       },
+      {
+        name: 'Employee',
+        description: 'Employee management endpoints',
+      },
+      {
+        name: 'Employee Media',
+        description: 'Employee certification file upload endpoints',
+      },
+      {
+        name: 'Role',
+        description: 'Role management endpoints',
+      },
+      {
+        name: 'Batch',
+        description: 'Batch management endpoints',
+      },
+      {
+        name: 'Fee Type',
+        description: 'Fee type configuration endpoints for dynamic form generation',
+      },
     ],
   },
-  apis: ['./src/routes/**/*.ts', './src/controllers/**/*.ts'],
+  apis: [
+    path.join(process.cwd(), 'src/routes/**/*.ts'),
+    path.join(process.cwd(), 'src/controllers/**/*.ts'),
+  ],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

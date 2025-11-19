@@ -1,0 +1,340 @@
+[
+  {
+    "fee_type": "monthly",
+    "label": "Monthly",
+    "description": "Fixed monthly fee structure",
+    "formFields": [
+      {
+        "name": "base_price",
+        "label": "Base Price",
+        "type": "number",
+        "required": false,
+        "placeholder": "Enter base monthly price",
+        "min": 0,
+        "step": 0.01,
+        "description": "Base price per month (optional if using classes/sessions options)"
+      }
+    ]
+  },
+  {
+    "fee_type": "daily",
+    "label": "Daily",
+    "description": "Daily fee structure",
+    "formFields": [
+      {
+        "name": "base_price",
+        "label": "Base Price per Day",
+        "type": "number",
+        "required": true,
+        "placeholder": "Enter daily price",
+        "min": 0,
+        "step": 0.01
+      }
+    ]
+  },
+  {
+    "fee_type": "weekly",
+    "label": "Weekly",
+    "description": "Weekly fee structure",
+    "formFields": [
+      {
+        "name": "base_price",
+        "label": "Base Price per Week",
+        "type": "number",
+        "required": true,
+        "placeholder": "Enter weekly price",
+        "min": 0,
+        "step": 0.01
+      }
+    ]
+  },
+  {
+    "fee_type": "hourly",
+    "label": "Hourly",
+    "description": "Hourly fee structure",
+    "formFields": [
+      {
+        "name": "base_price",
+        "label": "Price per Hour",
+        "type": "number",
+        "required": true,
+        "placeholder": "Enter price per hour",
+        "min": 0,
+        "step": 0.01
+      }
+    ]
+  },
+  {
+    "fee_type": "per_batch",
+    "label": "Per Batch",
+    "description": "Fee per batch",
+    "formFields": [
+      {
+        "name": "base_price",
+        "label": "Price per Batch",
+        "type": "number",
+        "required": true,
+        "placeholder": "Enter price per batch",
+        "min": 0,
+        "step": 0.01
+      }
+    ]
+  },
+  {
+    "fee_type": "per_session",
+    "label": "Per Session",
+    "description": "Fee per session",
+    "formFields": [
+      {
+        "name": "base_price",
+        "label": "Price per Session",
+        "type": "number",
+        "required": true,
+        "placeholder": "Enter price per session",
+        "min": 0,
+        "step": 0.01
+      }
+    ]
+  },
+  {
+    "fee_type": "age_based",
+    "label": "Age Based",
+    "description": "Different pricing based on age groups",
+    "formFields": [
+      {
+        "name": "age_groups",
+        "label": "Age Groups",
+        "type": "array",
+        "required": true,
+        "description": "Define pricing for different age groups",
+        "fields": [
+          {
+            "name": "min_age",
+            "label": "Minimum Age",
+            "type": "number",
+            "required": true,
+            "min": 3,
+            "max": 18
+          },
+          {
+            "name": "max_age",
+            "label": "Maximum Age",
+            "type": "number",
+            "required": true,
+            "min": 3,
+            "max": 18
+          },
+          {
+            "name": "price",
+            "label": "Price",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "step": 0.01
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "fee_type": "coach_license_based",
+    "label": "Coach License Based",
+    "description": "Pricing based on coach qualification level",
+    "formFields": [
+      {
+        "name": "coach_levels",
+        "label": "Coach Levels",
+        "type": "array",
+        "required": true,
+        "description": "Define pricing for different coach levels",
+        "fields": [
+          {
+            "name": "level",
+            "label": "Level Name",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., Basic, Intermediate, Advanced"
+          },
+          {
+            "name": "price",
+            "label": "Price",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "step": 0.01
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "fee_type": "player_level_based",
+    "label": "Player Level Based",
+    "description": "Pricing based on player skill level",
+    "formFields": [
+      {
+        "name": "player_levels",
+        "label": "Player Levels",
+        "type": "array",
+        "required": true,
+        "description": "Define pricing for different player levels",
+        "fields": [
+          {
+            "name": "level",
+            "label": "Level Name",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., Beginner, Intermediate, Advanced"
+          },
+          {
+            "name": "price",
+            "label": "Price",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "step": 0.01
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "fee_type": "seasonal",
+    "label": "Seasonal",
+    "description": "Different pricing for different seasons",
+    "formFields": [
+      {
+        "name": "seasons",
+        "label": "Seasons",
+        "type": "array",
+        "required": true,
+        "description": "Define pricing for different seasons",
+        "fields": [
+          {
+            "name": "season",
+            "label": "Season Name",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., Summer, Winter, Monsoon"
+          },
+          {
+            "name": "price",
+            "label": "Price",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "step": 0.01
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "fee_type": "package_based",
+    "label": "Package Based",
+    "description": "Package deals with multiple sessions",
+    "formFields": [
+      {
+        "name": "packages",
+        "label": "Packages",
+        "type": "array",
+        "required": true,
+        "description": "Define different packages",
+        "fields": [
+          {
+            "name": "name",
+            "label": "Package Name",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., Basic, Standard, Premium"
+          },
+          {
+            "name": "sessions_count",
+            "label": "Sessions Count",
+            "type": "number",
+            "required": true,
+            "min": 1
+          },
+          {
+            "name": "duration_value",
+            "label": "Duration Value",
+            "type": "number",
+            "required": true,
+            "min": 1
+          },
+          {
+            "name": "duration_unit",
+            "label": "Duration Unit",
+            "type": "select",
+            "required": true,
+            "options": [
+              { "value": "day", "label": "Day" },
+              { "value": "week", "label": "Week" },
+              { "value": "month", "label": "Month" },
+              { "value": "year", "label": "Year" }
+            ]
+          },
+          {
+            "name": "price",
+            "label": "Price",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "step": 0.01
+          }
+        ]
+      },
+      {
+        "name": "package_discount",
+        "label": "Package Discount (%)",
+        "type": "number",
+        "required": false,
+        "min": 0,
+        "max": 100,
+        "step": 0.01,
+        "description": "Optional discount percentage for packages"
+      }
+    ]
+  },
+  {
+    "fee_type": "membership_based",
+    "label": "Membership Based",
+    "description": "Pricing based on membership levels",
+    "formFields": [
+      {
+        "name": "membership_levels",
+        "label": "Membership Levels",
+        "type": "array",
+        "required": true,
+        "description": "Define pricing for different membership levels",
+        "fields": [
+          {
+            "name": "level",
+            "label": "Level Name",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., Basic, Silver, Gold, Platinum"
+          },
+          {
+            "name": "price",
+            "label": "Price",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "step": 0.01
+          },
+          {
+            "name": "discount_percentage",
+            "label": "Discount Percentage",
+            "type": "number",
+            "required": false,
+            "min": 0,
+            "max": 100,
+            "step": 0.01
+          }
+        ]
+      }
+    ]
+  }
+]
+

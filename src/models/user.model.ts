@@ -1,11 +1,6 @@
-import { Schema, model, HydratedDocument } from 'mongoose';
+import { Schema, model, HydratedDocument, Types } from 'mongoose';
 import { addressSchema, Address } from './address.model';
-import { DefaultRoles } from './role.model';
-
-export interface UserRefRole {
-  id: string;
-  name: string;
-}
+import { Gender } from '../enums/gender.enum';
 
 export interface User {
   id: string;
@@ -15,10 +10,10 @@ export interface User {
   email: string;
   mobile?: string | null;
   password: string;
-  gender?: 'male' | 'female' | 'other';
+  gender?: Gender;
   profileImage?: string | null;
   isActive: boolean;
-  role?: UserRefRole | null;
+  role?: Types.ObjectId; // Reference to Role model
   address?: Address | null;
   isDeleted: boolean;
   deletedAt?: Date | null;
@@ -37,22 +32,14 @@ const userSchema = new Schema<User>(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     mobile: { type: String, default: null, trim: true },
     password: { type: String, required: true },
-    gender: { type: String, enum: ['male', 'female', 'other'], default: null },
+    gender: { type: String, enum: Object.values(Gender), default: null },
     profileImage: { type: String, default: null },
     isActive: { type: Boolean, default: true },
     role: {
-      id: {
-        type: String,
-        enum: Object.values(DefaultRoles),
-        required: true,
-        default: DefaultRoles.USER,
-      },
-      name: {
-        type: String,
-        enum: Object.values(DefaultRoles),
-        required: true,
-        default: DefaultRoles.USER,
-      },
+      type: Schema.Types.ObjectId,
+      ref: 'Role',
+      required: true,
+      index: true,
     },
     address: { type: addressSchema, default: null },
     isDeleted: { type: Boolean, default: false },
