@@ -7,7 +7,7 @@
   },
   "item": [
     {
-      "name": "Auth",
+      "name": "Academy Auth",
       "item": [
         {
           "name": "Register (Academy)",
@@ -1083,7 +1083,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Morning Batch\",\n  \"sportId\": \"507f1f77bcf86cd799439011\",\n  \"centerId\": \"507f1f77bcf86cd799439011\",\n  \"coach\": \"507f1f77bcf86cd799439011\",\n  \"scheduled\": {\n    \"start_date\": \"2024-01-15\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": {\n    \"count\": 3,\n    \"type\": \"month\"\n  },\n  \"capacity\": {\n    \"min\": 10,\n    \"max\": 30\n  },\n  \"age\": {\n    \"min\": 8,\n    \"max\": 12\n  },\n  \"admission_fee\": 5000,\n  \"fee_structure\": {\n    \"fee_type\": \"monthly\",\n    \"fee_configuration\": {\n      \"base_price\": 2000,\n      \"classes_per_week_options\": [\n        {\n          \"days_per_week\": 2,\n          \"price\": 1500\n        },\n        {\n          \"days_per_week\": 3,\n          \"price\": 2000\n        },\n        {\n          \"days_per_week\": 5,\n          \"price\": 3000\n        }\n      ]\n    },\n    \"admission_fee\": 500,\n    \"installment_enabled\": true\n  },\n  \"status\": \"draft\"\n}",
+              "raw": "{\n  \"name\": \"Morning Batch\",\n  \"sportId\": \"507f1f77bcf86cd799439011\",\n  \"centerId\": \"507f1f77bcf86cd799439011\",\n  \"coach\": \"507f1f77bcf86cd799439011\",\n  \"scheduled\": {\n    \"start_date\": \"2024-01-15\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": {\n    \"count\": 3,\n    \"type\": \"month\"\n  },\n  \"capacity\": {\n    \"min\": 10,\n    \"max\": 30\n  },\n  \"age\": {\n    \"min\": 8,\n    \"max\": 12\n  },\n  \"admission_fee\": 5000,\n  \"fee_structure\": {\n    \"fee_type\": \"monthly\",\n    \"fee_configuration\": {\n      \"base_price\": 2000,\n      \"classes_per_week_options\": [\n        {\n          \"days_per_week\": 2,\n          \"price\": 1500\n        },\n        {\n          \"days_per_week\": 3,\n          \"price\": 2000\n        },\n        {\n          \"days_per_week\": 5,\n          \"price\": 3000\n        }\n      ]\n    },\n    \"admission_fee\": 500\n  },\n  \"status\": \"draft\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1095,7 +1095,7 @@
               "host": ["{{base_url}}"],
               "path": ["academy", "batch"]
             },
-            "description": "Create a new batch. **Requires authentication (Bearer token).**\n\n**Note:** `userId` is automatically set from the logged-in user. Any `userId` value provided in the request body will be ignored.\n\n**Required Fields:**\n- `name`: Batch name (string, max 255 characters)\n- `sportId`: Sport ObjectId (must exist and be active)\n- `centerId`: Coaching Center ObjectId (must belong to logged-in user)\n- `scheduled`: Object with:\n  - `start_date`: Start date (ISO date string)\n  - `start_time`: Start time in HH:MM format (24-hour)\n  - `end_time`: End time in HH:MM format (24-hour, must be after start_time)\n  - `training_days`: Array of days (monday, tuesday, wednesday, thursday, friday, saturday, sunday)\n- `duration`: Object with:\n  - `count`: Duration count (integer, min 1)\n  - `type`: Duration type (day, month, week, year)\n- `capacity`: Object with:\n  - `min`: Minimum capacity (integer, min 1)\n  - `max`: Maximum capacity (integer, optional, must be >= min)\n- `age`: Object with:\n  - `min`: Minimum age (integer, between 3 and 18)\n  - `max`: Maximum age (integer, between 3 and 18, must be >= min)\n\n**Optional Fields:**\n- `coach`: Employee ObjectId (must belong to the specified center)\n- `admission_fee`: Admission fee (number, min 0)\n- `fee_structure`: Fee structure object (optional):\n  - `fee_type`: Fee type (monthly, daily, weekly, hourly, per_batch, per_session, age_based, coach_license_based, player_level_based, seasonal, package_based, group_discount, advance_booking, weekend_pricing, peak_hours, membership_based, custom)\n  - `fee_configuration`: Dynamic configuration object based on fee_type (see `/academy/fee-type-config/:feeType` endpoint for form structure)\n  - `admission_fee`: Admission fee for this fee structure (number, min 0, optional)\n  - `installment_enabled`: Enable installments (boolean, optional)\n- `status`: Status (published, draft, inactive) - default: draft\n\n**Note:** To get the form structure for a specific fee type, call `GET /academy/fee-type-config/:feeType` endpoint first."
+            "description": "Create a new batch. **Requires authentication (Bearer token).**\n\n**Note:** `userId` is automatically set from the logged-in user. Any `userId` value provided in the request body will be ignored.\n\n**Required Fields:**\n- `name`: Batch name (string, max 255 characters)\n- `sportId`: Sport ObjectId (must exist and be active)\n- `centerId`: Coaching Center ObjectId (must belong to logged-in user)\n- `scheduled`: Object with:\n  - `start_date`: Start date (ISO date string)\n  - `start_time`: Start time in HH:MM format (24-hour)\n  - `end_time`: End time in HH:MM format (24-hour, must be after start_time)\n  - `training_days`: Array of days (monday, tuesday, wednesday, thursday, friday, saturday, sunday)\n- `duration`: Object with:\n  - `count`: Duration count (integer, min 1)\n  - `type`: Duration type (day, month, week, year)\n- `capacity`: Object with:\n  - `min`: Minimum capacity (integer, min 1)\n  - `max`: Maximum capacity (integer, optional, must be >= min)\n- `age`: Object with:\n  - `min`: Minimum age (integer, between 3 and 18)\n  - `max`: Maximum age (integer, between 3 and 18, must be >= min)\n\n**Optional Fields:**\n- `coach`: Employee ObjectId (must belong to the specified center)\n- `admission_fee`: Admission fee (number, min 0)\n- `fee_structure`: Fee structure object (optional):\n  - `fee_type`: Fee type (monthly, daily, weekly, hourly, per_batch, per_session, age_based, coach_license_based, player_level_based, seasonal, package_based, group_discount, advance_booking, weekend_pricing, peak_hours, membership_based, custom)\n  - `fee_configuration`: Dynamic configuration object based on fee_type (see `/academy/fee-type-config/:feeType` endpoint for form structure)\n  - `admission_fee`: Admission fee for this fee structure (number, min 0, optional)\n- `status`: Status (published, draft, inactive) - default: draft\n\n**Note:** To get the form structure for a specific fee type, call `GET /academy/fee-type-config/:feeType` endpoint first."
           }
         },
         {
@@ -1347,6 +1347,367 @@
               "path": ["role"]
             },
             "description": "Get list of roles visible to the logged-in user based on their role. **Requires authentication (Bearer token).**\n\n**Visibility Rules:**\n- **SUPER_ADMIN** and **ADMIN**: Can see all roles\n- **Other roles**: Can only see roles where their role name is included in the `visibleToRoles` array\n- Roles with `visibleToRoles: null` are only visible to SUPER_ADMIN and ADMIN\n\n**Response includes:**\n- `roles`: Array of role objects with only `id`, `name`, and `description` fields\n- `count`: Number of roles returned\n\n**Note:** `visibleToRoles`, `createdAt`, and `updatedAt` are excluded from the response."
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Auth",
+      "item": [
+        {
+          "name": "Register (Student/Guardian)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"student@example.com\",\n  \"password\": \"StrongPass@123\",\n  \"mobile\": \"9876543210\",\n  \"role\": \"student\",\n  \"dob\": \"2000-01-15\",\n  \"gender\": \"male\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["user", "auth", "register"]
+            },
+            "description": "Register a new user (student or guardian). **Requires OTP verification.**\n\n**Required Fields:**\n- `firstName`: First name\n- `email`: Email address\n- `password`: Password (min 8 characters)\n- `mobile`: Mobile number (10 digits)\n- `role`: User role - either 'student' or 'guardian'\n- `dob`: Date of birth in YYYY-MM-DD format (age must be at least 3 years)\n- `gender`: Gender - 'male', 'female', or 'other'\n- `otp`: OTP received via /user/auth/send-otp (mode: register)\n\n**Optional Fields:**\n- `lastName`: Last name"
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"StrongPass@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["user", "auth", "login"]
+            },
+            "description": "Login user with email and password. Returns access token and refresh token."
+          }
+        },
+        {
+          "name": "Social Login (Firebase)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"google\",\n  \"idToken\": \"YOUR_FIREBASE_ID_TOKEN\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"role\": \"student\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/auth/social-login",
+              "host": ["{{base_url}}"],
+              "path": ["user", "auth", "social-login"]
+            },
+            "description": "Login or register a user via social providers (Google, Facebook, Instagram, Apple). **Requires Firebase ID token.**\n\n**Required Fields:**\n- `idToken`: Firebase ID token\n\n**Optional Fields:**\n- `provider`: Provider name (google, facebook, instagram, apple) - for analytics/logging\n- `firstName`: First name\n- `lastName`: Last name\n- `role`: User role - 'student' or 'guardian' (defaults to 'student' if not provided)"
+          }
+        },
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"mode\": \"register\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/auth/send-otp",
+              "host": ["{{base_url}}"],
+              "path": ["user", "auth", "send-otp"]
+            },
+            "description": "Send OTP to a mobile number. **Modes:** login, register, profile_update, forgot_password"
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"mode\": \"login\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/auth/verify-otp",
+              "host": ["{{base_url}}"],
+              "path": ["user", "auth", "verify-otp"]
+            },
+            "description": "Verify OTP. Returns tokens if mode is 'login', otherwise returns verification status."
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "firstName",
+                  "value": "Johnny",
+                  "type": "text"
+                },
+                {
+                  "key": "lastName",
+                  "value": "Student",
+                  "type": "text"
+                },
+                {
+                  "key": "dob",
+                  "value": "2000-01-15",
+                  "type": "text"
+                },
+                {
+                  "key": "gender",
+                  "value": "male",
+                  "type": "text"
+                },
+                {
+                  "key": "profileImage",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/user/auth/profile",
+              "host": ["{{base_url}}"],
+              "path": ["user", "auth", "profile"]
+            },
+            "description": "Update user profile details. All fields are optional. **Requires authentication (Bearer token with STUDENT or GUARDIAN role).**"
+          }
+        },
+        {
+          "name": "Update Address",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": {\n    \"line2\": \"Suite 4B\",\n    \"area\": \"Downtown\",\n    \"city\": \"New Delhi\",\n    \"state\": \"Delhi\",\n    \"country\": \"India\",\n    \"pincode\": \"110001\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/auth/address",
+              "host": ["{{base_url}}"],
+              "path": ["user", "auth", "address"]
+            },
+            "description": "Update user address. **Requires authentication (Bearer token with STUDENT or GUARDIAN role).**"
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"StrongPass@123\",\n  \"newPassword\": \"StrongerPass@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/auth/password",
+              "host": ["{{base_url}}"],
+              "path": ["user", "auth", "password"]
+            },
+            "description": "Change user password. **Requires authentication (Bearer token with STUDENT or GUARDIAN role).**"
+          }
+        },
+        {
+          "name": "Me (Current User)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["user", "auth", "me"]
+            },
+            "description": "Get current user profile. **Requires authentication (Bearer token with STUDENT or GUARDIAN role).**"
+          }
+        },
+        {
+          "name": "Forgot Password - Request OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"mobile\",\n  \"mobile\": \"9876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/auth/forgot-password/request",
+              "host": ["{{base_url}}"],
+              "path": ["user", "auth", "forgot-password", "request"]
+            },
+            "description": "Request password reset OTP via mobile or email. **Modes:** mobile, email"
+          }
+        },
+        {
+          "name": "Forgot Password - Verify & Reset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"mobile\",\n  \"mobile\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"StrongerPass@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/auth/forgot-password/verify",
+              "host": ["{{base_url}}"],
+              "path": ["user", "auth", "forgot-password", "verify"]
+            },
+            "description": "Verify password reset OTP and set new password. Returns new access and refresh tokens."
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["user", "auth", "refresh"]
+            },
+            "description": "Refresh access token using refresh token. Returns new access token and refresh token. The old refresh token is automatically blacklisted."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["user", "auth", "logout"]
+            },
+            "description": "Logout user and blacklist current tokens. Optionally provide refreshToken in body to blacklist it as well. **Requires authentication (Bearer accessToken).**"
+          }
+        },
+        {
+          "name": "Logout All Devices",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/auth/logout-all",
+              "host": ["{{base_url}}"],
+              "path": ["user", "auth", "logout-all"]
+            },
+            "description": "Logout from all devices by blacklisting all tokens for the authenticated user. **Requires authentication (Bearer accessToken).**"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Health check endpoint to verify server is running. Returns timestamp."
           }
         }
       ]
