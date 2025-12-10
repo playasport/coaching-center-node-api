@@ -678,7 +678,7 @@ export const logoutAll = async (userId: string): Promise<void> => {
  * Register a new user (student or guardian)
  */
 export const registerUser = async (data: UserRegisterInput): Promise<RegisterResult> => {
-  const { firstName, lastName, email, password, mobile, role, dob, gender, otp } = data;
+  const { firstName, lastName, email, password, mobile, dob, gender, otp } = data;
 
   if (!otp) {
     throw new ApiError(400, t('validation.otp.required'));
@@ -702,22 +702,45 @@ export const registerUser = async (data: UserRegisterInput): Promise<RegisterRes
   }
 
   const existingUser = await userService.findByEmail(email);
+  let user: User;
+  
   if (existingUser) {
-    throw new ApiError(400, t('auth.register.emailExists'));
+    // User exists, check if they are registered as academy
+    const existingRole = (existingUser.role as any)?.name;
+    
+    if (existingRole === DefaultRoles.ACADEMY) {
+      // If user is academy, update their role to user
+      const updatedUser = await userService.update(existingUser.id, { role: DefaultRoles.USER });
+      if (!updatedUser) {
+        throw new ApiError(500, t('errors.internalServerError'));
+      }
+      user = updatedUser;
+    } else if (existingRole === DefaultRoles.USER) {
+      // User already has the user role, return existing user
+      throw new ApiError(400, t('auth.register.emailExists'));
+    } else {
+      // User exists with different role, update to user role
+      const updatedUser = await userService.update(existingUser.id, { role: DefaultRoles.USER });
+      if (!updatedUser) {
+        throw new ApiError(500, t('errors.internalServerError'));
+      }
+      user = updatedUser;
+    }
+  } else {
+    // Create new user
+    user = await userService.create({
+      id: uuidv4(),
+      email,
+      password,
+      firstName,
+      lastName,
+      mobile,
+      role: DefaultRoles.USER,
+      dob: dob ? new Date(dob) : null,
+      gender: gender as any,
+      isActive: true,
+    });
   }
-
-  const user = await userService.create({
-    id: uuidv4(),
-    email,
-    password,
-    firstName,
-    lastName,
-    mobile,
-    role: role === 'student' ? DefaultRoles.STUDENT : DefaultRoles.GUARDIAN,
-    dob: dob ? new Date(dob) : null,
-    gender: gender as any,
-    isActive: true,
-  });
 
   // Get role name from populated role object
   const roleName = (user.role as any)?.name ?? DefaultRoles.USER;
@@ -741,25 +764,40 @@ export const registerUser = async (data: UserRegisterInput): Promise<RegisterRes
 export const loginUser = async (data: UserLoginInput): Promise<LoginResult> => {
   const { email, password } = data;
 
-  const user = await userService.findByEmailWithPassword(email);
+  let user = await userService.findByEmailWithPassword(email);
 
   if (!user || !user.password) {
     throw new ApiError(401, t('auth.login.invalidCredentials'));
   }
 
-  const userRole = (user.role as any)?.name;
-  if (userRole !== DefaultRoles.STUDENT && userRole !== DefaultRoles.GUARDIAN) {
+  // Check password first
+  const isPasswordValid = await comparePassword(password, user.password);
+  if (!isPasswordValid) {
+    throw new ApiError(401, t('auth.login.invalidCredentials'));
+  }
+
+  let userRole = (user.role as any)?.name;
+  
+  // If user is registered as academy and trying to login as user, assign user role by default
+  if (userRole === DefaultRoles.ACADEMY) {
+    // Update user role to user
+    const updatedUser = await userService.update(user.id, { role: DefaultRoles.USER });
+    if (updatedUser) {
+      user = await userService.findByEmailWithPassword(email);
+      if (!user) {
+        throw new ApiError(500, t('errors.internalServerError'));
+      }
+      userRole = DefaultRoles.USER;
+    }
+  }
+
+  // Check if user has user role
+  if (userRole !== DefaultRoles.USER) {
     throw new ApiError(403, t('auth.login.invalidRole'));
   }
 
   if (!user.isActive || user.isDeleted) {
     throw new ApiError(403, t('auth.login.inactive'));
-  }
-
-  const isPasswordValid = await comparePassword(password, user.password);
-
-  if (!isPasswordValid) {
-    throw new ApiError(401, t('auth.login.invalidCredentials'));
   }
 
   const { accessToken, refreshToken } = generateTokenPair({
@@ -768,7 +806,9 @@ export const loginUser = async (data: UserLoginInput): Promise<LoginResult> => {
     role: userRole ?? DefaultRoles.USER,
   });
 
-  const sanitizedUser = userService.sanitize(user);
+  // Refresh user data to get updated role
+  const updatedUserData = await userService.findByEmail(email);
+  const sanitizedUser = updatedUserData || userService.sanitize(user);
   if (!sanitizedUser) {
     throw new ApiError(500, t('errors.internalServerError'));
   }
@@ -807,22 +847,31 @@ export const socialLoginUser = async (data: UserSocialLoginInput): Promise<Socia
       (tokenLastParts.length ? tokenLastParts.join(' ') : decodedToken.family_name || null) ||
       null;
 
-    // Default to student if role not provided
-    const userRole = payload.role === 'guardian' ? DefaultRoles.GUARDIAN : DefaultRoles.STUDENT;
-
     user = await userService.create({
       id: uuidv4(),
       email,
       firstName,
       lastName,
       password: `${uuidv4()}!Social1`,
-      role: userRole,
+      role: DefaultRoles.USER,
       isActive: true,
     });
+  } else {
+    // User exists, if academy, update to user role
+    const existingRole = (user.role as any)?.name;
+    if (existingRole === DefaultRoles.ACADEMY) {
+      const updatedUser = await userService.update(user.id, { role: DefaultRoles.USER });
+      if (updatedUser) {
+        user = await userService.findByEmail(email);
+        if (!user) {
+          throw new ApiError(500, t('errors.internalServerError'));
+        }
+      }
+    }
   }
 
   const userRole = (user.role as any)?.name;
-  if (userRole !== DefaultRoles.STUDENT && userRole !== DefaultRoles.GUARDIAN) {
+  if (userRole !== DefaultRoles.USER) {
     throw new ApiError(403, t('auth.login.invalidRole'));
   }
 
@@ -992,7 +1041,7 @@ export const requestUserPasswordReset = async (
     }
 
     const userRole = (user.role as any)?.name;
-    if (userRole !== DefaultRoles.STUDENT && userRole !== DefaultRoles.GUARDIAN) {
+    if (userRole !== DefaultRoles.USER) {
       throw new ApiError(403, t('auth.login.invalidRole'));
     }
 
@@ -1013,7 +1062,7 @@ export const requestUserPasswordReset = async (
     }
 
     const userRole = (user.role as any)?.name;
-    if (userRole !== DefaultRoles.STUDENT && userRole !== DefaultRoles.GUARDIAN) {
+    if (userRole !== DefaultRoles.USER) {
       throw new ApiError(403, t('auth.login.invalidRole'));
     }
 
@@ -1130,20 +1179,46 @@ export const sendUserOtp = async (data: {
       throw new ApiError(404, t('auth.login.mobileNotFound'));
     }
 
-    const userRole = (existingUser.role as any)?.name;
-    if (userRole !== DefaultRoles.STUDENT && userRole !== DefaultRoles.GUARDIAN) {
+    let userRole = (existingUser.role as any)?.name;
+    
+    // If user is registered as academy and trying to login as user, assign user role by default
+    if (userRole === DefaultRoles.ACADEMY) {
+      // Update user role to user
+      const updatedUser = await userService.update(existingUser.id, { role: DefaultRoles.USER });
+      if (updatedUser) {
+        userRole = DefaultRoles.USER;
+      }
+    }
+    
+    // Check if user has user role
+    if (userRole !== DefaultRoles.USER) {
       throw new ApiError(403, t('auth.login.invalidRole'));
     }
   } else if (mode === 'register') {
     if (existingUser) {
-      throw new ApiError(400, t('auth.register.mobileExists'));
+      // If user exists as academy, update their role to user instead of throwing error
+      const existingRole = (existingUser.role as any)?.name;
+      if (existingRole === DefaultRoles.ACADEMY) {
+        await userService.update(existingUser.id, { role: DefaultRoles.USER });
+      } else {
+        throw new ApiError(400, t('auth.register.mobileExists'));
+      }
     }
   } else if (mode === 'forgot_password') {
     if (!existingUser) {
       throw new ApiError(404, t('auth.password.resetUserNotFound'));
     }
-    const userRole = (existingUser.role as any)?.name;
-    if (userRole !== DefaultRoles.STUDENT && userRole !== DefaultRoles.GUARDIAN) {
+    let userRole = (existingUser.role as any)?.name;
+    
+    // If user is registered as academy, update to user
+    if (userRole === DefaultRoles.ACADEMY) {
+      const updatedUser = await userService.update(existingUser.id, { role: DefaultRoles.USER });
+      if (updatedUser) {
+        userRole = DefaultRoles.USER;
+      }
+    }
+    
+    if (userRole !== DefaultRoles.USER) {
       throw new ApiError(403, t('auth.login.invalidRole'));
     }
   }
@@ -1199,14 +1274,29 @@ export const verifyUserOtp = async (data: {
   }
 
   if (mode === 'login') {
-    const user = await userService.findByMobile(mobile);
+    let user = await userService.findByMobile(mobile);
 
     if (!user) {
       throw new ApiError(404, t('auth.login.mobileNotFound'));
     }
 
-    const userRole = (user.role as any)?.name;
-    if (userRole !== DefaultRoles.STUDENT && userRole !== DefaultRoles.GUARDIAN) {
+    let userRole = (user.role as any)?.name;
+    
+    // If user is registered as academy and trying to login as user, assign user role by default
+    if (userRole === DefaultRoles.ACADEMY) {
+      // Update user role to user
+      const updatedUser = await userService.update(user.id, { role: DefaultRoles.USER });
+      if (updatedUser) {
+        user = await userService.findByMobile(mobile);
+        if (!user) {
+          throw new ApiError(500, t('errors.internalServerError'));
+        }
+        userRole = DefaultRoles.USER;
+      }
+    }
+
+    // Check if user has user role
+    if (userRole !== DefaultRoles.USER) {
       throw new ApiError(403, t('auth.login.invalidRole'));
     }
 

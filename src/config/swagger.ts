@@ -1972,6 +1972,239 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        Participant: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+            },
+            userId: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                id: { type: 'string' },
+                firstName: { type: 'string' },
+                lastName: { type: 'string' },
+                email: { type: 'string' },
+              },
+            },
+            firstName: {
+              type: 'string',
+              example: 'John',
+              nullable: true,
+            },
+            lastName: {
+              type: 'string',
+              example: 'Doe',
+              nullable: true,
+            },
+            gender: {
+              type: 'number',
+              enum: [0, 1, 2],
+              example: 0,
+              description: '0 = male, 1 = female, 2 = other',
+              nullable: true,
+            },
+            disability: {
+              type: 'number',
+              enum: [0, 1],
+              example: 0,
+              description: '0 = no, 1 = yes',
+            },
+            dob: {
+              type: 'string',
+              format: 'date',
+              example: '1990-01-01',
+              nullable: true,
+            },
+            schoolName: {
+              type: 'string',
+              example: 'ABC School',
+              nullable: true,
+            },
+            contactNumber: {
+              type: 'string',
+              example: '9876543210',
+              nullable: true,
+            },
+            profilePhoto: {
+              type: 'string',
+              format: 'uri',
+              example: 'https://example.com/photo.jpg',
+              nullable: true,
+            },
+            address: {
+              type: 'object',
+              properties: {
+                line1: { type: 'string', example: '123 Main Street' },
+                line2: { type: 'string', example: 'Apt 4B', nullable: true },
+                area: { type: 'string', example: 'Downtown', nullable: true },
+                city: { type: 'string', example: 'Mumbai' },
+                state: { type: 'string', example: 'Maharashtra' },
+                country: { type: 'string', example: 'India' },
+                pincode: { type: 'string', example: '400001' },
+                isDeleted: { type: 'boolean', example: false },
+                createdAt: { type: 'string', format: 'date-time' },
+                updatedAt: { type: 'string', format: 'date-time' },
+              },
+              nullable: true,
+            },
+            isSelf: {
+              type: 'string',
+              example: '1',
+              nullable: true,
+              description: "'1' for self, null otherwise",
+            },
+            is_active: {
+              type: 'boolean',
+              example: true,
+            },
+            is_deleted: {
+              type: 'boolean',
+              example: false,
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+          },
+        },
+        ParticipantCreateRequest: {
+          type: 'object',
+          description: 'Create participant request. All fields are optional.',
+          properties: {
+            firstName: {
+              type: 'string',
+              example: 'John',
+              maxLength: 191,
+            },
+            lastName: {
+              type: 'string',
+              example: 'Doe',
+              maxLength: 191,
+            },
+            gender: {
+              type: 'string',
+              enum: ['0', '1', '2'],
+              example: '0',
+              description: '0 = male, 1 = female, 2 = other',
+            },
+            disability: {
+              type: 'string',
+              enum: ['0', '1'],
+              example: '0',
+              description: '0 = no, 1 = yes',
+              default: '0',
+            },
+            dob: {
+              type: 'string',
+              format: 'date',
+              example: '1990-01-01',
+            },
+            schoolName: {
+              type: 'string',
+              example: 'ABC School',
+              maxLength: 191,
+            },
+            contactNumber: {
+              type: 'string',
+              example: '9876543210',
+              maxLength: 255,
+            },
+            profilePhoto: {
+              type: 'string',
+              format: 'uri',
+              example: 'https://example.com/photo.jpg',
+              maxLength: 191,
+            },
+            address: {
+              type: 'object',
+              properties: {
+                line1: { type: 'string', example: '123 Main Street', maxLength: 255 },
+                line2: { type: 'string', example: 'Apt 4B', maxLength: 255, nullable: true },
+                area: { type: 'string', example: 'Downtown', maxLength: 255, nullable: true },
+                city: { type: 'string', example: 'Mumbai', maxLength: 255, nullable: true },
+                state: { type: 'string', example: 'Maharashtra', maxLength: 255, nullable: true },
+                country: { type: 'string', example: 'India', maxLength: 255, nullable: true },
+                pincode: { type: 'string', example: '400001', maxLength: 191, nullable: true },
+              },
+            },
+            // isSelf is not allowed in create requests - it's automatically set to null
+            // Only the system sets isSelf = '1' when creating a user
+          },
+        },
+        ParticipantUpdateRequest: {
+          type: 'object',
+          description: 'Update participant request. All fields are optional.',
+          properties: {
+            firstName: {
+              type: 'string',
+              example: 'John',
+              maxLength: 191,
+            },
+            lastName: {
+              type: 'string',
+              example: 'Doe',
+              maxLength: 191,
+            },
+            gender: {
+              type: 'string',
+              enum: ['0', '1', '2'],
+              example: '0',
+              description: '0 = male, 1 = female, 2 = other',
+            },
+            disability: {
+              type: 'string',
+              enum: ['0', '1'],
+              example: '0',
+              description: '0 = no, 1 = yes',
+            },
+            dob: {
+              type: 'string',
+              format: 'date',
+              example: '1990-01-01',
+            },
+            schoolName: {
+              type: 'string',
+              example: 'ABC School',
+              maxLength: 191,
+            },
+            contactNumber: {
+              type: 'string',
+              example: '9876543210',
+              maxLength: 255,
+            },
+            profilePhoto: {
+              type: 'string',
+              format: 'uri',
+              example: 'https://example.com/photo.jpg',
+              maxLength: 191,
+            },
+            address: {
+              type: 'object',
+              properties: {
+                line1: { type: 'string', example: '123 Main Street', maxLength: 255 },
+                line2: { type: 'string', example: 'Apt 4B', maxLength: 255, nullable: true },
+                area: { type: 'string', example: 'Downtown', maxLength: 255, nullable: true },
+                city: { type: 'string', example: 'Mumbai', maxLength: 255, nullable: true },
+                state: { type: 'string', example: 'Maharashtra', maxLength: 255, nullable: true },
+                country: { type: 'string', example: 'India', maxLength: 255, nullable: true },
+                pincode: { type: 'string', example: '400001', maxLength: 191, nullable: true },
+              },
+            },
+            isSelf: {
+              type: 'string',
+              example: '1',
+              maxLength: 191,
+              description: "'1' for self, null otherwise",
+            },
+          },
+        },
         Role: {
           type: 'object',
           properties: {

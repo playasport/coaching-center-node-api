@@ -423,6 +423,30 @@
       "fileRequired": "At least one certification file is required"
     }
   },
+  "participant": {
+    "create": {
+      "success": "Participant created successfully",
+      "failed": "Failed to create participant"
+    },
+    "get": {
+      "success": "Participant retrieved successfully",
+      "failed": "Failed to fetch participant"
+    },
+    "list": {
+      "success": "Participants retrieved successfully",
+      "failed": "Failed to fetch participants"
+    },
+    "update": {
+      "success": "Participant updated successfully",
+      "failed": "Failed to update participant"
+    },
+    "delete": {
+      "success": "Participant deleted successfully",
+      "failed": "Failed to delete participant"
+    },
+    "idRequired": "Participant ID is required",
+    "notFound": "Participant not found"
+  },
   "role": {
     "list": {
       "success": "Roles retrieved successfully",

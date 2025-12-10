@@ -1695,6 +1695,150 @@
       ]
     },
     {
+      "name": "Participant",
+      "item": [
+        {
+          "name": "Create Participant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"gender\": \"0\",\n  \"disability\": \"0\",\n  \"dob\": \"1990-01-01\",\n  \"schoolName\": \"ABC School\",\n  \"contactNumber\": \"9876543210\",\n  \"profilePhoto\": \"https://example.com/photo.jpg\",\n  \"address\": {\n    \"line1\": \"123 Main Street\",\n    \"line2\": \"Apt 4B\",\n    \"area\": \"Downtown\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"country\": \"India\",\n    \"pincode\": \"400001\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/participant",
+              "host": ["{{base_url}}"],
+              "path": ["user", "participant"]
+            },
+            "description": "Create a new participant. Users can only create participants for themselves. **Requires authentication (Bearer accessToken).**"
+          }
+        },
+        {
+          "name": "Get My Participants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/participant/my/list?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["user", "participant", "my", "list"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (starts from 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page"
+                }
+              ]
+            },
+            "description": "Retrieve a paginated list of participants belonging to the authenticated user. **Requires authentication (Bearer accessToken).**"
+          }
+        },
+        {
+          "name": "Get Participant by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/participant/:id",
+              "host": ["{{base_url}}"],
+              "path": ["user", "participant", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Participant ID"
+                }
+              ]
+            },
+            "description": "Retrieve a participant by its ID. Users can only view their own participants. **Requires authentication (Bearer accessToken).**"
+          }
+        },
+        {
+          "name": "Update Participant",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"gender\": \"1\",\n  \"schoolName\": \"XYZ School\",\n  \"contactNumber\": \"9876543211\",\n  \"address\": {\n    \"line1\": \"456 Oak Avenue\",\n    \"line2\": \"Suite 10\",\n    \"city\": \"Delhi\",\n    \"state\": \"Delhi\",\n    \"country\": \"India\",\n    \"pincode\": \"110001\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/participant/:id",
+              "host": ["{{base_url}}"],
+              "path": ["user", "participant", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Participant ID"
+                }
+              ]
+            },
+            "description": "Update participant details. All fields are optional. Users can only update their own participants. **Requires authentication (Bearer accessToken).**"
+          }
+        },
+        {
+          "name": "Delete Participant",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/participant/:id",
+              "host": ["{{base_url}}"],
+              "path": ["user", "participant", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Participant ID"
+                }
+              ]
+            },
+            "description": "Soft delete a participant by setting is_deleted to true. Users can only delete their own participants. **Requires authentication (Bearer accessToken).**"
+          }
+        }
+      ]
+    },
+    {
       "name": "Health",
       "item": [
         {
