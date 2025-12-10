@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { validationMessages } from '../utils/validationMessages';
+import { Gender } from '../enums/gender.enum';
 
 // Mobile number and email validation will be done in superRefine
 
@@ -155,6 +156,9 @@ export const coachingCenterCreateSchema = z
         documents: z.array(mediaItemSchema).optional().default([]), // General documents (not sport-specific)
         bank_information: bankInformationSchema.optional(),
         status: z.enum(['draft', 'published'], { message: validationMessages.coachingCenter.status.invalid() }).default('draft'),
+        allowed_genders: z.array(z.nativeEnum(Gender)).optional().default([]),
+        allowed_disabled: z.boolean().optional().default(false),
+        is_only_for_disabled: z.boolean().optional().default(false),
       })
       .superRefine((data, ctx) => {
         // If status is 'published', validate all required fields
@@ -408,6 +412,9 @@ export const coachingCenterUpdateSchema = z.object({
       documents: z.array(mediaItemSchema).optional().default([]), // General documents (not sport-specific)
       bank_information: bankInformationSchema.optional(),
       status: z.enum(['draft', 'published'], { message: validationMessages.coachingCenter.status.invalid() }).optional(),
+      allowed_genders: z.array(z.nativeEnum(Gender)).optional(),
+      allowed_disabled: z.boolean().optional(),
+      is_only_for_disabled: z.boolean().optional(),
     })
     .superRefine((data, ctx) => {
       // At least one field should be provided for update

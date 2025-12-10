@@ -15,7 +15,8 @@ export const errorHandler = (
   _next: NextFunction
 ): void => {
   const statusCode = err.statusCode || 500;
-  const message = err.message || t('errors.internalServerError');
+  // const message = err.message || t('errors.internalServerError');
+  const message = t('errors.internalServerError');
 
   logger.error('Unhandled application error', {
     statusCode,

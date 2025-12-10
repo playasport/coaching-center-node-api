@@ -2,6 +2,7 @@ import { Schema, model, HydratedDocument, Types } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 import { CoachingCenterStatus } from '../enums/coachingCenterStatus.enum';
 import { OperatingDays } from '../enums/operatingDays.enum';
+import { Gender } from '../enums/gender.enum';
 
 // Media item interface (for images and documents)
 export interface MediaItem {
@@ -86,6 +87,9 @@ export interface CoachingCenter {
   documents: MediaItem[]; // General documents (not sport-specific)
   bank_information: BankInformation;
   status: CoachingCenterStatus;
+  allowed_genders: Gender[];
+  allowed_disabled: boolean;
+  is_only_for_disabled: boolean;
   is_active: boolean;
   is_deleted: boolean;
   deletedAt?: Date | null;
@@ -363,6 +367,19 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
       type: String,
       enum: Object.values(CoachingCenterStatus),
       default: CoachingCenterStatus.DRAFT,
+    },
+    allowed_genders: {
+      type: [String],
+      enum: Object.values(Gender),
+      default: [],
+    },
+    allowed_disabled: {
+      type: Boolean,
+      default: false,
+    },
+    is_only_for_disabled: {
+      type: Boolean,
+      default: false,
     },
     is_active: {
       type: Boolean,

@@ -554,6 +554,9 @@ export const updateCoachingCenter = async (
     if (data.operational_timing !== undefined) updates.operational_timing = data.operational_timing;
     if (data.documents !== undefined) updates.documents = data.documents;
     if (data.bank_information !== undefined) updates.bank_information = data.bank_information;
+    if (data.allowed_genders !== undefined) updates.allowed_genders = data.allowed_genders;
+    if (data.allowed_disabled !== undefined) updates.allowed_disabled = data.allowed_disabled;
+    if (data.is_only_for_disabled !== undefined) updates.is_only_for_disabled = data.is_only_for_disabled;
     
     // Handle status change
     const previousStatus = existingCenter.status;

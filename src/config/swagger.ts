@@ -1218,6 +1218,28 @@ const options: swaggerJsdoc.Options = {
               example: 'draft',
               description: 'Status of the coaching center (draft or published)',
             },
+            allowed_genders: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['male', 'female', 'other'],
+              },
+              default: [],
+              example: ['male', 'female'],
+              description: 'Array of allowed genders for the coaching center',
+            },
+            allowed_disabled: {
+              type: 'boolean',
+              default: false,
+              example: false,
+              description: 'Whether disabled students are allowed',
+            },
+            is_only_for_disabled: {
+              type: 'boolean',
+              default: false,
+              example: false,
+              description: 'Whether the coaching center is exclusively for disabled students',
+            },
           },
         },
         CoachingCenterUpdateRequest: {
@@ -1498,6 +1520,25 @@ const options: swaggerJsdoc.Options = {
               example: 'published',
               description: 'Status of the coaching center. If set to "published", all required fields must be present (either in this update or existing data).',
             },
+            allowed_genders: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['male', 'female', 'other'],
+              },
+              example: ['male', 'female'],
+              description: 'Array of allowed genders for the coaching center',
+            },
+            allowed_disabled: {
+              type: 'boolean',
+              example: false,
+              description: 'Whether disabled students are allowed',
+            },
+            is_only_for_disabled: {
+              type: 'boolean',
+              example: false,
+              description: 'Whether the coaching center is exclusively for disabled students',
+            },
           },
         },
         CoachingCenter: {
@@ -1651,6 +1692,25 @@ const options: swaggerJsdoc.Options = {
             status: {
               type: 'string',
               enum: ['draft', 'published'],
+            },
+            allowed_genders: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['male', 'female', 'other'],
+              },
+              example: ['male', 'female'],
+              description: 'Array of allowed genders for the coaching center',
+            },
+            allowed_disabled: {
+              type: 'boolean',
+              example: false,
+              description: 'Whether disabled students are allowed',
+            },
+            is_only_for_disabled: {
+              type: 'boolean',
+              example: false,
+              description: 'Whether the coaching center is exclusively for disabled students',
             },
             is_active: {
               type: 'boolean',

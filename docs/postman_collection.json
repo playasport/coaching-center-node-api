@@ -597,7 +597,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"center_name\": \"Elite Sports Academy\",\n  \"mobile_number\": \"9876543210\",\n  \"email\": \"info@elitesportsacademy.com\",\n  \"description\": \"Premier coaching center for multiple sports\",\n  \"sports\": [\"507f1f77bcf86cd799439011\"],\n  \"age\": {\n    \"min\": 3,\n    \"max\": 18\n  },\n  \"location\": {\n    \"latitude\": 28.6139,\n    \"longitude\": 77.209,\n    \"address\": {\n      \"line2\": \"Near Metro Station\",\n      \"city\": \"New Delhi\",\n      \"state\": \"Delhi\",\n      \"country\": \"India\",\n      \"pincode\": \"110001\"\n    }\n  },\n  \"facility\": \"507f1f77bcf86cd799439011\",\n  \"operational_timing\": {\n    \"operating_days\": [\"monday\", \"tuesday\", \"wednesday\", \"thursday\", \"friday\"],\n    \"opening_time\": \"09:00\",\n    \"closing_time\": \"18:00\"\n  },\n  \"bank_information\": {\n    \"bank_name\": \"State Bank of India\",\n    \"account_number\": \"1234567890123456\",\n    \"ifsc_code\": \"SBIN0001234\",\n    \"account_holder_name\": \"Elite Sports Academy\"\n  },\n  \"status\": \"draft\"\n}"
+              "raw": "{\n  \"center_name\": \"Elite Sports Academy\",\n  \"mobile_number\": \"9876543210\",\n  \"email\": \"info@elitesportsacademy.com\",\n  \"description\": \"Premier coaching center for multiple sports\",\n  \"sports\": [\"507f1f77bcf86cd799439011\"],\n  \"age\": {\n    \"min\": 3,\n    \"max\": 18\n  },\n  \"location\": {\n    \"latitude\": 28.6139,\n    \"longitude\": 77.209,\n    \"address\": {\n      \"line2\": \"Near Metro Station\",\n      \"city\": \"New Delhi\",\n      \"state\": \"Delhi\",\n      \"country\": \"India\",\n      \"pincode\": \"110001\"\n    }\n  },\n  \"facility\": \"507f1f77bcf86cd799439011\",\n  \"operational_timing\": {\n    \"operating_days\": [\"monday\", \"tuesday\", \"wednesday\", \"thursday\", \"friday\"],\n    \"opening_time\": \"09:00\",\n    \"closing_time\": \"18:00\"\n  },\n  \"bank_information\": {\n    \"bank_name\": \"State Bank of India\",\n    \"account_number\": \"1234567890123456\",\n    \"ifsc_code\": \"SBIN0001234\",\n    \"account_holder_name\": \"Elite Sports Academy\"\n  },\n  \"allowed_genders\": [\"male\", \"female\"],\n  \"allowed_disabled\": false,\n  \"is_only_for_disabled\": false,\n  \"status\": \"draft\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/academy/coaching-center",
@@ -680,7 +680,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"center_name\": \"Updated Elite Sports Academy\",\n  \"description\": \"Updated description\",\n  \"status\": \"published\"\n}"
+              "raw": "{\n  \"center_name\": \"Updated Elite Sports Academy\",\n  \"description\": \"Updated description\",\n  \"allowed_genders\": [\"male\", \"female\", \"other\"],\n  \"allowed_disabled\": true,\n  \"is_only_for_disabled\": false,\n  \"status\": \"published\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/academy/coaching-center/:id",
