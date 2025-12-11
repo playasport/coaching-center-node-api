@@ -37,6 +37,7 @@ export interface UpdateUserData {
   isActive?: boolean;
   isDeleted?: boolean;
   address?: Partial<Address> | null;
+  favoriteSports?: string[]; // Array of Sport ObjectIds as strings
 }
 
 const defaultProjection = {
@@ -145,6 +146,19 @@ export const userService = {
 
     if (data.email) {
       update.email = data.email.toLowerCase();
+    }
+
+    // If favoriteSports is being updated, convert string IDs to ObjectIds
+    if (data.favoriteSports !== undefined) {
+      if (Array.isArray(data.favoriteSports)) {
+        // Validate all sport IDs are valid ObjectIds
+        const validSportIds = data.favoriteSports
+          .filter((id) => Types.ObjectId.isValid(id))
+          .map((id) => new Types.ObjectId(id));
+        update.favoriteSports = validSportIds;
+      } else {
+        update.favoriteSports = [];
+      }
     }
 
     // If role is being updated, find role ObjectId by name

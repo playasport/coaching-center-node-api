@@ -490,6 +490,28 @@
         }
       }
     }
+  },
+  "academy": {
+    "getAll": {
+      "success": "अकादमियां सफलतापूर्वक प्राप्त की गईं"
+    },
+    "getById": {
+      "success": "अकादमी सफलतापूर्वक प्राप्त की गई",
+      "notFound": "अकादमी नहीं मिली",
+      "idRequired": "अकादमी आईडी आवश्यक है"
+    },
+    "getByCity": {
+      "success": "अकादमियां सफलतापूर्वक प्राप्त की गईं",
+      "cityNameRequired": "शहर का नाम आवश्यक है"
+    },
+    "getBySport": {
+      "success": "अकादमियां सफलतापूर्वक प्राप्त की गईं",
+      "slugRequired": "खेल स्लग आवश्यक है",
+      "sportNotFound": "खेल नहीं मिला"
+    },
+    "validation": {
+      "invalidLocationCoordinates": "अमान्य स्थान निर्देशांक"
+    }
   }
 }
 

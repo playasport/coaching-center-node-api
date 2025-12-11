@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 export interface Sport {
   custom_id: string;
   name: string;
+  slug?: string | null;
   logo?: string | null;
   is_active: boolean;
   is_popular: boolean;
@@ -28,6 +29,13 @@ const sportSchema = new Schema<Sport>(
       trim: true,
       index: true,
     },
+    slug: {
+      type: String,
+      default: null,
+      trim: true,
+      index: true,
+      lowercase: true,
+    },
     logo: {
       type: String,
       default: null,
@@ -48,10 +56,19 @@ const sportSchema = new Schema<Sport>(
   }
 );
 
-// Ensure custom_id is generated if not provided
+// Generate slug from name if not provided
 sportSchema.pre('save', function (next) {
   if (!this.custom_id) {
     this.custom_id = uuidv4();
+  }
+  // Generate slug from name if not provided
+  if (!this.slug && this.name) {
+    this.slug = this.name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/[\s_-]+/g, '-') // Replace spaces and underscores with hyphens
+      .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
   }
   next();
 });

@@ -12,7 +12,9 @@ import type {
   UserPasswordChangeInput,
   UserForgotPasswordRequestInput,
   UserForgotPasswordVerifyInput,
+  UserFavoriteSportsUpdateInput,
 } from '../validations/auth.validation';
+import { userService } from '../services/user.service';
 
 export const registerUser = async (
   req: Request,
@@ -346,6 +348,36 @@ export const logoutAll = async (
     await authService.logoutAll(req.user.id);
 
     const response = new ApiResponse(200, null, t('auth.logout.allSuccess'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateUserFavoriteSports = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const payload = req.body as UserFavoriteSportsUpdateInput;
+    const updatedUser = await userService.update(req.user.id, {
+      favoriteSports: payload.favoriteSports,
+    });
+
+    if (!updatedUser) {
+      throw new ApiError(404, t('auth.profile.notFound'));
+    }
+
+    const response = new ApiResponse(
+      200,
+      { user: updatedUser },
+      'Favorite sports updated successfully'
+    );
     res.json(response);
   } catch (error) {
     next(error);

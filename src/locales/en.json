@@ -460,6 +460,28 @@
       "failed": "Failed to fetch roles"
     }
   },
+  "academy": {
+    "getAll": {
+      "success": "Academies retrieved successfully"
+    },
+    "getById": {
+      "success": "Academy retrieved successfully",
+      "notFound": "Academy not found",
+      "idRequired": "Academy ID is required"
+    },
+    "getByCity": {
+      "success": "Academies retrieved successfully",
+      "cityNameRequired": "City name is required"
+    },
+    "getBySport": {
+      "success": "Academies retrieved successfully",
+      "slugRequired": "Sport slug is required",
+      "sportNotFound": "Sport not found"
+    },
+    "validation": {
+      "invalidLocationCoordinates": "Invalid location coordinates"
+    }
+  },
   "batch": {
     "create": {
       "success": "Batch created successfully",

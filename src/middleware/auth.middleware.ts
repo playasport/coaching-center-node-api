@@ -185,3 +185,62 @@ export const authorize = (...roles: string[]) => {
   };
 };
 
+/**
+ * Optional authentication middleware for public routes
+ * Sets req.user if token is valid, but doesn't fail if token is missing or invalid
+ * Useful for routes that work both with and without authentication
+ */
+export const optionalAuthenticate = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    // If no auth header, continue without setting user
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      next();
+      return;
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    // Check if token is blacklisted
+    const isBlacklisted = await isTokenBlacklisted(token);
+    if (isBlacklisted) {
+      next();
+      return;
+    }
+
+    // Verify JWT access token signature and expiration
+    let decoded;
+    try {
+      decoded = verifyAccessToken(token);
+    } catch (error) {
+      // Invalid token, continue without user
+      next();
+      return;
+    }
+
+    // Validate user status
+    const userValidation = await validateUserStatus(decoded.id);
+    if (!userValidation.valid) {
+      next();
+      return;
+    }
+
+    // Set user info if valid
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      role: decoded.role,
+    };
+
+    next();
+  } catch (error) {
+    // On any error, continue without user
+    next();
+  }
+};
+

@@ -14,6 +14,7 @@ import {
   refreshToken,
   logout,
   logoutAll,
+  updateUserFavoriteSports,
 } from '../controllers/userAuth.controller';
 import { validate } from '../middleware/validation.middleware';
 import {
@@ -27,6 +28,7 @@ import {
   userPasswordChangeSchema,
   userForgotPasswordRequestSchema,
   userForgotPasswordVerifySchema,
+  userFavoriteSportsUpdateSchema,
 } from '../validations/auth.validation';
 import { authenticate, authorize } from '../middleware/auth.middleware';
 import { loginRateLimit, generalRateLimit } from '../middleware/rateLimit.middleware';
@@ -445,6 +447,43 @@ router.get(
   authenticate,
   authorize(DefaultRoles.STUDENT, DefaultRoles.GUARDIAN),
   getCurrentUser
+);
+
+/**
+ * @swagger
+ * /user/auth/favorite-sports:
+ *   patch:
+ *     summary: Update user's favorite sports
+ *     tags: [User Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               favoriteSports:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of Sport ObjectIds
+ *                 example: ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"]
+ *     responses:
+ *       200:
+ *         description: Favorite sports updated successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ */
+router.patch(
+  '/favorite-sports',
+  authenticate,
+  authorize(DefaultRoles.STUDENT, DefaultRoles.GUARDIAN),
+  validate(userFavoriteSportsUpdateSchema),
+  updateUserFavoriteSports
 );
 
 /**

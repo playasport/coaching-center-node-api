@@ -15,6 +15,7 @@ export interface User {
   isActive: boolean;
   roles: Types.ObjectId[]; // Array of Role references - supports multiple roles
   userType?: 'student' | 'guardian' | null; // Only applies when role is 'user'
+  favoriteSports?: Types.ObjectId[]; // Array of Sport references for user preferences
   address?: Address | null;
   isDeleted: boolean;
   deletedAt?: Date | null;
@@ -46,6 +47,12 @@ const userSchema = new Schema<User>(
       type: String,
       enum: ['student', 'guardian'],
       default: null,
+      index: true,
+    },
+    favoriteSports: {
+      type: [Schema.Types.ObjectId],
+      ref: 'Sport',
+      default: [],
       index: true,
     },
     address: { type: addressSchema, default: null },

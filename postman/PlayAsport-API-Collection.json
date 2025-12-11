@@ -209,6 +209,189 @@
         }
       ],
       "description": "Authentication endpoints"
+    },
+    {
+      "name": "Academy",
+      "item": [
+        {
+          "name": "Get All Academies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academies?page=1&limit=10&lat=28.6139&lon=77.209",
+              "host": ["{{baseUrl}}"],
+              "path": ["academies"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page (default: 10, max: 100)"
+                },
+                {
+                  "key": "lat",
+                  "value": "28.6139",
+                  "description": "User's latitude (optional, for distance-based sorting)",
+                  "disabled": true
+                },
+                {
+                  "key": "lon",
+                  "value": "77.209",
+                  "description": "User's longitude (optional, for distance-based sorting)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all published academies with pagination. If location (lat, lon) is provided, academies are sorted by distance (nearest first). If user is logged in and has favorite sports, academies with favorite sports are prioritized. This is an unprotected route (authentication is optional)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Academy by User ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academy/:userId",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "f316a86c-2909-4d32-8983-eb225c715bcb",
+                  "description": "User's custom ID (academy owner's user ID)"
+                }
+              ]
+            },
+            "description": "Get detailed information about an academy including all batches. If user is not logged in, email and mobile number will be masked. This is an unprotected route (authentication is optional)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Academies by City",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/city/:cityName?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["city", ":cityName"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page (default: 10, max: 100)"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "cityName",
+                  "value": "New Delhi",
+                  "description": "City name (case-insensitive)"
+                }
+              ]
+            },
+            "description": "Get list of academies in a specific city. This is an unprotected route."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Academies by Sport",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sport/:slug?page=1&limit=10&lat=28.6139&lon=77.209",
+              "host": ["{{baseUrl}}"],
+              "path": ["sport", ":slug"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page (default: 10, max: 100)"
+                },
+                {
+                  "key": "lat",
+                  "value": "28.6139",
+                  "description": "User's latitude (optional, for distance-based sorting)",
+                  "disabled": true
+                },
+                {
+                  "key": "lon",
+                  "value": "77.209",
+                  "description": "User's longitude (optional, for distance-based sorting)",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "cricket",
+                  "description": "Sport slug (e.g., 'cricket', 'football')"
+                }
+              ]
+            },
+            "description": "Get academies that offer a specific sport. If location (lat, lon) is provided, academies are sorted by distance (nearest first) and distance is shown in km. This is an unprotected route (authentication is optional)."
+          },
+          "response": []
+        }
+      ],
+      "description": "Public academy endpoints for browsing and searching academies"
+    },
+    {
+      "name": "User Profile",
+      "item": [
+        {
+          "name": "Update Favorite Sports",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"favoriteSports\": [\n    \"507f1f77bcf86cd799439011\",\n    \"507f1f77bcf86cd799439012\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/favorite-sports",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "favorite-sports"]
+            },
+            "description": "Update user's favorite sports. Array of Sport ObjectIds. This is a protected route (requires authentication)."
+          },
+          "response": []
+        }
+      ],
+      "description": "User profile management endpoints"
     }
   ]
 }

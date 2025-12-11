@@ -430,3 +430,14 @@ export type UserForgotPasswordVerifyInput = z.infer<
   typeof userForgotPasswordVerifySchema
 >['body'];
 
+export const userFavoriteSportsUpdateSchema = z.object({
+  body: z.object({
+    favoriteSports: z
+      .array(z.string().min(1, 'Sport ID is required'))
+      .min(0, 'At least one sport ID is required')
+      .optional(),
+  }),
+});
+
+export type UserFavoriteSportsUpdateInput = z.infer<typeof userFavoriteSportsUpdateSchema>['body'];
+

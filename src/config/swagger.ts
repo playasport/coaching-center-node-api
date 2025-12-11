@@ -1728,6 +1728,259 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        AcademyListItem: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+            },
+            center_name: {
+              type: 'string',
+              example: 'Elite Sports Academy',
+            },
+            logo: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              example: 'https://bucket.s3.region.amazonaws.com/logos/elite-academy.png',
+            },
+            location: {
+              type: 'object',
+              properties: {
+                latitude: {
+                  type: 'number',
+                  example: 28.6139,
+                },
+                longitude: {
+                  type: 'number',
+                  example: 77.209,
+                },
+                address: {
+                  type: 'object',
+                  properties: {
+                    line1: {
+                      type: 'string',
+                      nullable: true,
+                    },
+                    line2: {
+                      type: 'string',
+                      example: 'Near Metro Station',
+                    },
+                    city: {
+                      type: 'string',
+                      example: 'New Delhi',
+                    },
+                    state: {
+                      type: 'string',
+                      example: 'Delhi',
+                    },
+                    country: {
+                      type: 'string',
+                      nullable: true,
+                      example: 'India',
+                    },
+                    pincode: {
+                      type: 'string',
+                      example: '110001',
+                    },
+                  },
+                },
+              },
+            },
+            sports: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/SportListItem',
+              },
+            },
+            age: {
+              type: 'object',
+              properties: {
+                min: {
+                  type: 'number',
+                  example: 5,
+                },
+                max: {
+                  type: 'number',
+                  example: 18,
+                },
+              },
+            },
+            distance: {
+              type: 'number',
+              nullable: true,
+              example: 2.5,
+              description: 'Distance in kilometers (if location provided)',
+            },
+          },
+        },
+        AcademyDetail: {
+          allOf: [
+            {
+              $ref: '#/components/schemas/AcademyListItem',
+            },
+            {
+              type: 'object',
+              properties: {
+                mobile_number: {
+                  type: 'string',
+                  nullable: true,
+                  example: '98****10',
+                  description: 'Masked if user not logged in',
+                },
+                email: {
+                  type: 'string',
+                  nullable: true,
+                  example: 'in***@elitesportsacademy.com',
+                  description: 'Masked if user not logged in',
+                },
+                rules_regulation: {
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                  },
+                  nullable: true,
+                },
+                sport_details: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      sport_id: {
+                        $ref: '#/components/schemas/SportListItem',
+                      },
+                      description: {
+                        type: 'string',
+                      },
+                      images: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            unique_id: { type: 'string' },
+                            url: { type: 'string', format: 'uri' },
+                            is_active: { type: 'boolean' },
+                          },
+                        },
+                      },
+                      videos: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            unique_id: { type: 'string' },
+                            url: { type: 'string', format: 'uri' },
+                            thumbnail: { type: 'string', format: 'uri', nullable: true },
+                            is_active: { type: 'boolean' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+                facility: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      _id: { type: 'string' },
+                      custom_id: { type: 'string' },
+                      name: { type: 'string' },
+                      description: { type: 'string', nullable: true },
+                      icon: { type: 'string', format: 'uri', nullable: true },
+                    },
+                  },
+                },
+                operational_timing: {
+                  type: 'object',
+                  properties: {
+                    operating_days: {
+                      type: 'array',
+                      items: { type: 'string' },
+                    },
+                    opening_time: { type: 'string', example: '09:00' },
+                    closing_time: { type: 'string', example: '18:00' },
+                  },
+                },
+                allowed_genders: {
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                    enum: ['male', 'female', 'other'],
+                  },
+                },
+                allowed_disabled: { type: 'boolean' },
+                is_only_for_disabled: { type: 'boolean' },
+                batches: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      _id: { type: 'string' },
+                      name: { type: 'string' },
+                      sport: {
+                        type: 'object',
+                        properties: {
+                          _id: { type: 'string' },
+                          custom_id: { type: 'string' },
+                          name: { type: 'string' },
+                          logo: { type: 'string', format: 'uri', nullable: true },
+                        },
+                      },
+                      scheduled: {
+                        type: 'object',
+                        properties: {
+                          start_date: { type: 'string', format: 'date' },
+                          start_time: { type: 'string', example: '09:00' },
+                          end_time: { type: 'string', example: '18:00' },
+                          training_days: {
+                            type: 'array',
+                            items: { type: 'string' },
+                          },
+                        },
+                      },
+                      duration: {
+                        type: 'object',
+                        properties: {
+                          count: { type: 'number' },
+                          type: { type: 'string' },
+                        },
+                      },
+                      capacity: {
+                        type: 'object',
+                        properties: {
+                          min: { type: 'number' },
+                          max: { type: 'number', nullable: true },
+                        },
+                      },
+                      age: {
+                        type: 'object',
+                        properties: {
+                          min: { type: 'number' },
+                          max: { type: 'number' },
+                        },
+                      },
+                      admission_fee: { type: 'number', nullable: true },
+                      fee_structure: {
+                        type: 'object',
+                        nullable: true,
+                        properties: {
+                          fee_type: { type: 'string' },
+                          fee_configuration: { type: 'object' },
+                          admission_fee: { type: 'number', nullable: true },
+                        },
+                      },
+                      status: { type: 'string' },
+                      is_active: { type: 'boolean' },
+                    },
+                  },
+                  nullable: true,
+                },
+              },
+            },
+          ],
+        },
         Employee: {
           type: 'object',
           properties: {
@@ -3005,6 +3258,10 @@ const options: swaggerJsdoc.Options = {
       {
         name: 'Webhook',
         description: 'Webhook endpoints for payment verification',
+      },
+      {
+        name: 'Academy',
+        description: 'Public academy endpoints for browsing and searching academies',
       },
     ],
   },
