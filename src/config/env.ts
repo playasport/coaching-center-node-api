@@ -102,4 +102,20 @@ export const config = {
     defaultLimit: Number(process.env.PAGINATION_DEFAULT_LIMIT || 10),
     maxLimit: Number(process.env.PAGINATION_MAX_LIMIT || 100),
   },
+  razorpay: {
+    keyId: process.env.RAZORPAY_KEY_ID || '',
+    keySecret: process.env.RAZORPAY_KEY_SECRET || '',
+  },
+  payment: {
+    gateway: (process.env.PAYMENT_GATEWAY || 'razorpay') as 'razorpay' | 'stripe' | 'payu' | 'cashfree',
+    // Add other payment gateway configs here in the future
+    // stripe: {
+    //   apiKey: process.env.STRIPE_API_KEY || '',
+    //   secretKey: process.env.STRIPE_SECRET_KEY || '',
+    // },
+  },
+  booking: {
+    platformFee: Number(process.env.PLATFORM_FEE || 200), // Default platform fee
+    gstPercentage: Number(process.env.GST_PERCENTAGE || 18), // Default GST percentage
+  },
 };

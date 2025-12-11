@@ -2625,6 +2625,320 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        Booking: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+              description: 'Booking UUID',
+            },
+            user: {
+              $ref: '#/components/schemas/User',
+              description: 'User who made the booking',
+            },
+            participants: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/Participant',
+              },
+              description: 'Participants for whom the booking is made',
+            },
+            batch: {
+              $ref: '#/components/schemas/Batch',
+              description: 'Batch being booked',
+            },
+            center: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                center_name: { type: 'string' },
+              },
+            },
+            sport: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+              },
+            },
+            amount: {
+              type: 'number',
+              example: 5000,
+              description: 'Total booking amount in rupees',
+            },
+            currency: {
+              type: 'string',
+              example: 'INR',
+            },
+            status: {
+              type: 'string',
+              enum: ['pending', 'confirmed', 'cancelled', 'completed'],
+              example: 'pending',
+            },
+            payment: {
+              type: 'object',
+              properties: {
+                razorpay_order_id: {
+                  type: 'string',
+                  example: 'order_1234567890',
+                },
+                razorpay_payment_id: {
+                  type: 'string',
+                  nullable: true,
+                  example: 'pay_1234567890',
+                },
+                razorpay_signature: {
+                  type: 'string',
+                  nullable: true,
+                },
+                amount: {
+                  type: 'number',
+                  example: 5000,
+                },
+                currency: {
+                  type: 'string',
+                  example: 'INR',
+                },
+                status: {
+                  type: 'string',
+                  enum: ['pending', 'processing', 'success', 'failed', 'refunded', 'cancelled'],
+                  example: 'pending',
+                },
+                payment_method: {
+                  type: 'string',
+                  nullable: true,
+                  example: 'card',
+                },
+                paid_at: {
+                  type: 'string',
+                  format: 'date-time',
+                  nullable: true,
+                },
+                failure_reason: {
+                  type: 'string',
+                  nullable: true,
+                },
+              },
+            },
+            notes: {
+              type: 'string',
+              nullable: true,
+              maxLength: 1000,
+            },
+            is_active: {
+              type: 'boolean',
+              example: true,
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+          },
+        },
+        BookingSummary: {
+          type: 'object',
+          properties: {
+            batch: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+                sport: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    name: { type: 'string' },
+                  },
+                },
+                center: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    name: { type: 'string' },
+                  },
+                },
+                scheduled: {
+                  type: 'object',
+                  properties: {
+                    start_date: { type: 'string', format: 'date' },
+                    start_time: { type: 'string' },
+                    end_time: { type: 'string' },
+                    training_days: {
+                      type: 'array',
+                      items: { type: 'string' },
+                    },
+                  },
+                },
+                duration: {
+                  type: 'object',
+                  properties: {
+                    count: { type: 'number' },
+                    type: { type: 'string' },
+                  },
+                },
+                admission_fee: {
+                  type: 'number',
+                  nullable: true,
+                },
+                fee_structure: {
+                  type: 'object',
+                  additionalProperties: true,
+                },
+              },
+            },
+            participants: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  firstName: { type: 'string', nullable: true },
+                  lastName: { type: 'string', nullable: true },
+                },
+              },
+            },
+            amount: {
+              type: 'number',
+              example: 5000,
+            },
+            currency: {
+              type: 'string',
+              example: 'INR',
+            },
+            breakdown: {
+              type: 'object',
+              properties: {
+                admission_fee: {
+                  type: 'number',
+                  nullable: true,
+                },
+                base_fee: {
+                  type: 'number',
+                  nullable: true,
+                },
+                total: {
+                  type: 'number',
+                },
+              },
+            },
+          },
+        },
+        RazorpayOrder: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              example: 'order_1234567890',
+            },
+            entity: {
+              type: 'string',
+              example: 'order',
+            },
+            amount: {
+              type: 'number',
+              example: 500000,
+              description: 'Amount in paise',
+            },
+            amount_paid: {
+              type: 'number',
+              example: 0,
+            },
+            amount_due: {
+              type: 'number',
+              example: 500000,
+            },
+            currency: {
+              type: 'string',
+              example: 'INR',
+            },
+            receipt: {
+              type: 'string',
+              example: 'booking_1234567890_abc123',
+            },
+            status: {
+              type: 'string',
+              example: 'created',
+            },
+            attempts: {
+              type: 'number',
+              example: 0,
+            },
+            created_at: {
+              type: 'number',
+              example: 1234567890,
+            },
+          },
+        },
+        Transaction: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+            },
+            booking: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Booking ObjectId',
+            },
+            user: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'User ObjectId',
+            },
+            razorpay_order_id: {
+              type: 'string',
+              example: 'order_1234567890',
+            },
+            razorpay_payment_id: {
+              type: 'string',
+              nullable: true,
+              example: 'pay_1234567890',
+            },
+            type: {
+              type: 'string',
+              enum: ['payment', 'refund', 'partial_refund'],
+              example: 'payment',
+            },
+            status: {
+              type: 'string',
+              enum: ['pending', 'processing', 'success', 'failed', 'cancelled', 'refunded'],
+              example: 'pending',
+            },
+            source: {
+              type: 'string',
+              enum: ['user_verification', 'webhook', 'manual'],
+              example: 'user_verification',
+            },
+            amount: {
+              type: 'number',
+              example: 5000,
+            },
+            currency: {
+              type: 'string',
+              example: 'INR',
+            },
+            payment_method: {
+              type: 'string',
+              nullable: true,
+              example: 'card',
+            },
+            processed_at: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+            },
+          },
+        },
       },
     },
     tags: [
@@ -2683,6 +2997,14 @@ const options: swaggerJsdoc.Options = {
       {
         name: 'Fee Type',
         description: 'Fee type configuration endpoints for dynamic form generation',
+      },
+      {
+        name: 'Booking',
+        description: 'Booking and payment management endpoints',
+      },
+      {
+        name: 'Webhook',
+        description: 'Webhook endpoints for payment verification',
       },
     ],
   },

@@ -1,0 +1,94 @@
+import { Request, Response, NextFunction } from 'express';
+import { ApiResponse } from '../utils/ApiResponse';
+import { ApiError } from '../utils/ApiError';
+import { t } from '../utils/i18n';
+import * as bookingService from '../services/booking.service';
+import type { BookingSummaryInput, CreateOrderInput, VerifyPaymentInput } from '../validations/booking.validation';
+
+/**
+ * Get booking summary
+ */
+export const getSummary = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user || !req.user.id) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const data = req.query as unknown as BookingSummaryInput;
+    const summary = await bookingService.getBookingSummary(data, req.user.id);
+
+    const response = new ApiResponse(200, { summary }, 'Booking summary retrieved successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Create Razorpay order
+ */
+export const createOrder = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user || !req.user.id) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const data = req.body as CreateOrderInput;
+    const result = await bookingService.createOrder(data, req.user.id);
+
+    const response = new ApiResponse(
+      201,
+      {
+        booking: result.booking,
+        razorpayOrder: {
+          id: result.razorpayOrder.id,
+          amount: result.razorpayOrder.amount,
+          currency: result.razorpayOrder.currency,
+          receipt: result.razorpayOrder.receipt,
+          status: result.razorpayOrder.status,
+          created_at: result.razorpayOrder.created_at,
+        },
+      },
+      'Order created successfully'
+    );
+    res.status(201).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Verify Razorpay payment
+ */
+export const verifyPayment = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user || !req.user.id) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const data = req.body as VerifyPaymentInput;
+    const booking = await bookingService.verifyPayment(data, req.user.id);
+
+    const response = new ApiResponse(
+      200,
+      { booking },
+      'Payment verified successfully'
+    );
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+

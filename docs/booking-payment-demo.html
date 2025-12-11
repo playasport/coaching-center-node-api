@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PlayAsport Booking & Payment Demo</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        background-color: #f4f5f7;
+        color: #1f2937;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      .page {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem 4rem;
+      }
+
+      h1 {
+        margin-bottom: 0.25rem;
+      }
+
+      .card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 16px 48px rgba(15, 23, 42, 0.12);
+        margin-top: 2rem;
+      }
+
+      .card h2 {
+        margin-top: 0;
+      }
+
+      .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+      }
+
+      label {
+        font-weight: 600;
+      }
+
+      input,
+      textarea {
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        border: 1px solid #cbd5f5;
+        font-size: 0.95rem;
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+
+      .participant-input-group {
+        display: flex;
+        gap: 0.5rem;
+        align-items: flex-end;
+      }
+
+      .participant-input-group input {
+        flex: 1;
+      }
+
+      .participant-list {
+        margin-top: 0.5rem;
+      }
+
+      .participant-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0.75rem;
+        background: rgba(99, 102, 241, 0.1);
+        border-radius: 999px;
+        font-size: 0.85rem;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .participant-tag button {
+        background: none;
+        border: none;
+        color: #dc2626;
+        cursor: pointer;
+        padding: 0;
+        font-size: 1rem;
+        font-weight: bold;
+      }
+
+      button {
+        cursor: pointer;
+        padding: 0.85rem 1.25rem;
+        border: none;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        color: white;
+        transition: transform 0.1s ease, box-shadow 0.1s ease;
+        background: linear-gradient(120deg, #6366f1, #8b5cf6);
+      }
+
+      button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 16px rgba(15, 23, 42, 0.12);
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      button.secondary {
+        background: #6b7280;
+      }
+
+      button.success {
+        background: #047857;
+      }
+
+      button.danger {
+        background: #dc2626;
+      }
+
+      pre {
+        background: #0f172a;
+        color: #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem;
+        overflow-x: auto;
+        font-size: 0.85rem;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .status {
+        font-weight: 600;
+        margin-bottom: 1rem;
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+      }
+
+      .status.info {
+        background: rgba(59, 130, 246, 0.1);
+        color: #1e40af;
+      }
+
+      .status.success {
+        background: rgba(5, 150, 105, 0.1);
+        color: #047857;
+      }
+
+      .status.error {
+        background: rgba(220, 38, 38, 0.1);
+        color: #dc2626;
+      }
+
+      .status.warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: #d97706;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0.75rem;
+        background: rgba(99, 102, 241, 0.1);
+        border-radius: 999px;
+        font-size: 0.85rem;
+        margin-right: 0.5rem;
+      }
+
+      code {
+        background: rgba(15, 23, 42, 0.08);
+        padding: 0.1rem 0.35rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+      }
+
+      .summary-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-top: 1rem;
+      }
+
+      .summary-card h3 {
+        margin-top: 0;
+        color: white;
+      }
+
+      .summary-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .summary-item:last-child {
+        border-bottom: none;
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-top: 0.5rem;
+      }
+
+      @media (max-width: 600px) {
+        .card {
+          padding: 1.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1>PlayAsport Booking & Payment Demo</h1>
+        <p>
+          Use this page to create a booking order, make payment via Razorpay, and automatically verify the payment.
+        </p>
+      </header>
+
+      <section class="card" id="configSection">
+        <h2>1. Configuration</h2>
+        <div class="field-group">
+          <label for="backendBaseUrl">Backend base URL</label>
+          <input
+            id="backendBaseUrl"
+            type="url"
+            placeholder="http://localhost:3000/api/v1"
+            value="http://localhost:3000/api/v1"
+          />
+        </div>
+        <div class="field-group">
+          <label for="authToken">Authentication Token (JWT)</label>
+          <input
+            id="authToken"
+            type="text"
+            placeholder="Enter your JWT token here"
+          />
+          <small style="color: #6b7280;">
+            Get this token from the login API response. It will be stored in localStorage.
+          </small>
+        </div>
+        <div class="field-group">
+          <label for="razorpayKeyId">Razorpay Key ID *</label>
+          <input
+            id="razorpayKeyId"
+            type="text"
+            placeholder="rzp_test_xxxxx or rzp_live_xxxxx"
+            required
+          />
+          <small style="color: #6b7280;">
+            Required for Razorpay checkout. Get this from your Razorpay dashboard (Settings → API Keys). Use test key for development.
+          </small>
+        </div>
+      </section>
+
+      <section class="card" id="bookingSection">
+        <h2>2. Booking Details</h2>
+        <div class="field-group">
+          <label for="batchId">Batch ID *</label>
+          <input
+            id="batchId"
+            type="text"
+            placeholder="Enter batch ID"
+            required
+          />
+        </div>
+        <div class="field-group">
+          <label>Participant IDs *</label>
+          <div class="participant-input-group">
+            <input
+              id="participantIdInput"
+              type="text"
+              placeholder="Enter participant ID"
+            />
+            <button type="button" id="addParticipant" class="secondary">Add</button>
+          </div>
+          <div id="participantList" class="participant-list"></div>
+          <small style="color: #6b7280;">
+            Add at least one participant ID. You can add multiple participants.
+          </small>
+        </div>
+        <div class="field-group">
+          <label for="notes">Notes (Optional)</label>
+          <textarea
+            id="notes"
+            placeholder="Any additional notes for the booking"
+          ></textarea>
+        </div>
+        <button id="getSummary" type="button">Get Booking Summary</button>
+        <div id="summaryStatus" class="status" style="display: none;"></div>
+        <div id="summaryCard" style="display: none;"></div>
+      </section>
+
+      <section class="card" id="paymentSection" style="display: none;">
+        <h2>3. Create Order & Payment</h2>
+        <button id="createOrder" type="button">Create Order & Open Razorpay</button>
+        <div id="orderStatus" class="status" style="display: none;"></div>
+      </section>
+
+      <section class="card" id="responseSection">
+        <h2>4. API Responses</h2>
+        <h3>Summary Response</h3>
+        <pre id="summaryResponse">No request sent yet.</pre>
+        <h3>Create Order Response</h3>
+        <pre id="orderResponse">No request sent yet.</pre>
+        <h3>Verify Payment Response</h3>
+        <pre id="verifyResponse">No request sent yet.</pre>
+      </section>
+    </div>
+
+    <script>
+      const STORAGE_KEYS = {
+        backendUrl: 'playasport_booking_backend_url',
+        authToken: 'playasport_booking_auth_token',
+        razorpayKeyId: 'playasport_booking_razorpay_key',
+      };
+
+      const participantIds = [];
+      let bookingSummary = null;
+      let razorpayOrder = null;
+
+      // DOM Elements
+      const backendBaseUrlInput = document.getElementById('backendBaseUrl');
+      const authTokenInput = document.getElementById('authToken');
+      const razorpayKeyIdInput = document.getElementById('razorpayKeyId');
+      const batchIdInput = document.getElementById('batchId');
+      const participantIdInput = document.getElementById('participantIdInput');
+      const addParticipantBtn = document.getElementById('addParticipant');
+      const participantListDiv = document.getElementById('participantList');
+      const notesInput = document.getElementById('notes');
+      const getSummaryBtn = document.getElementById('getSummary');
+      const summaryStatusDiv = document.getElementById('summaryStatus');
+      const summaryCardDiv = document.getElementById('summaryCard');
+      const paymentSection = document.getElementById('paymentSection');
+      const createOrderBtn = document.getElementById('createOrder');
+      const orderStatusDiv = document.getElementById('orderStatus');
+      const summaryResponsePre = document.getElementById('summaryResponse');
+      const orderResponsePre = document.getElementById('orderResponse');
+      const verifyResponsePre = document.getElementById('verifyResponse');
+
+      // Update status display
+      const updateStatus = (element, message, type = 'info') => {
+        element.textContent = message;
+        element.className = `status ${type}`;
+        element.style.display = 'block';
+      };
+
+      // Render participant list
+      const renderParticipantList = () => {
+        participantListDiv.innerHTML = '';
+        participantIds.forEach((id, index) => {
+          const tag = document.createElement('div');
+          tag.className = 'participant-tag';
+          tag.innerHTML = `
+            <span>${id}</span>
+            <button type="button" onclick="removeParticipant(${index})" title="Remove">×</button>
+          `;
+          participantListDiv.appendChild(tag);
+        });
+      };
+
+      // Add participant
+      addParticipantBtn.addEventListener('click', () => {
+        const id = participantIdInput.value.trim();
+        if (id && !participantIds.includes(id)) {
+          participantIds.push(id);
+          participantIdInput.value = '';
+          renderParticipantList();
+        } else if (participantIds.includes(id)) {
+          alert('Participant ID already added');
+        }
+      });
+
+      // Remove participant (global function for onclick)
+      window.removeParticipant = (index) => {
+        participantIds.splice(index, 1);
+        renderParticipantList();
+      };
+
+      // Enter key to add participant
+      participantIdInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          addParticipantBtn.click();
+        }
+      });
+
+      // API call helper
+      const apiCall = async (endpoint, method = 'GET', body = null) => {
+        const baseUrl = backendBaseUrlInput.value.trim().replace(/\/$/, '');
+        const token = authTokenInput.value.trim();
+
+        if (!baseUrl) {
+          throw new Error('Backend base URL is required');
+        }
+        if (!token) {
+          throw new Error('Authentication token is required');
+        }
+
+        const url = `${baseUrl}${endpoint}`;
+        const options = {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        };
+
+        if (body) {
+          options.body = JSON.stringify(body);
+        }
+
+        const response = await fetch(url, options);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            `API Error (${response.status}): ${data.message || JSON.stringify(data)}`
+          );
+        }
+
+        return data;
+      };
+
+      // Get booking summary
+      getSummaryBtn.addEventListener('click', async () => {
+        try {
+          if (!batchIdInput.value.trim()) {
+            throw new Error('Batch ID is required');
+          }
+          if (participantIds.length === 0) {
+            throw new Error('At least one participant ID is required');
+          }
+
+          updateStatus(summaryStatusDiv, 'Fetching booking summary...', 'info');
+          getSummaryBtn.disabled = true;
+
+          const queryParams = new URLSearchParams({
+            batchId: batchIdInput.value.trim(),
+            ...participantIds.reduce((acc, id, index) => {
+              acc[`participantIds[${index}]`] = id;
+              return acc;
+            }, {}),
+          });
+
+          // For array query params, we can also use comma-separated or multiple params
+          // Using multiple params format: ?participantIds=id1&participantIds=id2
+          const arrayParams = participantIds.map(id => `participantIds=${encodeURIComponent(id)}`).join('&');
+          const url = `${backendBaseUrlInput.value.trim().replace(/\/$/, '')}/user/booking/summary?batchId=${encodeURIComponent(batchIdInput.value.trim())}&${arrayParams}`;
+
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${authTokenInput.value.trim()}`,
+            },
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(`API Error (${response.status}): ${data.message || JSON.stringify(data)}`);
+          }
+
+          bookingSummary = data.data.summary;
+          summaryResponsePre.textContent = JSON.stringify(data, null, 2);
+
+          // Display summary
+          summaryCardDiv.innerHTML = `
+            <div class="summary-card">
+              <h3>Booking Summary</h3>
+              <div class="summary-item">
+                <span>Batch:</span>
+                <span>${bookingSummary.batch.name}</span>
+              </div>
+              <div class="summary-item">
+                <span>Sport:</span>
+                <span>${bookingSummary.batch.sport.name}</span>
+              </div>
+              <div class="summary-item">
+                <span>Center:</span>
+                <span>${bookingSummary.batch.center.name}</span>
+              </div>
+              <div class="summary-item">
+                <span>Participants:</span>
+                <span>${bookingSummary.participants.length}</span>
+              </div>
+              <div class="summary-item">
+                <span>Subtotal:</span>
+                <span>₹${bookingSummary.breakdown.subtotal || 0}</span>
+              </div>
+              ${bookingSummary.breakdown.gst ? `
+              <div class="summary-item">
+                <span>GST (${bookingSummary.breakdown.gst_percentage}%):</span>
+                <span>₹${bookingSummary.breakdown.gst}</span>
+              </div>
+              ` : ''}
+              <div class="summary-item">
+                <span>Total Amount:</span>
+                <span>₹${bookingSummary.amount}</span>
+              </div>
+            </div>
+          `;
+          summaryCardDiv.style.display = 'block';
+          paymentSection.style.display = 'block';
+          updateStatus(summaryStatusDiv, 'Booking summary retrieved successfully!', 'success');
+        } catch (error) {
+          console.error(error);
+          updateStatus(summaryStatusDiv, error.message, 'error');
+          summaryResponsePre.textContent = error.message;
+        } finally {
+          getSummaryBtn.disabled = false;
+        }
+      });
+
+      // Create order and open Razorpay
+      createOrderBtn.addEventListener('click', async () => {
+        try {
+          if (!bookingSummary) {
+            throw new Error('Please get booking summary first');
+          }
+
+          updateStatus(orderStatusDiv, 'Creating order...', 'info');
+          createOrderBtn.disabled = true;
+
+          const orderData = {
+            batchId: batchIdInput.value.trim(),
+            participantIds: participantIds,
+            notes: notesInput.value.trim() || null,
+          };
+
+          const data = await apiCall('/user/booking/create-order', 'POST', orderData);
+          razorpayOrder = data.data.razorpayOrder;
+          orderResponsePre.textContent = JSON.stringify(data, null, 2);
+
+          // Get Razorpay key ID (required for frontend checkout)
+          const razorpayKeyId = razorpayKeyIdInput.value.trim();
+          if (!razorpayKeyId) {
+            throw new Error('Razorpay Key ID is required. Please enter it in the configuration section.');
+          }
+
+          // Open Razorpay checkout
+          const options = {
+            key: razorpayKeyId,
+            amount: razorpayOrder.amount, // Amount in paise
+            currency: razorpayOrder.currency,
+            name: 'PlayAsport Academy',
+            description: `Booking for ${bookingSummary.batch.name}`,
+            order_id: razorpayOrder.id,
+            handler: async function (response) {
+              updateStatus(orderStatusDiv, 'Payment successful! Verifying payment...', 'info');
+              
+              try {
+                // Automatically verify payment
+                const verifyData = {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                };
+
+                const verifyResult = await apiCall('/user/booking/verify-payment', 'POST', verifyData);
+                verifyResponsePre.textContent = JSON.stringify(verifyResult, null, 2);
+                updateStatus(orderStatusDiv, 'Payment verified successfully!', 'success');
+              } catch (error) {
+                console.error('Payment verification failed:', error);
+                updateStatus(orderStatusDiv, `Payment successful but verification failed: ${error.message}`, 'error');
+                verifyResponsePre.textContent = error.message;
+              }
+            },
+            prefill: {
+              // You can add user details here if available
+            },
+            theme: {
+              color: '#6366f1',
+            },
+            modal: {
+              ondismiss: function() {
+                updateStatus(orderStatusDiv, 'Payment window closed', 'warning');
+              },
+            },
+          };
+
+          const razorpay = new Razorpay(options);
+          razorpay.open();
+          updateStatus(orderStatusDiv, 'Razorpay payment window opened', 'info');
+
+        } catch (error) {
+          console.error(error);
+          updateStatus(orderStatusDiv, error.message, 'error');
+          orderResponsePre.textContent = error.message;
+        } finally {
+          createOrderBtn.disabled = false;
+        }
+      });
+
+      // Load saved values
+      window.addEventListener('DOMContentLoaded', () => {
+        const savedBackendUrl = localStorage.getItem(STORAGE_KEYS.backendUrl);
+        if (savedBackendUrl) {
+          backendBaseUrlInput.value = savedBackendUrl;
+        }
+
+        const savedAuthToken = localStorage.getItem(STORAGE_KEYS.authToken);
+        if (savedAuthToken) {
+          authTokenInput.value = savedAuthToken;
+        }
+
+        const savedRazorpayKey = localStorage.getItem(STORAGE_KEYS.razorpayKeyId);
+        if (savedRazorpayKey) {
+          razorpayKeyIdInput.value = savedRazorpayKey;
+        }
+
+        // Save on change
+        backendBaseUrlInput.addEventListener('change', () => {
+          localStorage.setItem(STORAGE_KEYS.backendUrl, backendBaseUrlInput.value);
+        });
+
+        authTokenInput.addEventListener('change', () => {
+          localStorage.setItem(STORAGE_KEYS.authToken, authTokenInput.value);
+        });
+
+        razorpayKeyIdInput.addEventListener('change', () => {
+          localStorage.setItem(STORAGE_KEYS.razorpayKeyId, razorpayKeyIdInput.value);
+        });
+      });
+    </script>
+  </body>
+</html>
+

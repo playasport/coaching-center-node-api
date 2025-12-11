@@ -10,6 +10,24 @@ const app: Application = express();
 
 // Middleware
 app.use(cors());
+
+// Raw body middleware for webhooks (must be before express.json())
+app.use((req, res, next) => {
+  if (req.path.includes('/webhook')) {
+    let data = '';
+    req.setEncoding('utf8');
+    req.on('data', (chunk) => {
+      data += chunk;
+    });
+    req.on('end', () => {
+      (req as any).rawBody = data;
+      next();
+    });
+  } else {
+    next();
+  }
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

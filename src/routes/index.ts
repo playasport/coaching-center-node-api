@@ -11,6 +11,8 @@ import batchRoutes from './academy/batch.routes';
 import feeTypeConfigRoutes from './academy/feeTypeConfig.routes';
 import roleRoutes from './role.routes';
 import participantRoutes from './participant.routes';
+import bookingRoutes from './booking.routes';
+import webhookRoutes from './webhook.routes';
 import { t } from '../utils/i18n';
 import { ApiResponse } from '../utils/ApiResponse';
 
@@ -20,6 +22,7 @@ router.use('/locale', localeRoutes);
 router.use('/academy/auth', academyAuthRoutes);
 router.use('/user/auth', userAuthRoutes);
 router.use('/user/participant', participantRoutes);
+router.use('/user/booking', bookingRoutes);
 router.use('/location', locationRoutes);
 router.use('/', basicRoutes);
 router.use('/academy/coaching-center', coachingCenterRoutes);
@@ -27,6 +30,7 @@ router.use('/academy/employee', employeeRoutes);
 router.use('/academy/batch', batchRoutes);
 router.use('/academy/fee-type-config', feeTypeConfigRoutes);
 router.use('/role', roleRoutes);
+router.use('/webhook', webhookRoutes);
 router.get('/health', (_req, res) => {
   const response = new ApiResponse(200, { timestamp: new Date().toISOString() }, t('health.serverRunning'));
   res.json(response);
@@ -44,6 +48,11 @@ router.get('/demo/coaching-center', (_req, res) => {
 
 router.get('/demo/batch-create', (_req, res) => {
   const filePath = path.resolve(process.cwd(), 'docs', 'batch-create-demo.html');
+  res.sendFile(filePath);
+});
+
+router.get('/demo/booking-payment', (_req, res) => {
+  const filePath = path.resolve(process.cwd(), 'docs', 'booking-payment-demo.html');
   res.sendFile(filePath);
 });
 

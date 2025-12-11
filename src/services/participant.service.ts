@@ -1,4 +1,3 @@
-import { Types } from 'mongoose';
 import { ParticipantModel, Participant } from '../models/participant.model';
 import { logger } from '../utils/logger';
 import { ApiError } from '../utils/ApiError';
@@ -19,6 +18,21 @@ export interface PaginatedResult<T> {
   };
 }
 
+/**
+ * Calculate age from date of birth
+ */
+const calculateAge = (dob: Date): number => {
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    age--;
+  }
+  
+  return age;
+};
+
 export const createParticipant = async (
   data: ParticipantCreateInput,
   userId: string
@@ -28,6 +42,27 @@ export const createParticipant = async (
     const userObjectId = await getUserObjectId(userId);
     if (!userObjectId) {
       throw new ApiError(404, 'User not found');
+    }
+
+    // Validate age if date of birth is provided
+    if (data.dob) {
+      const dobDate = new Date(data.dob);
+      const today = new Date();
+      
+      // Check if date of birth is in the future
+      if (dobDate > today) {
+        throw new ApiError(400, t('participant.dob.invalid'));
+      }
+      
+      const age = calculateAge(dobDate);
+      
+      if (age < 3) {
+        throw new ApiError(400, t('participant.age.minRequired'));
+      }
+      
+      if (age > 18) {
+        throw new ApiError(400, t('participant.age.maxExceeded'));
+      }
     }
 
     // Prepare participant data

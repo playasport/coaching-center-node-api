@@ -1,0 +1,215 @@
+{
+  "info": {
+    "name": "PlayAsport Academy API",
+    "description": "API collection for PlayAsport Academy backend with Booking and Payment endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Booking",
+      "item": [
+        {
+          "name": "Get Booking Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/summary?batchId=:batchId&participantIds=:participantId1,:participantId2",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", "summary"],
+              "query": [
+                {
+                  "key": "batchId",
+                  "value": ":batchId",
+                  "description": "Batch ID (ObjectId)"
+                },
+                {
+                  "key": "participantIds",
+                  "value": ":participantId1,:participantId2",
+                  "description": "Comma-separated Participant IDs (e.g., id1,id2,id3)"
+                }
+              ]
+            },
+            "description": "Get booking summary including batch details, participant info, and calculated amount before creating an order."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchId\": \"507f1f77bcf86cd799439011\",\n  \"participantIds\": [\"507f1f77bcf86cd799439012\", \"507f1f77bcf86cd799439013\"],\n  \"notes\": \"Optional booking notes\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/order",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", "order"]
+            },
+            "description": "Create a Razorpay payment order and booking record. Returns booking details and Razorpay order information."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_1234567890\",\n  \"razorpay_payment_id\": \"pay_1234567890\",\n  \"razorpay_signature\": \"signature_from_razorpay\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/verify-payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", "verify-payment"]
+            },
+            "description": "Verify Razorpay payment signature and update booking status. Use this after successful payment on frontend."
+          },
+          "response": []
+        }
+      ],
+      "description": "Booking and payment management endpoints"
+    },
+    {
+      "name": "Webhook",
+      "item": [
+        {
+          "name": "Razorpay Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Razorpay-Signature",
+                "value": "webhook_signature_from_razorpay",
+                "type": "text",
+                "description": "Razorpay webhook signature for verification"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entity\": \"event\",\n  \"account_id\": \"acc_1234567890\",\n  \"event\": \"payment.captured\",\n  \"contains\": [\"payment\"],\n  \"payload\": {\n    \"payment\": {\n      \"entity\": {\n        \"id\": \"pay_1234567890\",\n        \"entity\": \"payment\",\n        \"amount\": 500000,\n        \"currency\": \"INR\",\n        \"status\": \"captured\",\n        \"order_id\": \"order_1234567890\",\n        \"method\": \"card\",\n        \"captured\": true,\n        \"email\": \"user@example.com\",\n        \"contact\": \"9876543210\",\n        \"created_at\": 1234567890\n      }\n    }\n  },\n  \"created_at\": 1234567890\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/razorpay",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhook", "razorpay"]
+            },
+            "description": "Webhook endpoint for Razorpay payment events. Automatically verifies payments and updates booking status. Called by Razorpay when payment events occur."
+          },
+          "response": []
+        }
+      ],
+      "description": "Webhook endpoints for payment verification"
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "User Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "login"]
+            },
+            "description": "Login endpoint to get access token. Save the accessToken from response to use in other requests."
+          },
+          "response": []
+        }
+      ],
+      "description": "Authentication endpoints"
+    }
+  ]
+}
+

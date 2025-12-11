@@ -445,7 +445,14 @@
       "failed": "Failed to delete participant"
     },
     "idRequired": "Participant ID is required",
-    "notFound": "Participant not found"
+    "notFound": "Participant not found",
+    "age": {
+      "minRequired": "Participant must be at least 3 years old",
+      "maxExceeded": "Participant must be 18 years old or younger"
+    },
+    "dob": {
+      "invalid": "Date of birth cannot be in the future"
+    }
   },
   "role": {
     "list": {
