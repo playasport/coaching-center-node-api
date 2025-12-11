@@ -479,7 +479,20 @@
       "sportNotFound": "Sport not found"
     },
     "validation": {
-      "invalidLocationCoordinates": "Invalid location coordinates"
+      "invalidLocationCoordinates": "Invalid location coordinates",
+      "invalidRadius": "Invalid radius. Radius must be greater than 0 and not exceed the maximum allowed radius"
+    }
+  },
+  "home": {
+    "getHomeData": {
+      "success": "Home data retrieved successfully",
+      "failed": "Failed to get home data"
+    },
+    "getPopularSports": {
+      "failed": "Failed to get popular sports"
+    },
+    "getNearbyAcademies": {
+      "failed": "Failed to get nearby academies"
     }
   },
   "batch": {

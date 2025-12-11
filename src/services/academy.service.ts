@@ -162,7 +162,8 @@ export const getAllAcademies = async (
   page: number = 1,
   limit: number = config.pagination.defaultLimit,
   userLocation?: { lat: number; lon: number },
-  userId?: string
+  userId?: string,
+  radius?: number
 ): Promise<PaginatedResult<AcademyListItem>> => {
   try {
     const pageNumber = Math.max(1, Math.floor(page));
@@ -194,10 +195,7 @@ export const getAllAcademies = async (
       }
     }
 
-    // Get total count
-    const total = await CoachingCenterModel.countDocuments(query);
-
-    // Fetch academies
+    // Fetch academies (total count will be calculated after filtering by radius)
     let academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo is_popular')
       .populate({
@@ -226,6 +224,13 @@ export const getAllAcademies = async (
         ...academy,
         distance: distances[index],
       }));
+
+      // Filter by radius if provided
+      const searchRadius = radius ?? config.location.defaultRadius;
+      academies = academies.filter((academy) => {
+        const distance = (academy as any).distance;
+        return distance !== undefined && distance <= searchRadius;
+      });
     }
 
     // Sort academies
@@ -252,10 +257,13 @@ export const getAllAcademies = async (
       return 0;
     });
 
+    // Update total count after filtering by radius
+    const filteredTotal = academies.length;
+
     // Apply pagination
     const paginatedAcademies = academies.slice(skip, skip + pageSize);
 
-    const totalPages = Math.ceil(total / pageSize);
+    const totalPages = Math.ceil(filteredTotal / pageSize);
 
     return {
       data: paginatedAcademies.map((academy: any) => {
@@ -294,7 +302,7 @@ export const getAllAcademies = async (
       pagination: {
         page: pageNumber,
         limit: pageSize,
-        total,
+        total: filteredTotal,
         totalPages,
         hasNextPage: pageNumber < totalPages,
         hasPrevPage: pageNumber > 1,
@@ -463,7 +471,8 @@ export const getAcademiesBySport = async (
   sportSlug: string,
   page: number = 1,
   limit: number = config.pagination.defaultLimit,
-  userLocation?: { lat: number; lon: number }
+  userLocation?: { lat: number; lon: number },
+  radius?: number
 ): Promise<PaginatedResult<AcademyListItem>> => {
   try {
     const pageNumber = Math.max(1, Math.floor(page));
@@ -498,13 +507,15 @@ export const getAcademiesBySport = async (
       sports: sport._id,
     };
 
-    // Get total count
-    const total = await CoachingCenterModel.countDocuments(query);
-
-    // Fetch academies
+    // Fetch academies (total count will be calculated after filtering by radius)
     let academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo is_popular')
-      .select('center_name logo location sports age')
+      .populate({
+        path: 'user',
+        select: 'id',
+        match: { isDeleted: false },
+      })
+      .select('center_name logo location sports age allowed_genders sport_details user')
       .lean();
 
     // Calculate distances if location provided
@@ -526,6 +537,13 @@ export const getAcademiesBySport = async (
         distance: distances[index],
       }));
 
+      // Filter by radius if provided
+      const searchRadius = radius ?? config.location.defaultRadius;
+      academies = academies.filter((academy) => {
+        const distance = (academy as any).distance;
+        return distance !== undefined && distance <= searchRadius;
+      });
+
       // Sort by distance
       academies.sort((a, b) => (a as any).distance - (b as any).distance);
     } else {
@@ -538,25 +556,52 @@ export const getAcademiesBySport = async (
       });
     }
 
+    // Update total count after filtering by radius
+    const filteredTotal = academies.length;
+
     // Apply pagination
     const paginatedAcademies = academies.slice(skip, skip + pageSize);
 
-    const totalPages = Math.ceil(total / pageSize);
+    const totalPages = Math.ceil(filteredTotal / pageSize);
 
     return {
-      data: paginatedAcademies.map((academy: any) => ({
-        _id: academy._id.toString(),
-        center_name: academy.center_name,
-        logo: academy.logo,
-        location: academy.location,
-        sports: academy.sports || [],
-        age: academy.age,
-        distance: academy.distance,
-      })) as AcademyListItem[],
+      data: paginatedAcademies.map((academy: any) => {
+        // Get user's custom ID
+        const customId = academy.user?.id || null;
+
+        // Get first active image from sport_details
+        let image: string | null = null;
+        if (academy.sport_details && Array.isArray(academy.sport_details)) {
+          for (const sportDetail of academy.sport_details) {
+            if (sportDetail.images && Array.isArray(sportDetail.images)) {
+              const activeImage = sportDetail.images.find(
+                (img: any) => img.is_active && !img.is_deleted
+              );
+              if (activeImage) {
+                image = activeImage.url;
+                break;
+              }
+            }
+          }
+        }
+
+        return {
+          _id: academy._id.toString(),
+          custom_id: customId,
+          center_name: academy.center_name,
+          logo: academy.logo,
+          image: image,
+          location: academy.location,
+          sports: academy.sports || [],
+          age: academy.age,
+          allowed_genders: academy.allowed_genders || [],
+          distance: academy.distance,
+        };
+      }) as AcademyListItem[],
       pagination: {
         page: pageNumber,
         limit: pageSize,
-        total,
+        total: filteredTotal,
         totalPages,
         hasNextPage: pageNumber < totalPages,
         hasPrevPage: pageNumber > 1,

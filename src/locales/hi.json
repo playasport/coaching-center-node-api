@@ -510,7 +510,20 @@
       "sportNotFound": "खेल नहीं मिला"
     },
     "validation": {
-      "invalidLocationCoordinates": "अमान्य स्थान निर्देशांक"
+      "invalidLocationCoordinates": "अमान्य स्थान निर्देशांक",
+      "invalidRadius": "अमान्य त्रिज्या। त्रिज्या 0 से अधिक होनी चाहिए और अधिकतम अनुमत त्रिज्या से अधिक नहीं होनी चाहिए"
+    }
+  },
+  "home": {
+    "getHomeData": {
+      "success": "होम डेटा सफलतापूर्वक प्राप्त किया गया",
+      "failed": "होम डेटा प्राप्त करने में विफल"
+    },
+    "getPopularSports": {
+      "failed": "लोकप्रिय खेल प्राप्त करने में विफल"
+    },
+    "getNearbyAcademies": {
+      "failed": "निकटवर्ती अकादमियां प्राप्त करने में विफल"
     }
   }
 }

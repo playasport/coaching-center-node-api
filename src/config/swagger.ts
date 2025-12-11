@@ -1735,6 +1735,12 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: '507f1f77bcf86cd799439011',
             },
+            custom_id: {
+              type: 'string',
+              nullable: true,
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+              description: "User's custom ID (academy owner's user ID)",
+            },
             center_name: {
               type: 'string',
               example: 'Elite Sports Academy',
@@ -1744,6 +1750,13 @@ const options: swaggerJsdoc.Options = {
               format: 'uri',
               nullable: true,
               example: 'https://bucket.s3.region.amazonaws.com/logos/elite-academy.png',
+            },
+            image: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              example: 'https://bucket.s3.region.amazonaws.com/images/academy-image.jpg',
+              description: 'One image from sport_details',
             },
             location: {
               type: 'object',
@@ -1807,11 +1820,78 @@ const options: swaggerJsdoc.Options = {
                 },
               },
             },
+            allowed_genders: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['male', 'female', 'other'],
+              },
+              example: ['male', 'female'],
+              description: 'Array of allowed genders for the academy',
+            },
             distance: {
               type: 'number',
               nullable: true,
               example: 2.5,
               description: 'Distance in kilometers (if location provided)',
+            },
+          },
+        },
+        PopularSport: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'MongoDB Object ID',
+            },
+            custom_id: {
+              type: 'string',
+              format: 'uuid',
+              example: '06da21af-f11c-4cd9-8ecc-b21d3de9ad2c',
+              description: 'Unique identifier for the sport',
+            },
+            name: {
+              type: 'string',
+              example: 'Cricket',
+              description: 'Name of the sport',
+            },
+            slug: {
+              type: 'string',
+              nullable: true,
+              example: 'cricket',
+              description: 'URL-friendly slug for the sport',
+            },
+            logo: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              example: 'https://bucket.s3.region.amazonaws.com/logos/cricket.png',
+              description: 'Logo URL of the sport',
+            },
+            is_popular: {
+              type: 'boolean',
+              example: true,
+              description: 'Whether the sport is marked as popular',
+            },
+          },
+        },
+        HomeData: {
+          type: 'object',
+          properties: {
+            nearbyAcademies: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/AcademyListItem',
+              },
+              description: 'List of nearby academies (up to 12, sorted by distance)',
+            },
+            popularSports: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/PopularSport',
+              },
+              description: 'List of 8 popular sports',
             },
           },
         },
@@ -3262,6 +3342,10 @@ const options: swaggerJsdoc.Options = {
       {
         name: 'Academy',
         description: 'Public academy endpoints for browsing and searching academies',
+      },
+      {
+        name: 'Home',
+        description: 'Home page data endpoints',
       },
     ],
   },

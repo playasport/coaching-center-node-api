@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
+import { config } from '../config/env';
 import * as academyService from '../services/academy.service';
 
 /**
@@ -18,6 +19,7 @@ export const getAllAcademies = async (
     const limit = parseInt(req.query.limit as string) || 10;
     const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
     const lon = req.query.lon ? parseFloat(req.query.lon as string) : undefined;
+    const radius = req.query.radius ? parseFloat(req.query.radius as string) : undefined;
 
     // Validate location if provided
     let userLocation: { lat: number; lon: number } | undefined;
@@ -28,10 +30,17 @@ export const getAllAcademies = async (
       userLocation = { lat, lon };
     }
 
+    // Validate radius if provided
+    if (radius !== undefined) {
+      if (isNaN(radius) || radius <= 0 || radius > config.location.maxRadius) {
+        throw new ApiError(400, t('academy.validation.invalidRadius'));
+      }
+    }
+
     // Get user ID if authenticated (optional)
     const userId = req.user?.id;
 
-    const result = await academyService.getAllAcademies(page, limit, userLocation, userId);
+    const result = await academyService.getAllAcademies(page, limit, userLocation, userId, radius);
 
     const response = new ApiResponse(200, result, t('academy.getAll.success'));
     res.json(response);
@@ -117,6 +126,7 @@ export const getAcademiesBySport = async (
     const limit = parseInt(req.query.limit as string) || 10;
     const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
     const lon = req.query.lon ? parseFloat(req.query.lon as string) : undefined;
+    const radius = req.query.radius ? parseFloat(req.query.radius as string) : undefined;
 
     // Validate location if provided
     let userLocation: { lat: number; lon: number } | undefined;
@@ -127,7 +137,14 @@ export const getAcademiesBySport = async (
       userLocation = { lat, lon };
     }
 
-    const result = await academyService.getAcademiesBySport(slug, page, limit, userLocation);
+    // Validate radius if provided
+    if (radius !== undefined) {
+      if (isNaN(radius) || radius <= 0 || radius > config.location.maxRadius) {
+        throw new ApiError(400, t('academy.validation.invalidRadius'));
+      }
+    }
+
+    const result = await academyService.getAcademiesBySport(slug, page, limit, userLocation, radius);
 
     const response = new ApiResponse(200, result, t('academy.getBySport.success'));
     res.json(response);

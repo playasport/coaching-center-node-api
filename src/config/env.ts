@@ -118,4 +118,8 @@ export const config = {
     platformFee: Number(process.env.PLATFORM_FEE || 200), // Default platform fee
     gstPercentage: Number(process.env.GST_PERCENTAGE || 18), // Default GST percentage
   },
+  location: {
+    defaultRadius: Number(process.env.DEFAULT_SEARCH_RADIUS_KM || 50), // Default search radius in kilometers
+    maxRadius: Number(process.env.MAX_SEARCH_RADIUS_KM || 200), // Maximum allowed search radius in kilometers
+  },
 };

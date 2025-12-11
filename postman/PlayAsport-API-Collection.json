@@ -354,6 +354,40 @@
       "description": "Public academy endpoints for browsing and searching academies"
     },
     {
+      "name": "Home",
+      "item": [
+        {
+          "name": "Get Home Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/home?lat=28.6139&lon=77.209",
+              "host": ["{{baseUrl}}"],
+              "path": ["home"],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "28.6139",
+                  "description": "User's latitude (optional, for nearby academies)",
+                  "disabled": true
+                },
+                {
+                  "key": "lon",
+                  "value": "77.209",
+                  "description": "User's longitude (optional, for nearby academies)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get home page data including nearby academies (up to 12, sorted by distance) and 8 popular sports. If location (lat, lon) is provided, nearby academies are shown. If user is logged in and has favorite sports, academies with favorite sports are prioritized. This is an unprotected route (authentication is optional)."
+          },
+          "response": []
+        }
+      ],
+      "description": "Home page data endpoints"
+    },
+    {
       "name": "User Profile",
       "item": [
         {
