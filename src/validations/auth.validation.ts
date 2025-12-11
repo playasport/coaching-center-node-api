@@ -283,8 +283,8 @@ export const userRegisterSchema = z.object({
       .email(validationMessages.email.invalid()),
     password: passwordComplexitySchema,
     mobile: mobileNumberSchema,
-    role: z.enum(['student', 'guardian'], {
-      message: 'Role must be either student or guardian',
+    type: z.enum(['student', 'guardian'], {
+      message: 'Type must be either student or guardian',
     }),
     dob: z
       .string({ message: 'Date of birth is required' })
@@ -334,7 +334,7 @@ export const userSocialLoginSchema = z.object({
     lastName: z
       .string()
       .optional(),
-    role: z.enum(['student', 'guardian']).optional(),
+    type: z.enum(['student', 'guardian']).optional(),
   }),
 });
 

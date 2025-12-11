@@ -13,8 +13,8 @@ export interface User {
   gender?: Gender;
   profileImage?: string | null;
   isActive: boolean;
-  roles?: Types.ObjectId[]; // Array of Role references - supports multiple roles
-  role?: Types.ObjectId; // Deprecated: kept for backward compatibility, use roles array
+  roles: Types.ObjectId[]; // Array of Role references - supports multiple roles
+  userType?: 'student' | 'guardian' | null; // Only applies when role is 'user'
   address?: Address | null;
   isDeleted: boolean;
   deletedAt?: Date | null;
@@ -42,10 +42,10 @@ const userSchema = new Schema<User>(
       default: [],
       index: true,
     },
-    role: {
-      type: Schema.Types.ObjectId,
-      ref: 'Role',
-      required: false, // Made optional for backward compatibility
+    userType: {
+      type: String,
+      enum: ['student', 'guardian'],
+      default: null,
       index: true,
     },
     address: { type: addressSchema, default: null },

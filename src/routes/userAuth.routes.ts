@@ -52,7 +52,7 @@ const router = Router();
  *               - email
  *               - password
  *               - mobile
- *               - role
+ *               - type
  *               - dob
  *               - gender
  *               - otp
@@ -74,10 +74,11 @@ const router = Router();
  *               mobile:
  *                 type: string
  *                 example: "9876543210"
- *               role:
+ *               type:
  *                 type: string
  *                 enum: [student, guardian]
  *                 example: student
+ *                 description: User type (student or guardian) - only applies when role is 'user'
  *               dob:
  *                 type: string
  *                 format: date
@@ -173,10 +174,11 @@ router.post('/login', loginRateLimit, validate(userLoginSchema), loginUser);
  *               lastName:
  *                 type: string
  *                 example: Doe
- *               role:
+ *               type:
  *                 type: string
  *                 enum: [student, guardian]
  *                 example: student
+ *                 description: User type (student or guardian) - only applies when role is 'user'
  *     responses:
  *       200:
  *         description: Social login successful

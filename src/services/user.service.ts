@@ -5,8 +5,8 @@ import { hashPassword } from '../utils/password';
 import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
 import { ParticipantModel } from '../models/participant.model';
-import { Types } from 'mongoose';
 import { logger } from '../utils/logger';
+import { Types } from 'mongoose';
 
 export interface CreateUserData {
   id: string;
@@ -18,6 +18,7 @@ export interface CreateUserData {
   dob?: Date | null;
   password: string;
   role: string;
+  userType?: 'student' | 'guardian' | null;
   isActive?: boolean;
 }
 
@@ -31,6 +32,8 @@ export interface UpdateUserData {
   profileImage?: string | null;
   password?: string;
   role?: string;
+  addRole?: boolean; // If true, add role to existing roles array instead of replacing
+  userType?: 'student' | 'guardian' | null;
   isActive?: boolean;
   isDeleted?: boolean;
   address?: Partial<Address> | null;
@@ -77,13 +80,14 @@ export const userService = {
       gender: data.gender ?? null,
       dob: data.dob ?? null,
       password: hashedPassword,
-      role: role._id, // Use Role ObjectId
+      roles: [role._id], // Use roles array with Role ObjectId
+      userType: data.userType ?? null, // Set userType (only applies when role is 'user')
       isActive: data.isActive ?? true,
     });
 
-    // Populate role before returning
+    // Populate roles before returning
     const populatedDoc = await UserModel.findById(doc._id)
-      .populate('role', 'name description')
+      .populate('roles', 'name description')
       .lean();
 
     const sanitized = this.sanitize(populatedDoc);
@@ -149,14 +153,54 @@ export const userService = {
       if (!role) {
         throw new ApiError(404, t('errors.roleNotFound', { role: data.role }));
       }
-      update.role = role._id;
+      
+      if (data.addRole) {
+        // Add role to existing roles array instead of replacing
+        const existingUser = await UserModel.findOne({ id })
+          .select('roles')
+          .populate('roles', 'name')
+          .lean();
+        if (existingUser) {
+          const existingRoles = (existingUser.roles || []) as any[];
+          // Check if role already exists by name
+          const roleExists = existingRoles.some(
+            (r) => (r.name && r.name === data.role) || 
+                   (r.toString() === role._id.toString()) ||
+                   (r._id && r._id.toString() === role._id.toString())
+          );
+          if (!roleExists) {
+            // Add the new role to existing roles
+            const existingRoleIds = existingRoles.map((r) => {
+              if (r._id) return r._id;
+              if (typeof r === 'string') return new Types.ObjectId(r);
+              return r;
+            });
+            update.roles = [...existingRoleIds, role._id];
+          }
+          // If role already exists, don't update roles - remove from update object
+          if (roleExists) {
+            delete update.roles;
+          }
+        } else {
+          // User doesn't exist, just set the role
+          update.roles = [role._id];
+        }
+      } else {
+        // Replace roles array (default behavior)
+        update.roles = [role._id];
+      }
+    }
+
+    // Update userType if provided
+    if (data.userType !== undefined) {
+      update.userType = data.userType;
     }
 
     const doc = await UserModel.findOneAndUpdate({ id }, update, {
       new: true,
       projection: defaultProjection,
     })
-      .populate('role', 'name description')
+      .populate('roles', 'name description')
       .lean();
 
     const sanitized = this.sanitize(doc);
@@ -235,14 +279,14 @@ export const userService = {
   async findByEmail(email: string): Promise<User | null> {
     const doc = await UserModel.findOne({ email: email.toLowerCase() })
       .select(defaultProjection)
-      .populate('role', 'name description')
+      .populate('roles', 'name description')
       .lean<User | null>();
     return this.sanitize(doc);
   },
 
   async findByEmailWithPassword(email: string) {
     const doc = await UserModel.findOne({ email: email.toLowerCase() })
-      .populate('role', 'name description')
+      .populate('roles', 'name description')
       .lean<User & { password: string } | null>();
     return doc;
   },
@@ -250,14 +294,14 @@ export const userService = {
   async findByMobile(mobile: string): Promise<User | null> {
     const doc = await UserModel.findOne({ mobile })
       .select(defaultProjection)
-      .populate('role', 'name description')
+      .populate('roles', 'name description')
       .lean<User | null>();
     return this.sanitize(doc);
   },
 
   async findByMobileWithPassword(mobile: string) {
     const doc = await UserModel.findOne({ mobile })
-      .populate('role', 'name description')
+      .populate('roles', 'name description')
       .lean<User & { password: string } | null>();
     return doc;
   },
@@ -265,14 +309,14 @@ export const userService = {
   async findById(id: string): Promise<User | null> {
     const doc = await UserModel.findOne({ id })
       .select(defaultProjection)
-      .populate('role', 'name description')
+      .populate('roles', 'name description')
       .lean<User | null>();
     return this.sanitize(doc);
   },
 
   async findByIdWithPassword(id: string) {
     const doc = await UserModel.findOne({ id })
-      .populate('role', 'name description')
+      .populate('roles', 'name description')
       .lean<User & { password: string } | null>();
     return doc;
   },
