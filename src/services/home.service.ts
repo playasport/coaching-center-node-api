@@ -23,20 +23,20 @@ export interface HomeData {
 }
 
 /**
- * Get 8 popular sports
+ * Get popular sports, fill remaining slots with non-popular sports if needed
  */
 export const getPopularSports = async (limit: number = 8): Promise<PopularSport[]> => {
   try {
-    const sports = await SportModel.find({
+    // First, get popular sports
+    const popularSports = await SportModel.find({
       is_active: true,
       is_popular: true,
     })
       .select('_id custom_id name slug logo is_popular')
-      .sort({ createdAt: -1 }) // Sort by newest first, or you can use a custom order field
-      .limit(limit)
+      .sort({ createdAt: -1 })
       .lean();
 
-    return sports.map((sport) => ({
+    const popularSportsList = popularSports.map((sport) => ({
       _id: sport._id.toString(),
       custom_id: sport.custom_id,
       name: sport.name,
@@ -44,6 +44,39 @@ export const getPopularSports = async (limit: number = 8): Promise<PopularSport[
       logo: sport.logo || null,
       is_popular: sport.is_popular || false,
     })) as PopularSport[];
+
+    // If we have enough popular sports, return them
+    if (popularSportsList.length >= limit) {
+      return popularSportsList.slice(0, limit);
+    }
+
+    // If we need more sports, get non-popular sports to fill the remaining slots
+    const remainingCount = limit - popularSportsList.length;
+    
+    // Get the MongoDB ObjectIds of popular sports to exclude them
+    const popularSportObjectIds = popularSports.map((sport) => sport._id);
+
+    const additionalSports = await SportModel.find({
+      is_active: true,
+      is_popular: false,
+      _id: { $nin: popularSportObjectIds },
+    })
+      .select('_id custom_id name slug logo is_popular')
+      .sort({ createdAt: -1 })
+      .limit(remainingCount)
+      .lean();
+
+    const additionalSportsList = additionalSports.map((sport) => ({
+      _id: sport._id.toString(),
+      custom_id: sport.custom_id,
+      name: sport.name,
+      slug: sport.slug || null,
+      logo: sport.logo || null,
+      is_popular: sport.is_popular || false,
+    })) as PopularSport[];
+
+    // Combine popular sports with additional sports
+    return [...popularSportsList, ...additionalSportsList];
   } catch (error) {
     logger.error('Failed to get popular sports:', error);
     // Return empty array instead of throwing error
