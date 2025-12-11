@@ -21,7 +21,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"academy@example.com\",\n  \"password\": \"StrongPass@123\",\n  \"mobile\": \"9876543210\",\n  \"gender\": \"male\",\n  \"otp\": \"123456\"\n}"
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"academy@example.com\",\n  \"password\": \"StrongPass@123\",\n  \"mobile\": \"9876543210\",\n  \"gender\": \"male\",\n  \"otp\": \"123456\",\n  \"fcmToken\": \"fcm-token-from-firebase-cloud-messaging\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"unique-device-identifier\",\n  \"deviceName\": \"Samsung Galaxy S21\",\n  \"appVersion\": \"1.0.0\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/academy/auth/register",
@@ -33,7 +33,8 @@
                 "auth",
                 "register"
               ]
-            }
+            },
+            "description": "Register a new academy user. **Device-Specific Tokens:** When device info is provided, refresh tokens are device-specific with longer validity (90 days for mobile, 7 days for web)."
           }
         },
         {
@@ -48,7 +49,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"provider\": \"google\",\n  \"idToken\": \"YOUR_FIREBASE_ID_TOKEN\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\"\n}"
+              "raw": "{\n  \"provider\": \"google\",\n  \"idToken\": \"YOUR_FIREBASE_ID_TOKEN\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"fcmToken\": \"fcm-token-from-firebase-cloud-messaging\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"unique-device-identifier\",\n  \"deviceName\": \"Samsung Galaxy S21\",\n  \"appVersion\": \"1.0.0\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/academy/auth/social-login",
@@ -60,7 +61,8 @@
                 "auth",
                 "social-login"
               ]
-            }
+            },
+            "description": "Social login via Firebase. **Device-Specific Tokens:** When device info is provided, refresh tokens are device-specific with longer validity (90 days for mobile, 7 days for web)."
           }
         },
         {
@@ -75,7 +77,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"academy@example.com\",\n  \"password\": \"StrongPass@123\"\n}"
+              "raw": "{\n  \"email\": \"academy@example.com\",\n  \"password\": \"StrongPass@123\",\n  \"fcmToken\": \"fcm-token-from-firebase-cloud-messaging\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"unique-device-identifier\",\n  \"deviceName\": \"Samsung Galaxy S21\",\n  \"appVersion\": \"1.0.0\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/academy/auth/login",
@@ -87,7 +89,8 @@
                 "auth",
                 "login"
               ]
-            }
+            },
+            "description": "Login academy user. **Device-Specific Tokens:** When device info is provided, refresh tokens are device-specific with longer validity (90 days for mobile, 7 days for web). Each device gets its own refresh token."
           }
         },
         {
@@ -129,7 +132,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"mode\": \"profile_update\"\n}"
+              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"mode\": \"profile_update\",\n  \"fcmToken\": \"fcm-token-from-firebase-cloud-messaging\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"unique-device-identifier\",\n  \"deviceName\": \"Samsung Galaxy S21\",\n  \"appVersion\": \"1.0.0\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/academy/auth/verify-otp",
@@ -353,7 +356,7 @@
                 "refresh"
               ]
             },
-            "description": "Refresh access token using refresh token. Returns new access token and refresh token. The old refresh token is automatically blacklisted."
+            "description": "Refresh access token using refresh token.\n\n**Device-Specific Refresh Tokens:**\n- **Web apps**: Refresh tokens valid for 7 days\n- **Mobile apps (Android/iOS)**: Refresh tokens valid for 90 days (configurable)\n- Each device has its own refresh token linked to the device\n- Old refresh token is blacklisted and new one is issued (token rotation)\n- Device must be active for refresh to succeed\n\n**Response:**\n- Returns new access token (15 minutes) and new refresh token (same expiry as original)\n- New refresh token maintains the same device type and expiry period"
           }
         },
         {
@@ -385,7 +388,7 @@
                 "logout"
               ]
             },
-            "description": "Logout user and blacklist current tokens. Optionally provide refreshToken in body to blacklist it as well. **Requires authentication (Bearer accessToken).**"
+            "description": "Logout user and revoke device-specific tokens.\n\n**Device-Specific Token Revocation:**\n- Blacklists the access token\n- If refreshToken is provided, revokes it from the device token record\n- Device token is marked as inactive\n- Prevents further token refresh for this device\n\n**Requires authentication (Bearer accessToken).**"
           }
         },
         {
@@ -409,7 +412,7 @@
                 "logout-all"
               ]
             },
-            "description": "Logout from all devices by blacklisting all tokens for the authenticated user. **Requires authentication (Bearer accessToken).**"
+            "description": "Logout from all devices by revoking all device tokens.\n\n**All Devices Logout:**\n- Deactivates all device tokens for the user\n- Revokes all refresh tokens from device records\n- Blacklists all access and refresh tokens\n- User will need to login again on all devices\n\n**Requires authentication (Bearer accessToken).**"
           }
         }
       ]
@@ -1366,14 +1369,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"student@example.com\",\n  \"password\": \"StrongPass@123\",\n  \"mobile\": \"9876543210\",\n  \"role\": \"student\",\n  \"dob\": \"2000-01-15\",\n  \"gender\": \"male\",\n  \"otp\": \"123456\"\n}"
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"student@example.com\",\n  \"password\": \"StrongPass@123\",\n  \"mobile\": \"9876543210\",\n  \"type\": \"student\",\n  \"dob\": \"2000-01-15\",\n  \"gender\": \"male\",\n  \"otp\": \"123456\",\n  \"fcmToken\": \"fcm-token-from-firebase-cloud-messaging\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"unique-device-identifier\",\n  \"deviceName\": \"Samsung Galaxy S21\",\n  \"appVersion\": \"1.0.0\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/user/auth/register",
               "host": ["{{base_url}}"],
               "path": ["user", "auth", "register"]
             },
-            "description": "Register a new user (student or guardian). **Requires OTP verification.**\n\n**Required Fields:**\n- `firstName`: First name\n- `email`: Email address\n- `password`: Password (min 8 characters)\n- `mobile`: Mobile number (10 digits)\n- `role`: User role - either 'student' or 'guardian'\n- `dob`: Date of birth in YYYY-MM-DD format (age must be at least 3 years)\n- `gender`: Gender - 'male', 'female', or 'other'\n- `otp`: OTP received via /user/auth/send-otp (mode: register)\n\n**Optional Fields:**\n- `lastName`: Last name"
+            "description": "Register a new user (student or guardian). **Requires OTP verification.**\n\n**Required Fields:**\n- `firstName`: First name\n- `email`: Email address\n- `password`: Password (min 8 characters)\n- `mobile`: Mobile number (10 digits)\n- `type`: User type - either 'student' or 'guardian'\n- `dob`: Date of birth in YYYY-MM-DD format (age must be at least 3 years)\n- `gender`: Gender - 'male', 'female', or 'other'\n- `otp`: OTP received via /user/auth/send-otp (mode: register)\n\n**Optional Fields:**\n- `lastName`: Last name\n- `fcmToken`: Firebase Cloud Messaging token for push notifications\n- `deviceType`: Type of device ('web', 'android', or 'ios')\n- `deviceId`: Unique device identifier\n- `deviceName`: Device name/model\n- `appVersion`: App version\n\n**Device-Specific Refresh Tokens:**\n- When device info is provided, refresh tokens are device-specific\n- **Web apps**: Refresh tokens valid for 7 days\n- **Mobile apps (Android/iOS)**: Refresh tokens valid for 90 days (configurable)\n- Each device gets its own refresh token linked to the device"
           }
         },
         {
@@ -1388,14 +1391,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"StrongPass@123\"\n}"
+              "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"StrongPass@123\",\n  \"fcmToken\": \"fcm-token-from-firebase-cloud-messaging\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"unique-device-identifier\",\n  \"deviceName\": \"Samsung Galaxy S21\",\n  \"appVersion\": \"1.0.0\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/user/auth/login",
               "host": ["{{base_url}}"],
               "path": ["user", "auth", "login"]
             },
-            "description": "Login user with email and password. Returns access token and refresh token."
+            "description": "Login user with email and password. Returns access token and refresh token.\n\n**Optional Fields for FCM Token Registration:**\n- `fcmToken`: Firebase Cloud Messaging token for push notifications\n- `deviceType`: Type of device ('web', 'android', or 'ios')\n- `deviceId`: Unique device identifier\n- `deviceName`: Device name/model\n- `appVersion`: App version\n\n**Device-Specific Refresh Tokens:**\n- When device info is provided, refresh tokens are device-specific\n- **Web apps**: Refresh tokens valid for 7 days\n- **Mobile apps (Android/iOS)**: Refresh tokens valid for 90 days (configurable)\n- Each device gets its own refresh token linked to the device\n- Access tokens are always 15 minutes regardless of device type"
           }
         },
         {
@@ -1410,14 +1413,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"provider\": \"google\",\n  \"idToken\": \"YOUR_FIREBASE_ID_TOKEN\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"role\": \"student\"\n}"
+              "raw": "{\n  \"provider\": \"google\",\n  \"idToken\": \"YOUR_FIREBASE_ID_TOKEN\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"type\": \"student\",\n  \"fcmToken\": \"fcm-token-from-firebase-cloud-messaging\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"unique-device-identifier\",\n  \"deviceName\": \"Samsung Galaxy S21\",\n  \"appVersion\": \"1.0.0\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/user/auth/social-login",
               "host": ["{{base_url}}"],
               "path": ["user", "auth", "social-login"]
             },
-            "description": "Login or register a user via social providers (Google, Facebook, Instagram, Apple). **Requires Firebase ID token.**\n\n**Required Fields:**\n- `idToken`: Firebase ID token\n\n**Optional Fields:**\n- `provider`: Provider name (google, facebook, instagram, apple) - for analytics/logging\n- `firstName`: First name\n- `lastName`: Last name\n- `role`: User role - 'student' or 'guardian' (defaults to 'student' if not provided)"
+            "description": "Login or register a user via social providers (Google, Facebook, Instagram, Apple). **Requires Firebase ID token.**\n\n**Required Fields:**\n- `idToken`: Firebase ID token\n\n**Optional Fields:**\n- `provider`: Provider name (google, facebook, instagram, apple) - for analytics/logging\n- `firstName`: First name\n- `lastName`: Last name\n- `type`: User type - 'student' or 'guardian' (defaults to 'student' if not provided)\n- `fcmToken`: Firebase Cloud Messaging token for push notifications\n- `deviceType`: Type of device ('web', 'android', or 'ios')\n- `deviceId`: Unique device identifier\n- `deviceName`: Device name/model\n- `appVersion`: App version"
           }
         },
         {
@@ -1454,14 +1457,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"mode\": \"login\"\n}"
+              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"mode\": \"login\",\n  \"fcmToken\": \"fcm-token-from-firebase-cloud-messaging\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"unique-device-identifier\",\n  \"deviceName\": \"Samsung Galaxy S21\",\n  \"appVersion\": \"1.0.0\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/user/auth/verify-otp",
               "host": ["{{base_url}}"],
               "path": ["user", "auth", "verify-otp"]
             },
-            "description": "Verify OTP. Returns tokens if mode is 'login', otherwise returns verification status."
+            "description": "Verify OTP. Returns tokens if mode is 'login', otherwise returns verification status.\n\n**Optional Fields for FCM Token Registration:**\n- `fcmToken`: Firebase Cloud Messaging token for push notifications\n- `deviceType`: Type of device ('web', 'android', or 'ios')\n- `deviceId`: Unique device identifier\n- `deviceName`: Device name/model\n- `appVersion`: App version"
           }
         },
         {
@@ -1645,7 +1648,7 @@
               "host": ["{{base_url}}"],
               "path": ["user", "auth", "refresh"]
             },
-            "description": "Refresh access token using refresh token. Returns new access token and refresh token. The old refresh token is automatically blacklisted."
+            "description": "Refresh access token using refresh token.\n\n**Device-Specific Refresh Tokens:**\n- **Web apps**: Refresh tokens valid for 7 days\n- **Mobile apps (Android/iOS)**: Refresh tokens valid for 90 days (configurable)\n- Each device has its own refresh token linked to the device\n- Old refresh token is blacklisted and new one is issued (token rotation)\n- Device must be active for refresh to succeed\n\n**Response:**\n- Returns new access token (15 minutes) and new refresh token (same expiry as original)\n- New refresh token maintains the same device type and expiry period"
           }
         },
         {
@@ -1671,7 +1674,7 @@
               "host": ["{{base_url}}"],
               "path": ["user", "auth", "logout"]
             },
-            "description": "Logout user and blacklist current tokens. Optionally provide refreshToken in body to blacklist it as well. **Requires authentication (Bearer accessToken).**"
+            "description": "Logout user and revoke device-specific tokens.\n\n**Device-Specific Token Revocation:**\n- Blacklists the access token\n- If refreshToken is provided, revokes it from the device token record\n- Device token is marked as inactive\n- Prevents further token refresh for this device\n\n**Requires authentication (Bearer accessToken).**"
           }
         },
         {
@@ -1689,7 +1692,7 @@
               "host": ["{{base_url}}"],
               "path": ["user", "auth", "logout-all"]
             },
-            "description": "Logout from all devices by blacklisting all tokens for the authenticated user. **Requires authentication (Bearer accessToken).**"
+            "description": "Logout from all devices by revoking all device tokens.\n\n**All Devices Logout:**\n- Deactivates all device tokens for the user\n- Revokes all refresh tokens from device records\n- Blacklists all access and refresh tokens\n- User will need to login again on all devices\n\n**Requires authentication (Bearer accessToken).**"
           }
         }
       ]
@@ -1876,7 +1879,7 @@
     {
       "key": "refreshToken",
       "value": "",
-      "description": "JWT refresh token (long-lived, 7 days). Use this to get new access tokens."
+      "description": "JWT refresh token. Validity: Web apps (7 days), Mobile apps (90 days). Device-specific tokens are linked to the device. Use this to get new access tokens."
     }
   ]
 }

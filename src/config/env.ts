@@ -28,7 +28,8 @@ export const config = {
     secret: process.env.JWT_SECRET || 'your-secret-key',
     refreshSecret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'your-refresh-secret-key',
     accessTokenExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
-    refreshTokenExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+    refreshTokenExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d', // Default for web
+    mobileRefreshTokenExpiresIn: process.env.JWT_MOBILE_REFRESH_EXPIRES_IN || '90d', // Longer for mobile apps (30d, 60d, 90d, 180d)
   },
   rateLimit: {
     windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000), // 15 minutes

@@ -34,6 +34,9 @@ import type {
 import { firebaseAuthService } from './firebaseAuth.service';
 import { uploadFileToS3, deleteFileFromS3 } from './s3.service';
 import { User } from '../models/user.model';
+import { deviceTokenService } from './deviceToken.service';
+import { DeviceType } from '../enums/deviceType.enum';
+import jwt from 'jsonwebtoken';
 
 // Helper function to get role name from roles array
 const getRoleName = (user: User): string => {
@@ -46,6 +49,65 @@ const hasRole = (user: User, roleName: string): boolean => {
   const roles = user.roles as any[];
   if (!roles || roles.length === 0) return false;
   return roles.some((r: any) => r?.name === roleName);
+};
+
+/**
+ * Helper function to generate tokens and store refresh token in device token
+ * This ensures device-specific refresh tokens with appropriate expiry
+ */
+const generateTokensAndStoreDeviceToken = async (
+  user: User,
+  roleName: string,
+  deviceData?: {
+    fcmToken?: string;
+    deviceType?: 'web' | 'android' | 'ios';
+    deviceId?: string;
+    deviceName?: string;
+    appVersion?: string;
+  }
+): Promise<{ accessToken: string; refreshToken: string }> => {
+  const deviceType = deviceData?.deviceType || 'web';
+  
+  // Generate tokens with device-specific expiry
+  const { accessToken, refreshToken } = generateTokenPair(
+    {
+      id: user.id,
+      email: user.email,
+      role: roleName,
+    },
+    deviceType,
+    deviceData?.deviceId
+  );
+
+  // If device info is provided, store refresh token in device token
+  if (deviceData?.fcmToken && deviceData?.deviceType) {
+    try {
+      // Decode refresh token to get expiration
+      const decoded = jwt.decode(refreshToken) as jwt.JwtPayload | null;
+      const refreshTokenExpiresAt = decoded?.exp 
+        ? new Date(decoded.exp * 1000) 
+        : null;
+
+      await deviceTokenService.registerOrUpdateDeviceToken({
+        userId: user.id,
+        fcmToken: deviceData.fcmToken,
+        deviceType: deviceData.deviceType as DeviceType,
+        deviceId: deviceData.deviceId ?? null,
+        deviceName: deviceData.deviceName ?? null,
+        appVersion: deviceData.appVersion ?? null,
+        refreshToken,
+        refreshTokenExpiresAt,
+      });
+    } catch (error) {
+      // Don't fail if device token storage fails
+      logger.error('Failed to store refresh token in device token', {
+        error: error instanceof Error ? error.message : error,
+        userId: user.id,
+      });
+    }
+  }
+
+  return { accessToken, refreshToken };
 };
 
 export interface RegisterResult {
@@ -135,11 +197,20 @@ export const registerAcademyUser = async (data: AcademyRegisterInput): Promise<R
   // Get role name from populated roles array
   const roleName = getRoleName(user);
 
-  const { accessToken, refreshToken } = generateTokenPair({
-    id: user.id,
-    email: user.email,
-    role: roleName,
-  });
+  // Generate tokens with device-specific expiry and store refresh token
+  const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
+    user,
+    roleName,
+    data.fcmToken && data.deviceType
+      ? {
+          fcmToken: data.fcmToken,
+          deviceType: data.deviceType as 'web' | 'android' | 'ios',
+          deviceId: data.deviceId ?? undefined,
+          deviceName: data.deviceName ?? undefined,
+          appVersion: data.appVersion ?? undefined,
+        }
+      : undefined
+  );
 
   return {
     user,
@@ -189,16 +260,25 @@ export const loginAcademyUser = async (data: AcademyLoginInput): Promise<LoginRe
     throw new ApiError(401, t('auth.login.invalidCredentials'));
   }
 
-  const { accessToken, refreshToken } = generateTokenPair({
-    id: user.id,
-    email: user.email,
-    role: DefaultRoles.ACADEMY,
-  });
-
   const sanitizedUser = userService.sanitize(user);
   if (!sanitizedUser) {
     throw new ApiError(500, t('errors.internalServerError'));
   }
+
+  // Generate tokens with device-specific expiry and store refresh token
+  const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
+    user,
+    DefaultRoles.ACADEMY,
+    data.fcmToken && data.deviceType
+      ? {
+          fcmToken: data.fcmToken,
+          deviceType: data.deviceType as 'web' | 'android' | 'ios',
+          deviceId: data.deviceId ?? undefined,
+          deviceName: data.deviceName ?? undefined,
+          appVersion: data.appVersion ?? undefined,
+        }
+      : undefined
+  );
 
   return {
     user: sanitizedUser,
@@ -268,11 +348,20 @@ export const socialLoginAcademyUser = async (data: AcademySocialLoginInput): Pro
     throw new ApiError(403, t('auth.login.inactive'));
   }
 
-  const { accessToken, refreshToken } = generateTokenPair({
-    id: user.id,
-    email: user.email,
-    role: DefaultRoles.ACADEMY,
-  });
+  // Generate tokens with device-specific expiry and store refresh token
+  const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
+    user,
+    DefaultRoles.ACADEMY,
+    payload.fcmToken && payload.deviceType
+      ? {
+          fcmToken: payload.fcmToken,
+          deviceType: payload.deviceType as 'web' | 'android' | 'ios',
+          deviceId: payload.deviceId ?? undefined,
+          deviceName: payload.deviceName ?? undefined,
+          appVersion: payload.appVersion ?? undefined,
+        }
+      : undefined
+  );
 
   return {
     user,
@@ -526,11 +615,12 @@ export const verifyAcademyPasswordReset = async (
     throw new ApiError(500, t('errors.internalServerError'));
   }
 
-  const { accessToken, refreshToken } = generateTokenPair({
-    id: updatedUser.id,
-    email: updatedUser.email,
-    role: getRoleName(updatedUser),
-  });
+  // Generate tokens (password reset doesn't typically have device info, use web default)
+  const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
+    updatedUser,
+    getRoleName(updatedUser),
+    undefined
+  );
 
   return {
     user: updatedUser,
@@ -638,6 +728,11 @@ export const verifyAcademyOtp = async (data: {
   mobile: string;
   otp: string;
   mode?: 'login' | 'register' | 'profile_update' | 'forgot_password';
+  fcmToken?: string;
+  deviceType?: 'web' | 'android' | 'ios';
+  deviceId?: string;
+  deviceName?: string;
+  appVersion?: string;
 }): Promise<OtpVerifyResult> => {
   const { mobile, otp, mode = 'login' } = data;
 
@@ -699,11 +794,21 @@ export const verifyAcademyOtp = async (data: {
       throw new ApiError(403, t('auth.login.inactive'));
     }
 
-    const { accessToken, refreshToken } = generateTokenPair({
-      id: user.id,
-      email: user.email,
-      role: DefaultRoles.ACADEMY,
-    });
+    // Generate tokens with device-specific expiry and store refresh token
+    const deviceData = data as any;
+    const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
+      user,
+      DefaultRoles.ACADEMY,
+      deviceData.fcmToken && deviceData.deviceType
+        ? {
+            fcmToken: deviceData.fcmToken,
+            deviceType: deviceData.deviceType as 'web' | 'android' | 'ios',
+            deviceId: deviceData.deviceId ?? undefined,
+            deviceName: deviceData.deviceName ?? undefined,
+            appVersion: deviceData.appVersion ?? undefined,
+          }
+        : undefined
+    );
 
     return {
       user,
@@ -737,12 +842,51 @@ export const refreshToken = async (token: string): Promise<RefreshTokenResult> =
     throw new ApiError(401, t('auth.token.invalidToken'));
   }
 
-  // Generate new token pair
-  const { accessToken, refreshToken: newRefreshToken } = generateTokenPair({
-    id: user.id,
-    email: user.email,
-    role: getRoleName(user),
-  });
+  // Check if refresh token is linked to a device (for mobile apps)
+  const deviceToken = decoded.deviceId 
+    ? await deviceTokenService.findDeviceByRefreshToken(token)
+    : null;
+
+  if (deviceToken && !deviceToken.isActive) {
+    throw new ApiError(401, t('auth.token.invalidToken'));
+  }
+
+  const roleName = getRoleName(user);
+  const deviceType = decoded.deviceType || (deviceToken?.deviceType as 'web' | 'android' | 'ios') || 'web';
+
+  // Generate new token pair with same device type
+  const { accessToken, refreshToken: newRefreshToken } = generateTokenPair(
+    {
+      id: user.id,
+      email: user.email,
+      role: roleName,
+      deviceId: decoded.deviceId || deviceToken?.deviceId,
+      deviceType,
+    },
+    deviceType,
+    decoded.deviceId || deviceToken?.deviceId
+  );
+
+  // If device token exists, update it with new refresh token
+  if (deviceToken) {
+    try {
+      const decodedNew = jwt.decode(newRefreshToken) as jwt.JwtPayload | null;
+      const refreshTokenExpiresAt = decodedNew?.exp 
+        ? new Date(decodedNew.exp * 1000) 
+        : null;
+
+      await deviceTokenService.updateDeviceRefreshToken(
+        deviceToken.id,
+        newRefreshToken,
+        refreshTokenExpiresAt || new Date()
+      );
+    } catch (error) {
+      logger.error('Failed to update device refresh token', {
+        error: error instanceof Error ? error.message : error,
+        deviceId: deviceToken.id,
+      });
+    }
+  }
 
   // Blacklist old refresh token
   await blacklistToken(token);
@@ -756,24 +900,40 @@ export const refreshToken = async (token: string): Promise<RefreshTokenResult> =
 /**
  * Logout user - blacklist current tokens
  */
-export const logout = async (_userId: string, accessToken?: string, refreshToken?: string): Promise<void> => {
+export const logout = async (userId: string, accessToken?: string, refreshToken?: string): Promise<void> => {
   if (accessToken) {
     // Blacklist the access token
     await blacklistToken(accessToken);
   }
 
-  // If refresh token is provided, blacklist it too
+  // If refresh token is provided, blacklist it and revoke from device
   if (refreshToken) {
     await blacklistToken(refreshToken);
+    
+    // Try to find and revoke device refresh token
+    try {
+      const deviceToken = await deviceTokenService.findDeviceByRefreshToken(refreshToken);
+      if (deviceToken) {
+        await deviceTokenService.revokeDeviceRefreshToken(userId, deviceToken.id);
+      }
+    } catch (error) {
+      // If device token not found or error, continue with blacklist
+      logger.debug('Device token not found for refresh token during logout', {
+        userId,
+      });
+    }
   }
 };
 
 /**
- * Logout from all devices - blacklist all user tokens
+ * Logout from all devices - blacklist all user tokens and revoke all device refresh tokens
  */
 export const logoutAll = async (userId: string): Promise<void> => {
   // Blacklist all tokens for this user
   await blacklistUserTokens(userId);
+  
+  // Revoke all device refresh tokens
+  await deviceTokenService.deactivateAllDeviceTokens(userId);
 };
 
 // ==================== USER AUTH FUNCTIONS ====================
@@ -860,11 +1020,20 @@ export const registerUser = async (data: UserRegisterInput): Promise<RegisterRes
   const roles = user.roles as any[];
   const roleName = roles && roles.length > 0 ? roles[0]?.name : DefaultRoles.USER;
 
-  const { accessToken, refreshToken } = generateTokenPair({
-    id: user.id,
-    email: user.email,
-    role: roleName,
-  });
+  // Generate tokens with device-specific expiry and store refresh token
+  const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
+    user,
+    roleName,
+    data.fcmToken && data.deviceType
+      ? {
+          fcmToken: data.fcmToken,
+          deviceType: data.deviceType as 'web' | 'android' | 'ios',
+          deviceId: data.deviceId ?? undefined,
+          deviceName: data.deviceName ?? undefined,
+          appVersion: data.appVersion ?? undefined,
+        }
+      : undefined
+  );
 
   return {
     user,
@@ -922,18 +1091,27 @@ export const loginUser = async (data: UserLoginInput): Promise<LoginResult> => {
     throw new ApiError(403, t('auth.login.inactive'));
   }
 
-  const { accessToken, refreshToken } = generateTokenPair({
-    id: user.id,
-    email: user.email,
-    role: userRole ?? DefaultRoles.USER,
-  });
-
   // Refresh user data to get updated role
   const updatedUserData = await userService.findByEmail(email);
   const sanitizedUser = updatedUserData || userService.sanitize(user);
   if (!sanitizedUser) {
     throw new ApiError(500, t('errors.internalServerError'));
   }
+
+  // Generate tokens with device-specific expiry and store refresh token
+  const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
+    user,
+    userRole ?? DefaultRoles.USER,
+    data.fcmToken && data.deviceType
+      ? {
+          fcmToken: data.fcmToken,
+          deviceType: data.deviceType as 'web' | 'android' | 'ios',
+          deviceId: data.deviceId ?? undefined,
+          deviceName: data.deviceName ?? undefined,
+          appVersion: data.appVersion ?? undefined,
+        }
+      : undefined
+  );
 
   return {
     user: sanitizedUser,
@@ -1013,11 +1191,20 @@ export const socialLoginUser = async (data: UserSocialLoginInput): Promise<Socia
     throw new ApiError(403, t('auth.login.inactive'));
   }
 
-  const { accessToken, refreshToken } = generateTokenPair({
-    id: user.id,
-    email: user.email,
-    role: DefaultRoles.USER,
-  });
+  // Generate tokens with device-specific expiry and store refresh token
+  const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
+    user,
+    DefaultRoles.USER,
+    payload.fcmToken && payload.deviceType
+      ? {
+          fcmToken: payload.fcmToken,
+          deviceType: payload.deviceType as 'web' | 'android' | 'ios',
+          deviceId: payload.deviceId ?? undefined,
+          deviceName: payload.deviceName ?? undefined,
+          appVersion: payload.appVersion ?? undefined,
+        }
+      : undefined
+  );
 
   return {
     user,
@@ -1268,11 +1455,21 @@ export const verifyUserPasswordReset = async (
     throw new ApiError(500, t('errors.internalServerError'));
   }
 
-  const { accessToken, refreshToken } = generateTokenPair({
-    id: updatedUser.id,
-    email: updatedUser.email,
-    role: getRoleName(updatedUser),
-  });
+  // Generate tokens with device-specific expiry and store refresh token
+  const deviceData = data as any;
+  const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
+    updatedUser,
+    getRoleName(updatedUser),
+    deviceData.fcmToken && deviceData.deviceType
+      ? {
+          fcmToken: deviceData.fcmToken,
+          deviceType: deviceData.deviceType as 'web' | 'android' | 'ios',
+          deviceId: deviceData.deviceId ?? undefined,
+          deviceName: deviceData.deviceName ?? undefined,
+          appVersion: deviceData.appVersion ?? undefined,
+        }
+      : undefined
+  );
 
   return {
     user: updatedUser,
@@ -1397,6 +1594,11 @@ export const verifyUserOtp = async (data: {
   mobile: string;
   otp: string;
   mode?: 'login' | 'register' | 'profile_update' | 'forgot_password';
+  fcmToken?: string;
+  deviceType?: 'web' | 'android' | 'ios';
+  deviceId?: string;
+  deviceName?: string;
+  appVersion?: string;
 }): Promise<OtpVerifyResult> => {
   const { mobile, otp, mode = 'login' } = data;
 
@@ -1467,11 +1669,22 @@ export const verifyUserOtp = async (data: {
 
     // Use user role for token (even if academy is first in array)
     const userRoleForToken = hasRole(user, DefaultRoles.USER) ? DefaultRoles.USER : getRoleName(user);
-    const { accessToken, refreshToken } = generateTokenPair({
-      id: user.id,
-      email: user.email,
-      role: userRoleForToken,
-    });
+    
+    // Generate tokens with device-specific expiry and store refresh token
+    const deviceData = data as any;
+    const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
+      user,
+      userRoleForToken,
+      deviceData.fcmToken && deviceData.deviceType
+        ? {
+            fcmToken: deviceData.fcmToken,
+            deviceType: deviceData.deviceType as 'web' | 'android' | 'ios',
+            deviceId: deviceData.deviceId ?? undefined,
+            deviceName: deviceData.deviceName ?? undefined,
+            appVersion: deviceData.appVersion ?? undefined,
+          }
+        : undefined
+    );
 
     return {
       user,

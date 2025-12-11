@@ -42,6 +42,14 @@ const router = Router();
  * /user/auth/register:
  *   post:
  *     summary: Register a new user (student or guardian)
+ *     description: |
+ *       Register a new user with OTP verification.
+ *       **Device-Specific Refresh Tokens:**
+ *       - When device info is provided, refresh tokens are device-specific
+ *       - Web apps: Refresh tokens valid for 7 days
+ *       - Mobile apps (Android/iOS): Refresh tokens valid for 90 days (configurable)
+ *       - Each device gets its own refresh token linked to the device
+ *       - Access tokens are always 15 minutes regardless of device type
  *     tags: [User Auth]
  *     requestBody:
  *       required: true
@@ -94,7 +102,7 @@ const router = Router();
  *                 example: "123456"
  *     responses:
  *       201:
- *         description: User registered successfully
+ *         description: User registered successfully. Returns access token (15 minutes) and device-specific refresh token.
  *         content:
  *           application/json:
  *             schema:
@@ -113,6 +121,14 @@ router.post('/register', validate(userRegisterSchema), registerUser);
  * /user/auth/login:
  *   post:
  *     summary: Login user with email and password
+ *     description: |
+ *       Login user and receive access/refresh tokens.
+ *       **Device-Specific Refresh Tokens:**
+ *       - When device info is provided, refresh tokens are device-specific
+ *       - Web apps: Refresh tokens valid for 7 days
+ *       - Mobile apps (Android/iOS): Refresh tokens valid for 90 days (configurable)
+ *       - Each device gets its own refresh token linked to the device
+ *       - Access tokens are always 15 minutes regardless of device type
  *     tags: [User Auth]
  *     requestBody:
  *       required: true
@@ -134,7 +150,7 @@ router.post('/register', validate(userRegisterSchema), registerUser);
  *                 example: Password@123
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Login successful. Returns access token (15 minutes) and device-specific refresh token.
  *         content:
  *           application/json:
  *             schema:
@@ -153,6 +169,13 @@ router.post('/login', loginRateLimit, validate(userLoginSchema), loginUser);
  * /user/auth/social-login:
  *   post:
  *     summary: Login or register a user via social providers (Firebase)
+ *     description: |
+ *       Social login via Firebase (Google, Facebook, Instagram, Apple).
+ *       **Device-Specific Refresh Tokens:**
+ *       - When device info is provided, refresh tokens are device-specific
+ *       - Web apps: Refresh tokens valid for 7 days
+ *       - Mobile apps (Android/iOS): Refresh tokens valid for 90 days (configurable)
+ *       - Each device gets its own refresh token linked to the device
  *     tags: [User Auth]
  *     requestBody:
  *       required: true
@@ -183,7 +206,7 @@ router.post('/login', loginRateLimit, validate(userLoginSchema), loginUser);
  *                 description: User type (student or guardian) - only applies when role is 'user'
  *     responses:
  *       200:
- *         description: Social login successful
+ *         description: Social login successful. Returns access token (15 minutes) and device-specific refresh token.
  *         content:
  *           application/json:
  *             schema:
@@ -612,6 +635,14 @@ router.post(
  * /user/auth/refresh:
  *   post:
  *     summary: Refresh access token using refresh token
+ *     description: |
+ *       Refreshes the access token using a valid refresh token. 
+ *       **Device-Specific Tokens:**
+ *       - Web apps: Refresh tokens valid for 7 days
+ *       - Mobile apps (Android/iOS): Refresh tokens valid for 90 days (configurable)
+ *       - Each device has its own refresh token linked to the device
+ *       - Old refresh token is blacklisted and new one is issued (token rotation)
+ *       - Device must be active for refresh to succeed
  *     tags: [User Auth]
  *     requestBody:
  *       required: true
@@ -625,15 +656,16 @@ router.post(
  *               refreshToken:
  *                 type: string
  *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *                 description: Refresh token received during login/register. Device-specific tokens are validated against device records.
  *     responses:
  *       200:
- *         description: Token refreshed successfully
+ *         description: Token refreshed successfully. New tokens issued with same device type and expiry.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/RefreshTokenResponse'
  *       401:
- *         description: Invalid or expired refresh token
+ *         description: Invalid or expired refresh token, or device is inactive
  */
 router.post('/refresh', generalRateLimit, refreshToken);
 

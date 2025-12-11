@@ -172,7 +172,7 @@ const options: swaggerJsdoc.Options = {
                 refreshToken: {
                   type: 'string',
                   example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-                  description: 'JWT refresh token (long-lived, 7 days)',
+                  description: 'JWT refresh token. Validity: Web apps (7 days), Mobile apps (90 days). Device-specific tokens are stored and linked to the device.',
                 },
               },
             },
@@ -200,7 +200,7 @@ const options: swaggerJsdoc.Options = {
                 refreshToken: {
                   type: 'string',
                   example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-                  description: 'New JWT refresh token (long-lived, 7 days)',
+                  description: 'New JWT refresh token. Validity matches original token: Web apps (7 days), Mobile apps (90 days). Old refresh token is blacklisted.',
                 },
               },
             },
@@ -268,6 +268,38 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        DeviceInfo: {
+          type: 'object',
+          description: 'Optional device information for FCM token registration and device-specific refresh tokens. When provided, refresh tokens are device-specific with longer validity for mobile apps (90 days) vs web apps (7 days).',
+          properties: {
+            fcmToken: {
+              type: 'string',
+              example: 'fcm-token-from-firebase-cloud-messaging',
+              description: 'Firebase Cloud Messaging token for push notifications',
+            },
+            deviceType: {
+              type: 'string',
+              enum: ['web', 'android', 'ios'],
+              example: 'android',
+              description: 'Type of device (web, android, or ios). Determines refresh token expiry: web (7 days), mobile (90 days).',
+            },
+            deviceId: {
+              type: 'string',
+              example: 'unique-device-identifier',
+              description: 'Optional unique device identifier',
+            },
+            deviceName: {
+              type: 'string',
+              example: 'Samsung Galaxy S21',
+              description: 'Optional device name/model',
+            },
+            appVersion: {
+              type: 'string',
+              example: '1.0.0',
+              description: 'Optional app version',
+            },
+          },
+        },
         AcademyRegisterRequest: {
           type: 'object',
           required: ['firstName', 'email', 'password', 'mobile', 'otp'],
@@ -299,6 +331,32 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: '123456',
               description: 'OTP received on mobile via /academy/auth/send-otp (mode: register)',
+            },
+            fcmToken: {
+              type: 'string',
+              example: 'fcm-token-from-firebase-cloud-messaging',
+              description: 'Optional: Firebase Cloud Messaging token for push notifications',
+            },
+            deviceType: {
+              type: 'string',
+              enum: ['web', 'android', 'ios'],
+              example: 'android',
+              description: 'Optional: Type of device (web, android, or ios)',
+            },
+            deviceId: {
+              type: 'string',
+              example: 'unique-device-identifier',
+              description: 'Optional: Unique device identifier',
+            },
+            deviceName: {
+              type: 'string',
+              example: 'Samsung Galaxy S21',
+              description: 'Optional: Device name/model',
+            },
+            appVersion: {
+              type: 'string',
+              example: '1.0.0',
+              description: 'Optional: App version',
             },
           },
         },
@@ -392,6 +450,32 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: 'strongPassword123',
             },
+            fcmToken: {
+              type: 'string',
+              example: 'fcm-token-from-firebase-cloud-messaging',
+              description: 'Optional: Firebase Cloud Messaging token for push notifications',
+            },
+            deviceType: {
+              type: 'string',
+              enum: ['web', 'android', 'ios'],
+              example: 'android',
+              description: 'Optional: Type of device (web, android, or ios)',
+            },
+            deviceId: {
+              type: 'string',
+              example: 'unique-device-identifier',
+              description: 'Optional: Unique device identifier',
+            },
+            deviceName: {
+              type: 'string',
+              example: 'Samsung Galaxy S21',
+              description: 'Optional: Device name/model',
+            },
+            appVersion: {
+              type: 'string',
+              example: '1.0.0',
+              description: 'Optional: App version',
+            },
           },
         },
         AcademySocialLoginRequest: {
@@ -416,12 +500,40 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: 'Doe',
             },
+            fcmToken: {
+              type: 'string',
+              example: 'fcm-token-from-firebase-cloud-messaging',
+              description: 'Optional: Firebase Cloud Messaging token for push notifications',
+            },
+            deviceType: {
+              type: 'string',
+              enum: ['web', 'android', 'ios'],
+              example: 'android',
+              description: 'Optional: Type of device (web, android, or ios)',
+            },
+            deviceId: {
+              type: 'string',
+              example: 'unique-device-identifier',
+              description: 'Optional: Unique device identifier',
+            },
+            deviceName: {
+              type: 'string',
+              example: 'Samsung Galaxy S21',
+              description: 'Optional: Device name/model',
+            },
+            appVersion: {
+              type: 'string',
+              example: '1.0.0',
+              description: 'Optional: App version',
+            },
           },
           example: {
             provider: 'google',
             idToken: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjUxOG...',
             firstName: 'John',
             lastName: 'Doe',
+            fcmToken: 'fcm-token-from-firebase-cloud-messaging',
+            deviceType: 'android',
           },
         },
         AcademyOtpRequest: {
@@ -457,6 +569,32 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               enum: ['login', 'register', 'profile_update', 'forgot_password'],
               example: 'login',
+            },
+            fcmToken: {
+              type: 'string',
+              example: 'fcm-token-from-firebase-cloud-messaging',
+              description: 'Optional: Firebase Cloud Messaging token for push notifications',
+            },
+            deviceType: {
+              type: 'string',
+              enum: ['web', 'android', 'ios'],
+              example: 'android',
+              description: 'Optional: Type of device (web, android, or ios)',
+            },
+            deviceId: {
+              type: 'string',
+              example: 'unique-device-identifier',
+              description: 'Optional: Unique device identifier',
+            },
+            deviceName: {
+              type: 'string',
+              example: 'Samsung Galaxy S21',
+              description: 'Optional: Device name/model',
+            },
+            appVersion: {
+              type: 'string',
+              example: '1.0.0',
+              description: 'Optional: App version',
             },
           },
         },
@@ -508,7 +646,7 @@ const options: swaggerJsdoc.Options = {
         },
         UserRegisterRequest: {
           type: 'object',
-          required: ['firstName', 'email', 'password', 'mobile', 'role', 'dob', 'gender', 'otp'],
+          required: ['firstName', 'email', 'password', 'mobile', 'type', 'dob', 'gender', 'otp'],
           properties: {
             firstName: {
               type: 'string',
@@ -533,11 +671,11 @@ const options: swaggerJsdoc.Options = {
               example: '9876543210',
               description: 'User mobile number used for OTP verification',
             },
-            role: {
+            type: {
               type: 'string',
               enum: ['student', 'guardian'],
               example: 'student',
-              description: 'User role - either student or guardian',
+              description: 'User type - either student or guardian',
             },
             dob: {
               type: 'string',
@@ -555,6 +693,32 @@ const options: swaggerJsdoc.Options = {
               example: '123456',
               description: 'OTP received on mobile via /user/auth/send-otp (mode: register)',
             },
+            fcmToken: {
+              type: 'string',
+              example: 'fcm-token-from-firebase-cloud-messaging',
+              description: 'Optional: Firebase Cloud Messaging token for push notifications',
+            },
+            deviceType: {
+              type: 'string',
+              enum: ['web', 'android', 'ios'],
+              example: 'android',
+              description: 'Optional: Type of device (web, android, or ios)',
+            },
+            deviceId: {
+              type: 'string',
+              example: 'unique-device-identifier',
+              description: 'Optional: Unique device identifier',
+            },
+            deviceName: {
+              type: 'string',
+              example: 'Samsung Galaxy S21',
+              description: 'Optional: Device name/model',
+            },
+            appVersion: {
+              type: 'string',
+              example: '1.0.0',
+              description: 'Optional: App version',
+            },
           },
         },
         UserLoginRequest: {
@@ -569,6 +733,32 @@ const options: swaggerJsdoc.Options = {
             password: {
               type: 'string',
               example: 'StrongPass@123',
+            },
+            fcmToken: {
+              type: 'string',
+              example: 'fcm-token-from-firebase-cloud-messaging',
+              description: 'Optional: Firebase Cloud Messaging token for push notifications',
+            },
+            deviceType: {
+              type: 'string',
+              enum: ['web', 'android', 'ios'],
+              example: 'android',
+              description: 'Optional: Type of device (web, android, or ios)',
+            },
+            deviceId: {
+              type: 'string',
+              example: 'unique-device-identifier',
+              description: 'Optional: Unique device identifier',
+            },
+            deviceName: {
+              type: 'string',
+              example: 'Samsung Galaxy S21',
+              description: 'Optional: Device name/model',
+            },
+            appVersion: {
+              type: 'string',
+              example: '1.0.0',
+              description: 'Optional: App version',
             },
           },
         },
@@ -594,11 +784,37 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: 'Doe',
             },
-            role: {
+            type: {
               type: 'string',
               enum: ['student', 'guardian'],
               example: 'student',
-              description: 'User role - defaults to student if not provided',
+              description: 'User type - defaults to student if not provided',
+            },
+            fcmToken: {
+              type: 'string',
+              example: 'fcm-token-from-firebase-cloud-messaging',
+              description: 'Optional: Firebase Cloud Messaging token for push notifications',
+            },
+            deviceType: {
+              type: 'string',
+              enum: ['web', 'android', 'ios'],
+              example: 'android',
+              description: 'Optional: Type of device (web, android, or ios)',
+            },
+            deviceId: {
+              type: 'string',
+              example: 'unique-device-identifier',
+              description: 'Optional: Unique device identifier',
+            },
+            deviceName: {
+              type: 'string',
+              example: 'Samsung Galaxy S21',
+              description: 'Optional: Device name/model',
+            },
+            appVersion: {
+              type: 'string',
+              example: '1.0.0',
+              description: 'Optional: App version',
             },
           },
           example: {
@@ -606,7 +822,9 @@ const options: swaggerJsdoc.Options = {
             idToken: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjUxOG...',
             firstName: 'John',
             lastName: 'Doe',
-            role: 'student',
+            type: 'student',
+            fcmToken: 'fcm-token-from-firebase-cloud-messaging',
+            deviceType: 'android',
           },
         },
         UserOtpRequest: {
@@ -642,6 +860,32 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               enum: ['login', 'register', 'profile_update', 'forgot_password'],
               example: 'login',
+            },
+            fcmToken: {
+              type: 'string',
+              example: 'fcm-token-from-firebase-cloud-messaging',
+              description: 'Optional: Firebase Cloud Messaging token for push notifications',
+            },
+            deviceType: {
+              type: 'string',
+              enum: ['web', 'android', 'ios'],
+              example: 'android',
+              description: 'Optional: Type of device (web, android, or ios)',
+            },
+            deviceId: {
+              type: 'string',
+              example: 'unique-device-identifier',
+              description: 'Optional: Unique device identifier',
+            },
+            deviceName: {
+              type: 'string',
+              example: 'Samsung Galaxy S21',
+              description: 'Optional: Device name/model',
+            },
+            appVersion: {
+              type: 'string',
+              example: '1.0.0',
+              description: 'Optional: App version',
             },
           },
         },

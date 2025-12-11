@@ -20,6 +20,15 @@ const passwordComplexitySchema = z
 
 const nameRegex = /^[A-Z][a-zA-Z\s]*$/;
 
+// Device info schema for FCM token registration
+const deviceInfoSchema = z.object({
+  fcmToken: z.string().min(1, 'FCM token is required').optional(),
+  deviceType: z.enum(['web', 'android', 'ios']).optional(),
+  deviceId: z.string().optional(),
+  deviceName: z.string().optional(),
+  appVersion: z.string().optional(),
+});
+
 const addressInputSchema = z.object({
   line1: z
     .string()
@@ -111,7 +120,7 @@ export const academyRegisterSchema = z.object({
     mobile: mobileNumberSchema,
     gender: z.enum(['male', 'female', 'other']).optional(),
     otp: otpCodeSchema,
-  }),
+  }).merge(deviceInfoSchema),
 });
 
 export const academyLoginSchema = z.object({
@@ -123,7 +132,7 @@ export const academyLoginSchema = z.object({
     password: z
       .string({ message: validationMessages.password.required() })
       .min(1, validationMessages.password.required()),
-  }),
+  }).merge(deviceInfoSchema),
 });
 
 export const academySocialLoginSchema = z.object({
@@ -139,7 +148,7 @@ export const academySocialLoginSchema = z.object({
     lastName: z
       .string()
       .optional(),
-  }),
+  }).merge(deviceInfoSchema),
 });
 
 export const academyOtpSchema = z.object({
@@ -154,7 +163,7 @@ export const academyVerifyOtpSchema = z.object({
     mobile: mobileNumberSchema,
     otp: otpCodeSchema,
     mode: z.enum(['login', 'register', 'profile_update', 'forgot_password']).optional(),
-  }),
+  }).merge(deviceInfoSchema),
 });
 
 const forgotPasswordRequestBodySchema = z.discriminatedUnion('mode', [
@@ -306,7 +315,7 @@ export const userRegisterSchema = z.object({
       message: 'Gender must be male, female, or other',
     }),
     otp: otpCodeSchema,
-  }),
+  }).merge(deviceInfoSchema),
 });
 
 export const userLoginSchema = z.object({
@@ -318,7 +327,7 @@ export const userLoginSchema = z.object({
     password: z
       .string({ message: validationMessages.password.required() })
       .min(1, validationMessages.password.required()),
-  }),
+  }).merge(deviceInfoSchema),
 });
 
 export const userSocialLoginSchema = z.object({
@@ -335,7 +344,7 @@ export const userSocialLoginSchema = z.object({
       .string()
       .optional(),
     type: z.enum(['student', 'guardian']).optional(),
-  }),
+  }).merge(deviceInfoSchema),
 });
 
 export const userOtpSchema = z.object({
@@ -350,7 +359,7 @@ export const userVerifyOtpSchema = z.object({
     mobile: mobileNumberSchema,
     otp: otpCodeSchema,
     mode: z.enum(['login', 'register', 'profile_update', 'forgot_password']).optional(),
-  }),
+  }).merge(deviceInfoSchema),
 });
 
 export const userForgotPasswordRequestSchema = z.object({
