@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import * as bookingController from '../controllers/booking.controller';
 import { validate } from '../middleware/validation.middleware';
-import { bookingSummarySchema, createOrderSchema, verifyPaymentSchema } from '../validations/booking.validation';
+import { bookingSummarySchema, createOrderSchema, verifyPaymentSchema, userBookingListSchema } from '../validations/booking.validation';
 import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -197,6 +197,95 @@ router.post(
   authenticate,
   validate(verifyPaymentSchema),
   bookingController.verifyPayment
+);
+
+/**
+ * @swagger
+ * /user/booking:
+ *   get:
+ *     summary: Get user bookings list
+ *     tags: [Booking]
+ *     description: Retrieve a paginated list of user's bookings with enrolled batches, participants, and payment details. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number (starts from 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of records per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, confirmed, cancelled, completed]
+ *         description: Filter by booking status
+ *       - in: query
+ *         name: paymentStatus
+ *         schema:
+ *           type: string
+ *           enum: [pending, processing, success, failed, refunded, cancelled]
+ *         description: Filter by payment status
+ *     responses:
+ *       200:
+ *         description: User bookings retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "User bookings retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/UserBookingListItem'
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 10
+ *                         total:
+ *                           type: integer
+ *                           example: 50
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 5
+ *                         hasNextPage:
+ *                           type: boolean
+ *                           example: true
+ *                         hasPrevPage:
+ *                           type: boolean
+ *                           example: false
+ *       401:
+ *         description: Unauthorized - Authentication required
+ */
+router.get(
+  '/',
+  authenticate,
+  validate(userBookingListSchema),
+  bookingController.getUserBookings
 );
 
 export default router;

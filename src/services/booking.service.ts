@@ -922,3 +922,189 @@ export const verifyPayment = async (
   }
 };
 
+/**
+ * User booking list item interface
+ */
+export interface UserBookingListItem {
+  booking_id: string;
+  id: string;
+  batch: {
+    id: string;
+    name: string;
+    sport: {
+      id: string;
+      name: string;
+    };
+    center: {
+      id: string;
+      center_name: string;
+    };
+    scheduled: {
+      start_date: Date;
+      start_time: string;
+      end_time: string;
+      training_days: string[];
+    };
+    duration: {
+      count: number;
+      type: string;
+    };
+  };
+  participants: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+  }>;
+  amount: number;
+  currency: string;
+  status: BookingStatus;
+  payment_status: PaymentStatus;
+  payment_method: string | null;
+  invoice_id: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface UserBookingsResult {
+  data: UserBookingListItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
+/**
+ * Get user bookings with enrolled batches
+ */
+export const getUserBookings = async (
+  userId: string,
+  params: {
+    page?: number;
+    limit?: number;
+    status?: BookingStatus;
+    paymentStatus?: PaymentStatus;
+  } = {}
+): Promise<UserBookingsResult> => {
+  try {
+    const userObjectId = await getUserObjectId(userId);
+    if (!userObjectId) {
+      throw new ApiError(404, t('user.notFound') || 'User not found');
+    }
+
+    // Build query
+    const query: any = {
+      user: userObjectId,
+      is_deleted: false,
+    };
+
+    // Filter by status if provided
+    if (params.status) {
+      query.status = params.status;
+    }
+
+    // Filter by payment status if provided
+    if (params.paymentStatus) {
+      query['payment.status'] = params.paymentStatus;
+    }
+
+    // Pagination
+    const page = Math.max(1, params.page || 1);
+    const limit = Math.min(100, Math.max(1, params.limit || 10));
+    const skip = (page - 1) * limit;
+
+    // Get total count
+    const total = await BookingModel.countDocuments(query);
+
+    // Get bookings with populated data
+    const bookings = await BookingModel.find(query)
+      .populate('participants', 'id firstName lastName')
+      .populate('batch', 'id name scheduled duration')
+      .populate({
+        path: 'batch',
+        populate: {
+          path: 'sport',
+          select: 'id name',
+        },
+      })
+      .populate({
+        path: 'batch',
+        populate: {
+          path: 'center',
+          select: 'id center_name',
+        },
+      })
+      .select('booking_id id participants batch amount currency status payment.status payment.payment_method payment.razorpay_order_id createdAt updatedAt')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const totalPages = Math.ceil(total / limit);
+
+    // Transform bookings to return required fields
+    const transformedBookings: UserBookingListItem[] = bookings.map((booking: any) => ({
+      booking_id: booking.booking_id || booking.id,
+      id: booking.id,
+      batch: {
+        id: booking.batch?._id?.toString() || booking.batch?.id || '',
+        name: booking.batch?.name || 'N/A',
+        sport: {
+          id: booking.batch?.sport?._id?.toString() || booking.batch?.sport?.id || '',
+          name: booking.batch?.sport?.name || 'N/A',
+        },
+        center: {
+          id: booking.batch?.center?._id?.toString() || booking.batch?.center?.id || '',
+          center_name: booking.batch?.center?.center_name || 'N/A',
+        },
+        scheduled: booking.batch?.scheduled || {
+          start_date: new Date(),
+          start_time: '',
+          end_time: '',
+          training_days: [],
+        },
+        duration: booking.batch?.duration || {
+          count: 0,
+          type: '',
+        },
+      },
+      participants: (booking.participants || []).map((p: any) => ({
+        id: p._id?.toString() || p.id || '',
+        firstName: p.firstName || '',
+        lastName: p.lastName || '',
+      })),
+      amount: booking.amount || 0,
+      currency: booking.currency || 'INR',
+      status: booking.status || BookingStatus.PENDING,
+      payment_status: booking.payment?.status || PaymentStatus.PENDING,
+      payment_method: booking.payment?.payment_method || null,
+      invoice_id: booking.payment?.razorpay_order_id || null,
+      created_at: booking.createdAt,
+      updated_at: booking.updatedAt,
+    }));
+
+    return {
+      data: transformedBookings,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Failed to get user bookings:', {
+      error: error instanceof Error ? error.message : error,
+    });
+    throw new ApiError(500, 'Failed to get user bookings');
+  }
+};
+

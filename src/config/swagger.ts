@@ -3267,6 +3267,158 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        UserBookingListItem: {
+          type: 'object',
+          description: 'User booking information with enrolled batch details',
+          properties: {
+            booking_id: {
+              type: 'string',
+              example: 'BK-2024-0001',
+              description: 'Unique booking reference ID (format: BK-YYYY-NNNN)',
+            },
+            id: {
+              type: 'string',
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+              description: 'Booking UUID',
+            },
+            batch: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  example: 'batch-id-here',
+                },
+                name: {
+                  type: 'string',
+                  example: 'Morning Batch',
+                },
+                sport: {
+                  type: 'object',
+                  properties: {
+                    id: {
+                      type: 'string',
+                      example: 'sport-id-here',
+                    },
+                    name: {
+                      type: 'string',
+                      example: 'Cricket',
+                    },
+                  },
+                },
+                center: {
+                  type: 'object',
+                  properties: {
+                    id: {
+                      type: 'string',
+                      example: 'center-id-here',
+                    },
+                    center_name: {
+                      type: 'string',
+                      example: 'ABC Sports Academy',
+                    },
+                  },
+                },
+                scheduled: {
+                  type: 'object',
+                  properties: {
+                    start_date: {
+                      type: 'string',
+                      format: 'date',
+                      example: '2024-01-01',
+                    },
+                    start_time: {
+                      type: 'string',
+                      example: '09:00',
+                    },
+                    end_time: {
+                      type: 'string',
+                      example: '11:00',
+                    },
+                    training_days: {
+                      type: 'array',
+                      items: {
+                        type: 'string',
+                      },
+                      example: ['Monday', 'Wednesday', 'Friday'],
+                    },
+                  },
+                },
+                duration: {
+                  type: 'object',
+                  properties: {
+                    count: {
+                      type: 'number',
+                      example: 3,
+                    },
+                    type: {
+                      type: 'string',
+                      example: 'months',
+                    },
+                  },
+                },
+              },
+            },
+            participants: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: {
+                    type: 'string',
+                    example: 'participant-id-here',
+                  },
+                  firstName: {
+                    type: 'string',
+                    example: 'Alice',
+                  },
+                  lastName: {
+                    type: 'string',
+                    example: 'Smith',
+                  },
+                },
+              },
+            },
+            amount: {
+              type: 'number',
+              example: 5000,
+              description: 'Total booking amount in rupees',
+            },
+            currency: {
+              type: 'string',
+              example: 'INR',
+            },
+            status: {
+              type: 'string',
+              enum: ['pending', 'confirmed', 'cancelled', 'completed'],
+              example: 'confirmed',
+            },
+            payment_status: {
+              type: 'string',
+              enum: ['pending', 'processing', 'success', 'failed', 'refunded', 'cancelled'],
+              example: 'success',
+            },
+            payment_method: {
+              type: 'string',
+              nullable: true,
+              example: 'card',
+            },
+            invoice_id: {
+              type: 'string',
+              nullable: true,
+              example: 'order_1234567890',
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-01T00:00:00.000Z',
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-01T00:00:00.000Z',
+            },
+          },
+        },
         Booking: {
           type: 'object',
           properties: {

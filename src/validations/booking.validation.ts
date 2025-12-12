@@ -113,3 +113,31 @@ export const academyEnrolledStudentsSchema = z.object({
   }),
 });
 
+// User booking list query schema
+export const userBookingListSchema = z.object({
+  query: z.object({
+    page: z
+      .preprocess((val) => {
+        if (typeof val === 'string') {
+          const parsed = parseInt(val, 10);
+          return isNaN(parsed) ? undefined : parsed;
+        }
+        return val;
+      }, z.number().int().min(1).optional())
+      .optional(),
+    limit: z
+      .preprocess((val) => {
+        if (typeof val === 'string') {
+          const parsed = parseInt(val, 10);
+          return isNaN(parsed) ? undefined : parsed;
+        }
+        return val;
+      }, z.number().int().min(1).max(100).optional())
+      .optional(),
+    status: z.enum(['pending', 'confirmed', 'cancelled', 'completed']).optional(),
+    paymentStatus: z.enum(['pending', 'processing', 'success', 'failed', 'refunded', 'cancelled']).optional(),
+  }),
+});
+
+export type UserBookingListInput = z.infer<typeof userBookingListSchema>['query'];
+
