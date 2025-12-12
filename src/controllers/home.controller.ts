@@ -8,7 +8,7 @@ import * as homeService from '../services/home.service';
 /**
  * Get home page data (nearby academies and popular sports)
  * GET /home
- * Query params: lat, lon (optional) - location coordinates
+ * Query params: latitude, longitude (optional) - location coordinates
  */
 export const getHomeData = async (
   req: Request,
@@ -17,20 +17,20 @@ export const getHomeData = async (
 ): Promise<void> => {
   try {
     // Parse location from query parameters
-    let userLocation: { lat: number; lon: number } | undefined;
-    const lat = req.query.lat;
-    const lon = req.query.lon;
+    let userLocation: { latitude: number; longitude: number } | undefined;
+    const latitude = req.query.latitude;
+    const longitude = req.query.longitude;
     const radius = req.query.radius ? parseFloat(req.query.radius as string) : undefined;
 
-    if (lat !== undefined && lon !== undefined) {
-      const latNum = typeof lat === 'string' ? parseFloat(lat) : Number(lat);
-      const lonNum = typeof lon === 'string' ? parseFloat(lon) : Number(lon);
+    if (latitude !== undefined && longitude !== undefined) {
+      const latitudeNum = typeof latitude === 'string' ? parseFloat(latitude) : Number(latitude);
+      const longitudeNum = typeof longitude === 'string' ? parseFloat(longitude) : Number(longitude);
 
-      if (isNaN(latNum) || isNaN(lonNum) || latNum < -90 || latNum > 90 || lonNum < -180 || lonNum > 180) {
+      if (isNaN(latitudeNum) || isNaN(longitudeNum) || latitudeNum < -90 || latitudeNum > 90 || longitudeNum < -180 || longitudeNum > 180) {
         throw new ApiError(400, t('academy.validation.invalidLocationCoordinates'));
       }
 
-      userLocation = { lat: latNum, lon: lonNum };
+      userLocation = { latitude: latitudeNum, longitude: longitudeNum };
     }
 
     // Validate radius if provided

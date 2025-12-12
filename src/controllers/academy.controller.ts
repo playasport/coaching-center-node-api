@@ -17,17 +17,17 @@ export const getAllAcademies = async (
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
-    const lon = req.query.lon ? parseFloat(req.query.lon as string) : undefined;
+    const latitude = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
+    const longitude = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
     const radius = req.query.radius ? parseFloat(req.query.radius as string) : undefined;
 
     // Validate location if provided
-    let userLocation: { lat: number; lon: number } | undefined;
-    if (lat !== undefined && lon !== undefined) {
-      if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    let userLocation: { latitude: number; longitude: number } | undefined;
+    if (latitude !== undefined && longitude !== undefined) {
+      if (isNaN(latitude) || isNaN(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
         throw new ApiError(400, t('academy.validation.invalidLocationCoordinates'));
       }
-      userLocation = { lat, lon };
+      userLocation = { latitude, longitude };
     }
 
     // Validate radius if provided
@@ -124,17 +124,17 @@ export const getAcademiesBySport = async (
 
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
-    const lon = req.query.lon ? parseFloat(req.query.lon as string) : undefined;
+    const latitude = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
+    const longitude = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
     const radius = req.query.radius ? parseFloat(req.query.radius as string) : undefined;
 
     // Validate location if provided
-    let userLocation: { lat: number; lon: number } | undefined;
-    if (lat !== undefined && lon !== undefined) {
-      if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    let userLocation: { latitude: number; longitude: number } | undefined;
+    if (latitude !== undefined && longitude !== undefined) {
+      if (isNaN(latitude) || isNaN(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
         throw new ApiError(400, t('academy.validation.invalidLocationCoordinates'));
       }
-      userLocation = { lat, lon };
+      userLocation = { latitude, longitude };
     }
 
     // Validate radius if provided

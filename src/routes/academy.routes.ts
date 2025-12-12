@@ -12,7 +12,7 @@ const router = Router();
  *     tags: [Academy]
  *     description: |
  *       Get all published academies with pagination.
- *       If location (lat, lon) is provided, academies are sorted by distance (nearest first).
+ *       If location (latitude, longitude) is provided, academies are sorted by distance (nearest first).
  *       If user is logged in and has favorite sports, academies with favorite sports are prioritized.
  *       This is an unprotected route.
  *     parameters:
@@ -32,14 +32,14 @@ const router = Router();
  *           default: 10
  *         description: Number of records per page
  *       - in: query
- *         name: lat
+ *         name: latitude
  *         schema:
  *           type: number
  *           minimum: -90
  *           maximum: 90
  *         description: User's latitude (optional, for distance-based sorting)
  *       - in: query
- *         name: lon
+ *         name: longitude
  *         schema:
  *           type: number
  *           minimum: -180
@@ -217,7 +217,7 @@ router.get('/city/:cityName', academyController.getAcademiesByCity);
  *     tags: [Academy]
  *     description: |
  *       Get academies that offer a specific sport.
- *       If location (lat, lon) is provided, academies are sorted by distance (nearest first) and distance is shown in km.
+ *       If location (latitude, longitude) is provided, academies are sorted by distance (nearest first) and distance is shown in km.
  *       This is an unprotected route.
  *     parameters:
  *       - in: path
@@ -242,14 +242,14 @@ router.get('/city/:cityName', academyController.getAcademiesByCity);
  *           default: 10
  *         description: Number of records per page
  *       - in: query
- *         name: lat
+ *         name: latitude
  *         schema:
  *           type: number
  *           minimum: -90
  *           maximum: 90
  *         description: User's latitude (optional, for distance-based sorting)
  *       - in: query
- *         name: lon
+ *         name: longitude
  *         schema:
  *           type: number
  *           minimum: -180

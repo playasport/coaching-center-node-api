@@ -88,7 +88,7 @@ export const getPopularSports = async (limit: number = 8): Promise<PopularSport[
  * Get nearby academies based on location
  */
 export const getNearbyAcademies = async (
-  userLocation: { lat: number; lon: number },
+  userLocation: { latitude: number; longitude: number },
   limit: number = 12,
   userId?: string,
   radius?: number
@@ -133,13 +133,13 @@ export const getNearbyAcademies = async (
     // Calculate distances
     if (academies.length > 0) {
       const destinations = academies.map((academy) => ({
-        lat: academy.location.latitude,
-        lon: academy.location.longitude,
+        latitude: academy.location.latitude,
+        longitude: academy.location.longitude,
       }));
 
       const distances = await calculateDistances(
-        userLocation.lat,
-        userLocation.lon,
+        userLocation.latitude,
+        userLocation.longitude,
         destinations
       );
 
@@ -229,7 +229,7 @@ export const getNearbyAcademies = async (
  * Get home page data (nearby academies and popular sports)
  */
 export const getHomeData = async (
-  userLocation?: { lat: number; lon: number },
+  userLocation?: { latitude: number; longitude: number },
   userId?: string,
   radius?: number
 ): Promise<HomeData> => {

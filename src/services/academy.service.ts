@@ -161,7 +161,7 @@ const maskMobile = (mobile: string): string => {
 export const getAllAcademies = async (
   page: number = 1,
   limit: number = config.pagination.defaultLimit,
-  userLocation?: { lat: number; lon: number },
+  userLocation?: { latitude: number; longitude: number },
   userId?: string,
   radius?: number
 ): Promise<PaginatedResult<AcademyListItem>> => {
@@ -209,13 +209,13 @@ export const getAllAcademies = async (
     // Calculate distances if location provided
     if (userLocation && academies.length > 0) {
       const destinations = academies.map((academy) => ({
-        lat: academy.location.latitude,
-        lon: academy.location.longitude,
+        latitude: academy.location.latitude,
+        longitude: academy.location.longitude,
       }));
 
       const distances = await calculateDistances(
-        userLocation.lat,
-        userLocation.lon,
+        userLocation.latitude,
+        userLocation.longitude,
         destinations
       );
 
@@ -471,7 +471,7 @@ export const getAcademiesBySport = async (
   sportSlug: string,
   page: number = 1,
   limit: number = config.pagination.defaultLimit,
-  userLocation?: { lat: number; lon: number },
+  userLocation?: { latitude: number; longitude: number },
   radius?: number
 ): Promise<PaginatedResult<AcademyListItem>> => {
   try {
@@ -521,13 +521,13 @@ export const getAcademiesBySport = async (
     // Calculate distances if location provided
     if (userLocation && academies.length > 0) {
       const destinations = academies.map((academy) => ({
-        lat: academy.location.latitude,
-        lon: academy.location.longitude,
+        latitude: academy.location.latitude,
+        longitude: academy.location.longitude,
       }));
 
       const distances = await calculateDistances(
-        userLocation.lat,
-        userLocation.lon,
+        userLocation.latitude,
+        userLocation.longitude,
         destinations
       );
 

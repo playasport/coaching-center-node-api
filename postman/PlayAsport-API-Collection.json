@@ -219,7 +219,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/academies?page=1&limit=10&lat=28.6139&lon=77.209",
+              "raw": "{{baseUrl}}/academies?page=1&limit=10&latitude=28.6139&longitude=77.209",
               "host": ["{{baseUrl}}"],
               "path": ["academies"],
               "query": [
@@ -234,20 +234,20 @@
                   "description": "Number of records per page (default: 10, max: 100)"
                 },
                 {
-                  "key": "lat",
+                  "key": "latitude",
                   "value": "28.6139",
                   "description": "User's latitude (optional, for distance-based sorting)",
                   "disabled": true
                 },
                 {
-                  "key": "lon",
+                  "key": "longitude",
                   "value": "77.209",
                   "description": "User's longitude (optional, for distance-based sorting)",
                   "disabled": true
                 }
               ]
             },
-            "description": "Get all published academies with pagination. If location (lat, lon) is provided, academies are sorted by distance (nearest first). If user is logged in and has favorite sports, academies with favorite sports are prioritized. This is an unprotected route (authentication is optional)."
+            "description": "Get all published academies with pagination. If location (latitude, longitude) is provided, academies are sorted by distance (nearest first). If user is logged in and has favorite sports, academies with favorite sports are prioritized. This is an unprotected route (authentication is optional)."
           },
           "response": []
         },
@@ -326,13 +326,13 @@
                   "description": "Number of records per page (default: 10, max: 100)"
                 },
                 {
-                  "key": "lat",
+                  "key": "latitude",
                   "value": "28.6139",
                   "description": "User's latitude (optional, for distance-based sorting)",
                   "disabled": true
                 },
                 {
-                  "key": "lon",
+                  "key": "longitude",
                   "value": "77.209",
                   "description": "User's longitude (optional, for distance-based sorting)",
                   "disabled": true
@@ -346,7 +346,7 @@
                 }
               ]
             },
-            "description": "Get academies that offer a specific sport. If location (lat, lon) is provided, academies are sorted by distance (nearest first) and distance is shown in km. This is an unprotected route (authentication is optional)."
+            "description": "Get academies that offer a specific sport. If location (latitude, longitude) is provided, academies are sorted by distance (nearest first) and distance is shown in km. This is an unprotected route (authentication is optional)."
           },
           "response": []
         }
@@ -362,7 +362,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/home?lat=28.6139&lon=77.209",
+              "raw": "{{baseUrl}}/home?latitude=28.6139&longitude=77.209",
               "host": ["{{baseUrl}}"],
               "path": ["home"],
               "query": [
@@ -380,7 +380,7 @@
                 }
               ]
             },
-            "description": "Get home page data including nearby academies (up to 12, sorted by distance) and 8 popular sports. If location (lat, lon) is provided, nearby academies are shown. If user is logged in and has favorite sports, academies with favorite sports are prioritized. This is an unprotected route (authentication is optional)."
+            "description": "Get home page data including nearby academies (up to 12, sorted by distance) and 8 popular sports. If location (latitude, longitude) is provided, nearby academies are shown. If user is logged in and has favorite sports, academies with favorite sports are prioritized. This is an unprotected route (authentication is optional)."
           },
           "response": []
         }

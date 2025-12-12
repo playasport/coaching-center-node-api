@@ -21,14 +21,14 @@ const router = Router();
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
- *         name: lat
+ *         name: latitude
  *         schema:
  *           type: number
  *           format: float
  *         description: Latitude for location-based sorting (optional)
  *         example: 28.6139
  *       - in: query
- *         name: lon
+ *         name: longitude
  *         schema:
  *           type: number
  *           format: float

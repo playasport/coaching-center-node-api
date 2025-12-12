@@ -45,8 +45,15 @@ const CACHE_KEY_PREFIX = 'distance:';
 const CACHE_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
 
 /**
+ * Round number to 2 decimal places
+ */
+const roundToTwoDecimals = (value: number): number => {
+  return Math.round(value * 100) / 100;
+};
+
+/**
  * Calculate distance using Haversine formula (fallback)
- * Returns distance in kilometers
+ * Returns distance in kilometers (rounded to 2 decimal places)
  */
 export const calculateHaversineDistance = (
   lat1: number,
@@ -64,7 +71,7 @@ export const calculateHaversineDistance = (
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  return roundToTwoDecimals(R * c);
 };
 
 /**
@@ -107,7 +114,7 @@ export const calculateDistance = async (
           const distance = parseFloat(cachedDistance);
           if (!isNaN(distance) && distance >= 0) {
             logger.debug('Distance cache hit', { cacheKey, distance });
-            return distance;
+            return roundToTwoDecimals(distance);
           }
         }
       } catch (cacheError) {
@@ -139,7 +146,7 @@ export const calculateDistance = async (
 
         if (data.status === 'OK' && data.rows?.[0]?.elements?.[0]?.status === 'OK') {
           const distanceInMeters = data.rows[0].elements[0].distance!.value;
-          const distanceInKm = distanceInMeters / 1000;
+          const distanceInKm = roundToTwoDecimals(distanceInMeters / 1000);
 
           // Cache the result
           if (redis && distanceInKm >= 0) {
@@ -178,7 +185,7 @@ export const calculateDistance = async (
       }
     }
 
-    return distance;
+    return roundToTwoDecimals(distance);
   } catch (error) {
     logger.error('Distance calculation error, using Haversine fallback', {
       error: error instanceof Error ? error.message : error,
@@ -194,13 +201,13 @@ export const calculateDistance = async (
  * 
  * @param originLat - Origin latitude
  * @param originLon - Origin longitude
- * @param destinations - Array of {lat, lon} coordinates
+ * @param destinations - Array of {latitude, longitude} coordinates
  * @returns Array of distances in kilometers (same order as destinations)
  */
 export const calculateDistances = async (
   originLat: number,
   originLon: number,
-  destinations: Array<{ lat: number; lon: number }>
+  destinations: Array<{ latitude: number; longitude: number }>
 ): Promise<number[]> => {
   try {
     // Check cache for all destinations
@@ -211,13 +218,13 @@ export const calculateDistances = async (
     if (redis) {
       for (let i = 0; i < destinations.length; i++) {
         const dest = destinations[i];
-        const cacheKey = getCacheKey(originLat, originLon, dest.lat, dest.lon);
+        const cacheKey = getCacheKey(originLat, originLon, dest.latitude, dest.longitude);
         try {
           const cached = await redis.get(cacheKey);
           if (cached) {
             const distance = parseFloat(cached);
             if (!isNaN(distance) && distance >= 0) {
-              cachedDistances[i] = distance;
+              cachedDistances[i] = roundToTwoDecimals(distance);
               continue;
             }
           }
@@ -235,9 +242,9 @@ export const calculateDistances = async (
       }
     }
 
-    // If all distances are cached, return them
+    // If all distances are cached, return them (already rounded)
     if (uncachedIndices.length === 0) {
-      return cachedDistances as number[];
+      return cachedDistances.map(d => roundToTwoDecimals(d!)) as number[];
     }
 
     // Try Google Maps API for uncached distances
@@ -250,7 +257,7 @@ export const calculateDistances = async (
 
         for (let i = 0; i < uncachedDestinations.length; i += batchSize) {
           const batch = uncachedDestinations.slice(i, i + batchSize);
-          const destinationsStr = batch.map((d) => `${d.lat},${d.lon}`).join('|');
+          const destinationsStr = batch.map((d) => `${d.latitude},${d.longitude}`).join('|');
 
           const url = new URL('https://maps.googleapis.com/maps/api/distancematrix/json');
           url.searchParams.append('origins', `${originLat},${originLon}`);
@@ -274,14 +281,14 @@ export const calculateDistances = async (
             for (let j = 0; j < elements.length && i + j < uncachedDestinations.length; j++) {
               const element = elements[j];
               if (element.status === 'OK' && element.distance) {
-                const distanceInKm = element.distance.value / 1000;
+                const distanceInKm = roundToTwoDecimals(element.distance.value / 1000);
                 const originalIndex = uncachedIndices[i + j];
                 cachedDistances[originalIndex] = distanceInKm;
 
                 // Cache the result
                 if (redis) {
                   const dest = uncachedDestinations[j];
-                  const cacheKey = getCacheKey(originLat, originLon, dest.lat, dest.lon);
+                  const cacheKey = getCacheKey(originLat, originLon, dest.latitude, dest.longitude);
                   try {
                     await redis.setex(cacheKey, CACHE_TTL, distanceInKm.toString());
                   } catch (cacheError) {
@@ -292,8 +299,8 @@ export const calculateDistances = async (
                 // API error for this destination, use Haversine
                 const originalIndex = uncachedIndices[i + j];
                 const dest = uncachedDestinations[j];
-                const distance = calculateHaversineDistance(originLat, originLon, dest.lat, dest.lon);
-                cachedDistances[originalIndex] = distance;
+                const distance = calculateHaversineDistance(originLat, originLon, dest.latitude, dest.longitude);
+                cachedDistances[originalIndex] = roundToTwoDecimals(distance);
               }
             }
           }
@@ -309,18 +316,18 @@ export const calculateDistances = async (
     for (const idx of uncachedIndices) {
       if (cachedDistances[idx] === null) {
         const dest = destinations[idx];
-        cachedDistances[idx] = calculateHaversineDistance(originLat, originLon, dest.lat, dest.lon);
+        cachedDistances[idx] = calculateHaversineDistance(originLat, originLon, dest.latitude, dest.longitude);
       }
     }
 
-    return cachedDistances as number[];
+    return cachedDistances.map(d => roundToTwoDecimals(d!)) as number[];
   } catch (error) {
     logger.error('Batch distance calculation error, using Haversine fallback', {
       error: error instanceof Error ? error.message : error,
     });
     // Fallback: calculate all using Haversine
     return destinations.map((dest) =>
-      calculateHaversineDistance(originLat, originLon, dest.lat, dest.lon)
+      roundToTwoDecimals(calculateHaversineDistance(originLat, originLon, dest.latitude, dest.longitude))
     );
   }
 };
