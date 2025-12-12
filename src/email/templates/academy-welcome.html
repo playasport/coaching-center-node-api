@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to PlayAsport Academy</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+
+      .wrapper {
+        width: 100%;
+        padding: 20px 0;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      .header {
+        background-color: #1f3c88;
+        color: #ffffff;
+        text-align: center;
+        padding: 30px 20px;
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+
+      .content {
+        padding: 30px;
+        color: #333333;
+        line-height: 1.6;
+      }
+
+      .content h2 {
+        color: #1f3c88;
+        margin-top: 0;
+      }
+
+      .info-box {
+        background-color: #f0f4ff;
+        border-left: 4px solid #1f3c88;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 4px;
+      }
+
+      .info-box p {
+        margin: 5px 0;
+      }
+
+      .button {
+        display: inline-block;
+        padding: 12px 30px;
+        background-color: #1f3c88;
+        color: #ffffff;
+        text-decoration: none;
+        border-radius: 6px;
+        margin: 20px 0;
+        font-weight: bold;
+      }
+
+      .footer {
+        padding: 20px;
+        text-align: center;
+        font-size: 12px;
+        color: #777777;
+        background-color: #f9f9f9;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="container">
+        <div class="header">
+          <h1>Welcome to PlayAsport Academy!</h1>
+        </div>
+        <div class="content">
+          <p>Dear {{name}},</p>
+          <p>
+            Congratulations! Your academy account has been successfully registered on PlayAsport.
+            We're excited to have you join our platform.
+          </p>
+
+          <div class="info-box">
+            <p><strong>Email:</strong> {{email}}</p>
+            <p><strong>Mobile:</strong> {{mobile}}</p>
+            <p><strong>Registration Date:</strong> {{registrationDate}}</p>
+          </div>
+
+          <h2>What's Next?</h2>
+          <p>
+            You can now start using your academy account to manage your coaching center, 
+            create batches, manage participants, and much more.
+          </p>
+
+          <p>
+            If you have any questions or need assistance, please don't hesitate to contact our 
+            support team. We're here to help you succeed!
+          </p>
+
+          <p>Best regards,<br />The PlayAsport Team</p>
+        </div>
+        <div class="footer">
+          © {{year}} PlayAsport. All rights reserved.
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

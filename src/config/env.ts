@@ -123,4 +123,17 @@ export const config = {
     defaultRadius: Number(process.env.DEFAULT_SEARCH_RADIUS_KM || 50), // Default search radius in kilometers
     maxRadius: Number(process.env.MAX_SEARCH_RADIUS_KM || 200), // Maximum allowed search radius in kilometers
   },
+  notification: {
+    enabled: parseBoolean(process.env.NOTIFICATION_ENABLED, true),
+    maxRetries: Number(process.env.NOTIFICATION_MAX_RETRIES || 3),
+    whatsapp: {
+      enabled: parseBoolean(process.env.WHATSAPP_ENABLED, true),
+    },
+    push: {
+      enabled: parseBoolean(process.env.PUSH_NOTIFICATION_ENABLED, true),
+    },
+  },
+  admin: {
+    email: process.env.ADMIN_EMAIL || '',
+  },
 };

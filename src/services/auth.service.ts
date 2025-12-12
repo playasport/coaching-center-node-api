@@ -8,7 +8,7 @@ import { config } from '../config/env';
 import { comparePassword } from '../utils';
 import { generateTokenPair, verifyRefreshToken } from '../utils/jwt';
 import { blacklistToken, blacklistUserTokens } from '../utils/tokenBlacklist';
-import { sendOtpSms } from './sms.service';
+import { queueSms, queueEmail } from './notificationQueue.service';
 import { sendPasswordResetEmail } from './email.service';
 import { otpService } from './otp.service';
 import { ApiError } from '../utils/ApiError';
@@ -211,6 +211,67 @@ export const registerAcademyUser = async (data: AcademyRegisterInput): Promise<R
         }
       : undefined
   );
+
+  // Send welcome email to academy owner
+  try {
+    const fullName = lastName ? `${firstName} ${lastName}` : firstName;
+    const registrationDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    queueEmail(
+      email,
+      'Welcome to PlayAsport Academy!',
+      {
+        template: 'academy-welcome.html',
+        templateVariables: {
+          name: fullName,
+          email: email,
+          mobile: mobile ? `+91${mobile}` : 'Not provided',
+          registrationDate,
+          year: new Date().getFullYear(),
+        },
+        priority: 'high',
+      }
+    );
+  } catch (error) {
+    logger.error('Failed to queue academy welcome email', { error, email });
+  }
+
+  // Send notification email to admin
+  if (config.admin.email) {
+    try {
+      const fullName = lastName ? `${firstName} ${lastName}` : firstName;
+      const registrationDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      queueEmail(
+        config.admin.email,
+        'New Academy Registration - PlayAsport',
+        {
+          template: 'academy-registration-admin.html',
+          templateVariables: {
+            name: fullName,
+            email: email,
+            mobile: mobile ? `+91${mobile}` : 'Not provided',
+            registrationDate,
+            userId: user.id,
+            year: new Date().getFullYear(),
+          },
+          priority: 'high',
+        }
+      );
+    } catch (error) {
+      logger.error('Failed to queue academy registration admin email', { error });
+    }
+  }
 
   return {
     user,
@@ -530,7 +591,12 @@ export const requestAcademyPasswordReset = async (
     );
 
     const mobileNumber = `+91${data.mobile}`;
-    await sendOtpSms(mobileNumber, otp);
+    queueSms(
+      mobileNumber,
+      `Your PlayAsport Academy OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Team Thank You.`,
+      'high',
+      { type: 'otp' }
+    );
   } else {
     const emailLower = data.email.toLowerCase();
     const user = await userService.findByEmail(emailLower);
@@ -713,7 +779,12 @@ export const sendAcademyOtp = async (data: {
   await otpService.createOtp({ channel: OtpChannel.MOBILE, identifier: mobile }, otp, otpMode);
   // add +91 to the mobile number
   const mobileNumber = `+91${mobile}`;
-  await sendOtpSms(mobileNumber, otp);
+  queueSms(
+    mobileNumber,
+    `Your PlayAsport Academy OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Team Thank You.`,
+    'high',
+    { type: 'otp' }
+  );
 
   return {
     mobile: mobileNumber,
@@ -1034,6 +1105,41 @@ export const registerUser = async (data: UserRegisterInput): Promise<RegisterRes
         }
       : undefined
   );
+
+  // Send notification email to admin when new user registers
+  if (config.admin.email && !existingUser) {
+    try {
+      const fullName = lastName ? `${firstName} ${lastName}` : firstName;
+      const registrationDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      queueEmail(
+        config.admin.email,
+        'New User Registration - PlayAsport',
+        {
+          template: 'user-registration-admin.html',
+          templateVariables: {
+            name: fullName,
+            email: email,
+            mobile: mobile ? `+91${mobile}` : 'Not provided',
+            userType: type || 'Not specified',
+            gender: gender || 'Not specified',
+            registrationDate,
+            userId: user.id,
+            year: new Date().getFullYear(),
+          },
+          priority: 'high',
+        }
+      );
+    } catch (error) {
+      logger.error('Failed to queue user registration admin email', { error });
+    }
+  }
 
   return {
     user,
@@ -1373,7 +1479,12 @@ export const requestUserPasswordReset = async (
     );
 
     const mobileNumber = `+91${data.mobile}`;
-    await sendOtpSms(mobileNumber, otp);
+    queueSms(
+      mobileNumber,
+      `Your PlayAsport Academy OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Team Thank You.`,
+      'high',
+      { type: 'otp' }
+    );
   } else {
     const emailLower = data.email.toLowerCase();
     const user = await userService.findByEmail(emailLower);
@@ -1579,7 +1690,12 @@ export const sendUserOtp = async (data: {
   await otpService.createOtp({ channel: OtpChannel.MOBILE, identifier: mobile }, otp, otpMode);
   // add +91 to the mobile number
   const mobileNumber = `+91${mobile}`;
-  await sendOtpSms(mobileNumber, otp);
+  queueSms(
+    mobileNumber,
+    `Your PlayAsport Academy OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Team Thank You.`,
+    'high',
+    { type: 'otp' }
+  );
 
   return {
     mobile: mobileNumber,
