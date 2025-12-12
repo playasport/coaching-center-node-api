@@ -181,3 +181,115 @@ export const sendPasswordResetEmail = async (
     }),
   });
 };
+
+interface BookingConfirmationEmailData {
+  bookingId: string;
+  batchName: string;
+  sportName: string;
+  centerName: string;
+  userName: string;
+  userEmail?: string;
+  participants: string;
+  startDate: string;
+  startTime: string;
+  endTime: string;
+  trainingDays: string;
+  amount: number;
+  currency: string;
+  paymentId: string;
+}
+
+export const sendBookingConfirmationUserEmail = async (
+  email: string,
+  data: BookingConfirmationEmailData
+): Promise<string> => {
+  const subject = 'Booking Confirmed - PlayAsport';
+  const text = `Your booking ${data.bookingId} has been confirmed for ${data.batchName} at ${data.centerName}.`;
+
+  return sendTemplatedEmail({
+    to: email,
+    subject,
+    template: 'booking-confirmation-user.html',
+    text,
+    variables: {
+      userName: data.userName,
+      bookingId: data.bookingId,
+      batchName: data.batchName,
+      sportName: data.sportName,
+      centerName: data.centerName,
+      participants: data.participants,
+      startDate: data.startDate,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      trainingDays: data.trainingDays,
+      amount: data.amount.toFixed(2),
+      currency: data.currency,
+      paymentId: data.paymentId,
+      year: new Date().getFullYear(),
+    },
+  });
+};
+
+export const sendBookingConfirmationCenterEmail = async (
+  email: string,
+  data: BookingConfirmationEmailData
+): Promise<string> => {
+  const subject = 'New Booking Received - PlayAsport';
+  const text = `You have received a new booking ${data.bookingId} for ${data.batchName} from ${data.userName}.`;
+
+  return sendTemplatedEmail({
+    to: email,
+    subject,
+    template: 'booking-confirmation-center.html',
+    text,
+    variables: {
+      centerName: data.centerName,
+      bookingId: data.bookingId,
+      batchName: data.batchName,
+      sportName: data.sportName,
+      userName: data.userName,
+      userEmail: data.userEmail || 'N/A',
+      participants: data.participants,
+      startDate: data.startDate,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      trainingDays: data.trainingDays,
+      amount: data.amount.toFixed(2),
+      currency: data.currency,
+      paymentId: data.paymentId,
+      year: new Date().getFullYear(),
+    },
+  });
+};
+
+export const sendBookingConfirmationAdminEmail = async (
+  email: string,
+  data: BookingConfirmationEmailData
+): Promise<string> => {
+  const subject = 'New Booking Notification - PlayAsport';
+  const text = `A new booking ${data.bookingId} has been confirmed for ${data.batchName} at ${data.centerName}.`;
+
+  return sendTemplatedEmail({
+    to: email,
+    subject,
+    template: 'booking-confirmation-admin.html',
+    text,
+    variables: {
+      bookingId: data.bookingId,
+      batchName: data.batchName,
+      sportName: data.sportName,
+      centerName: data.centerName,
+      userName: data.userName,
+      userEmail: data.userEmail || 'N/A',
+      participants: data.participants,
+      startDate: data.startDate,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      trainingDays: data.trainingDays,
+      amount: data.amount.toFixed(2),
+      currency: data.currency,
+      paymentId: data.paymentId,
+      year: new Date().getFullYear(),
+    },
+  });
+};

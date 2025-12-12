@@ -133,4 +133,57 @@ export const sendOtpSms = async (mobile: string, otp: string): Promise<string> =
   return 'OTP queued for delivery';
 };
 
+interface BookingConfirmationSmsData {
+  bookingId: string;
+  batchName: string;
+  sportName: string;
+  centerName: string;
+  userName?: string;
+  participants: string;
+  startDate: string;
+  startTime: string;
+  endTime: string;
+  amount: number;
+  currency: string;
+}
+
+export const sendBookingConfirmationUserSms = (
+  mobile: string,
+  data: BookingConfirmationSmsData
+): void => {
+  if (!mobile) {
+    logger.warn('User mobile number not available for SMS', { bookingId: data.bookingId });
+    return;
+  }
+
+  const userName = data.userName || 'User';
+  const message = `Dear ${userName}, your booking ${data.bookingId} for ${data.batchName} (${data.sportName}) at ${data.centerName} has been confirmed. Participants: ${data.participants}. Start Date: ${data.startDate}, Time: ${data.startTime}-${data.endTime}. Amount Paid: ${data.currency} ${data.amount.toFixed(2)}. Thank you for choosing PlayAsport!`;
+
+  sendSms(mobile, message, 'high', {
+    type: 'booking_confirmation',
+    bookingId: data.bookingId,
+    recipient: 'user',
+  });
+};
+
+export const sendBookingConfirmationCenterSms = (
+  mobile: string,
+  data: BookingConfirmationSmsData
+): void => {
+  if (!mobile) {
+    logger.warn('Coaching center mobile number not available for SMS', {
+      bookingId: data.bookingId,
+    });
+    return;
+  }
+
+  const message = `New booking ${data.bookingId} received for ${data.batchName} (${data.sportName}). Customer: ${data.userName || 'N/A'}. Participants: ${data.participants}. Start Date: ${data.startDate}, Time: ${data.startTime}-${data.endTime}. Amount: ${data.currency} ${data.amount.toFixed(2)}. - PlayAsport`;
+
+  sendSms(mobile, message, 'high', {
+    type: 'booking_confirmation',
+    bookingId: data.bookingId,
+    recipient: 'coaching_center',
+  });
+};
+
 

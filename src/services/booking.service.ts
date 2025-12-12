@@ -13,6 +13,15 @@ import { getUserObjectId } from '../utils/userCache';
 import { getPaymentService } from './payment/PaymentService';
 import { config } from '../config/env';
 import type { BookingSummaryInput, CreateOrderInput, VerifyPaymentInput } from '../validations/booking.validation';
+import {
+  sendBookingConfirmationUserEmail,
+  sendBookingConfirmationCenterEmail,
+  sendBookingConfirmationAdminEmail,
+} from './email.service';
+import {
+  sendBookingConfirmationUserSms,
+  sendBookingConfirmationCenterSms,
+} from './sms.service';
 
 // Get payment service instance
 const paymentService = getPaymentService();
@@ -235,7 +244,7 @@ const validateParticipantEnrollment = async (
 };
 
 /**
- * Common validation: Validate slot availability
+ * Common validation: Validate slot availabilityo
  */
 const validateSlotAvailability = async (
   batch: any,
@@ -661,10 +670,10 @@ export const verifyPayment = async (
       },
       { new: true }
     )
-      .populate('user', 'id firstName lastName email')
+      .populate('user', 'id firstName lastName email mobile')
       .populate('participants', 'id firstName lastName')
       .populate('batch', 'id name')
-      .populate('center', 'id center_name')
+      .populate('center', 'id center_name email mobile_number')
       .populate('sport', 'id name')
       .lean();
 
@@ -692,6 +701,178 @@ export const verifyPayment = async (
     );
 
     logger.info(`Payment verified successfully for booking: ${booking.id}`);
+
+    // Send confirmation emails to user, coaching center, and admin
+    try {
+      // Fetch batch details for scheduled information
+      // Use the original booking's batch ID (ObjectId) before population
+      const batchId = booking.batch;
+      const batchDetails = await BatchModel.findById(batchId).lean();
+      
+      if (!batchDetails) {
+        logger.warn(`Batch not found for booking ${booking.id}`);
+      } else {
+        // Format date and time
+        const startDate = batchDetails.scheduled?.start_date
+          ? new Date(batchDetails.scheduled.start_date).toLocaleDateString('en-IN', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })
+          : 'N/A';
+
+        const startTime = batchDetails.scheduled?.start_time || 'N/A';
+        const endTime = batchDetails.scheduled?.end_time || 'N/A';
+        const trainingDays = batchDetails.scheduled?.training_days
+          ? batchDetails.scheduled.training_days.join(', ')
+          : 'N/A';
+
+        // Format participant names
+        const participantNames = (updatedBooking.participants as any[])
+          .map((p: any) => {
+            const firstName = p.firstName || '';
+            const lastName = p.lastName || '';
+            return `${firstName} ${lastName}`.trim() || p.id || 'Participant';
+          })
+          .join(', ');
+
+        // Get user details
+        const user = updatedBooking.user as any;
+        const userName = user
+          ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'User'
+          : 'User';
+        const userEmail = user?.email;
+        const userMobile = user?.mobile;
+
+        // Get center details
+        const center = updatedBooking.center as any;
+        const centerName = center?.center_name || 'Coaching Center';
+        const centerEmail = center?.email;
+        const centerMobile = center?.mobile_number;
+
+        // Get sport and batch details
+        const sport = updatedBooking.sport as any;
+        const sportName = sport?.name || 'Sport';
+        const batchName = batchDetails.name || 'Batch';
+
+        // Prepare email data
+        const emailData = {
+          bookingId: updatedBooking.id,
+          batchName,
+          sportName,
+          centerName,
+          userName,
+          userEmail: userEmail || undefined,
+          participants: participantNames,
+          startDate,
+          startTime,
+          endTime,
+          trainingDays,
+          amount: updatedBooking.amount,
+          currency: updatedBooking.currency,
+          paymentId: data.razorpay_payment_id,
+        };
+
+        // Send emails in parallel (don't wait for all to complete)
+        const emailPromises: Promise<string>[] = [];
+
+        // Send email to user
+        if (userEmail) {
+          emailPromises.push(
+            sendBookingConfirmationUserEmail(userEmail, emailData).catch((error) => {
+              logger.error('Failed to send booking confirmation email to user', {
+                bookingId: booking.id,
+                userEmail,
+                error: error instanceof Error ? error.message : error,
+              });
+              return 'Failed';
+            })
+          );
+        }
+
+        // Send email to coaching center
+        if (centerEmail) {
+          emailPromises.push(
+            sendBookingConfirmationCenterEmail(centerEmail, emailData).catch((error) => {
+              logger.error('Failed to send booking confirmation email to coaching center', {
+                bookingId: booking.id,
+                centerEmail,
+                error: error instanceof Error ? error.message : error,
+              });
+              return 'Failed';
+            })
+          );
+        }
+
+        // Send email to admin
+        if (config.admin.email) {
+          emailPromises.push(
+            sendBookingConfirmationAdminEmail(config.admin.email, emailData).catch((error) => {
+              logger.error('Failed to send booking confirmation email to admin', {
+                bookingId: booking.id,
+                adminEmail: config.admin.email,
+                error: error instanceof Error ? error.message : error,
+              });
+              return 'Failed';
+            })
+          );
+        }
+
+        // Wait for all emails to be sent (but don't fail if email sending fails)
+        await Promise.allSettled(emailPromises);
+        logger.info(`Booking confirmation emails sent for booking: ${booking.id}`);
+
+        // Prepare SMS data
+        const smsData = {
+          bookingId: updatedBooking.id,
+          batchName,
+          sportName,
+          centerName,
+          userName,
+          participants: participantNames,
+          startDate,
+          startTime,
+          endTime,
+          amount: updatedBooking.amount,
+          currency: updatedBooking.currency,
+        };
+
+        // Send SMS notifications
+        try {
+          // Send SMS to user
+          if (userMobile) {
+            sendBookingConfirmationUserSms(userMobile, smsData);
+          } else {
+            logger.warn('User mobile number not available for SMS', {
+              bookingId: booking.id,
+            });
+          }
+
+          // Send SMS to coaching center
+          if (centerMobile) {
+            sendBookingConfirmationCenterSms(centerMobile, smsData);
+          } else {
+            logger.warn('Coaching center mobile number not available for SMS', {
+              bookingId: booking.id,
+            });
+          }
+
+          logger.info(`Booking confirmation SMS sent for booking: ${booking.id}`);
+        } catch (smsError) {
+          // Log error but don't fail the payment verification
+          logger.error('Error sending booking confirmation SMS', {
+            bookingId: booking.id,
+            error: smsError instanceof Error ? smsError.message : smsError,
+          });
+        }
+      }
+    } catch (notificationError) {
+      // Log error but don't fail the payment verification
+      logger.error('Error sending booking confirmation notifications', {
+        bookingId: booking.id,
+        error: notificationError instanceof Error ? notificationError.message : notificationError,
+      });
+    }
 
     return updatedBooking as Booking;
   } catch (error) {
