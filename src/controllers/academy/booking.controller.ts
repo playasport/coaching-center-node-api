@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
-import * as bookingService from '../../services/booking.service';
+import * as academyBookingService from '../../services/academyBooking.service';
 import { BookingStatus } from '../../models/booking.model';
 
 /**
@@ -25,7 +25,7 @@ export const getBookings = async (
     const status = req.query.status as BookingStatus | undefined;
     const paymentStatus = req.query.paymentStatus as string | undefined;
 
-    const result = await bookingService.getAcademyBookings(req.user.id, {
+    const result = await academyBookingService.getAcademyBookings(req.user.id, {
       page,
       limit,
       centerId,
@@ -55,7 +55,7 @@ export const getBookingById = async (
     }
 
     const { id } = req.params;
-    const booking = await bookingService.getAcademyBookingById(id, req.user.id);
+    const booking = await academyBookingService.getAcademyBookingById(id, req.user.id);
 
     const response = new ApiResponse(200, { booking }, 'Booking retrieved successfully');
     res.json(response);
@@ -84,7 +84,7 @@ export const updateBookingStatus = async (
       throw new ApiError(400, 'Invalid booking status');
     }
 
-    const booking = await bookingService.updateAcademyBookingStatus(id, status, req.user.id);
+    const booking = await academyBookingService.updateAcademyBookingStatus(id, status, req.user.id);
 
     const response = new ApiResponse(200, { booking }, 'Booking status updated successfully');
     res.json(response);

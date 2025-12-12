@@ -3518,6 +3518,560 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        EnrolledStudentBatch: {
+          type: 'object',
+          description: 'Batch enrollment information for a student in the list view',
+          properties: {
+            batchId: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Batch ObjectId',
+            },
+            batchName: {
+              type: 'string',
+              example: 'Morning Batch',
+              description: 'Name of the batch',
+            },
+            sport: {
+              type: 'object',
+              description: 'Sport information for the batch',
+              properties: {
+                id: {
+                  type: 'string',
+                  example: '507f1f77bcf86cd799439011',
+                  description: 'Sport ObjectId',
+                },
+                name: {
+                  type: 'string',
+                  example: 'Cricket',
+                  description: 'Name of the sport',
+                },
+              },
+            },
+            center: {
+              type: 'object',
+              description: 'Coaching center information',
+              properties: {
+                id: {
+                  type: 'string',
+                  example: '507f1f77bcf86cd799439011',
+                  description: 'Center ObjectId',
+                },
+                name: {
+                  type: 'string',
+                  example: 'Elite Sports Academy',
+                  description: 'Name of the coaching center',
+                },
+              },
+            },
+            bookingId: {
+              type: 'string',
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+              description: 'Booking UUID',
+            },
+            bookingStatus: {
+              type: 'string',
+              enum: ['pending', 'confirmed', 'cancelled', 'completed'],
+              example: 'confirmed',
+              description: 'Status of the booking (pending, confirmed, cancelled, or completed)',
+            },
+            paymentStatus: {
+              type: 'string',
+              enum: ['pending', 'processing', 'success', 'failed', 'refunded', 'cancelled'],
+              example: 'success',
+              description: 'Payment status for the booking',
+            },
+            enrolledDate: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-15T10:30:00.000Z',
+              description: 'Date when the student was enrolled in this batch',
+            },
+            amount: {
+              type: 'number',
+              example: 5000,
+              description: 'Booking amount in rupees',
+            },
+          },
+        },
+        EnrolledStudent: {
+          type: 'object',
+          description: 'Enrolled student information in list view - shows student details with age, batch name, sport name, and status',
+          properties: {
+            participant: {
+              type: 'object',
+              description: 'Participant (student) details including calculated age',
+              properties: {
+                id: {
+                  type: 'string',
+                  example: '507f1f77bcf86cd799439011',
+                  description: 'Participant ObjectId',
+                },
+                firstName: {
+                  type: 'string',
+                  nullable: true,
+                  example: 'John',
+                },
+                lastName: {
+                  type: 'string',
+                  nullable: true,
+                  example: 'Doe',
+                },
+                gender: {
+                  type: 'number',
+                  nullable: true,
+                  example: 0,
+                  description: '0 = male, 1 = female, 2 = other',
+                },
+                dob: {
+                  type: 'string',
+                  format: 'date',
+                  nullable: true,
+                  example: '2010-05-15',
+                  description: 'Date of birth',
+                },
+                age: {
+                  type: 'number',
+                  nullable: true,
+                  example: 14,
+                  description: 'Current age calculated from date of birth (DOB)',
+                },
+                schoolName: {
+                  type: 'string',
+                  nullable: true,
+                  example: 'ABC School',
+                },
+                contactNumber: {
+                  type: 'string',
+                  nullable: true,
+                  example: '9876543210',
+                },
+                profilePhoto: {
+                  type: 'string',
+                  format: 'uri',
+                  nullable: true,
+                  example: 'https://bucket.s3.region.amazonaws.com/profile.jpg',
+                },
+              },
+            },
+            user: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+                  description: 'User UUID',
+                },
+                firstName: {
+                  type: 'string',
+                  example: 'John',
+                },
+                lastName: {
+                  type: 'string',
+                  nullable: true,
+                  example: 'Doe',
+                },
+                email: {
+                  type: 'string',
+                  example: 'user@example.com',
+                },
+                mobile: {
+                  type: 'string',
+                  nullable: true,
+                  example: '9876543210',
+                },
+              },
+            },
+            batches: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/EnrolledStudentBatch',
+              },
+              description: 'All batches the student is enrolled in',
+            },
+            overallStatus: {
+              type: 'string',
+              enum: ['active', 'left', 'completed', 'pending'],
+              example: 'active',
+              description: 'Overall status based on batch enrollments (active = has confirmed bookings, left = all cancelled, completed = all completed, pending = all pending)',
+            },
+            totalEnrollments: {
+              type: 'number',
+              example: 2,
+              description: 'Total number of batch enrollments',
+            },
+            activeEnrollments: {
+              type: 'number',
+              example: 1,
+              description: 'Number of active (confirmed) enrollments',
+            },
+          },
+        },
+        EnrolledStudentDetail: {
+          type: 'object',
+          properties: {
+            participant: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  example: '507f1f77bcf86cd799439011',
+                  description: 'Participant ObjectId',
+                },
+                firstName: {
+                  type: 'string',
+                  nullable: true,
+                  example: 'John',
+                },
+                lastName: {
+                  type: 'string',
+                  nullable: true,
+                  example: 'Doe',
+                },
+                gender: {
+                  type: 'number',
+                  nullable: true,
+                  example: 0,
+                  description: '0 = male, 1 = female, 2 = other',
+                },
+                dob: {
+                  type: 'string',
+                  format: 'date',
+                  nullable: true,
+                  example: '2010-05-15',
+                },
+                age: {
+                  type: 'number',
+                  nullable: true,
+                  example: 14,
+                  description: 'Current age calculated from date of birth',
+                },
+                schoolName: {
+                  type: 'string',
+                  nullable: true,
+                  example: 'ABC School',
+                },
+                contactNumber: {
+                  type: 'string',
+                  nullable: true,
+                  example: '9876543210',
+                },
+                profilePhoto: {
+                  type: 'string',
+                  format: 'uri',
+                  nullable: true,
+                  example: 'https://bucket.s3.region.amazonaws.com/profile.jpg',
+                },
+                disability: {
+                  type: 'number',
+                  nullable: true,
+                  example: 0,
+                  description: '0 = no, 1 = yes',
+                },
+                address: {
+                  type: 'object',
+                  nullable: true,
+                  description: 'Participant address',
+                },
+              },
+            },
+            user: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+                  description: 'User UUID',
+                },
+                firstName: {
+                  type: 'string',
+                  example: 'John',
+                },
+                lastName: {
+                  type: 'string',
+                  nullable: true,
+                  example: 'Doe',
+                },
+                email: {
+                  type: 'string',
+                  example: 'user@example.com',
+                },
+                mobile: {
+                  type: 'string',
+                  nullable: true,
+                  example: '9876543210',
+                },
+                profileImage: {
+                  type: 'string',
+                  format: 'uri',
+                  nullable: true,
+                  example: 'https://bucket.s3.region.amazonaws.com/user-profile.jpg',
+                },
+              },
+            },
+            batches: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  batch: {
+                    type: 'object',
+                    properties: {
+                      id: {
+                        type: 'string',
+                        example: '507f1f77bcf86cd799439011',
+                      },
+                      name: {
+                        type: 'string',
+                        example: 'Morning Batch',
+                      },
+                      scheduled: {
+                        type: 'object',
+                        properties: {
+                          start_date: {
+                            type: 'string',
+                            format: 'date',
+                            example: '2024-01-15',
+                          },
+                          start_time: {
+                            type: 'string',
+                            example: '09:00',
+                          },
+                          end_time: {
+                            type: 'string',
+                            example: '11:00',
+                          },
+                          training_days: {
+                            type: 'array',
+                            items: {
+                              type: 'string',
+                            },
+                            example: ['monday', 'wednesday', 'friday'],
+                          },
+                        },
+                      },
+                      duration: {
+                        type: 'object',
+                        properties: {
+                          count: {
+                            type: 'number',
+                            example: 3,
+                          },
+                          type: {
+                            type: 'string',
+                            example: 'month',
+                          },
+                        },
+                      },
+                      capacity: {
+                        type: 'object',
+                        properties: {
+                          min: {
+                            type: 'number',
+                            example: 10,
+                          },
+                          max: {
+                            type: 'number',
+                            nullable: true,
+                            example: 30,
+                          },
+                        },
+                      },
+                      age: {
+                        type: 'object',
+                        properties: {
+                          min: {
+                            type: 'number',
+                            example: 8,
+                          },
+                          max: {
+                            type: 'number',
+                            example: 16,
+                          },
+                        },
+                      },
+                      admission_fee: {
+                        type: 'number',
+                        nullable: true,
+                        example: 5000,
+                      },
+                      fee_structure: {
+                        type: 'object',
+                        nullable: true,
+                        additionalProperties: true,
+                      },
+                      status: {
+                        type: 'string',
+                        example: 'published',
+                      },
+                    },
+                  },
+                  sport: {
+                    type: 'object',
+                    properties: {
+                      id: {
+                        type: 'string',
+                        example: '507f1f77bcf86cd799439011',
+                      },
+                      name: {
+                        type: 'string',
+                        example: 'Cricket',
+                      },
+                      logo: {
+                        type: 'string',
+                        format: 'uri',
+                        nullable: true,
+                        example: 'https://bucket.s3.region.amazonaws.com/sports/cricket.png',
+                      },
+                    },
+                  },
+                  center: {
+                    type: 'object',
+                    properties: {
+                      id: {
+                        type: 'string',
+                        example: '507f1f77bcf86cd799439011',
+                      },
+                      center_name: {
+                        type: 'string',
+                        example: 'Elite Sports Academy',
+                      },
+                      email: {
+                        type: 'string',
+                        nullable: true,
+                        example: 'info@elitesportsacademy.com',
+                      },
+                      mobile_number: {
+                        type: 'string',
+                        nullable: true,
+                        example: '9876543210',
+                      },
+                      logo: {
+                        type: 'string',
+                        format: 'uri',
+                        nullable: true,
+                        example: 'https://bucket.s3.region.amazonaws.com/logos/elite-academy.png',
+                      },
+                      location: {
+                        type: 'object',
+                        nullable: true,
+                        properties: {
+                          latitude: {
+                            type: 'number',
+                            example: 28.6139,
+                          },
+                          longitude: {
+                            type: 'number',
+                            example: 77.209,
+                          },
+                          address: {
+                            type: 'object',
+                            properties: {
+                              line1: { type: 'string', nullable: true },
+                              line2: { type: 'string' },
+                              city: { type: 'string' },
+                              state: { type: 'string' },
+                              country: { type: 'string', nullable: true },
+                              pincode: { type: 'string' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                  booking: {
+                    type: 'object',
+                    properties: {
+                      id: {
+                        type: 'string',
+                        example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+                      },
+                      status: {
+                        type: 'string',
+                        enum: ['pending', 'confirmed', 'cancelled', 'completed'],
+                        example: 'confirmed',
+                      },
+                      payment: {
+                        type: 'object',
+                        properties: {
+                          status: {
+                            type: 'string',
+                            enum: ['pending', 'processing', 'success', 'failed', 'refunded', 'cancelled'],
+                            example: 'success',
+                          },
+                          amount: {
+                            type: 'number',
+                            example: 5000,
+                          },
+                          currency: {
+                            type: 'string',
+                            example: 'INR',
+                          },
+                          payment_method: {
+                            type: 'string',
+                            nullable: true,
+                            example: 'card',
+                          },
+                          paid_at: {
+                            type: 'string',
+                            format: 'date-time',
+                            nullable: true,
+                            example: '2024-01-15T10:30:00.000Z',
+                          },
+                        },
+                      },
+                      amount: {
+                        type: 'number',
+                        example: 5000,
+                      },
+                      currency: {
+                        type: 'string',
+                        example: 'INR',
+                      },
+                      notes: {
+                        type: 'string',
+                        nullable: true,
+                        example: 'Special requirements noted',
+                      },
+                      createdAt: {
+                        type: 'string',
+                        format: 'date-time',
+                        example: '2024-01-15T10:30:00.000Z',
+                      },
+                      updatedAt: {
+                        type: 'string',
+                        format: 'date-time',
+                        example: '2024-01-15T10:30:00.000Z',
+                      },
+                    },
+                  },
+                  enrolledDate: {
+                    type: 'string',
+                    format: 'date-time',
+                    example: '2024-01-15T10:30:00.000Z',
+                  },
+                },
+              },
+              description: 'All batches the student is enrolled in with complete details',
+            },
+            overallStatus: {
+              type: 'string',
+              enum: ['active', 'left', 'completed', 'pending'],
+              example: 'active',
+              description: 'Overall status based on batch enrollments',
+            },
+            totalEnrollments: {
+              type: 'number',
+              example: 2,
+              description: 'Total number of batch enrollments',
+            },
+            activeEnrollments: {
+              type: 'number',
+              example: 1,
+              description: 'Number of active (confirmed) enrollments',
+            },
+          },
+        },
       },
     },
     tags: [
@@ -3590,6 +4144,10 @@ const options: swaggerJsdoc.Options = {
         description: 'Academy booking management endpoints for viewing and managing bookings',
       },
       {
+        name: 'Academy Student',
+        description: 'Academy student management endpoints for viewing enrolled students',
+      },
+      {
         name: 'Webhook',
         description: 'Webhook endpoints for payment verification',
       },
@@ -3617,6 +4175,7 @@ const options: swaggerJsdoc.Options = {
           'Batch',
           'Fee Type',
           'Academy Booking',
+          'Academy Student',
         ],
       },
       {

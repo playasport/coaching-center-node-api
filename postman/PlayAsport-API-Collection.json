@@ -1,9 +1,9 @@
 {
   "info": {
     "name": "PlayAsport Academy API",
-    "description": "API collection for PlayAsport Academy backend with Booking and Payment endpoints",
+    "description": "API collection for PlayAsport Academy backend with Booking, Payment, Academy Management, and Student Management endpoints",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "auth": {
     "type": "bearer",
@@ -426,6 +426,229 @@
         }
       ],
       "description": "User profile management endpoints"
+    },
+    {
+      "name": "Academy Management",
+      "item": [
+        {
+          "name": "Academy Booking",
+          "item": [
+            {
+              "name": "Get Academy Bookings",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/booking?page=1&limit=10&centerId=&batchId=&status=&paymentStatus=",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "booking"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (starts from 1)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Number of records per page (max: 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "centerId",
+                      "value": "",
+                      "description": "Filter by coaching center ID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "batchId",
+                      "value": "",
+                      "description": "Filter by batch ID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "Filter by booking status (pending, confirmed, cancelled, completed)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "paymentStatus",
+                      "value": "",
+                      "description": "Filter by payment status (pending, processing, success, failed, refunded, cancelled)",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Retrieve a paginated list of bookings for coaching centers owned by the authenticated academy user. Requires authentication and ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Academy Booking by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/booking/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "booking", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "f316a86c-2909-4d32-8983-eb225c715bcb",
+                      "description": "Booking UUID"
+                    }
+                  ]
+                },
+                "description": "Retrieve a booking by its ID. The booking must belong to one of the academy's coaching centers. Requires authentication and ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Academy Booking Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"confirmed\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/booking/:id/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "booking", ":id", "status"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "f316a86c-2909-4d32-8983-eb225c715bcb",
+                      "description": "Booking UUID"
+                    }
+                  ]
+                },
+                "description": "Update the status of a booking. The booking must belong to one of the academy's coaching centers. Status values: pending, confirmed, cancelled, completed. Requires authentication and ACADEMY role."
+              },
+              "response": []
+            }
+          ],
+          "description": "Academy booking management endpoints for viewing and managing bookings"
+        },
+        {
+          "name": "Academy Student",
+          "item": [
+            {
+              "name": "Get Enrolled Students",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/my-student?page=1&limit=10&centerId=&batchId=&status=",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "my-student"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (starts from 1)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Number of records per page (max: 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "centerId",
+                      "value": "",
+                      "description": "Filter by coaching center ID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "batchId",
+                      "value": "",
+                      "description": "Filter by batch ID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "Filter by overall student status (active, left, completed, pending)",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Retrieve a paginated list of enrolled students grouped by participant (no duplicates). Shows student details including current age (calculated from DOB), batch name, sport name, booking status, and payment status for each enrollment. Requires authentication and ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Enrolled Student Detail",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/my-student/:participantId",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "my-student", ":participantId"],
+                  "variable": [
+                    {
+                      "key": "participantId",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Participant ID (ObjectId)"
+                    }
+                  ]
+                },
+                "description": "Retrieve comprehensive details about a specific enrolled student including all participant information (with age), complete user details, all batches with full batch information (scheduled timings, duration, capacity, fee structure), sport details, coaching center basic information (name, contact, location), and complete booking details (status, payment info, notes, timestamps). Requires authentication and ACADEMY role."
+              },
+              "response": []
+            }
+          ],
+          "description": "Academy student management endpoints for viewing enrolled students"
+        }
+      ],
+      "description": "Academy management endpoints for booking and student management. Requires ACADEMY role authentication."
     }
   ]
 }
