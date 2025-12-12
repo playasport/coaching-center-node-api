@@ -12,6 +12,7 @@
     "convert:bson-to-json": "tsx scripts/convert-bson-to-json.ts",
     "seed:roles": "tsx scripts/seed-roles.ts",
     "seed:fee-type-configs": "tsx scripts/seed-fee-type-configs.ts",
+    "seed:bookings": "tsx scripts/seed-bookings.ts",
     "drop:role-index": "tsx scripts/drop-role-id-index.ts"
   },
   "keywords": [

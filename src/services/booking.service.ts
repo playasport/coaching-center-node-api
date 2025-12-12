@@ -26,6 +26,36 @@ import {
 // Get payment service instance
 const paymentService = getPaymentService();
 
+/**
+ * Generate unique booking ID (format: BK-YYYY-NNNN)
+ * Example: BK-2024-0001, BK-2024-0002, etc.
+ */
+export const generateBookingId = async (): Promise<string> => {
+  const year = new Date().getFullYear();
+  const prefix = `BK-${year}-`;
+
+  // Find the highest booking_id for this year
+  const lastBooking = await BookingModel.findOne({
+    booking_id: { $regex: `^${prefix}` },
+  })
+    .sort({ booking_id: -1 })
+    .select('booking_id')
+    .lean();
+
+  let sequence = 1;
+  if (lastBooking && lastBooking.booking_id) {
+    // Extract sequence number from last booking_id (e.g., BK-2024-0123 -> 123)
+    const lastSequence = parseInt(lastBooking.booking_id.replace(prefix, ''), 10);
+    if (!isNaN(lastSequence)) {
+      sequence = lastSequence + 1;
+    }
+  }
+
+  // Format sequence with leading zeros (4 digits)
+  const formattedSequence = sequence.toString().padStart(4, '0');
+  return `${prefix}${formattedSequence}`;
+};
+
 export interface BookingSummary {
   batch: {
     id: string;
@@ -522,6 +552,9 @@ export const createOrder = async (
 
     const paymentOrder = await paymentService.createOrder(orderData);
 
+    // Generate unique booking ID
+    const bookingId = await generateBookingId();
+
     // Create booking record
     const bookingData: any = {
       user: userObjectId,
@@ -532,6 +565,7 @@ export const createOrder = async (
       amount: summary.amount,
       currency: summary.currency,
       status: BookingStatus.PENDING,
+      booking_id: bookingId,
       payment: {
         razorpay_order_id: paymentOrder.id,
         amount: summary.amount,

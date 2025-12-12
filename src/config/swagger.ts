@@ -3202,6 +3202,71 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        BookingListItem: {
+          type: 'object',
+          description: 'Simplified booking information for listing endpoints',
+          properties: {
+            booking_id: {
+              type: 'string',
+              example: 'BK-2024-0001',
+              description: 'Unique booking reference ID (format: BK-YYYY-NNNN)',
+            },
+            id: {
+              type: 'string',
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+              description: 'Booking UUID',
+            },
+            user_name: {
+              type: 'string',
+              example: 'John Doe',
+              description: 'Full name of the user who made the booking',
+            },
+            student_name: {
+              type: 'string',
+              example: 'Alice Smith, Bob Smith',
+              description: 'Participant name(s) - comma-separated if multiple',
+            },
+            batch_name: {
+              type: 'string',
+              example: 'Morning Batch',
+              description: 'Name of the batch',
+            },
+            center_name: {
+              type: 'string',
+              example: 'ABC Sports Academy',
+              description: 'Name of the coaching center',
+            },
+            amount: {
+              type: 'number',
+              example: 5000,
+              description: 'Total booking amount in rupees',
+            },
+            payment_status: {
+              type: 'string',
+              enum: ['pending', 'processing', 'success', 'failed', 'refunded', 'cancelled'],
+              example: 'success',
+              description: 'Payment status',
+            },
+            payment_method: {
+              type: 'string',
+              nullable: true,
+              example: 'card',
+              description: 'Payment method used (e.g., card, netbanking, upi)',
+            },
+            invoice_id: {
+              type: 'string',
+              nullable: true,
+              example: 'order_1234567890',
+              description: 'Razorpay order ID (invoice reference)',
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-01T00:00:00.000Z',
+              description: 'Booking creation timestamp',
+            },
+          },
+        },
         Booking: {
           type: 'object',
           properties: {
@@ -3209,6 +3274,12 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
               description: 'Booking UUID',
+            },
+            booking_id: {
+              type: 'string',
+              nullable: true,
+              example: 'BK-2024-0001',
+              description: 'Unique booking reference ID (format: BK-YYYY-NNNN)',
             },
             user: {
               $ref: '#/components/schemas/User',

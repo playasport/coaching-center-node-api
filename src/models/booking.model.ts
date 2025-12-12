@@ -35,6 +35,7 @@ export interface PaymentDetails {
 // Booking interface
 export interface Booking {
   id: string;
+  booking_id?: string | null; // Unique booking reference ID (e.g., BK-2024-001)
   user: Types.ObjectId; // Reference to User model
   participants: Types.ObjectId[]; // Array of Participant references
   batch: Types.ObjectId; // Reference to Batch model
@@ -112,6 +113,14 @@ const bookingSchema = new Schema<Booking>(
       unique: true,
       index: true,
       default: () => uuidv4(),
+    },
+    booking_id: {
+      type: String,
+      default: null,
+      unique: true,
+      sparse: true,
+      index: true,
+      trim: true,
     },
     user: {
       type: Schema.Types.ObjectId,

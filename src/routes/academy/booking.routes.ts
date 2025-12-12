@@ -77,7 +77,7 @@ const router = Router();
  *                     data:
  *                       type: array
  *                       items:
- *                         $ref: '#/components/schemas/Booking'
+ *                         $ref: '#/components/schemas/BookingListItem'
  *                     pagination:
  *                       type: object
  *                       properties:

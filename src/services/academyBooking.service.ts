@@ -15,8 +15,22 @@ export interface GetAcademyBookingsParams {
   paymentStatus?: PaymentStatus;
 }
 
+export interface BookingListItem {
+  booking_id: string;
+  id: string;
+  user_name: string;
+  student_name: string; // Participant name(s)
+  batch_name: string;
+  center_name: string;
+  amount: number;
+  payment_status: string;
+  payment_method: string | null;
+  invoice_id: string | null;
+  created_at: Date;
+}
+
 export interface PaginatedBookingsResult {
-  data: Booking[];
+  data: BookingListItem[];
   pagination: {
     page: number;
     limit: number;
@@ -60,7 +74,7 @@ export const getAcademyBookings = async (
       };
     }
 
-    const centerIds = coachingCenters.map(center => center._id);
+    const centerIds = coachingCenters.map(center => center._id as Types.ObjectId);
 
     // Build query
     const query: any = {
@@ -107,13 +121,13 @@ export const getAcademyBookings = async (
     // Get total count
     const total = await BookingModel.countDocuments(query);
 
-    // Get bookings
+    // Get bookings with minimal population for listing
     const bookings = await BookingModel.find(query)
-      .populate('user', 'id firstName lastName email mobile')
-      .populate('participants', 'id firstName lastName')
-      .populate('batch', 'id name scheduled')
-      .populate('center', 'id center_name email mobile_number')
-      .populate('sport', 'id name')
+      .populate('user', 'firstName lastName')
+      .populate('participants', 'firstName lastName')
+      .populate('batch', 'name')
+      .populate('center', 'center_name')
+      .select('booking_id id amount payment.status payment.payment_method payment.razorpay_order_id user participants batch center createdAt')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -121,8 +135,40 @@ export const getAcademyBookings = async (
 
     const totalPages = Math.ceil(total / limit);
 
+    // Transform bookings to return only required fields
+    const transformedBookings: BookingListItem[] = bookings.map((booking: any) => {
+      // Format participant names (student names)
+      let studentName = 'N/A';
+      if (booking.participants && Array.isArray(booking.participants) && booking.participants.length > 0) {
+        const participantNames = booking.participants
+          .map((p: any) => {
+            const firstName = p?.firstName || '';
+            const lastName = p?.lastName || '';
+            return `${firstName} ${lastName}`.trim();
+          })
+          .filter((name: string) => name.length > 0);
+        studentName = participantNames.join(', ') || 'N/A';
+      }
+
+      return {
+        booking_id: booking.booking_id || booking.id, // Use booking_id if available, fallback to id
+        id: booking.id,
+        user_name: booking.user
+          ? `${booking.user.firstName || ''} ${booking.user.lastName || ''}`.trim()
+          : 'N/A',
+        student_name: studentName,
+        batch_name: booking.batch?.name || 'N/A',
+        center_name: booking.center?.center_name || 'N/A',
+        amount: booking.amount,
+        payment_status: booking.payment?.status || 'pending',
+        payment_method: booking.payment?.payment_method || null,
+        invoice_id: booking.payment?.razorpay_order_id || null,
+        created_at: booking.createdAt,
+      };
+    });
+
     return {
-      data: bookings as Booking[],
+      data: transformedBookings,
       pagination: {
         page,
         limit,
@@ -163,12 +209,13 @@ export const getAcademyBookingById = async (
     }).select('_id').lean();
 
     if (coachingCenters.length === 0) {
+      logger.warn('No coaching centers found for academy user', { userId });
       throw new ApiError(404, 'Booking not found');
     }
 
-    const centerIds = coachingCenters.map(center => center._id);
+    const centerIds = coachingCenters.map(center => center._id as Types.ObjectId);
 
-    // Find booking
+    // Find booking with full details using id field (UUID string)
     const booking = await BookingModel.findOne({
       id: bookingId,
       center: { $in: centerIds },
@@ -182,6 +229,7 @@ export const getAcademyBookingById = async (
       .lean();
 
     if (!booking) {
+      logger.warn('Booking not found', { bookingId, centerIds });
       throw new ApiError(404, 'Booking not found');
     }
 
@@ -192,6 +240,8 @@ export const getAcademyBookingById = async (
     }
     logger.error('Failed to get academy booking:', {
       error: error instanceof Error ? error.message : error,
+      bookingId,
+      userId,
     });
     throw new ApiError(500, 'Failed to get academy booking');
   }
@@ -221,7 +271,7 @@ export const updateAcademyBookingStatus = async (
       throw new ApiError(404, 'Booking not found');
     }
 
-    const centerIds = coachingCenters.map(center => center._id);
+    const centerIds = coachingCenters.map(center => center._id as Types.ObjectId);
 
     // Find booking
     const booking = await BookingModel.findOne({

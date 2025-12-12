@@ -1,9 +1,9 @@
 {
   "info": {
     "name": "PlayAsport Academy API",
-    "description": "API collection for PlayAsport Academy backend with Booking, Payment, Academy Management, and Student Management endpoints",
+    "description": "Complete API collection for PlayAsport Academy backend - includes Authentication, Booking, Payment, Academy Management, Student Management, Participants, Locations, and more",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.1.0"
+    "version": "2.0.0"
   },
   "auth": {
     "type": "bearer",
@@ -176,10 +176,439 @@
       "description": "Webhook endpoints for payment verification"
     },
     {
-      "name": "Authentication",
+      "name": "Academy Auth",
       "item": [
         {
-          "name": "User Login",
+          "name": "Register Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"academy@example.com\",\n  \"password\": \"Password@123\",\n  \"mobile\": \"9876543210\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "register"]
+            },
+            "description": "Register a new academy user with OTP verification. Returns access token (15 minutes) and device-specific refresh token."
+          },
+          "response": []
+        },
+        {
+          "name": "Login Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"academy@example.com\",\n  \"password\": \"Password@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "login"]
+            },
+            "description": "Login academy user and receive access/refresh tokens. Save the accessToken from response."
+          },
+          "response": []
+        },
+        {
+          "name": "Social Login Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"firebase_id_token_here\",\n  \"deviceInfo\": {\n    \"deviceId\": \"device123\",\n    \"deviceType\": \"web\",\n    \"platform\": \"web\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/social-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "social-login"]
+            },
+            "description": "Authenticate or auto-register academy users using Firebase ID token (Google, Facebook, Apple, etc.)"
+          },
+          "response": []
+        },
+        {
+          "name": "Send OTP Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"academy@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/send-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "send-otp"]
+            },
+            "description": "Send OTP to academy user's email for verification"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"academy@example.com\",\n  \"otp\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "verify-otp"]
+            },
+            "description": "Verify OTP for academy user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current Academy User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "me"]
+            },
+            "description": "Get current authenticated academy user details. Requires ACADEMY role."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Academy Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"mobile\": \"9876543210\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "profile"]
+            },
+            "description": "Update academy user profile. Requires ACADEMY role."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Academy Address",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": {\n    \"street\": \"123 Main St\",\n    \"city\": \"New Delhi\",\n    \"state\": \"Delhi\",\n    \"country\": \"India\",\n    \"zipCode\": \"110001\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/address",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "address"]
+            },
+            "description": "Update academy user address. Requires ACADEMY role."
+          },
+          "response": []
+        },
+        {
+          "name": "Change Academy Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"OldPassword@123\",\n  \"newPassword\": \"NewPassword@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "password"]
+            },
+            "description": "Change academy user password. Requires ACADEMY role."
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password Request Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"academy@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/forgot-password/request",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "forgot-password", "request"]
+            },
+            "description": "Request password reset for academy user"
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password Verify Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"academy@example.com\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"NewPassword@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/forgot-password/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "forgot-password", "verify"]
+            },
+            "description": "Verify OTP and reset password for academy user"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"refresh_token_here\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "refresh"]
+            },
+            "description": "Refresh access token using refresh token"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "logout"]
+            },
+            "description": "Logout current device. Requires ACADEMY role."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout All Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/logout-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "logout-all"]
+            },
+            "description": "Logout from all devices. Requires ACADEMY role."
+          },
+          "response": []
+        }
+      ],
+      "description": "Academy authentication and user management endpoints"
+    },
+    {
+      "name": "User Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password@123\",\n  \"mobile\": \"9876543210\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"userType\": \"student\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "register"]
+            },
+            "description": "Register a new user (student or guardian) with OTP verification. Returns access token (15 minutes) and device-specific refresh token."
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
           "request": {
             "method": "POST",
             "header": [
@@ -203,12 +632,382 @@
               "host": ["{{baseUrl}}"],
               "path": ["user", "auth", "login"]
             },
-            "description": "Login endpoint to get access token. Save the accessToken from response to use in other requests."
+            "description": "Login user and receive access/refresh tokens. Save the accessToken from response."
+          },
+          "response": []
+        },
+        {
+          "name": "Social Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"firebase_id_token_here\",\n  \"deviceInfo\": {\n    \"deviceId\": \"device123\",\n    \"deviceType\": \"web\",\n    \"platform\": \"web\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/social-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "social-login"]
+            },
+            "description": "Authenticate or auto-register users using Firebase ID token (Google, Facebook, Apple, etc.)"
+          },
+          "response": []
+        },
+        {
+          "name": "Send OTP User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/send-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "send-otp"]
+            },
+            "description": "Send OTP to user's email for verification"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "verify-otp"]
+            },
+            "description": "Verify OTP for user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "me"]
+            },
+            "description": "Get current authenticated user details. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"mobile\": \"9876543210\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "profile"]
+            },
+            "description": "Update user profile. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Address",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": {\n    \"street\": \"123 Main St\",\n    \"city\": \"New Delhi\",\n    \"state\": \"Delhi\",\n    \"country\": \"India\",\n    \"zipCode\": \"110001\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/address",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "address"]
+            },
+            "description": "Update user address. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Change User Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"OldPassword@123\",\n  \"newPassword\": \"NewPassword@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "password"]
+            },
+            "description": "Change user password. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Favorite Sports",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"favoriteSports\": [\n    \"507f1f77bcf86cd799439011\",\n    \"507f1f77bcf86cd799439012\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/favorite-sports",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "favorite-sports"]
+            },
+            "description": "Update user's favorite sports. Array of Sport ObjectIds. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password Request User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/forgot-password/request",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "forgot-password", "request"]
+            },
+            "description": "Request password reset for user"
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password Verify User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"NewPassword@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/forgot-password/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "forgot-password", "verify"]
+            },
+            "description": "Verify OTP and reset password for user"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"refresh_token_here\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "refresh"]
+            },
+            "description": "Refresh access token using refresh token"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "logout"]
+            },
+            "description": "Logout current device. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout All User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/logout-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "logout-all"]
+            },
+            "description": "Logout from all devices. Requires authentication."
           },
           "response": []
         }
       ],
-      "description": "Authentication endpoints"
+      "description": "User authentication and profile management endpoints"
     },
     {
       "name": "Academy",
@@ -388,10 +1187,105 @@
       "description": "Home page data endpoints"
     },
     {
-      "name": "User Profile",
+      "name": "Participant",
       "item": [
         {
-          "name": "Update Favorite Sports",
+          "name": "Create Participant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"gender\": 0,\n  \"disability\": 0,\n  \"dob\": \"2010-01-01\",\n  \"schoolName\": \"ABC School\",\n  \"contactNumber\": \"9876543210\",\n  \"isSelf\": \"1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/participant",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "participant"]
+            },
+            "description": "Create a new participant. Users can only create participants for themselves. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Participants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/participant?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "participant"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Records per page",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all participants for the authenticated user. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Participant by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/participant/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "participant", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Participant ID"
+                }
+              ]
+            },
+            "description": "Get participant by ID. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Participant",
           "request": {
             "method": "PATCH",
             "header": [
@@ -408,7 +1302,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"favoriteSports\": [\n    \"507f1f77bcf86cd799439011\",\n    \"507f1f77bcf86cd799439012\"\n  ]\n}",
+              "raw": "{\n  \"firstName\": \"John Updated\",\n  \"lastName\": \"Doe Updated\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -416,20 +1310,952 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/user/auth/favorite-sports",
+              "raw": "{{baseUrl}}/user/participant/:id",
               "host": ["{{baseUrl}}"],
-              "path": ["user", "auth", "favorite-sports"]
+              "path": ["user", "participant", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Participant ID"
+                }
+              ]
             },
-            "description": "Update user's favorite sports. Array of Sport ObjectIds. This is a protected route (requires authentication)."
+            "description": "Update participant. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Participant",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/participant/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "participant", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Participant ID"
+                }
+              ]
+            },
+            "description": "Delete participant (soft delete). Requires authentication."
           },
           "response": []
         }
       ],
-      "description": "User profile management endpoints"
+      "description": "Participant management endpoints for users"
+    },
+    {
+      "name": "Location",
+      "item": [
+        {
+          "name": "Get Countries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/location/countries",
+              "host": ["{{baseUrl}}"],
+              "path": ["location", "countries"]
+            },
+            "description": "Get all countries. Public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Get States",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/location/states?countryCode=IN",
+              "host": ["{{baseUrl}}"],
+              "path": ["location", "states"],
+              "query": [
+                {
+                  "key": "countryCode",
+                  "value": "IN",
+                  "description": "Country code (e.g., IN for India)"
+                }
+              ]
+            },
+            "description": "Get states by country code. Public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/location/cities?stateName=Delhi&countryCode=IN",
+              "host": ["{{baseUrl}}"],
+              "path": ["location", "cities"],
+              "query": [
+                {
+                  "key": "stateName",
+                  "value": "Delhi",
+                  "description": "State name"
+                },
+                {
+                  "key": "countryCode",
+                  "value": "IN",
+                  "description": "Country code",
+                  "disabled": true
+                },
+                {
+                  "key": "stateId",
+                  "value": "",
+                  "description": "State ID (alternative to stateName)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get cities by state. Public endpoint."
+          },
+          "response": []
+        }
+      ],
+      "description": "Location endpoints for countries, states, and cities"
+    },
+    {
+      "name": "Basic",
+      "item": [
+        {
+          "name": "Get All Sports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sports",
+              "host": ["{{baseUrl}}"],
+              "path": ["sports"]
+            },
+            "description": "Get all sports. Public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Facilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/facilities",
+              "host": ["{{baseUrl}}"],
+              "path": ["facilities"]
+            },
+            "description": "Get all facilities. Public endpoint."
+          },
+          "response": []
+        }
+      ],
+      "description": "Basic public endpoints for sports and facilities"
+    },
+    {
+      "name": "Locale",
+      "item": [
+        {
+          "name": "Get Current Locale",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locale",
+              "host": ["{{baseUrl}}"],
+              "path": ["locale"]
+            },
+            "description": "Get current locale setting. Public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Set Locale",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locale\": \"en\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/locale",
+              "host": ["{{baseUrl}}"],
+              "path": ["locale"]
+            },
+            "description": "Set locale (e.g., 'en', 'hi'). Public endpoint."
+          },
+          "response": []
+        }
+      ],
+      "description": "Locale management endpoints"
+    },
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Health check endpoint. Returns server status and timestamp."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["role"]
+            },
+            "description": "Get all roles. Requires authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "System and utility endpoints"
     },
     {
       "name": "Academy Management",
       "item": [
+        {
+          "name": "Coaching Center",
+          "item": [
+            {
+              "name": "Create Coaching Center",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"center_name\": \"ABC Sports Academy\",\n  \"mobile_number\": \"9876543210\",\n  \"email\": \"academy@example.com\",\n  \"sports\": [\"507f1f77bcf86cd799439011\"],\n  \"age\": {\n    \"min\": 5,\n    \"max\": 18\n  },\n  \"location\": {\n    \"latitude\": 28.6139,\n    \"longitude\": 77.209,\n    \"address\": {\n      \"street\": \"123 Main St\",\n      \"city\": \"New Delhi\",\n      \"state\": \"Delhi\",\n      \"country\": \"India\",\n      \"zipCode\": \"110001\"\n    }\n  },\n  \"operational_timing\": {\n    \"operating_days\": [\"monday\", \"tuesday\", \"wednesday\"],\n    \"opening_time\": \"09:00\",\n    \"closing_time\": \"18:00\"\n  },\n  \"bank_information\": {\n    \"bank_name\": \"ABC Bank\",\n    \"account_number\": \"1234567890\",\n    \"ifsc_code\": \"ABCD1234567\",\n    \"account_holder_name\": \"ABC Academy\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/coaching-center",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "coaching-center"]
+                },
+                "description": "Create a new coaching center. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Coaching Centers",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/coaching-center?page=1&limit=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "coaching-center"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Records per page",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Get all coaching centers for the authenticated academy user. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Coaching Center by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/coaching-center/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "coaching-center", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Coaching Center ID"
+                    }
+                  ]
+                },
+                "description": "Get coaching center by ID. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Coaching Center",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"center_name\": \"Updated Academy Name\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/coaching-center/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "coaching-center", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Coaching Center ID"
+                    }
+                  ]
+                },
+                "description": "Update coaching center. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Coaching Center Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"published\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/coaching-center/:id/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "coaching-center", ":id", "status"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Coaching Center ID"
+                    }
+                  ]
+                },
+                "description": "Update coaching center status (draft, published, suspended). Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Coaching Center",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/coaching-center/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "coaching-center", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Coaching Center ID"
+                    }
+                  ]
+                },
+                "description": "Delete coaching center (soft delete). Requires ACADEMY role."
+              },
+              "response": []
+            }
+          ],
+          "description": "Coaching center management endpoints"
+        },
+        {
+          "name": "Employee",
+          "item": [
+            {
+              "name": "Create Employee",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"John Coach\",\n  \"role\": \"507f1f77bcf86cd799439011\",\n  \"mobileNo\": \"9876543210\",\n  \"email\": \"coach@example.com\",\n  \"sport\": \"507f1f77bcf86cd799439012\",\n  \"center\": \"507f1f77bcf86cd799439013\",\n  \"workingHours\": \"9 AM - 6 PM\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/employee",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "employee"]
+                },
+                "description": "Create a new employee. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Employees",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/employee?page=1&limit=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "employee"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Records per page",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Get all employees for the authenticated academy user. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Employee by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/employee/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "employee", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Employee ID"
+                    }
+                  ]
+                },
+                "description": "Get employee by ID. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Employee",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"John Coach Updated\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/employee/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "employee", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Employee ID"
+                    }
+                  ]
+                },
+                "description": "Update employee. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Employee Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"is_active\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/employee/:id/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "employee", ":id", "status"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Employee ID"
+                    }
+                  ]
+                },
+                "description": "Update employee active status. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Employee",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/employee/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "employee", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Employee ID"
+                    }
+                  ]
+                },
+                "description": "Delete employee (soft delete). Requires ACADEMY role."
+              },
+              "response": []
+            }
+          ],
+          "description": "Employee management endpoints"
+        },
+        {
+          "name": "Batch",
+          "item": [
+            {
+              "name": "Create Batch",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Morning Batch\",\n  \"sport\": \"507f1f77bcf86cd799439011\",\n  \"center\": \"507f1f77bcf86cd799439012\",\n  \"scheduled\": {\n    \"start_date\": \"2024-01-01\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": {\n    \"count\": 3,\n    \"type\": \"months\"\n  },\n  \"capacity\": {\n    \"min\": 10,\n    \"max\": 30\n  },\n  \"age\": {\n    \"min\": 8,\n    \"max\": 16\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/batch",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "batch"]
+                },
+                "description": "Create a new batch. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Batches",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/batch?page=1&limit=10&centerId=&sportId=&status=",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "batch"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Records per page",
+                      "disabled": true
+                    },
+                    {
+                      "key": "centerId",
+                      "value": "",
+                      "description": "Filter by center ID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sportId",
+                      "value": "",
+                      "description": "Filter by sport ID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "Filter by status",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Get all batches for the authenticated academy user. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Batch by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/batch/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "batch", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Batch ID"
+                    }
+                  ]
+                },
+                "description": "Get batch by ID. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Batch",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated Batch Name\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/batch/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "batch", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Batch ID"
+                    }
+                  ]
+                },
+                "description": "Update batch. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Batch Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"active\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/batch/:id/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "batch", ":id", "status"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Batch ID"
+                    }
+                  ]
+                },
+                "description": "Update batch status. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Batch",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/batch/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "batch", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Batch ID"
+                    }
+                  ]
+                },
+                "description": "Delete batch (soft delete). Requires ACADEMY role."
+              },
+              "response": []
+            }
+          ],
+          "description": "Batch management endpoints"
+        },
+        {
+          "name": "Fee Type Config",
+          "item": [
+            {
+              "name": "Get All Fee Type Configs",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/fee-type-config",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "fee-type-config"]
+                },
+                "description": "Get all fee type configurations. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Fee Type Config by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/fee-type-config/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "fee-type-config", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Fee Type Config ID"
+                    }
+                  ]
+                },
+                "description": "Get fee type configuration by ID. Requires ACADEMY role."
+              },
+              "response": []
+            }
+          ],
+          "description": "Fee type configuration endpoints"
+        },
         {
           "name": "Academy Booking",
           "item": [
@@ -487,9 +2313,49 @@
                     }
                   ]
                 },
-                "description": "Retrieve a paginated list of bookings for coaching centers owned by the authenticated academy user. Requires authentication and ACADEMY role."
+                "description": "Retrieve a paginated list of bookings for coaching centers owned by the authenticated academy user. Requires authentication and ACADEMY role.\n\nReturns simplified booking information including:\n- booking_id: Unique booking reference ID (BK-YYYY-NNNN format)\n- user_name: Full name of the user\n- student_name: Participant name(s) - comma-separated if multiple\n- batch_name: Name of the batch\n- center_name: Name of the coaching center\n- amount: Total booking amount\n- payment_status: Payment status\n- payment_method: Payment method used (card, netbanking, upi, etc.)\n- invoice_id: Razorpay order ID (invoice reference)"
               },
-              "response": []
+              "response": [
+                {
+                  "name": "Success - Bookings List",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{accessToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/academy/booking?page=1&limit=10",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["academy", "booking"],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "limit",
+                          "value": "10"
+                        }
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Bookings retrieved successfully\",\n  \"data\": {\n    \"data\": [\n      {\n        \"booking_id\": \"BK-2024-0001\",\n        \"id\": \"f316a86c-2909-4d32-8983-eb225c715bcb\",\n        \"user_name\": \"John Doe\",\n        \"student_name\": \"Alice Smith, Bob Smith\",\n        \"batch_name\": \"Morning Batch\",\n        \"center_name\": \"ABC Sports Academy\",\n        \"amount\": 5000,\n        \"payment_status\": \"success\",\n        \"payment_method\": \"card\",\n        \"invoice_id\": \"order_1234567890\",\n        \"created_at\": \"2024-01-01T00:00:00.000Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 10,\n      \"total\": 50,\n      \"totalPages\": 5,\n      \"hasNextPage\": true,\n      \"hasPrevPage\": false\n    }\n  }\n}"
+                }
+              ]
             },
             {
               "name": "Get Academy Booking by ID",
