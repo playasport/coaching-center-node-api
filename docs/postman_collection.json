@@ -423,7 +423,7 @@
         {
           "name": "Change Locale",
           "request": {
-            "method": "PUT",
+            "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
@@ -442,7 +442,8 @@
               "path": [
                 "locale"
               ]
-            }
+            },
+            "description": "Set locale for current request. **Supported locales:** en, hi"
           }
         },
         {
@@ -1586,6 +1587,32 @@
           }
         },
         {
+          "name": "Update Favorite Sports",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"favoriteSports\": [\"507f1f77bcf86cd799439011\", \"507f1f77bcf86cd799439012\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/auth/favorite-sports",
+              "host": ["{{base_url}}"],
+              "path": ["user", "auth", "favorite-sports"]
+            },
+            "description": "Update user's favorite sports. **Requires authentication (Bearer token with STUDENT or GUARDIAN role).**\n\n**Request Body:**\n- `favoriteSports`: Array of Sport ObjectIds"
+          }
+        },
+        {
           "name": "Forgot Password - Request OTP",
           "request": {
             "method": "POST",
@@ -1837,6 +1864,140 @@
               ]
             },
             "description": "Soft delete a participant by setting is_deleted to true. Users can only delete their own participants. **Requires authentication (Bearer accessToken).**"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Booking",
+      "item": [
+        {
+          "name": "Get Booking Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/booking/summary?batchId=507f1f77bcf86cd799439011&participantIds=507f1f77bcf86cd799439012&participantIds=507f1f77bcf86cd799439013",
+              "host": ["{{base_url}}"],
+              "path": ["user", "booking", "summary"],
+              "query": [
+                {
+                  "key": "batchId",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Batch ID",
+                  "disabled": false
+                },
+                {
+                  "key": "participantIds",
+                  "value": "507f1f77bcf86cd799439012",
+                  "description": "Participant ID (can add multiple)",
+                  "disabled": false
+                },
+                {
+                  "key": "participantIds",
+                  "value": "507f1f77bcf86cd799439013",
+                  "description": "Additional Participant ID",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Get booking summary including batch details, participant info, and calculated amount before creating an order. **Requires authentication (Bearer token).**\n\n**Query Parameters:**\n- `batchId` (required): Batch ID\n- `participantIds` (required): Array of Participant IDs (at least one required). Can be passed as multiple query params or comma-separated."
+          }
+        },
+        {
+          "name": "Create Booking Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchId\": \"507f1f77bcf86cd799439011\",\n  \"participantIds\": [\"507f1f77bcf86cd799439012\", \"507f1f77bcf86cd799439013\"],\n  \"notes\": \"Optional notes for the booking\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/booking/create-order",
+              "host": ["{{base_url}}"],
+              "path": ["user", "booking", "create-order"]
+            },
+            "description": "Create a Razorpay payment order and booking record. **Requires authentication (Bearer token).**\n\n**Required Fields:**\n- `batchId`: Batch ID\n- `participantIds`: Array of Participant IDs (at least one required)\n\n**Optional Fields:**\n- `notes`: Optional notes for the booking (max 1000 characters)\n\n**Response includes:**\n- `booking`: Booking object with status 'pending'\n- `razorpayOrder`: Razorpay order details for payment"
+          }
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_xxxxxxxxxxxxx\",\n  \"razorpay_payment_id\": \"pay_xxxxxxxxxxxxx\",\n  \"razorpay_signature\": \"signature_xxxxxxxxxxxxx\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/booking/verify-payment",
+              "host": ["{{base_url}}"],
+              "path": ["user", "booking", "verify-payment"]
+            },
+            "description": "Verify Razorpay payment signature and update booking status. **Requires authentication (Bearer token).**\n\n**Required Fields:**\n- `razorpay_order_id`: Razorpay order ID\n- `razorpay_payment_id`: Razorpay payment ID\n- `razorpay_signature`: Razorpay payment signature for verification\n\n**Response includes:**\n- `booking`: Updated booking object with status 'confirmed'"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Home",
+      "item": [
+        {
+          "name": "Get Home Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "disabled": true,
+                "description": "Optional - Authentication is optional for this endpoint"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/home?lat=28.6139&lon=77.2090",
+              "host": ["{{base_url}}"],
+              "path": ["home"],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "28.6139",
+                  "description": "Latitude for location-based sorting (optional)",
+                  "disabled": false
+                },
+                {
+                  "key": "lon",
+                  "value": "77.2090",
+                  "description": "Longitude for location-based sorting (optional)",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Get home page data including nearby academies and popular sports. **Authentication is optional.**\n\n**Query Parameters (optional):**\n- `lat`: Latitude for location-based sorting\n- `lon`: Longitude for location-based sorting\n\n**Response includes:**\n- Nearby coaching centers (if location provided)\n- Popular sports\n- Other home page data"
           }
         }
       ]
