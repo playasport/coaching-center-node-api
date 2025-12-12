@@ -1,5 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
-import { ApiResponse } from '../utils/ApiResponse';
+import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
 import * as webhookService from '../services/webhook.service';
 
@@ -8,8 +7,7 @@ import * as webhookService from '../services/webhook.service';
  */
 export const handleRazorpayWebhook = async (
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ): Promise<void> => {
   try {
     const payload = req.body;

@@ -1,8 +1,6 @@
-import { Types } from 'mongoose';
 import { BookingModel, PaymentStatus, BookingStatus } from '../models/booking.model';
-import { TransactionModel, TransactionType, TransactionStatus, TransactionSource } from '../models/transaction.model';
+import { TransactionModel, TransactionStatus, TransactionSource } from '../models/transaction.model';
 import { logger } from '../utils/logger';
-import { ApiError } from '../utils/ApiError';
 
 export interface RazorpayWebhookPayload {
   entity: string;
@@ -76,15 +74,15 @@ export const handleWebhook = async (payload: RazorpayWebhookPayload): Promise<vo
     });
 
     // Handle payment.captured event
-    if (event === 'payment.captured' && webhookPayload.payment) {
+    if (event === 'payment.captured' && webhookPayload.payment?.entity) {
       await handlePaymentCaptured(webhookPayload.payment.entity, payload);
     }
     // Handle payment.failed event
-    else if (event === 'payment.failed' && webhookPayload.payment) {
+    else if (event === 'payment.failed' && webhookPayload.payment?.entity) {
       await handlePaymentFailed(webhookPayload.payment.entity, payload);
     }
     // Handle order.paid event
-    else if (event === 'order.paid' && webhookPayload.order) {
+    else if (event === 'order.paid' && webhookPayload.order?.entity) {
       await handleOrderPaid(webhookPayload.order.entity, payload);
     }
     else {
@@ -100,11 +98,14 @@ export const handleWebhook = async (payload: RazorpayWebhookPayload): Promise<vo
   }
 };
 
+type PaymentEntity = NonNullable<RazorpayWebhookPayload['payload']['payment']>['entity'];
+type OrderEntity = NonNullable<RazorpayWebhookPayload['payload']['order']>['entity'];
+
 /**
  * Handle payment.captured event
  */
 const handlePaymentCaptured = async (
-  payment: RazorpayWebhookPayload['payload']['payment']['entity'],
+  payment: PaymentEntity,
   fullPayload: RazorpayWebhookPayload
 ): Promise<void> => {
   try {
@@ -201,7 +202,7 @@ const handlePaymentCaptured = async (
  * Handle payment.failed event
  */
 const handlePaymentFailed = async (
-  payment: RazorpayWebhookPayload['payload']['payment']['entity'],
+  payment: PaymentEntity,
   fullPayload: RazorpayWebhookPayload
 ): Promise<void> => {
   try {
@@ -259,8 +260,8 @@ const handlePaymentFailed = async (
  * Handle order.paid event
  */
 const handleOrderPaid = async (
-  order: RazorpayWebhookPayload['payload']['order']['entity'],
-  fullPayload: RazorpayWebhookPayload
+  order: OrderEntity,
+  _fullPayload: RazorpayWebhookPayload
 ): Promise<void> => {
   try {
     const orderId = order.id;

@@ -126,10 +126,19 @@ export const calculateDistance = async (
         url.searchParams.append('units', 'metric'); // Get distance in kilometers
 
         const response = await fetch(url.toString());
-        const data = await response.json();
+        const data = await response.json() as {
+          status: string;
+          rows?: Array<{
+            elements?: Array<{
+              status: string;
+              distance?: { value: number };
+            }>;
+          }>;
+          error_message?: string;
+        };
 
         if (data.status === 'OK' && data.rows?.[0]?.elements?.[0]?.status === 'OK') {
-          const distanceInMeters = data.rows[0].elements[0].distance.value;
+          const distanceInMeters = data.rows[0].elements[0].distance!.value;
           const distanceInKm = distanceInMeters / 1000;
 
           // Cache the result
@@ -250,13 +259,21 @@ export const calculateDistances = async (
           url.searchParams.append('units', 'metric');
 
           const response = await fetch(url.toString());
-          const data = await response.json();
+          const data = await response.json() as {
+            status: string;
+            rows?: Array<{
+              elements?: Array<{
+                status: string;
+                distance?: { value: number };
+              }>;
+            }>;
+          };
 
           if (data.status === 'OK' && data.rows?.[0]?.elements) {
             const elements = data.rows[0].elements;
             for (let j = 0; j < elements.length && i + j < uncachedDestinations.length; j++) {
               const element = elements[j];
-              if (element.status === 'OK') {
+              if (element.status === 'OK' && element.distance) {
                 const distanceInKm = element.distance.value / 1000;
                 const originalIndex = uncachedIndices[i + j];
                 cachedDistances[originalIndex] = distanceInKm;

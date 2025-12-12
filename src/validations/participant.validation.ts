@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { validationMessages } from '../utils/validationMessages';
 
 // Address schema for participant (all fields optional to match original SQL schema)
 const participantAddressSchema = z.object({
