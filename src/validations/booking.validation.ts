@@ -48,3 +48,43 @@ export const verifyPaymentSchema = z.object({
 
 export type VerifyPaymentInput = z.infer<typeof verifyPaymentSchema>['body'];
 
+// Academy booking list query schema
+export const academyBookingListSchema = z.object({
+  query: z.object({
+    page: z
+      .preprocess((val) => {
+        if (typeof val === 'string') {
+          const parsed = parseInt(val, 10);
+          return isNaN(parsed) ? undefined : parsed;
+        }
+        return val;
+      }, z.number().int().min(1).optional())
+      .optional(),
+    limit: z
+      .preprocess((val) => {
+        if (typeof val === 'string') {
+          const parsed = parseInt(val, 10);
+          return isNaN(parsed) ? undefined : parsed;
+        }
+        return val;
+      }, z.number().int().min(1).max(100).optional())
+      .optional(),
+    centerId: z.string().min(1, 'Center ID must be valid').optional(),
+    batchId: z.string().min(1, 'Batch ID must be valid').optional(),
+    status: z.enum(['pending', 'confirmed', 'cancelled', 'completed']).optional(),
+    paymentStatus: z.enum(['pending', 'processing', 'success', 'failed', 'refunded', 'cancelled']).optional(),
+  }),
+});
+
+// Academy booking status update schema
+export const academyBookingStatusUpdateSchema = z.object({
+  body: z.object({
+    status: z.enum(['pending', 'confirmed', 'cancelled', 'completed'], {
+      errorMap: () => ({ message: 'Status must be one of: pending, confirmed, cancelled, completed' }),
+    }),
+  }),
+  params: z.object({
+    id: z.string().min(1, 'Booking ID is required'),
+  }),
+});
+

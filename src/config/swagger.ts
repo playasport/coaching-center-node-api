@@ -239,12 +239,12 @@ const options: swaggerJsdoc.Options = {
               properties: {
                 otp: {
                   type: 'string',
-                  example: '123456',
+                  example: '111111',
                 },
                 mode: {
                   type: 'string',
                   enum: ['login', 'register', 'profile_update', 'forgot_password'],
-                  example: 'register',
+                  example: 'login',
                 },
                 expiresAt: {
                   type: 'string',
@@ -329,7 +329,7 @@ const options: swaggerJsdoc.Options = {
             },
             otp: {
               type: 'string',
-              example: '123456',
+              example: '111111',
               description: 'OTP received on mobile via /academy/auth/send-otp (mode: register)',
             },
             fcmToken: {
@@ -429,11 +429,11 @@ const options: swaggerJsdoc.Options = {
             },
             otp: {
               type: 'string',
-              example: '123456',
+              example: '111111',
             },
             newPassword: {
               type: 'string',
-              example: 'StrongPass@123',
+              example: 'StrongPass@123#',
             },
           },
         },
@@ -3230,6 +3230,8 @@ const options: swaggerJsdoc.Options = {
               properties: {
                 id: { type: 'string' },
                 center_name: { type: 'string' },
+                email: { type: 'string', nullable: true },
+                mobile_number: { type: 'string', nullable: true },
               },
             },
             sport: {
@@ -3528,6 +3530,10 @@ const options: swaggerJsdoc.Options = {
         description: 'User (student/guardian) authentication endpoints',
       },
       {
+        name: 'Participant',
+        description: 'Participant management endpoints for users',
+      },
+      {
         name: 'Health',
         description: 'Health check endpoints',
       },
@@ -3577,7 +3583,11 @@ const options: swaggerJsdoc.Options = {
       },
       {
         name: 'Booking',
-        description: 'Booking and payment management endpoints',
+        description: 'User booking and payment management endpoints',
+      },
+      {
+        name: 'Academy Booking',
+        description: 'Academy booking management endpoints for viewing and managing bookings',
       },
       {
         name: 'Webhook',
@@ -3590,6 +3600,36 @@ const options: swaggerJsdoc.Options = {
       {
         name: 'Home',
         description: 'Home page data endpoints',
+      },
+    ],
+    'x-tagGroups': [
+      {
+        name: 'Authentication & Authorization',
+        tags: ['Academy Auth', 'User Auth'],
+      },
+      {
+        name: 'Academy Management',
+        tags: [
+          'Coaching Center',
+          'Coaching Center Media',
+          'Employee',
+          'Employee Media',
+          'Batch',
+          'Fee Type',
+          'Academy Booking',
+        ],
+      },
+      {
+        name: 'User Management',
+        tags: ['Participant', 'Booking'],
+      },
+      {
+        name: 'Public Endpoints',
+        tags: ['Academy', 'Home', 'Basic', 'Location', 'Sport'],
+      },
+      {
+        name: 'System & Utilities',
+        tags: ['Role', 'Locale', 'Health', 'Webhook'],
       },
     ],
   },

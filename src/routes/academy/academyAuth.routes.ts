@@ -181,7 +181,7 @@ router.post('/send-otp', validate(academyOtpSchema), sendAcademyOtp);
  * @swagger
  * /academy/auth/verify-otp:
  *   post:
- *     summary: Verify an OTP for login or registration
+ *     summary: Verify an OTP for login
  *     tags: [Academy Auth]
  *     requestBody:
  *       required: true
