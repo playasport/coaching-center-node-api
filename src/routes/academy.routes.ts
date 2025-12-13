@@ -146,10 +146,7 @@ router.get('/', optionalAuthenticate, academyController.getAllAcademies);
  *                   type: string
  *                   example: "Academy retrieved successfully"
  *                 data:
- *                   type: object
- *                   properties:
- *                     academy:
- *                       $ref: '#/components/schemas/AcademyDetail'
+ *                   $ref: '#/components/schemas/AcademyDetail'
  *       404:
  *         description: Academy not found
  *         content:

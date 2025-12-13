@@ -156,9 +156,10 @@ export const coachingCenterCreateSchema = z
         documents: z.array(mediaItemSchema).optional().default([]), // General documents (not sport-specific)
         bank_information: bankInformationSchema.optional(),
         status: z.enum(['draft', 'published'], { message: validationMessages.coachingCenter.status.invalid() }).default('draft'),
-        allowed_genders: z.array(z.nativeEnum(Gender)).optional().default([]),
-        allowed_disabled: z.boolean().optional().default(false),
-        is_only_for_disabled: z.boolean().optional().default(false),
+        allowed_genders: z.array(z.nativeEnum(Gender)).min(1, 'At least one gender must be selected'),
+        allowed_disabled: z.boolean(),
+        is_only_for_disabled: z.boolean(),
+        experience: z.number().int().min(0),
       })
       .superRefine((data, ctx) => {
         // If status is 'published', validate all required fields
@@ -412,9 +413,10 @@ export const coachingCenterUpdateSchema = z.object({
       documents: z.array(mediaItemSchema).optional().default([]), // General documents (not sport-specific)
       bank_information: bankInformationSchema.optional(),
       status: z.enum(['draft', 'published'], { message: validationMessages.coachingCenter.status.invalid() }).optional(),
-      allowed_genders: z.array(z.nativeEnum(Gender)).optional(),
-      allowed_disabled: z.boolean().optional(),
-      is_only_for_disabled: z.boolean().optional(),
+      allowed_genders: z.array(z.nativeEnum(Gender)).min(1, 'At least one gender must be selected'),
+      allowed_disabled: z.boolean(),
+      is_only_for_disabled: z.boolean(),
+      experience: z.number().int().min(0),
     })
     .superRefine((data, ctx) => {
       // At least one field should be provided for update

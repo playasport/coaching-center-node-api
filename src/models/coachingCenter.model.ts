@@ -91,6 +91,7 @@ export interface CoachingCenter {
   allowed_genders: Gender[];
   allowed_disabled: boolean;
   is_only_for_disabled: boolean;
+  experience: number; // Number of years of experience
   is_active: boolean;
   is_deleted: boolean;
   deletedAt?: Date | null;
@@ -379,15 +380,26 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
     allowed_genders: {
       type: [String],
       enum: Object.values(Gender),
-      default: [],
+      required: true,
+      validate: {
+        validator: function(v: string[]) {
+          return Array.isArray(v) && v.length > 0;
+        },
+        message: 'At least one gender must be selected',
+      },
     },
     allowed_disabled: {
       type: Boolean,
-      default: false,
+      required: true,
     },
     is_only_for_disabled: {
       type: Boolean,
-      default: false,
+      required: true,
+    },
+    experience: {
+      type: Number,
+      required: true,
+      min: 0,
     },
     is_active: {
       type: Boolean,

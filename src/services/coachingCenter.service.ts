@@ -557,6 +557,7 @@ export const updateCoachingCenter = async (
     if (data.allowed_genders !== undefined) updates.allowed_genders = data.allowed_genders;
     if (data.allowed_disabled !== undefined) updates.allowed_disabled = data.allowed_disabled;
     if (data.is_only_for_disabled !== undefined) updates.is_only_for_disabled = data.is_only_for_disabled;
+    if (data.experience !== undefined) updates.experience = data.experience;
     
     // Handle status change
     const previousStatus = existingCenter.status;

@@ -97,6 +97,7 @@ export interface AcademyDetail extends AcademyListItem {
   allowed_genders: string[];
   allowed_disabled: boolean;
   is_only_for_disabled: boolean;
+  experience: number; // Number of years of experience
   batches?: Array<{
     _id: string;
     name: string;

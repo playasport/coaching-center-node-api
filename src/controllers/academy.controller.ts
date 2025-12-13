@@ -74,7 +74,7 @@ export const getAcademyById = async (
       throw new ApiError(404, t('academy.getById.notFound'));
     }
 
-    const response = new ApiResponse(200, { academy }, t('academy.getById.success'));
+    const response = new ApiResponse(200, { ...academy }, t('academy.getById.success'));
     res.json(response);
   } catch (error) {
     next(error);
