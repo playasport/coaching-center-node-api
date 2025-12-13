@@ -8,7 +8,7 @@ import { UserModel } from '../models/user.model';
 import { config } from '../config/env';
 import type { AcademyListItem } from './academy.service';
 import { ReelModel, ReelStatus, VideoProcessedStatus } from '../models/reel.model';
-import { buildReelUrls, buildS3Url } from './reel.service';
+import { buildReelUrls } from './reel.service';
 
 export interface PopularSport {
   _id: string;
@@ -299,8 +299,7 @@ export const getPopularReels = async (limit: number = 6): Promise<PopularReel[]>
       // Build reel URLs using helper function
       const urls = buildReelUrls({
         masterM3u8Url: reel.masterM3u8Url,
-        folderPath: reel.folderPath,
-        originalPath: reel.originalPath,
+        previewUrl: reel.previewUrl,
         thumbnailPath: reel.thumbnailPath,
       });
 
@@ -309,8 +308,8 @@ export const getPopularReels = async (limit: number = 6): Promise<PopularReel[]>
         ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User'
         : 'Unknown User';
 
-      // Build user avatar URL
-      const userAvatar = user && user.profileImage ? buildS3Url(user.profileImage) : null;
+      // User avatar URL (already full URL in database)
+      const userAvatar = user?.profileImage || null;
 
       return {
         id: reel.id,

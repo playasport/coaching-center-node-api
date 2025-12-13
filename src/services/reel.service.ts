@@ -1,7 +1,6 @@
 import { ReelModel, ReelStatus, VideoProcessedStatus } from '../models/reel.model';
 import { logger } from '../utils/logger';
 import { ApiError } from '../utils/ApiError';
-import { config } from '../config/env';
 
 export interface ReelListItem {
   id: string;
@@ -28,15 +27,8 @@ export interface ReelsListResponse {
 }
 
 /**
- * Build S3 URL from a path
- */
-export const buildS3Url = (path: string | null | undefined): string | null => {
-  if (!path) return null;
-  return `https://${config.aws.s3Bucket}.s3.${config.aws.region}.amazonaws.com/${path}`;
-};
-
-/**
  * Build reel URLs (video, video preview, thumbnail) from reel data
+ * Note: Database now stores full URLs, so we use them directly
  */
 export interface ReelUrls {
   videoUrl: string;
@@ -46,45 +38,14 @@ export interface ReelUrls {
 
 export const buildReelUrls = (reel: {
   masterM3u8Url?: string | null;
-  folderPath?: string | null;
-  originalPath?: string | null;
+  previewUrl?: string | null;
   thumbnailPath?: string | null;
 }): ReelUrls => {
-  // Build video URL: prefer masterM3u8Url, otherwise use folderPath + "/master.m3u8"
-  let videoUrl = '';
-  if (reel.masterM3u8Url) {
-    videoUrl = buildS3Url(reel.masterM3u8Url) || '';
-  } else if (reel.folderPath) {
-    videoUrl = buildS3Url(`${reel.folderPath}/master.m3u8`) || '';
-  } else if (reel.originalPath) {
-    const pathWithoutExt = reel.originalPath.replace(/\.[^/.]+$/, '');
-    videoUrl = buildS3Url(`${pathWithoutExt}/master.m3u8`) || '';
-  }
-
-  // Build video preview URL: use folderPath + "/preview.mp4" or originalPath without extension + "/preview.mp4"
-  let videoPreviewUrl = '';
-  if (reel.folderPath) {
-    videoPreviewUrl = buildS3Url(`${reel.folderPath}/preview.mp4`) || '';
-  } else if (reel.originalPath) {
-    const pathWithoutExt = reel.originalPath.replace(/\.[^/.]+$/, '');
-    videoPreviewUrl = buildS3Url(`${pathWithoutExt}/preview.mp4`) || '';
-  }
-
-  // Build thumbnail URL: prefer thumbnailPath, otherwise use folderPath + "/thumbnail.jpg"
-  let thumbnailUrl = '';
-  if (reel.thumbnailPath) {
-    thumbnailUrl = buildS3Url(reel.thumbnailPath) || '';
-  } else if (reel.folderPath) {
-    thumbnailUrl = buildS3Url(`${reel.folderPath}/thumbnail.jpg`) || '';
-  } else if (reel.originalPath) {
-    const pathWithoutExt = reel.originalPath.replace(/\.[^/.]+$/, '');
-    thumbnailUrl = buildS3Url(`${pathWithoutExt}/thumbnail.jpg`) || '';
-  }
-
+  // Use URLs directly from database (they are already full URLs)
   return {
-    videoUrl,
-    videoPreviewUrl,
-    thumbnailUrl,
+    videoUrl: reel.masterM3u8Url || '',
+    videoPreviewUrl: reel.previewUrl || '',
+    thumbnailUrl: reel.thumbnailPath || '',
   };
 };
 
@@ -95,8 +56,7 @@ const formatReelListItem = (reel: any, user: any): ReelListItem => {
   // Build reel URLs using helper function
   const urls = buildReelUrls({
     masterM3u8Url: reel.masterM3u8Url,
-    folderPath: reel.folderPath,
-    originalPath: reel.originalPath,
+    previewUrl: reel.previewUrl,
     thumbnailPath: reel.thumbnailPath,
   });
 
@@ -106,8 +66,8 @@ const formatReelListItem = (reel: any, user: any): ReelListItem => {
     ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User'
     : 'Unknown User';
 
-  // Build user avatar URL
-  const userAvatar = user && user.profileImage ? buildS3Url(user.profileImage) : null;
+  // User avatar URL (already full URL in database)
+  const userAvatar = user?.profileImage || null;
 
   return {
     id: reel.id,

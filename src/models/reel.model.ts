@@ -24,6 +24,12 @@ export interface Reel {
   folderPath?: string | null;
   thumbnailPath?: string | null;
   masterM3u8Url?: string | null;
+  previewUrl?: string | null;
+  hlsUrls?: {
+    '360p'?: string;
+    '480p'?: string;
+    [key: string]: string | undefined;
+  } | null;
   status: ReelStatus;
   videoProcessedStatus: VideoProcessedStatus;
   viewsCount: number;
@@ -57,6 +63,11 @@ const reelSchema = new Schema<Reel>(
     folderPath: { type: String, default: null },
     thumbnailPath: { type: String, default: null },
     masterM3u8Url: { type: String, default: null },
+    previewUrl: { type: String, default: null },
+    hlsUrls: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
     status: {
       type: String,
       enum: Object.values(ReelStatus),
