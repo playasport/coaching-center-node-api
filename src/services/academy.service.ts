@@ -26,7 +26,7 @@ export interface PaginatedResult<T> {
 
 export interface AcademyListItem {
   _id: string;
-  custom_id: string | null; // User's custom ID (academy owner's user ID)
+  id: string; // CoachingCenter UUID id field
   center_name: string;
   logo?: string | null;
   image?: string | null; // One image from sport_details
@@ -203,7 +203,7 @@ export const getAllAcademies = async (
         select: 'id',
         match: { isDeleted: false },
       })
-      .select('center_name logo location sports age allowed_genders sport_details user')
+      .select('id center_name logo location sports age allowed_genders sport_details user')
       .lean();
 
     // Calculate distances if location provided
@@ -267,9 +267,6 @@ export const getAllAcademies = async (
 
     return {
       data: paginatedAcademies.map((academy: any) => {
-        // Get user's custom ID
-        const customId = academy.user?.id || null;
-
         // Get first active image from sport_details
         let image: string | null = null;
         if (academy.sport_details && Array.isArray(academy.sport_details)) {
@@ -288,7 +285,7 @@ export const getAllAcademies = async (
 
         return {
           _id: academy._id.toString(),
-          custom_id: customId,
+          id: academy.id || academy._id.toString(),
           center_name: academy.center_name,
           logo: academy.logo,
           image: image,
@@ -315,25 +312,21 @@ export const getAllAcademies = async (
 };
 
 /**
- * Get academy details by user's custom ID
+ * Get academy by ID - supports multiple ID types:
+ * 1. MongoDB ObjectId (_id) - 24 hex characters
+ * 2. CoachingCenter UUID (id field) - UUID format
+ * 3. User custom ID - searches by user's custom ID
  */
-export const getAcademyByUserId = async (
-  userCustomId: string,
+export const getAcademyById = async (
+  id: string,
   isUserLoggedIn: boolean = false
 ): Promise<AcademyDetail | null> => {
   try {
-    // Get user ObjectId from custom ID
-    const user = await UserModel.findOne({ id: userCustomId, isDeleted: false })
-      .select('_id')
-      .lean();
+    let coachingCenter = null;
 
-    if (!user) {
-      return null;
-    }
-
-    // Find coaching center by user ObjectId
-    const coachingCenter = await CoachingCenterModel.findOne({
-      user: user._id,
+    // Try searching by CoachingCenter id field first (UUID field)
+    coachingCenter = await CoachingCenterModel.findOne({
+      id: id,
       status: CoachingCenterStatus.PUBLISHED,
       is_active: true,
       is_deleted: false,
@@ -342,6 +335,40 @@ export const getAcademyByUserId = async (
       .populate('sport_details.sport_id', 'custom_id name logo is_popular')
       .populate('facility', 'custom_id name description icon')
       .lean();
+
+    // If not found by id field, try by ObjectId (if it's a valid ObjectId)
+    if (!coachingCenter && Types.ObjectId.isValid(id) && id.length === 24) {
+      coachingCenter = await CoachingCenterModel.findOne({
+        _id: new Types.ObjectId(id),
+        status: CoachingCenterStatus.PUBLISHED,
+        is_active: true,
+        is_deleted: false,
+      })
+        .populate('sports', 'custom_id name logo is_popular')
+        .populate('sport_details.sport_id', 'custom_id name logo is_popular')
+        .populate('facility', 'custom_id name description icon')
+        .lean();
+    }
+
+    // If still not found, try by user custom ID
+    if (!coachingCenter) {
+      const user = await UserModel.findOne({ id: id, isDeleted: false })
+        .select('_id')
+        .lean();
+
+      if (user) {
+        coachingCenter = await CoachingCenterModel.findOne({
+          user: user._id,
+          status: CoachingCenterStatus.PUBLISHED,
+          is_active: true,
+          is_deleted: false,
+        })
+          .populate('sports', 'custom_id name logo is_popular')
+          .populate('sport_details.sport_id', 'custom_id name logo is_popular')
+          .populate('facility', 'custom_id name description icon')
+          .lean();
+      }
+    }
 
     if (!coachingCenter) {
       return null;
@@ -432,7 +459,7 @@ export const getAcademiesByCity = async (
     // Fetch academies
     const academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo is_popular')
-      .select('center_name logo location sports age')
+      .select('id center_name logo location sports age')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(pageSize)
@@ -443,6 +470,7 @@ export const getAcademiesByCity = async (
     return {
       data: academies.map((academy: any) => ({
         _id: academy._id.toString(),
+        id: academy.id || academy._id.toString(),
         center_name: academy.center_name,
         logo: academy.logo,
         location: academy.location,
@@ -515,7 +543,7 @@ export const getAcademiesBySport = async (
         select: 'id',
         match: { isDeleted: false },
       })
-      .select('center_name logo location sports age allowed_genders sport_details user')
+      .select('id center_name logo location sports age allowed_genders sport_details user')
       .lean();
 
     // Calculate distances if location provided
@@ -566,9 +594,6 @@ export const getAcademiesBySport = async (
 
     return {
       data: paginatedAcademies.map((academy: any) => {
-        // Get user's custom ID
-        const customId = academy.user?.id || null;
-
         // Get first active image from sport_details
         let image: string | null = null;
         if (academy.sport_details && Array.isArray(academy.sport_details)) {
@@ -587,7 +612,7 @@ export const getAcademiesBySport = async (
 
         return {
           _id: academy._id.toString(),
-          custom_id: customId,
+          id: academy.id || academy._id.toString(),
           center_name: academy.center_name,
           logo: academy.logo,
           image: image,

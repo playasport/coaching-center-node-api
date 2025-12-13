@@ -98,12 +98,16 @@ router.get('/', optionalAuthenticate, academyController.getAllAcademies);
 
 /**
  * @swagger
- * /academy/{id}:
+ * /academies/{id}:
  *   get:
- *     summary: Get academy details by user's custom ID
+ *     summary: Get academy details by ID
  *     tags: [Academy]
  *     description: |
  *       Get detailed information about an academy including all batches.
+ *       Supports multiple ID types:
+ *       - CoachingCenter UUID (id field): e.g., "784d4s4447444s5s44s4s4s4s4s4s4s4s78"
+ *       - MongoDB ObjectId (_id): e.g., "693bc2d1d0b08eea0c31cc53"
+ *       - User custom ID: searches by academy owner's user ID
  *       If user is not logged in, email and mobile number will be masked.
  *       This is an unprotected route (authentication is optional).
  *     parameters:
@@ -112,7 +116,21 @@ router.get('/', optionalAuthenticate, academyController.getAllAcademies);
  *         required: true
  *         schema:
  *           type: string
- *         description: User's custom ID (academy owner's user ID)
+ *         description: |
+ *           Academy identifier. Supports:
+ *           - CoachingCenter UUID (id field)
+ *           - MongoDB ObjectId (_id)
+ *           - User custom ID (academy owner's user ID)
+ *         examples:
+ *           uuid:
+ *             value: "784d4s4447444s5s44s4s4s4s4s4s4s4s78"
+ *             summary: CoachingCenter UUID
+ *           objectId:
+ *             value: "693bc2d1d0b08eea0c31cc53"
+ *             summary: MongoDB ObjectId
+ *           userCustomId:
+ *             value: "f316a86c-2909-4d32-8983-eb225c715bcb"
+ *             summary: User custom ID
  *     responses:
  *       200:
  *         description: Academy retrieved successfully
@@ -139,7 +157,7 @@ router.get('/', optionalAuthenticate, academyController.getAllAcademies);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id', optionalAuthenticate, academyController.getAcademyByUserId);
+router.get('/:id', optionalAuthenticate, academyController.getAcademyById);
 
 /**
  * @swagger

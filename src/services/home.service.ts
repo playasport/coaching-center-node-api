@@ -38,7 +38,7 @@ export interface PopularReel {
 export interface HomeData {
   nearbyAcademies: AcademyListItem[];
   popularSports: PopularSport[];
-  popular_reels: PopularReel[];
+  popularReels: PopularReel[];
 }
 
 /**
@@ -146,7 +146,7 @@ export const getNearbyAcademies = async (
         select: 'id',
         match: { isDeleted: false },
       })
-      .select('center_name logo location sports age allowed_genders sport_details user')
+      .select('id center_name logo location sports age allowed_genders sport_details user')
       .lean();
 
     // Calculate distances
@@ -205,9 +205,6 @@ export const getNearbyAcademies = async (
 
     // Map to AcademyListItem format
     return limitedAcademies.map((academy: any) => {
-      // Get user's custom ID
-      const customId = academy.user?.id || null;
-
       // Get first active image from sport_details
       let image: string | null = null;
       if (academy.sport_details && Array.isArray(academy.sport_details)) {
@@ -226,7 +223,7 @@ export const getNearbyAcademies = async (
 
       return {
         _id: academy._id.toString(),
-        custom_id: customId,
+        id: academy.id || academy._id.toString(),
         center_name: academy.center_name,
         logo: academy.logo,
         image: image,
@@ -364,7 +361,7 @@ export const getHomeData = async (
     return {
       nearbyAcademies: nearbyAcademies || [],
       popularSports: popularSports || [],
-      popular_reels: popularReels || [],
+      popularReels: popularReels || [],
     };
   } catch (error) {
     logger.error('Failed to get home data:', error);
@@ -372,7 +369,7 @@ export const getHomeData = async (
     return {
       nearbyAcademies: [],
       popularSports: [],
-      popular_reels: [],
+      popularReels: [],
     };
   }
 };

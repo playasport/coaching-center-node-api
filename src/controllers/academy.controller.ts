@@ -50,9 +50,10 @@ export const getAllAcademies = async (
 };
 
 /**
- * Get academy details by user's custom ID
+ * Get academy details by ID
+ * Supports: MongoDB ObjectId, CoachingCenter UUID, or User custom ID
  */
-export const getAcademyByUserId = async (
+export const getAcademyById = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -67,7 +68,7 @@ export const getAcademyByUserId = async (
     // Check if user is logged in
     const isUserLoggedIn = !!req.user;
 
-    const academy = await academyService.getAcademyByUserId(id, isUserLoggedIn);
+    const academy = await academyService.getAcademyById(id, isUserLoggedIn);
 
     if (!academy) {
       throw new ApiError(404, t('academy.getById.notFound'));

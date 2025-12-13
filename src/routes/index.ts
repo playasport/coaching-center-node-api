@@ -41,7 +41,7 @@ router.use('/webhook', webhookRoutes);
 router.use('/home', homeRoutes);
 router.use('/', reelRoutes);
 // Public academy routes - must be registered after other routes to avoid conflicts
-router.use('/', academyRoutes);
+router.use('/academies', academyRoutes);
 router.get('/health', (_req, res) => {
   const response = new ApiResponse(200, { timestamp: new Date().toISOString() }, t('health.serverRunning'));
   res.json(response);

@@ -72,6 +72,7 @@ export interface BankInformation {
 
 // Main Coaching Center interface
 export interface CoachingCenter {
+  id: string;
   user: Types.ObjectId; // Reference to User model (_id)
   center_name: string;
   mobile_number: string;
@@ -297,6 +298,13 @@ const bankInformationSchema = new Schema<BankInformation>(
 // Main schema
 const coachingCenterSchema = new Schema<CoachingCenter>(
   {
+    id: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+      default: () => uuidv4(),
+    },
     user: {
       type: Schema.Types.ObjectId,
       required: true,
@@ -398,6 +406,21 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
   },
   {
     timestamps: true,
+    versionKey: false,
+    toJSON: {
+      transform(_doc, ret) {
+        const result = ret as any;
+        result.id = result.id ?? result._id;
+        delete result._id;
+      },
+    },
+    toObject: {
+      transform(_doc, ret) {
+        const result = ret as any;
+        result.id = result.id ?? result._id;
+        delete result._id;
+      },
+    },
   }
 );
 

@@ -1137,23 +1137,23 @@
           "response": []
         },
         {
-          "name": "Get Academy by User ID",
+          "name": "Get Academy by ID",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/academy/:userId",
+              "raw": "{{baseUrl}}/academies/:id",
               "host": ["{{baseUrl}}"],
-              "path": ["academy", ":userId"],
+              "path": ["academies", ":id"],
               "variable": [
                 {
-                  "key": "userId",
-                  "value": "f316a86c-2909-4d32-8983-eb225c715bcb",
-                  "description": "User's custom ID (academy owner's user ID)"
+                  "key": "id",
+                  "value": "784d4s4447444s5s44s4s4s4s4s4s4s4s78",
+                  "description": "Academy identifier. Supports: CoachingCenter UUID (id field), MongoDB ObjectId (_id), or User custom ID (academy owner's user ID)"
                 }
               ]
             },
-            "description": "Get detailed information about an academy including all batches. If user is not logged in, email and mobile number will be masked. This is an unprotected route (authentication is optional)."
+            "description": "Get detailed information about an academy including all batches. Supports multiple ID types: 1) CoachingCenter UUID (id field) - e.g., \"784d4s4447444s5s44s4s4s4s4s4s4s4s78\", 2) MongoDB ObjectId (_id) - e.g., \"693bc2d1d0b08eea0c31cc53\", 3) User custom ID - searches by academy owner's user ID. If user is not logged in, email and mobile number will be masked. This is an unprotected route (authentication is optional)."
           },
           "response": []
         },
