@@ -133,3 +133,48 @@ export const verifyToken = (token: string): TokenPayload => {
   return verifyAccessToken(token);
 };
 
+/**
+ * Temporary token payload for registration
+ */
+export interface TempTokenPayload {
+  mobile: string;
+  type: 'registration';
+  iat: number;
+  exp: number;
+}
+
+/**
+ * Generate temporary registration token (30 minutes expiry)
+ * Used when user verifies OTP but doesn't exist yet
+ */
+export const generateTempRegistrationToken = (mobile: string): string => {
+  return jwt.sign(
+    {
+      mobile,
+      type: 'registration',
+    },
+    config.jwt.secret as jwt.Secret,
+    {
+      expiresIn: '30m', // 30 minutes
+    }
+  );
+};
+
+/**
+ * Verify temporary registration token
+ */
+export const verifyTempRegistrationToken = (token: string): TempTokenPayload => {
+  try {
+    const decoded = jwt.verify(token, config.jwt.secret as jwt.Secret) as TempTokenPayload;
+    if (decoded.type !== 'registration') {
+      throw new Error('Invalid token type');
+    }
+    if (!decoded.mobile) {
+      throw new Error('Mobile number missing in token');
+    }
+    return decoded;
+  } catch (error) {
+    throw new Error('Invalid or expired temporary registration token');
+  }
+};
+

@@ -5,13 +5,10 @@ import { ApiError } from '../utils/ApiError';
 import * as authService from '../services/auth.service';
 import type {
   UserRegisterInput,
-  UserLoginInput,
   UserSocialLoginInput,
   UserProfileUpdateInput,
   UserAddressUpdateInput,
   UserPasswordChangeInput,
-  UserForgotPasswordRequestInput,
-  UserForgotPasswordVerifyInput,
   UserFavoriteSportsUpdateInput,
 } from '../validations/auth.validation';
 import { userService } from '../services/user.service';
@@ -32,33 +29,9 @@ export const registerUser = async (
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
       },
-      t('auth.register.success')
+      'User registered successfully'
     );
     res.status(201).json(response);
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const loginUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const data = req.body as UserLoginInput;
-    const result = await authService.loginUser(data);
-
-    const response = new ApiResponse(
-      200,
-      {
-        user: result.user,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-      },
-      t('auth.login.success')
-    );
-    res.json(response);
   } catch (error) {
     next(error);
   }
@@ -151,50 +124,6 @@ export const changeUserPassword = async (
   }
 };
 
-export const requestUserPasswordReset = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const payload = req.body as UserForgotPasswordRequestInput;
-    const result = await authService.requestUserPasswordReset(payload);
-
-    const response = new ApiResponse(
-      200,
-      { mode: result.mode },
-      t('auth.password.resetOtpSent')
-    );
-    res.json(response);
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const verifyUserPasswordReset = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const payload = req.body as UserForgotPasswordVerifyInput;
-    const result = await authService.verifyUserPasswordReset(payload);
-
-    const response = new ApiResponse(
-      200,
-      {
-        user: result.user,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-      },
-      t('auth.password.resetSuccess')
-    );
-    res.json(response);
-  } catch (error) {
-    next(error);
-  }
-};
-
 export const getCurrentUser = async (
   req: Request,
   res: Response,
@@ -252,12 +181,17 @@ export const verifyUserOtp = async (
       mobile: string;
       otp: string;
       mode?: 'login' | 'register' | 'profile_update' | 'forgot_password';
+      fcmToken?: string;
+      deviceType?: 'web' | 'android' | 'ios';
+      deviceId?: string;
+      deviceName?: string;
+      appVersion?: string;
     };
 
-    const result = await authService.verifyUserOtp({ mobile, otp, mode });
+    const result = await authService.verifyUserOtp({ mobile, otp, mode, ...req.body });
 
     if (result.user && result.accessToken && result.refreshToken) {
-      // Login mode - return tokens
+      // Login mode - user exists, return tokens
       const response = new ApiResponse(
         200,
         {
@@ -266,6 +200,21 @@ export const verifyUserOtp = async (
           refreshToken: result.refreshToken,
         },
         t('auth.login.success')
+      );
+
+      res.json(response);
+      return;
+    }
+
+    if (result.needsRegistration && result.tempToken) {
+      // Login mode - user doesn't exist, return registration flag and temp token
+      const response = new ApiResponse(
+        200,
+        {
+          needsRegistration: true,
+          tempToken: result.tempToken,
+        },
+        'OTP verified. Please complete registration.'
       );
 
       res.json(response);

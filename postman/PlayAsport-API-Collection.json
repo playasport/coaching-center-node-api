@@ -677,7 +677,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password@123\",\n  \"mobile\": \"9876543210\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"userType\": \"student\"\n}",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john@example.com\",\n  \"type\": \"student\",\n  \"dob\": \"2000-01-15\",\n  \"gender\": \"male\",\n  \"tempToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtb2JpbGUiOiI5ODc2NTQzMjEwIiwidHlwZSI6InJlZ2lzdHJhdGlvbiIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoxNzAwMDAxODAwfQ.signature\",\n  \"fcmToken\": \"fcm_token_here\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"device_unique_id\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -689,36 +689,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["user", "auth", "register"]
             },
-            "description": "Register a new user (student or guardian) with OTP verification. Returns access token (15 minutes) and device-specific refresh token."
-          },
-          "response": []
-        },
-        {
-          "name": "Login User",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password@123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/user/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["user", "auth", "login"]
-            },
-            "description": "Login user and receive access/refresh tokens. Save the accessToken from response."
+            "description": "Register a new user (student or guardian) with temporary token verification.\n\n**New Registration Flow:**\n1. User sends OTP to mobile number via `/user/auth/send-otp` (mode='login')\n2. User verifies OTP via `/user/auth/verify-otp` (mode='login')\n3. If user doesn't exist, API returns `needsRegistration: true` and `tempToken` (valid for 30 minutes)\n4. User completes registration with `tempToken` (instead of OTP)\n\n**Note:** Password is NOT required. Mobile number is extracted from tempToken for security. Returns access token (15 minutes) and device-specific refresh token."
           },
           "response": []
         },
@@ -764,7 +735,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\"\n}",
+              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"mode\": \"login\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -776,7 +747,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["user", "auth", "send-otp"]
             },
-            "description": "Send OTP to user's email for verification"
+            "description": "Send OTP to mobile number for login or registration.\n\n**For login mode:** Works for both existing and non-existing users. If user doesn't exist, they will receive a temporary registration token after OTP verification.\n\n**Modes:**\n- `login`: Works for both existing and non-existing users (default)\n- `register`: For explicit registration flow\n- `profile_update`: For profile update verification\n- `forgot_password`: For password reset"
           },
           "response": []
         },
@@ -793,7 +764,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\"\n}",
+              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"mode\": \"login\",\n  \"fcmToken\": \"fcm_token_here\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"device_unique_id\",\n  \"deviceName\": \"Samsung Galaxy S21\",\n  \"appVersion\": \"1.0.0\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -805,7 +776,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["user", "auth", "verify-otp"]
             },
-            "description": "Verify OTP for user"
+            "description": "Verify OTP sent to mobile number.\n\n**For login mode:**\n- If user exists: Returns user data with access and refresh tokens (login successful)\n- If user doesn't exist: Returns `needsRegistration: true` and `tempToken` (valid for 30 minutes) for registration\n\n**Response Examples:**\n\n**User exists (login successful):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"user\": {...},\n    \"accessToken\": \"...\",\n    \"refreshToken\": \"...\"\n  }\n}\n```\n\n**User doesn't exist (registration required):**\n```json\n{\n  \"success\": true,\n  \"message\": \"OTP verified. Please complete registration.\",\n  \"data\": {\n    \"needsRegistration\": true,\n    \"tempToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n  }\n}\n```"
           },
           "response": []
         },
@@ -962,64 +933,6 @@
               "path": ["user", "auth", "favorite-sports"]
             },
             "description": "Update user's favorite sports. Array of Sport ObjectIds. Requires authentication."
-          },
-          "response": []
-        },
-        {
-          "name": "Forgot Password Request User",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/user/auth/forgot-password/request",
-              "host": ["{{baseUrl}}"],
-              "path": ["user", "auth", "forgot-password", "request"]
-            },
-            "description": "Request password reset for user"
-          },
-          "response": []
-        },
-        {
-          "name": "Forgot Password Verify User",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"NewPassword@123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/user/auth/forgot-password/verify",
-              "host": ["{{baseUrl}}"],
-              "path": ["user", "auth", "forgot-password", "verify"]
-            },
-            "description": "Verify OTP and reset password for user"
           },
           "response": []
         },

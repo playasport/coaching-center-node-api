@@ -5,7 +5,9 @@
       "emailExists": "Coaching centre with this email already exists",
       "mobileExists": "A user with this mobile number already exists",
       "otpResend": "OTP not valid. Please resend OTP.",
-      "mobileNotVerified": "Mobile number not verified. Please verify mobile number."
+      "mobileNotVerified": "Mobile number not verified. Please verify mobile number.",
+      "mobileMismatch": "Mobile number in token does not match the provided mobile number",
+      "invalidTempToken": "Invalid or expired temporary registration token"
     },
     "social": {
       "loginSuccess": "Social login successful",

@@ -290,8 +290,7 @@ export const userRegisterSchema = z.object({
       .string({ message: validationMessages.email.required() })
       .min(1, validationMessages.email.required())
       .email(validationMessages.email.invalid()),
-    password: passwordComplexitySchema,
-    mobile: mobileNumberSchema,
+    mobile: mobileNumberSchema.optional(),
     type: z.enum(['student', 'guardian'], {
       message: 'Type must be either student or guardian',
     }),
@@ -314,8 +313,66 @@ export const userRegisterSchema = z.object({
     gender: z.enum(['male', 'female', 'other'], {
       message: 'Gender must be male, female, or other',
     }),
-    otp: otpCodeSchema,
-  }).merge(deviceInfoSchema),
+    otp: otpCodeSchema.optional(),
+    tempToken: z.string().min(1, 'Temporary token is required').optional(),
+  })
+    .merge(deviceInfoSchema)
+    .refine(
+      (data) => data.otp || data.tempToken,
+      {
+        message: 'Either tempToken or otp is required',
+        path: ['tempToken'],
+      }
+    )
+    .refine(
+      (data) => !(data.tempToken && data.otp),
+      {
+        message: 'Cannot provide both tempToken and otp. Use tempToken for new registration flow or otp for legacy flow.',
+        path: ['otp'],
+      }
+    )
+    .refine(
+      (data) => {
+        // If using tempToken, mobile is not required (will be extracted from token)
+        // If using legacy otp, mobile is required
+        if (data.tempToken) {
+          return true; // Mobile not needed when using tempToken
+        }
+        if (data.otp) {
+          return !!data.mobile; // Mobile required for legacy otp flow
+        }
+        return true;
+      },
+      {
+        message: 'Mobile number is required when using OTP (legacy flow)',
+        path: ['mobile'],
+      }
+    )
+    .refine(
+      (data) => {
+        // If type is student, validate minimum age is 13 years
+        if (data.type === 'student' && data.dob) {
+          const dob = new Date(data.dob);
+          const today = new Date();
+          const age = today.getFullYear() - dob.getFullYear();
+          const monthDiff = today.getMonth() - dob.getMonth();
+          const dayDiff = today.getDate() - dob.getDate();
+          
+          // Calculate exact age
+          let exactAge = age;
+          if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+            exactAge = age - 1;
+          }
+          
+          return exactAge >= 13;
+        }
+        return true; // For guardian type, no additional age validation needed
+      },
+      {
+        message: 'Student must be at least 13 years old',
+        path: ['dob'],
+      }
+    ),
 });
 
 export const userLoginSchema = z.object({

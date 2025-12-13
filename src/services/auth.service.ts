@@ -6,7 +6,7 @@ import { OtpChannel } from '../enums/otpChannel.enum';
 import { OtpMode } from '../enums/otpMode.enum';
 import { config } from '../config/env';
 import { comparePassword } from '../utils';
-import { generateTokenPair, verifyRefreshToken } from '../utils/jwt';
+import { generateTokenPair, verifyRefreshToken, generateTempRegistrationToken, verifyTempRegistrationToken } from '../utils/jwt';
 import { blacklistToken, blacklistUserTokens } from '../utils/tokenBlacklist';
 import { queueSms, queueEmail } from './notificationQueue.service';
 import { sendPasswordResetEmail } from './email.service';
@@ -149,6 +149,8 @@ export interface OtpVerifyResult {
   user?: User;
   accessToken?: string;
   refreshToken?: string;
+  needsRegistration?: boolean;
+  tempToken?: string;
 }
 
 /**
@@ -1013,27 +1015,54 @@ export const logoutAll = async (userId: string): Promise<void> => {
  * Register a new user (student or guardian)
  */
 export const registerUser = async (data: UserRegisterInput): Promise<RegisterResult> => {
-  const { firstName, lastName, email, password, mobile, dob, gender, otp, type } = data;
+  const { firstName, lastName, email, mobile, dob, gender, otp, tempToken, type } = data;
+  
+  // Generate a random password since users don't set passwords (OTP-based auth only)
+  const randomPassword = `${uuidv4()}!User${Math.floor(Math.random() * 1000)}`;
 
-  if (!otp) {
-    throw new ApiError(400, t('validation.otp.required'));
-  }
+  let verifiedMobile: string;
 
-  const otpStatus = await otpService.verifyOtp(
-    { channel: OtpChannel.MOBILE, identifier: mobile },
-    otp,
-    OtpMode.REGISTER
-  );
+  // Verify temporary registration token (issued after OTP verification)
+  if (tempToken) {
+    // When using tempToken, OTP is not needed - tempToken already verifies OTP was validated
+    // Extract mobile number from tempToken for security (don't trust frontend)
+    try {
+      const decoded = verifyTempRegistrationToken(tempToken);
+      verifiedMobile = decoded.mobile; // Use mobile from token, not from request body
+      
+      // tempToken is valid - proceed with registration (OTP already verified when tempToken was issued)
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new ApiError(400, t('auth.register.invalidTempToken'));
+    }
+  } else if (otp) {
+    // Legacy support: if OTP is provided (and no tempToken), verify it (for backward compatibility)
+    if (!mobile) {
+      throw new ApiError(400, t('validation.mobileNumber.required') || 'Mobile number is required when using OTP');
+    }
+    
+    const otpStatus = await otpService.verifyOtp(
+      { channel: OtpChannel.MOBILE, identifier: mobile },
+      otp,
+      OtpMode.REGISTER
+    );
 
-  if (otpStatus !== 'valid') {
-    const messageMap: Record<string, string> = {
-      not_found: t('auth.login.invalidOtp'),
-      consumed: t('auth.login.otpUsed'),
-      expired: t('auth.login.otpExpired'),
-      invalid: t('auth.login.invalidOtp'),
-    };
+    if (otpStatus !== 'valid') {
+      const messageMap: Record<string, string> = {
+        not_found: t('auth.login.invalidOtp'),
+        consumed: t('auth.login.otpUsed'),
+        expired: t('auth.login.otpExpired'),
+        invalid: t('auth.login.invalidOtp'),
+      };
 
-    throw new ApiError(400, messageMap[otpStatus] ?? t('auth.login.invalidOtp'));
+      throw new ApiError(400, messageMap[otpStatus] ?? t('auth.login.invalidOtp'));
+    }
+    
+    verifiedMobile = mobile; // Use mobile from request for legacy flow
+  } else {
+    throw new ApiError(400, t('validation.otp.required') || 'Either tempToken or otp is required');
   }
 
   const existingUser = await userService.findByEmail(email);
@@ -1075,10 +1104,10 @@ export const registerUser = async (data: UserRegisterInput): Promise<RegisterRes
     user = await userService.create({
       id: uuidv4(),
       email,
-      password,
+      password: randomPassword, // Random password since users don't set passwords (OTP-based auth only)
       firstName,
       lastName,
-      mobile,
+      mobile: verifiedMobile,
       role: DefaultRoles.USER,
       userType: type || null, // Set userType when role is 'user'
       dob: dob ? new Date(dob) : null,
@@ -1126,7 +1155,7 @@ export const registerUser = async (data: UserRegisterInput): Promise<RegisterRes
           templateVariables: {
             name: fullName,
             email: email,
-            mobile: mobile ? `+91${mobile}` : 'Not provided',
+            mobile: verifiedMobile ? `+91${verifiedMobile}` : 'Not provided',
             userType: type || 'Not specified',
             gender: gender || 'Not specified',
             registrationDate,
@@ -1622,31 +1651,31 @@ export const sendUserOtp = async (data: {
   const otpMode = otpModeMap[mode] || OtpMode.LOGIN;
 
   if (mode === 'login') {
-    if (!existingUser) {
-      throw new ApiError(404, t('auth.login.mobileNotFound'));
-    }
-
-    let userRole = getRoleName(existingUser);
-    
-    // If user is registered as academy and trying to login as user, add user role (keep academy role)
-    if (userRole === DefaultRoles.ACADEMY) {
-      // Add user role to existing roles array (don't replace academy role)
-      const updatedUser = await userService.update(existingUser.id, { 
-        role: DefaultRoles.USER,
-        addRole: true,
-      });
-      if (updatedUser) {
-        const updatedRoles = updatedUser.roles as any[];
-        // Check if user has user role
-        const hasUserRole = updatedRoles.some((r: any) => r?.name === DefaultRoles.USER);
-        userRole = hasUserRole ? DefaultRoles.USER : userRole;
+    // Allow sending OTP even if user doesn't exist - we'll handle that in verifyUserOtp
+    if (existingUser) {
+      let userRole = getRoleName(existingUser);
+      
+      // If user is registered as academy and trying to login as user, add user role (keep academy role)
+      if (userRole === DefaultRoles.ACADEMY) {
+        // Add user role to existing roles array (don't replace academy role)
+        const updatedUser = await userService.update(existingUser.id, { 
+          role: DefaultRoles.USER,
+          addRole: true,
+        });
+        if (updatedUser) {
+          const updatedRoles = updatedUser.roles as any[];
+          // Check if user has user role
+          const hasUserRole = updatedRoles.some((r: any) => r?.name === DefaultRoles.USER);
+          userRole = hasUserRole ? DefaultRoles.USER : userRole;
+        }
+      }
+      
+      // Check if user has user role (could be in roles array even if not first)
+      if (!hasRole(existingUser, DefaultRoles.USER)) {
+        throw new ApiError(403, t('auth.login.invalidRole'));
       }
     }
-    
-    // Check if user has user role (could be in roles array even if not first)
-    if (!hasRole(existingUser, DefaultRoles.USER)) {
-      throw new ApiError(403, t('auth.login.invalidRole'));
-    }
+    // If user doesn't exist, we'll still send OTP and handle registration in verifyUserOtp
   } else if (mode === 'register') {
     if (existingUser) {
       // If user exists as academy, add user role (keep academy role) instead of throwing error
@@ -1750,7 +1779,12 @@ export const verifyUserOtp = async (data: {
     let user = await userService.findByMobile(mobile);
 
     if (!user) {
-      throw new ApiError(404, t('auth.login.mobileNotFound'));
+      // User doesn't exist - return flag and temporary token for registration
+      const tempToken = generateTempRegistrationToken(mobile);
+      return {
+        needsRegistration: true,
+        tempToken,
+      };
     }
 
     let userRole = getRoleName(user);
