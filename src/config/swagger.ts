@@ -1184,6 +1184,181 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        ReelListItem: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: 'a9e7fb78-085a-4cbc-993c-9784f8f6576a',
+              description: 'Unique identifier for the reel',
+            },
+            videoUrl: {
+              type: 'string',
+              format: 'uri',
+              example: 'https://media-playsport.s3.ap-south-1.amazonaws.com/reels/179/1755696149_C60rlU4My8/master.m3u8',
+              description: 'URL to the master M3U8 video file',
+            },
+            thumbnailUrl: {
+              type: 'string',
+              format: 'uri',
+              example: 'https://media-playsport.s3.ap-south-1.amazonaws.com/reels/179/1755696149_C60rlU4My8/thumbnail.jpg',
+              description: 'URL to the thumbnail image',
+            },
+            title: {
+              type: 'string',
+              example: 'Line up. Aim. Break. 🎱🔥 #PlayASports #8BallDreams',
+              description: 'Title of the reel',
+            },
+            description: {
+              type: 'string',
+              nullable: true,
+              example: '8-Ball Pool is not just about hitting balls. It is about focus, strategy, and precision.',
+              description: 'Description of the reel',
+            },
+            share_url: {
+              type: 'string',
+              format: 'uri',
+              example: 'https://playasport.in/reels/a9e7fb78-085a-4cbc-993c-9784f8f6576a',
+              description: 'Shareable URL for the reel',
+            },
+            user: {
+              type: 'object',
+              properties: {
+                name: {
+                  type: 'string',
+                  example: 'Play A Sport',
+                  description: 'Name of the user who created the reel',
+                },
+                avatar: {
+                  type: 'string',
+                  format: 'uri',
+                  nullable: true,
+                  example: 'https://media-playsport.s3.ap-south-1.amazonaws.com/users/profile_photo/wUkolRoiaTFm5EdcmY3oUKrdsXL5pNjFa4syyJ7O.png',
+                  description: 'URL to the user profile avatar',
+                },
+              },
+            },
+            likes: {
+              type: 'integer',
+              example: 0,
+              description: 'Number of likes',
+            },
+            views: {
+              type: 'integer',
+              example: 203,
+              description: 'Number of views',
+            },
+            comments: {
+              type: 'integer',
+              example: 0,
+              description: 'Number of comments',
+            },
+          },
+        },
+        PopularReel: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: '941aef58-df50-493b-9ac6-54be6dd0051d',
+              description: 'Unique identifier for the reel',
+            },
+            videoUrl: {
+              type: 'string',
+              format: 'uri',
+              example: 'https://media-playsport.s3.ap-south-1.amazonaws.com/reels/179/1751522791_OnjKxHFcdo/master.m3u8',
+              description: 'URL to the master M3U8 video file',
+            },
+            videoPreviewUrl: {
+              type: 'string',
+              format: 'uri',
+              example: 'https://media-playsport.s3.ap-south-1.amazonaws.com/reels/179/1751522791_OnjKxHFcdo/preview.mp4',
+              description: 'URL to the preview video file',
+            },
+            thumbnailUrl: {
+              type: 'string',
+              format: 'uri',
+              example: 'https://media-playsport.s3.ap-south-1.amazonaws.com/reels/179/1751522791_OnjKxHFcdo/thumbnail.jpg',
+              description: 'URL to the thumbnail image',
+            },
+            title: {
+              type: 'string',
+              example: 'Badminton boosts physical fitness',
+              description: 'Title of the reel',
+            },
+            description: {
+              type: 'string',
+              nullable: true,
+              example: 'Badminton boosts physical fitness, sharpens reflexes, and enhances strategic thinking.',
+              description: 'Description of the reel',
+            },
+            user: {
+              type: 'object',
+              properties: {
+                name: {
+                  type: 'string',
+                  example: 'Play A Sport',
+                  description: 'Name of the user who created the reel',
+                },
+                avatar: {
+                  type: 'string',
+                  format: 'uri',
+                  nullable: true,
+                  example: 'https://media-playsport.s3.ap-south-1.amazonaws.com/users/profile_photo/wUkolRoiaTFm5EdcmY3oUKrdsXL5pNjFa4syyJ7O.png',
+                  description: 'URL to the user profile avatar',
+                },
+              },
+            },
+            likes: {
+              type: 'integer',
+              example: 0,
+              description: 'Number of likes',
+            },
+            views: {
+              type: 'integer',
+              example: 663,
+              description: 'Number of views',
+            },
+            comments: {
+              type: 'integer',
+              example: 0,
+              description: 'Number of comments',
+            },
+          },
+        },
+        ReelsListResponse: {
+          type: 'object',
+          properties: {
+            reels: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/ReelListItem',
+              },
+            },
+            total: {
+              type: 'integer',
+              example: 10,
+              description: 'Total number of reels',
+            },
+            current_page: {
+              type: 'integer',
+              example: 1,
+              description: 'Current page number',
+            },
+            total_pages: {
+              type: 'integer',
+              example: 4,
+              description: 'Total number of pages',
+            },
+            limit: {
+              type: 'integer',
+              example: 3,
+              description: 'Number of reels per page',
+            },
+          },
+        },
         CoachingCenterCreateRequest: {
           type: 'object',
           required: [
@@ -2136,6 +2311,13 @@ const options: swaggerJsdoc.Options = {
                 $ref: '#/components/schemas/PopularSport',
               },
               description: 'List of 8 popular sports',
+            },
+            popular_reels: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/PopularReel',
+              },
+              description: 'List of popular reels (top 5 by views count)',
             },
           },
         },
@@ -4407,7 +4589,7 @@ const options: swaggerJsdoc.Options = {
       },
       {
         name: 'Public Endpoints',
-        tags: ['Academy', 'Home', 'Basic', 'Location', 'Sport'],
+        tags: ['Academy', 'Home', 'Basic', 'Location', 'Sport', 'Reels'],
       },
       {
         name: 'System & Utilities',

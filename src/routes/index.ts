@@ -17,6 +17,7 @@ import bookingRoutes from './booking.routes';
 import webhookRoutes from './webhook.routes';
 import academyRoutes from './academy.routes';
 import homeRoutes from './home.routes';
+import reelRoutes from './reel.routes';
 import { t } from '../utils/i18n';
 import { ApiResponse } from '../utils/ApiResponse';
 
@@ -38,6 +39,7 @@ router.use('/academy/my-student', studentRoutes);
 router.use('/role', roleRoutes);
 router.use('/webhook', webhookRoutes);
 router.use('/home', homeRoutes);
+router.use('/', reelRoutes);
 // Public academy routes - must be registered after other routes to avoid conflicts
 router.use('/', academyRoutes);
 router.get('/health', (_req, res) => {

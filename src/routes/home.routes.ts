@@ -15,7 +15,7 @@ const router = Router();
  * @swagger
  * /home:
  *   get:
- *     summary: Get home page data (nearby academies and popular sports)
+ *     summary: Get home page data (nearby academies, popular sports, and popular reels)
  *     tags: [Home]
  *     security:
  *       - bearerAuth: []

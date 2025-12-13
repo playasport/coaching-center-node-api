@@ -2601,6 +2601,61 @@
         }
       ],
       "description": "Academy management endpoints for booking and student management. Requires ACADEMY role authentication."
+    },
+    {
+      "name": "Reels",
+      "item": [
+        {
+          "name": "Get Reels List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reels?page=1&limit=3",
+              "host": ["{{baseUrl}}"],
+              "path": ["reels"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (starts from 1)",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "3",
+                  "description": "Number of reels per page (max 3)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Retrieve a paginated list of approved reels with video processing completed. Only returns reels from active users. Maximum 3 reels per page."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Reels List with ID First",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reels/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["reels", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "a9e7fb78-085a-4cbc-993c-9784f8f6576a",
+                  "description": "Reel ID (UUID)"
+                }
+              ]
+            },
+            "description": "Retrieve a list of reels where the specified reel appears first, followed by 2 more reels (total 3). Only returns reels from active users with video processing completed."
+          },
+          "response": []
+        }
+      ],
+      "description": "Public endpoints for viewing reels. Returns only approved reels with completed video processing from active users."
     }
   ]
 }

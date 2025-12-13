@@ -7,6 +7,8 @@ import { getUserObjectId } from '../utils/userCache';
 import { UserModel } from '../models/user.model';
 import { config } from '../config/env';
 import type { AcademyListItem } from './academy.service';
+import { ReelModel, ReelStatus, VideoProcessedStatus } from '../models/reel.model';
+import { buildReelUrls, buildS3Url } from './reel.service';
 
 export interface PopularSport {
   _id: string;
@@ -17,9 +19,26 @@ export interface PopularSport {
   is_popular: boolean;
 }
 
+export interface PopularReel {
+  id: string;
+  videoUrl: string;
+  videoPreviewUrl: string;
+  thumbnailUrl: string;
+  title: string;
+  description: string | null;
+  user: {
+    name: string;
+    avatar: string | null;
+  };
+  likes: number;
+  views: number;
+  comments: number;
+}
+
 export interface HomeData {
   nearbyAcademies: AcademyListItem[];
   popularSports: PopularSport[];
+  popular_reels: PopularReel[];
 }
 
 /**
@@ -226,7 +245,97 @@ export const getNearbyAcademies = async (
 };
 
 /**
- * Get home page data (nearby academies and popular sports)
+ * Get popular reels sorted by views count
+ */
+export const getPopularReels = async (limit: number = 6): Promise<PopularReel[]> => {
+  try {
+    // Use aggregation to get popular reels with active users
+    const aggregationPipeline: any[] = [
+      {
+        $match: {
+          status: ReelStatus.APPROVED,
+          videoProcessedStatus: VideoProcessedStatus.DONE,
+          deletedAt: null,
+        },
+      },
+      // Convert userId to ObjectId if it's stored as string
+      {
+        $addFields: {
+          userIdObjectId: {
+            $cond: {
+              if: { $eq: [{ $type: '$userId' }, 'string'] },
+              then: { $toObjectId: '$userId' },
+              else: '$userId',
+            },
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userIdObjectId',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      { $unwind: { path: '$user', preserveNullAndEmptyArrays: false } },
+      {
+        $match: {
+          'user.isDeleted': { $ne: true },
+          'user.isActive': true,
+        },
+      },
+      // Sort by views count descending
+      { $sort: { viewsCount: -1 } },
+      { $limit: limit },
+    ];
+
+    const reels = await ReelModel.aggregate(aggregationPipeline);
+
+    // Format reels for response
+    return reels.map((reel: any) => {
+      const user = reel.user || null;
+
+      // Build reel URLs using helper function
+      const urls = buildReelUrls({
+        masterM3u8Url: reel.masterM3u8Url,
+        folderPath: reel.folderPath,
+        originalPath: reel.originalPath,
+        thumbnailPath: reel.thumbnailPath,
+      });
+
+      // Build user name
+      const userName = user
+        ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User'
+        : 'Unknown User';
+
+      // Build user avatar URL
+      const userAvatar = user && user.profileImage ? buildS3Url(user.profileImage) : null;
+
+      return {
+        id: reel.id,
+        videoUrl: urls.videoUrl,
+        videoPreviewUrl: urls.videoPreviewUrl,
+        thumbnailUrl: urls.thumbnailUrl,
+        title: reel.title,
+        description: reel.description || null,
+        user: {
+          name: userName,
+          avatar: userAvatar,
+        },
+        likes: reel.likesCount || 0,
+        views: reel.viewsCount || 0,
+        comments: reel.commentsCount || 0,
+      };
+    });
+  } catch (error) {
+    logger.error('Failed to get popular reels:', error);
+    return [];
+  }
+};
+
+/**
+ * Get home page data (nearby academies, popular sports, and popular reels)
  */
 export const getHomeData = async (
   userLocation?: { latitude: number; longitude: number },
@@ -234,9 +343,9 @@ export const getHomeData = async (
   radius?: number
 ): Promise<HomeData> => {
   try {
-    // Get popular sports and nearby academies in parallel
+    // Get popular sports, nearby academies, and popular reels in parallel
     // If any error occurs, it will return empty array instead of throwing
-    const [popularSports, nearbyAcademies] = await Promise.all([
+    const [popularSports, nearbyAcademies, popularReels] = await Promise.all([
       getPopularSports(8).catch((error) => {
         logger.error('Error getting popular sports, returning empty array:', error);
         return [];
@@ -247,11 +356,16 @@ export const getHomeData = async (
             return [];
           })
         : Promise.resolve([]),
+      getPopularReels(5).catch((error) => {
+        logger.error('Error getting popular reels, returning empty array:', error);
+        return [];
+      }),
     ]);
 
     return {
       nearbyAcademies: nearbyAcademies || [],
       popularSports: popularSports || [],
+      popular_reels: popularReels || [],
     };
   } catch (error) {
     logger.error('Failed to get home data:', error);
@@ -259,6 +373,7 @@ export const getHomeData = async (
     return {
       nearbyAcademies: [],
       popularSports: [],
+      popular_reels: [],
     };
   }
 };
