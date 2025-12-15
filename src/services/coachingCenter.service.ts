@@ -22,187 +22,146 @@ export const createCoachingCenter = async (
   data: CoachingCenterCreateInput,
   userId?: string
 ): Promise<CoachingCenter> => {
-  try {
-    // Validate sports exist
-    if (!data.sports || data.sports.length === 0) {
-      throw new ApiError(400, t('validation.coachingCenter.sports.minOne'));
-    }
-    
-    const sportIds = data.sports.map((id) => new Types.ObjectId(id));
-    const sportsCount = await SportModel.countDocuments({ _id: { $in: sportIds } });
-    
-    if (sportsCount !== data.sports.length) {
-      throw new ApiError(400, t('coachingCenter.sports.invalid'));
-    }
+  // ============================================
+  // STEP 1: ALL VALIDATIONS FIRST (BEFORE ANY SAVE OR FILE OPERATIONS)
+  // ============================================
+  
+  // Validate user ID is provided
+  if (!userId) {
+    throw new ApiError(400, 'User ID is required');
+  }
 
-    // Handle facilities - can be array of IDs (strings) or array of objects (for new facilities)
-    let facilityIds: Types.ObjectId[] = [];
-    if (data.facility && Array.isArray(data.facility) && data.facility.length > 0) {
-      // Process each facility - can be ID string or object with name
-      const facilityPromises = data.facility.map(async (facilityInput) => {
-        if (typeof facilityInput === 'string') {
-          // Existing facility ID
-          if (!Types.ObjectId.isValid(facilityInput)) {
-            throw new ApiError(400, t('coachingCenter.facility.invalidId', { id: facilityInput }));
-          }
-          const facilityId = new Types.ObjectId(facilityInput);
-          const facilityExists = await FacilityModel.findById(facilityId);
-          if (!facilityExists) {
-            throw new ApiError(400, t('coachingCenter.facility.notFound', { id: facilityInput }));
-          }
-          return facilityId;
-        } else {
-          // New facility object - create it
-          const facilityId = await findOrCreateFacility(facilityInput);
-          if (!facilityId) {
-            throw new ApiError(500, t('coachingCenter.facility.createFailed'));
-          }
-          return facilityId;
+  // Get user ObjectId from cache or database (optimized with Redis caching)
+  const userObjectId = await getUserObjectId(userId);
+  if (!userObjectId) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  // Validate sports exist
+  if (!data.sports || data.sports.length === 0) {
+    throw new ApiError(400, t('validation.coachingCenter.sports.minOne'));
+  }
+  
+  const sportIds = data.sports.map((id) => new Types.ObjectId(id));
+  const sportsCount = await SportModel.countDocuments({ _id: { $in: sportIds } });
+  
+  if (sportsCount !== data.sports.length) {
+    throw new ApiError(400, t('coachingCenter.sports.invalid'));
+  }
+
+  // Handle facilities - can be array of IDs (strings) or array of objects (for new facilities)
+  let facilityIds: Types.ObjectId[] = [];
+  if (data.facility && Array.isArray(data.facility) && data.facility.length > 0) {
+    // Process each facility - can be ID string or object with name
+    const facilityPromises = data.facility.map(async (facilityInput) => {
+      if (typeof facilityInput === 'string') {
+        // Existing facility ID
+        if (!Types.ObjectId.isValid(facilityInput)) {
+          throw new ApiError(400, t('coachingCenter.facility.invalidId', { id: facilityInput }));
         }
-      });
-      
-      const resolvedFacilities = await Promise.all(facilityPromises);
-      // Filter out any null values (shouldn't happen due to error throwing, but TypeScript needs this)
-      facilityIds = resolvedFacilities.filter((id): id is Types.ObjectId => id !== null);
-    }
-
-    // Check if email already exists
-    const existingCenter = await CoachingCenterModel.findOne({
-      email: data.email,
-      is_deleted: false,
+        const facilityId = new Types.ObjectId(facilityInput);
+        const facilityExists = await FacilityModel.findById(facilityId);
+        if (!facilityExists) {
+          throw new ApiError(400, t('coachingCenter.facility.notFound', { id: facilityInput }));
+        }
+        return facilityId;
+      } else {
+        // New facility object - create it
+        const facilityId = await findOrCreateFacility(facilityInput);
+        if (!facilityId) {
+          throw new ApiError(500, t('coachingCenter.facility.createFailed'));
+        }
+        return facilityId;
+      }
     });
-
-    if (existingCenter) {
-      throw new ApiError(409, t('coachingCenter.emailExists'));
-    }
-
-    // Check if mobile number already exists
-    const existingMobile = await CoachingCenterModel.findOne({
-      mobile_number: data.mobile_number,
-      is_deleted: false,
-    });
-
-    if (existingMobile) {
-      throw new ApiError(409, t('coachingCenter.mobileExists'));
-    }
-
-    // Process sport_details - convert sport_id strings to ObjectIds
-    let sportDetails: any[] = [];
-    if (data.sport_details && Array.isArray(data.sport_details) && data.sport_details.length > 0) {
-      sportDetails = data.sport_details.map((detail) => ({
-        ...detail,
-        sport_id: new Types.ObjectId(detail.sport_id),
-      }));
-    }
-
-    // Prepare data for insertion
-    const coachingCenterData: any = {
-      ...data,
-      user: userId, // Set user ID from authenticated user
-      sports: sportIds,
-      sport_details: sportDetails,
-      facility: facilityIds,
-    };
     
-    // Remove description if it exists (no longer in schema)
-    delete coachingCenterData.description;
+    const resolvedFacilities = await Promise.all(facilityPromises);
+    // Filter out any null values (shouldn't happen due to error throwing, but TypeScript needs this)
+    facilityIds = resolvedFacilities.filter((id): id is Types.ObjectId => id !== null);
+  }
 
-    // Validate user ID is provided and get user ObjectId (with caching)
-    if (!userId) {
-      throw new ApiError(400, 'User ID is required');
-    }
+  // Process sport_details - convert sport_id strings to ObjectIds
+  let sportDetails: any[] = [];
+  if (data.sport_details && Array.isArray(data.sport_details) && data.sport_details.length > 0) {
+    sportDetails = data.sport_details.map((detail) => ({
+      ...detail,
+      sport_id: new Types.ObjectId(detail.sport_id),
+    }));
+  }
 
-    // Get user ObjectId from cache or database (optimized with Redis caching)
-    const userObjectId = await getUserObjectId(userId);
-    if (!userObjectId) {
-      throw new ApiError(404, 'User not found');
-    }
+  // ============================================
+  // STEP 2: PREPARE DATA (ALL VALIDATIONS PASSED)
+  // ============================================
+  
+  // Prepare data for insertion
+  const coachingCenterData: any = {
+    ...data,
+    user: userObjectId,
+    sports: sportIds,
+    sport_details: sportDetails,
+    facility: facilityIds,
+  };
+  
+  // Remove description if it exists (no longer in schema)
+  delete coachingCenterData.description;
 
-    // Use user's ObjectId for reference
-    coachingCenterData.user = userObjectId;
-
-    // Create coaching center
-    const coachingCenter = new CoachingCenterModel(coachingCenterData);
+  // ============================================
+  // STEP 3: SAVE COACHING CENTER (ONLY AFTER ALL VALIDATIONS PASS)
+  // ============================================
+  
+  let coachingCenter: any;
+  try {
+    // Create and save coaching center
+    coachingCenter = new CoachingCenterModel(coachingCenterData);
     await coachingCenter.save();
 
-    logger.info(`Coaching center created: ${coachingCenter._id} (${coachingCenter.center_name})`);
+    logger.info(`Coaching center saved successfully: ${coachingCenter._id} (${coachingCenter.center_name})`);
+  } catch (saveError) {
+    logger.error('Failed to save coaching center after validations passed', {
+      error: saveError instanceof Error ? saveError.message : saveError,
+      stack: saveError instanceof Error ? saveError.stack : undefined,
+      data: {
+        center_name: data.center_name,
+        email: data.email,
+        mobile_number: data.mobile_number,
+      },
+    });
+    throw new ApiError(500, t('coachingCenter.create.failed'));
+  }
 
-    // If status is 'published', move all media files from temp to permanent locations
-    if (data.status === 'published') {
-      try {
-        logger.info('Moving media files to permanent location for published coaching center', {
-          centerId: coachingCenter._id,
-          logo: coachingCenter.logo,
-          hasDocuments: !!coachingCenter.documents && coachingCenter.documents.length > 0,
-        });
-        
-        // Convert to plain object for moveMediaFilesToPermanent
-        const centerForMove = coachingCenter.toObject ? coachingCenter.toObject() : coachingCenter;
-        await moveMediaFilesToPermanent(centerForMove as CoachingCenter);
-        
-        // Wait a bit to ensure database update is complete
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Refetch to get updated URLs
-        const updatedCenter = await CoachingCenterModel.findById(coachingCenter._id)
-          .populate('sports', 'custom_id name logo is_popular')
-          .populate('facility', 'custom_id name description icon')
-          .populate({
-            path: 'user',
-            select: 'id firstName lastName email',
-            match: { isDeleted: false },
-          })
-          .lean();
-        
-        if (updatedCenter) {
-
-          logger.info(`Coaching center created with permanent URLs: ${coachingCenter._id} (${coachingCenter.center_name})`);
-          // Verify URLs are permanent
-          if (updatedCenter.logo && updatedCenter.logo.includes('temp/')) {
-            logger.warn('Logo URL still contains temp/ after move', { logo: updatedCenter.logo });
-          }
-          // Check sport_details for temp URLs
-          if (updatedCenter.sport_details && Array.isArray(updatedCenter.sport_details) && updatedCenter.sport_details.length > 0) {
-            const firstSportDetail = updatedCenter.sport_details[0];
-            if (firstSportDetail.images?.[0]?.url?.includes('temp/')) {
-              logger.warn('Image URLs still contain temp/ after move', { 
-                firstImage: firstSportDetail.images[0].url 
-              });
-            }
-          }
-          
-          // Enqueue thumbnail generation for all videos (non-blocking)
-          // Don't let thumbnail generation errors break the create flow
-          try {
-            await enqueueThumbnailGenerationForVideos(updatedCenter);
-          } catch (thumbnailError) {
-            logger.error('Failed to enqueue thumbnail generation, but coaching center was created', {
-              centerId: coachingCenter._id,
-              error: thumbnailError instanceof Error ? thumbnailError.message : thumbnailError,
-            });
-            // Continue - thumbnail generation is non-critical
-          }
-          
-          return updatedCenter;
-        } else {
-          logger.warn('Could not refetch coaching center after media move, returning original', {
-            centerId: coachingCenter._id,
-          });
-        }
-      } catch (postProcessError) {
-        logger.error('Error during post-processing for published center, but coaching center was created', {
-          centerId: coachingCenter._id,
-          error: postProcessError instanceof Error ? postProcessError.message : postProcessError,
-          stack: postProcessError instanceof Error ? postProcessError.stack : undefined,
-        });
-        // Don't fail the entire creation if post-processing fails
-        // Return the created center with basic population
-      }
-    }
-
-    // Return the created center with populated fields
+  // ============================================
+  // STEP 4: MOVE FILES ONLY AFTER SUCCESSFUL SAVE
+  // ============================================
+  
+  // Only move files if status is 'published' AND coaching center was saved successfully
+  if (data.status === 'published' && coachingCenter && coachingCenter._id) {
     try {
-      const populatedCenter = await CoachingCenterModel.findById(coachingCenter._id)
+      logger.info('Moving media files to permanent location for published coaching center', {
+        centerId: coachingCenter._id,
+        logo: coachingCenter.logo,
+        hasDocuments: !!coachingCenter.documents && coachingCenter.documents.length > 0,
+      });
+      
+      // Refetch the coaching center from database to ensure we have the latest data
+      const freshCenter = await CoachingCenterModel.findById(coachingCenter._id).lean();
+      if (!freshCenter) {
+        throw new ApiError(404, 'Coaching center not found after save');
+      }
+      
+      // Convert to CoachingCenter type with proper _id
+      const centerForMove: CoachingCenter = {
+        ...freshCenter,
+        id: freshCenter.id || (freshCenter as any)._id?.toString() || '',
+      } as CoachingCenter;
+      
+      // Move files from temp to permanent - this will also update the database
+      await moveMediaFilesToPermanent(centerForMove);
+      
+      // Wait a bit to ensure database update is complete
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Refetch to get updated URLs with permanent paths
+      const updatedCenter = await CoachingCenterModel.findById(coachingCenter._id)
         .populate('sports', 'custom_id name logo is_popular')
         .populate('facility', 'custom_id name description icon')
         .populate({
@@ -211,30 +170,77 @@ export const createCoachingCenter = async (
           match: { isDeleted: false },
         })
         .lean();
-
-      return populatedCenter || coachingCenter;
-    } catch (populateError) {
-      logger.warn('Failed to populate coaching center, returning basic object', {
+      
+      if (updatedCenter) {
+        logger.info(`Coaching center created with permanent URLs: ${coachingCenter._id} (${coachingCenter.center_name})`);
+        
+        // Verify URLs are permanent
+        if (updatedCenter.logo && updatedCenter.logo.includes('temp/')) {
+          logger.warn('Logo URL still contains temp/ after move', { logo: updatedCenter.logo });
+        }
+        
+        // Check sport_details for temp URLs
+        if (updatedCenter.sport_details && Array.isArray(updatedCenter.sport_details) && updatedCenter.sport_details.length > 0) {
+          const firstSportDetail = updatedCenter.sport_details[0];
+          if (firstSportDetail.images?.[0]?.url?.includes('temp/')) {
+            logger.warn('Image URLs still contain temp/ after move', { 
+              firstImage: firstSportDetail.images[0].url 
+            });
+          }
+        }
+        
+        // Enqueue thumbnail generation for all videos (non-blocking)
+        // Don't let thumbnail generation errors break the create flow
+        try {
+          await enqueueThumbnailGenerationForVideos(updatedCenter);
+        } catch (thumbnailError) {
+          logger.error('Failed to enqueue thumbnail generation, but coaching center was created', {
+            centerId: coachingCenter._id,
+            error: thumbnailError instanceof Error ? thumbnailError.message : thumbnailError,
+          });
+          // Continue - thumbnail generation is non-critical
+        }
+        
+        return updatedCenter;
+      } else {
+        logger.warn('Could not refetch coaching center after media move, returning original', {
+          centerId: coachingCenter._id,
+        });
+      }
+    } catch (postProcessError) {
+      logger.error('Error during file moving for published center', {
         centerId: coachingCenter._id,
-        error: populateError instanceof Error ? populateError.message : populateError,
+        error: postProcessError instanceof Error ? postProcessError.message : postProcessError,
+        stack: postProcessError instanceof Error ? postProcessError.stack : undefined,
       });
-      return coachingCenter;
+      // Don't fail the entire creation if file moving fails
+      // Return the created center with basic population (files remain in temp)
     }
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    logger.error('Failed to create coaching center:', {
-      error: error instanceof Error ? error.message : error,
-      stack: error instanceof Error ? error.stack : undefined,
-      data: {
-        center_name: data.center_name,
-        email: data.email,
-        mobile_number: data.mobile_number,
-        status: data.status,
-      },
+  }
+
+  // ============================================
+  // STEP 5: RETURN POPULATED COACHING CENTER
+  // ============================================
+  
+  // Return the created center with populated fields
+  try {
+    const populatedCenter = await CoachingCenterModel.findById(coachingCenter._id)
+      .populate('sports', 'custom_id name logo is_popular')
+      .populate('facility', 'custom_id name description icon')
+      .populate({
+        path: 'user',
+        select: 'id firstName lastName email',
+        match: { isDeleted: false },
+      })
+      .lean();
+
+    return populatedCenter || coachingCenter;
+  } catch (populateError) {
+    logger.warn('Failed to populate coaching center, returning basic object', {
+      centerId: coachingCenter._id,
+      error: populateError instanceof Error ? populateError.message : populateError,
     });
-    throw new ApiError(500, t('coachingCenter.create.failed'));
+    return coachingCenter;
   }
 };
 
@@ -409,31 +415,13 @@ export const updateCoachingCenter = async (
           }
         }
 
-    // Check email uniqueness if email is being updated
-    if (data.email && data.email !== existingCenter.email) {
-      const emailExists = await CoachingCenterModel.findOne({
-        email: data.email,
-        _id: { $ne: id },
-        is_deleted: false,
-      });
-
-      if (emailExists) {
-        throw new ApiError(409, t('coachingCenter.emailExists'));
-      }
+    // Update email if provided
+    if (data.email !== undefined) {
       updates.email = data.email;
     }
 
-    // Check mobile number uniqueness if mobile is being updated
-    if (data.mobile_number && data.mobile_number !== existingCenter.mobile_number) {
-      const mobileExists = await CoachingCenterModel.findOne({
-        mobile_number: data.mobile_number,
-        _id: { $ne: id },
-        is_deleted: false,
-      });
-
-      if (mobileExists) {
-        throw new ApiError(409, t('coachingCenter.mobileExists'));
-      }
+    // Update mobile number if provided
+    if (data.mobile_number !== undefined) {
       updates.mobile_number = data.mobile_number;
     }
 
@@ -788,10 +776,18 @@ const enqueueThumbnailGenerationForVideos = async (coachingCenter: CoachingCente
 const moveMediaFilesToPermanent = async (coachingCenter: CoachingCenter): Promise<void> => {
   try {
     const fileUrls: string[] = [];
-    const coachingCenterId = (coachingCenter as any)._id?.toString() || 'unknown';
+    // Extract ID - handle both _id (MongoDB) and id (custom) fields
+    const coachingCenterId = (coachingCenter as any)._id || (coachingCenter as any).id || null;
+    
+    if (!coachingCenterId) {
+      logger.error('Coaching center ID not found', { coachingCenter });
+      throw new Error('Coaching center ID is required to move files');
+    }
+    
+    const coachingCenterIdStr = coachingCenterId.toString ? coachingCenterId.toString() : String(coachingCenterId);
 
     logger.info('Starting media file move to permanent location', {
-      coachingCenterId,
+      coachingCenterId: coachingCenterIdStr,
       hasLogo: !!coachingCenter.logo,
       hasDocuments: !!coachingCenter.documents && coachingCenter.documents.length > 0,
     });
@@ -842,12 +838,12 @@ const moveMediaFilesToPermanent = async (coachingCenter: CoachingCenter): Promis
     }
 
     if (fileUrls.length === 0) {
-      logger.warn('No media files found to move to permanent location', { coachingCenterId });
+      logger.warn('No media files found to move to permanent location', { coachingCenterId: coachingCenterIdStr });
       return;
     }
 
     logger.info(`Moving ${fileUrls.length} media files to permanent locations`, {
-      coachingCenterId,
+      coachingCenterId: coachingCenterIdStr,
       fileUrls,
     });
 
@@ -870,7 +866,7 @@ const moveMediaFilesToPermanent = async (coachingCenter: CoachingCenter): Promis
     });
     
     logger.info(`Successfully moved ${permanentUrls.length} files`, {
-      coachingCenterId,
+      coachingCenterId: coachingCenterIdStr,
       urlMapSize: urlMap.size,
       permanentUrlsCount: permanentUrls.length,
     });
@@ -1007,7 +1003,7 @@ const moveMediaFilesToPermanent = async (coachingCenter: CoachingCenter): Promis
 
     // Update coaching center with permanent URLs
     if (Object.keys(updates).length > 0) {
-      const coachingCenterId = (coachingCenter as any)._id;
+      // Use the ID we extracted at the beginning
       if (coachingCenterId) {
         logger.info('Updating coaching center with permanent URLs', {
           coachingCenterId: coachingCenterId.toString(),
@@ -1052,47 +1048,57 @@ const moveMediaFilesToPermanent = async (coachingCenter: CoachingCenter): Promis
           permanentUrls: permanentUrls.slice(0, 3), // First 3 for debugging
         });
         
-        // Fetch the document and update directly to ensure nested objects are updated correctly
-        const doc = await CoachingCenterModel.findById(coachingCenterId);
-        
-        if (!doc) {
-          logger.error('Failed to find coaching center for update', {
-            coachingCenterId: coachingCenterId.toString(),
+        // Convert ID to ObjectId if it's a string
+        let centerObjectId: Types.ObjectId;
+        if (coachingCenterId instanceof Types.ObjectId) {
+          centerObjectId = coachingCenterId;
+        } else if (Types.ObjectId.isValid(coachingCenterId)) {
+          centerObjectId = new Types.ObjectId(coachingCenterId);
+        } else {
+          logger.error('Invalid coaching center ID format', {
+            coachingCenterId,
+            coachingCenterIdStr,
           });
-          return;
+          throw new Error('Invalid coaching center ID format');
         }
         
-        // Update fields directly on the document
-        if (updateQuery.logo) {
-          doc.logo = updateQuery.logo;
-        }
-        if (updateQuery.sport_details) {
-          doc.sport_details = updateQuery.sport_details;
-          // Mark nested object as modified
-          doc.markModified('sport_details');
-        }
-        if (updateQuery.documents) {
-          doc.documents = updateQuery.documents;
-          // Mark nested object as modified
-          doc.markModified('documents');
+        // Use findByIdAndUpdate with $set to ensure proper update
+        // This ensures the update is atomic and properly handles nested arrays
+        logger.info('Executing database update', {
+          centerObjectId: centerObjectId.toString(),
+          updateQueryKeys: Object.keys(updateQuery),
+        });
+        
+        const updateResult = await CoachingCenterModel.findByIdAndUpdate(
+          centerObjectId,
+          { $set: updateQuery },
+          { new: true, runValidators: false } // new: true returns updated document
+        );
+        
+        if (!updateResult) {
+          logger.error('Failed to update coaching center with permanent URLs - updateResult is null', {
+            coachingCenterId: coachingCenterIdStr,
+            centerObjectId: centerObjectId.toString(),
+            updateQuery,
+          });
+          throw new Error('Failed to update coaching center with permanent URLs');
         }
         
-        // Save the document
-        await doc.save();
-        
-        logger.info(`Successfully updated coaching center with permanent URLs`, {
-          coachingCenterId: coachingCenterId.toString(),
+        logger.info(`Database update completed - checking result`, {
+          coachingCenterId: coachingCenterIdStr,
           filesMoved: permanentUrls.length,
-          updatedLogo: !!doc.logo,
-          updatedDocuments: !!doc.documents && doc.documents.length > 0,
+          updateResultLogo: updateResult.logo,
+          updateResultLogoIsTemp: updateResult.logo?.includes('temp/') || false,
+          updatedLogo: !!updateResult.logo,
+          updatedDocuments: !!updateResult.documents && updateResult.documents.length > 0,
         });
         
         // Convert to plain object for logging
-        const updateResultPlain = doc.toObject ? doc.toObject() : doc;
+        const updateResultPlain = updateResult.toObject ? updateResult.toObject() : updateResult;
         
         // Verify the update by checking the saved document
         logger.info('Verified update - permanent URLs saved', {
-          coachingCenterId: coachingCenterId.toString(),
+          coachingCenterId: coachingCenterIdStr,
           logo: updateResultPlain.logo,
           logoIsTemp: updateResultPlain.logo?.includes('temp/') || false,
           sportDetailsCount: updateResultPlain.sport_details?.length || 0,
@@ -1109,7 +1115,7 @@ const moveMediaFilesToPermanent = async (coachingCenter: CoachingCenter): Promis
         
         // Double-check by fetching fresh from database after a short delay
         await new Promise(resolve => setTimeout(resolve, 200));
-        const verifyCenter = await CoachingCenterModel.findById(coachingCenterId).lean();
+        const verifyCenter = await CoachingCenterModel.findById(centerObjectId).lean();
         if (verifyCenter) {
           // Check for temp URLs in logo, sport_details, and media.documents
           let hasTempUrls = false;

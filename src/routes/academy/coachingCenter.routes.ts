@@ -48,8 +48,6 @@ const router = Router();
  *         description: Unauthorized - Authentication required
  *       403:
  *         description: Forbidden - ACADEMY role required
- *       409:
- *         description: Email or mobile number already exists
  */
 router.post(
   '/',
@@ -231,8 +229,6 @@ router.get('/:id', authenticate, authorize(DefaultRoles.ACADEMY), coachingCenter
  *         description: Forbidden - ACADEMY role required
  *       404:
  *         description: Coaching center not found
- *       409:
- *         description: Email or mobile number already exists
  */
 router.patch(
   '/:id',
