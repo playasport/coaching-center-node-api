@@ -601,7 +601,7 @@ router.post('/verify-otp', validate(userVerifyOtpSchema), verifyUserOtp);
 router.patch(
   '/profile',
   authenticate,
-  authorize(DefaultRoles.STUDENT, DefaultRoles.GUARDIAN),
+  authorize(DefaultRoles.USER),
   uploadProfileImage,
   validate(userProfileUpdateSchema),
   updateUserProfile
@@ -638,7 +638,7 @@ router.patch(
 router.patch(
   '/address',
   authenticate,
-  authorize(DefaultRoles.STUDENT, DefaultRoles.GUARDIAN),
+  authorize(DefaultRoles.USER),
   validate(userAddressUpdateSchema),
   updateUserAddress
 );
@@ -684,7 +684,7 @@ router.patch(
 router.patch(
   '/password',
   authenticate,
-  authorize(DefaultRoles.STUDENT, DefaultRoles.GUARDIAN),
+  authorize(DefaultRoles.USER),
   validate(userPasswordChangeSchema),
   changeUserPassword
 );
@@ -714,7 +714,7 @@ router.patch(
 router.get(
   '/me',
   authenticate,
-  authorize(DefaultRoles.STUDENT, DefaultRoles.GUARDIAN),
+  authorize(DefaultRoles.USER),
   getCurrentUser
 );
 
@@ -750,7 +750,7 @@ router.get(
 router.patch(
   '/favorite-sports',
   authenticate,
-  authorize(DefaultRoles.STUDENT, DefaultRoles.GUARDIAN),
+  authorize(DefaultRoles.USER),
   validate(userFavoriteSportsUpdateSchema),
   updateUserFavoriteSports
 );
@@ -821,7 +821,7 @@ router.post('/refresh', generalRateLimit, refreshToken);
  *       401:
  *         description: Unauthorized
  */
-router.post('/logout', authenticate, authorize(DefaultRoles.STUDENT, DefaultRoles.GUARDIAN), logout);
+router.post('/logout', authenticate, authorize(DefaultRoles.USER), logout);
 
 /**
  * @swagger
@@ -841,7 +841,7 @@ router.post('/logout', authenticate, authorize(DefaultRoles.STUDENT, DefaultRole
  *       401:
  *         description: Unauthorized
  */
-router.post('/logout-all', authenticate, authorize(DefaultRoles.STUDENT, DefaultRoles.GUARDIAN), logoutAll);
+router.post('/logout-all', authenticate, authorize(DefaultRoles.USER), logoutAll);
 
 export default router;
 

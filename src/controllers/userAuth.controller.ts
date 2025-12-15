@@ -136,7 +136,7 @@ export const getCurrentUser = async (
 
     const user = await authService.getCurrentUser(req.user.id);
 
-    const response = new ApiResponse(200, { user }, t('auth.profile.meSuccess'));
+    const response = new ApiResponse(200, { ...user }, t('auth.profile.meSuccess'));
     res.json(response);
   } catch (error) {
     next(error);

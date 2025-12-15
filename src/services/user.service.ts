@@ -248,17 +248,7 @@ export const userService = {
           participantUpdate.lastName = data.lastName ?? null;
         }
         if (data.gender !== undefined) {
-          // Map gender from string to number
-          let genderNumber: number | null = null;
-          if (data.gender) {
-            const genderMap: Record<string, number> = {
-              male: 0,
-              female: 1,
-              other: 2,
-            };
-            genderNumber = genderMap[data.gender] ?? null;
-          }
-          participantUpdate.gender = genderNumber;
+          participantUpdate.gender = data.gender || null;
         }
         if (data.dob !== undefined) {
           participantUpdate.dob = data.dob || null;

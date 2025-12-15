@@ -1,12 +1,13 @@
 import { Schema, model, HydratedDocument, Types } from 'mongoose';
 import { addressSchema, Address } from './address.model';
+import { Gender } from '../enums/gender.enum';
 
 // Participant interface
 export interface Participant {
   userId: Types.ObjectId; // Reference to User model
   firstName?: string | null;
   lastName?: string | null;
-  gender?: number | null; // 0 = male, 1 = female, 2 = other
+  gender?: Gender | null;
   disability: number; // 0 = no, 1 = yes
   dob?: Date | null; // Date of birth
   schoolName?: string | null;
@@ -44,9 +45,9 @@ const participantSchema = new Schema<Participant>(
       maxlength: 191,
     },
     gender: {
-      type: Number,
+      type: String,
+      enum: Object.values(Gender),
       default: null,
-      enum: [0, 1, 2], // 0 = male, 1 = female, 2 = other
     },
     disability: {
       type: Number,

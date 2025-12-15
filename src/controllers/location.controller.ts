@@ -69,3 +69,17 @@ export const getCities = async (
   }
 };
 
+export const getTopCities = async (
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const topCities = await locationService.getTopCities(15);
+    const response = new ApiResponse(200, { cities: topCities }, 'Top cities retrieved successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+

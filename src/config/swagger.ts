@@ -1117,6 +1117,32 @@ const options: swaggerJsdoc.Options = {
             longitude: { type: 'number', example: 77.209 },
           },
         },
+        TopCity: {
+          type: 'object',
+          description: 'Top city with academy and sports counts',
+          properties: {
+            city: {
+              type: 'string',
+              example: 'Mumbai',
+              description: 'City name',
+            },
+            state: {
+              type: 'string',
+              example: 'Maharashtra',
+              description: 'State name',
+            },
+            academyCount: {
+              type: 'number',
+              example: 45,
+              description: 'Number of active academies in the city',
+            },
+            sportsCount: {
+              type: 'number',
+              example: 12,
+              description: 'Number of unique sports available in the city',
+            },
+          },
+        },
         SportListItem: {
           type: 'object',
           properties: {
@@ -2876,9 +2902,9 @@ const options: swaggerJsdoc.Options = {
             },
             gender: {
               type: 'string',
-              enum: ['0', '1', '2'],
-              example: '0',
-              description: '0 = male, 1 = female, 2 = other',
+              enum: ['male', 'female', 'other'],
+              example: 'male',
+              description: 'Gender: male, female, or other',
             },
             disability: {
               type: 'string',
@@ -2940,9 +2966,9 @@ const options: swaggerJsdoc.Options = {
             },
             gender: {
               type: 'string',
-              enum: ['0', '1', '2'],
-              example: '0',
-              description: '0 = male, 1 = female, 2 = other',
+              enum: ['male', 'female', 'other'],
+              example: 'male',
+              description: 'Gender: male, female, or other',
             },
             disability: {
               type: 'string',
@@ -3671,6 +3697,7 @@ const options: swaggerJsdoc.Options = {
               properties: {
                 id: { type: 'string' },
                 name: { type: 'string' },
+                logo: { type: 'string', nullable: true },
               },
             },
             amount: {
@@ -3751,6 +3778,17 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        DeleteOrderRequest: {
+          type: 'object',
+          required: ['razorpay_order_id'],
+          properties: {
+            razorpay_order_id: {
+              type: 'string',
+              example: 'order_1234567890',
+              description: 'Razorpay order ID to cancel',
+            },
+          },
+        },
         BookingSummary: {
           type: 'object',
           properties: {
@@ -3771,6 +3809,20 @@ const options: swaggerJsdoc.Options = {
                   properties: {
                     id: { type: 'string' },
                     name: { type: 'string' },
+                    logo: { type: 'string', nullable: true },
+                    address: {
+                      type: 'object',
+                      nullable: true,
+                      properties: {
+                        line1: { type: 'string', nullable: true },
+                        line2: { type: 'string' },
+                        city: { type: 'string' },
+                        state: { type: 'string' },
+                        country: { type: 'string', nullable: true },
+                        pincode: { type: 'string' },
+                      },
+                    },
+                    experience: { type: 'number', nullable: true },
                   },
                 },
                 scheduled: {
@@ -3810,6 +3862,7 @@ const options: swaggerJsdoc.Options = {
                   id: { type: 'string' },
                   firstName: { type: 'string', nullable: true },
                   lastName: { type: 'string', nullable: true },
+                  age: { type: 'number', nullable: true, description: 'Participant age calculated from date of birth' },
                 },
               },
             },

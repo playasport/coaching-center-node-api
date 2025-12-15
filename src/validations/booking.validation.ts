@@ -141,3 +141,12 @@ export const userBookingListSchema = z.object({
 
 export type UserBookingListInput = z.infer<typeof userBookingListSchema>['query'];
 
+// Delete order request schema
+export const deleteOrderSchema = z.object({
+  body: z.object({
+    razorpay_order_id: z.string().min(1, 'Razorpay order ID is required'),
+  }),
+});
+
+export type DeleteOrderInput = z.infer<typeof deleteOrderSchema>['body'];
+

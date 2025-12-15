@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import * as bookingController from '../controllers/booking.controller';
 import { validate } from '../middleware/validation.middleware';
-import { bookingSummarySchema, createOrderSchema, verifyPaymentSchema, userBookingListSchema } from '../validations/booking.validation';
+import { bookingSummarySchema, createOrderSchema, verifyPaymentSchema, userBookingListSchema, deleteOrderSchema } from '../validations/booking.validation';
 import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -286,6 +286,56 @@ router.get(
   authenticate,
   validate(userBookingListSchema),
   bookingController.getUserBookings
+);
+
+/**
+ * @swagger
+ * /user/booking/delete-order:
+ *   delete:
+ *     summary: Cancel/Delete order
+ *     tags: [Booking]
+ *     description: Cancel a booking order and mark payment status as failed. Only works for orders with pending payment status. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DeleteOrderRequest'
+ *     responses:
+ *       200:
+ *         description: Order cancelled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Order cancelled successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     booking:
+ *                       $ref: '#/components/schemas/Booking'
+ *       400:
+ *         description: Validation error, payment already verified, or order already cancelled
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       404:
+ *         description: Booking not found
+ *       500:
+ *         description: Server error
+ */
+router.delete(
+  '/delete-order',
+  authenticate,
+  validate(deleteOrderSchema),
+  bookingController.deleteOrder
 );
 
 export default router;

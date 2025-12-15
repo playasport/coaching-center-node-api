@@ -55,7 +55,7 @@ export const getParticipant = async (
 
     const response = new ApiResponse(
       200,
-      { participant },
+      { ...participant },
       t('participant.get.success')
     );
     res.json(response);

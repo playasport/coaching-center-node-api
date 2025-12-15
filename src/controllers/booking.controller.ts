@@ -3,7 +3,7 @@ import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
 import * as bookingService from '../services/booking.service';
-import type { BookingSummaryInput, CreateOrderInput, VerifyPaymentInput, UserBookingListInput } from '../validations/booking.validation';
+import type { BookingSummaryInput, CreateOrderInput, VerifyPaymentInput, UserBookingListInput, DeleteOrderInput } from '../validations/booking.validation';
 import { BookingStatus, PaymentStatus } from '../models/booking.model';
 
 /**
@@ -22,7 +22,7 @@ export const getSummary = async (
     const data = req.query as unknown as BookingSummaryInput;
     const summary = await bookingService.getBookingSummary(data, req.user.id);
 
-    const response = new ApiResponse(200, { summary }, 'Booking summary retrieved successfully');
+    const response = new ApiResponse(200, { ...summary }, 'Booking summary retrieved successfully');
     res.json(response);
   } catch (error) {
     next(error);
@@ -84,7 +84,7 @@ export const verifyPayment = async (
 
     const response = new ApiResponse(
       200,
-      { booking },
+      { ...booking },
       'Payment verified successfully'
     );
     res.json(response);
@@ -116,6 +116,33 @@ export const getUserBookings = async (
     const result = await bookingService.getUserBookings(req.user.id, params);
 
     const response = new ApiResponse(200, result, 'User bookings retrieved successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Delete/Cancel order
+ */
+export const deleteOrder = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user || !req.user.id) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const data = req.body as DeleteOrderInput;
+    const booking = await bookingService.deleteOrder(data, req.user.id);
+
+    const response = new ApiResponse(
+      200,
+      { booking },
+      'Order cancelled successfully'
+    );
     res.json(response);
   } catch (error) {
     next(error);

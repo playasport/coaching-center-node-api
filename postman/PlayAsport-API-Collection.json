@@ -59,7 +59,7 @@
                 }
               ]
             },
-            "description": "Get booking summary including batch details, participant info, and calculated amount before creating an order."
+            "description": "Get booking summary including batch details (now returns center logo, address, experience), participant info (with age), and calculated amount before creating an order."
           },
           "response": []
         },
@@ -128,6 +128,40 @@
               "path": ["user", "booking", "verify-payment"]
             },
             "description": "Verify Razorpay payment signature and update booking status. Use this after successful payment on frontend."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete/Cancel Order",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_1234567890\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/delete-order",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", "delete-order"]
+            },
+            "description": "Cancel a booking order and mark payment status as failed. Only works for orders with pending payment status. Cannot cancel orders with successful payment."
           },
           "response": []
         },
@@ -1206,7 +1240,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"gender\": 0,\n  \"disability\": 0,\n  \"dob\": \"2010-01-01\",\n  \"schoolName\": \"ABC School\",\n  \"contactNumber\": \"9876543210\",\n  \"isSelf\": \"1\"\n}",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"gender\": \"male\",\n  \"disability\": 0,\n  \"dob\": \"2010-01-01\",\n  \"schoolName\": \"ABC School\",\n  \"contactNumber\": \"9876543210\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1301,7 +1335,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"John Updated\",\n  \"lastName\": \"Doe Updated\"\n}",
+              "raw": "{\n  \"firstName\": \"John Updated\",\n  \"lastName\": \"Doe Updated\",\n  \"gender\": \"female\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1424,9 +1458,23 @@
             "description": "Get cities by state. Public endpoint."
           },
           "response": []
+        },
+        {
+          "name": "Get Top Cities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/top-cities",
+              "host": ["{{baseUrl}}"],
+              "path": ["top-cities"]
+            },
+            "description": "Get top 15 cities with academy and sports counts. Returns cities sorted by number of active academies. Shows city name, state name, academy count, and unique sports count for each city. Public endpoint."
+          },
+          "response": []
         }
       ],
-      "description": "Location endpoints for countries, states, and cities"
+      "description": "Location endpoints for countries, states, cities, and top cities"
     },
     {
       "name": "Basic",

@@ -4,6 +4,7 @@ import localeRoutes from './locale.routes';
 import academyAuthRoutes from './academy/academyAuth.routes';
 import userAuthRoutes from './userAuth.routes';
 import locationRoutes from './location.routes';
+import * as locationController from '../controllers/location.controller';
 import basicRoutes from './basic.routes';
 import coachingCenterRoutes from './academy/coachingCenter.routes';
 import employeeRoutes from './academy/employee.routes';
@@ -29,6 +30,39 @@ router.use('/user/auth', userAuthRoutes);
 router.use('/user/participant', participantRoutes);
 router.use('/user/booking', bookingRoutes);
 router.use('/location', locationRoutes);
+
+/**
+ * @swagger
+ * /top-cities:
+ *   get:
+ *     summary: Get top 15 cities with academy and sports counts
+ *     tags: [Location]
+ *     description: Retrieve the top 15 cities based on the number of active academies. Returns city name, academy count, and unique sports count for each city.
+ *     responses:
+ *       200:
+ *         description: Top cities retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Top cities retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     cities:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/TopCity'
+ *       500:
+ *         description: Server error
+ */
+router.get('/top-cities', locationController.getTopCities);
 router.use('/', basicRoutes);
 router.use('/academy/coaching-center', coachingCenterRoutes);
 router.use('/academy/employee', employeeRoutes);

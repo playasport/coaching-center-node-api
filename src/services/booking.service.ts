@@ -12,7 +12,7 @@ import { t } from '../utils/i18n';
 import { getUserObjectId } from '../utils/userCache';
 import { getPaymentService } from './payment/PaymentService';
 import { config } from '../config/env';
-import type { BookingSummaryInput, CreateOrderInput, VerifyPaymentInput } from '../validations/booking.validation';
+import type { BookingSummaryInput, CreateOrderInput, VerifyPaymentInput, DeleteOrderInput } from '../validations/booking.validation';
 import {
   sendBookingConfirmationUserEmail,
   sendBookingConfirmationCenterEmail,
@@ -67,6 +67,16 @@ export interface BookingSummary {
     center: {
       id: string;
       name: string;
+      logo?: string | null;
+      address?: {
+        line1: string | null;
+        line2: string;
+        city: string;
+        state: string;
+        country: string | null;
+        pincode: string;
+      } | null;
+      experience?: number | null;
     };
     scheduled: {
       start_date: Date;
@@ -85,6 +95,7 @@ export interface BookingSummary {
     id: string;
     firstName?: string | null;
     lastName?: string | null;
+    age?: number | null;
   }>;
   amount: number;
   currency: string;
@@ -127,20 +138,16 @@ export const calculateAge = (dob: Date, currentDate: Date): number => {
 };
 
 /**
- * Map participant gender number to Gender enum
- * Participant gender: 0 = male, 1 = female, 2 = other
+ * Map participant gender to Gender enum (now gender is already a string, so just return it)
+ * Participant gender is now stored as string: 'male', 'female', 'other'
  */
-const mapParticipantGenderToEnum = (gender: number): Gender => {
-  switch (gender) {
-    case 0:
-      return Gender.MALE;
-    case 1:
-      return Gender.FEMALE;
-    case 2:
-      return Gender.OTHER;
-    default:
-      return Gender.OTHER;
+const mapParticipantGenderToEnum = (gender: string | null | undefined): Gender | null => {
+  if (!gender) return null;
+  // Gender is already a string enum value, just validate and return
+  if (Object.values(Gender).includes(gender as Gender)) {
+    return gender as Gender;
   }
+  return null;
 };
 
 /**
@@ -198,7 +205,7 @@ const validateBatchAndCenter = async (batchId: string): Promise<{ batch: any; co
 
   const batch = await BatchModel.findById(batchId)
     .populate('sport', 'id name')
-    .populate('center', 'id center_name')
+    .populate('center', 'id center_name logo')
     .lean();
 
   if (!batch || batch.is_deleted || !batch.is_active) {
@@ -340,7 +347,7 @@ const validateParticipantEligibility = async (
     if (participant.gender !== null && participant.gender !== undefined) {
       const participantGender = mapParticipantGenderToEnum(participant.gender);
 
-      if (coachingCenter.allowed_genders && coachingCenter.allowed_genders.length > 0) {
+      if (participantGender && coachingCenter.allowed_genders && coachingCenter.allowed_genders.length > 0) {
         if (!coachingCenter.allowed_genders.includes(participantGender)) {
           const allowedGendersStr = coachingCenter.allowed_genders.join(', ');
           throw new ApiError(
@@ -459,17 +466,25 @@ export const getBookingSummary = async (
         center: {
           id: (batch.center as any)._id?.toString() || (batch.center as any).id,
           name: (batch.center as any).center_name,
+          logo: (batch.center as any).logo || null,
+          address: coachingCenter.location?.address || null,
+          experience: coachingCenter.experience ?? null,
         },
         scheduled: batch.scheduled,
         duration: batch.duration,
         admission_fee: batch.admission_fee,
         fee_structure: batch.fee_structure,
       },
-      participants: participants.map(p => ({
-        id: p._id.toString(),
-        firstName: p.firstName,
-        lastName: p.lastName,
-      })),
+      participants: participants.map(p => {
+        const dob = p.dob ? new Date(p.dob) : null;
+        const age = dob ? calculateAge(dob, new Date()) : null;
+        return {
+          id: p._id.toString(),
+          firstName: p.firstName,
+          lastName: p.lastName,
+          age,
+        };
+      }),
       amount: totalAmount,
       currency: 'INR',
       breakdown: {
@@ -1105,6 +1120,94 @@ export const getUserBookings = async (
       error: error instanceof Error ? error.message : error,
     });
     throw new ApiError(500, 'Failed to get user bookings');
+  }
+};
+
+/**
+ * Delete/Cancel order and mark payment status as failed
+ */
+export const deleteOrder = async (
+  data: DeleteOrderInput,
+  userId: string
+): Promise<Booking> => {
+  try {
+    // Validate user
+    const userObjectId = await getUserObjectId(userId);
+    if (!userObjectId) {
+      throw new ApiError(404, t('user.notFound') || 'User not found');
+    }
+
+    // Find booking by razorpay_order_id
+    const booking = await BookingModel.findOne({
+      'payment.razorpay_order_id': data.razorpay_order_id,
+      user: userObjectId,
+      is_deleted: false,
+    }).lean();
+
+    if (!booking) {
+      throw new ApiError(404, 'Booking not found');
+    }
+
+    // Check if payment is already verified/successful
+    if (booking.payment.status === PaymentStatus.SUCCESS) {
+      throw new ApiError(400, 'Cannot cancel order with successful payment. Please request a refund instead.');
+    }
+
+    // Check if payment is already failed or cancelled
+    if (booking.payment.status === PaymentStatus.FAILED || booking.payment.status === PaymentStatus.CANCELLED) {
+      throw new ApiError(400, 'Order is already cancelled or failed');
+    }
+
+    // Update booking: mark payment status as failed and booking status as cancelled
+    const updatedBooking = await BookingModel.findByIdAndUpdate(
+      booking._id,
+      {
+        $set: {
+          status: BookingStatus.CANCELLED,
+          'payment.status': PaymentStatus.FAILED,
+          'payment.failure_reason': 'Order cancelled by user',
+        },
+      },
+      { new: true }
+    )
+      .populate('user', 'id firstName lastName email')
+      .populate('participants', 'id firstName lastName')
+      .populate('batch', 'id name')
+      .populate('center', 'id center_name')
+      .populate('sport', 'id name')
+      .lean();
+
+    if (!updatedBooking) {
+      throw new ApiError(500, 'Failed to cancel order');
+    }
+
+    // Update transaction record if exists
+    await TransactionModel.findOneAndUpdate(
+      {
+        booking: booking._id,
+        razorpay_order_id: data.razorpay_order_id,
+      },
+      {
+        $set: {
+          status: TransactionStatus.FAILED,
+          source: TransactionSource.USER_VERIFICATION,
+        },
+      },
+      { upsert: false } // Don't create if doesn't exist
+    );
+
+    logger.info(`Order cancelled: ${booking.id} for user ${userId}, Razorpay Order ID: ${data.razorpay_order_id}`);
+
+    return updatedBooking as Booking;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Failed to cancel order:', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    throw new ApiError(500, 'Failed to cancel order');
   }
 };
 

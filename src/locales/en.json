@@ -2,7 +2,7 @@
   "auth": {
     "register": {
       "success": "Coaching centre registered successfully",
-      "emailExists": "Coaching centre with this email already exists",
+      "emailExists": "Email already exists",
       "mobileExists": "A user with this mobile number already exists",
       "otpResend": "OTP not valid. Please resend OTP.",
       "mobileNotVerified": "Mobile number not verified. Please verify mobile number.",
@@ -356,7 +356,7 @@
     },
     "idRequired": "Coaching center ID is required",
     "notFound": "Coaching center not found",
-    "emailExists": "Coaching center with this email already exists",
+    "emailExists": "Email already exists",
     "mobileExists": "Coaching center with this mobile number already exists",
     "sports": {
       "invalid": "One or more sports are invalid"

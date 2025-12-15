@@ -4,6 +4,7 @@ import { isTokenBlacklisted } from '../utils/tokenBlacklist';
 import { UserModel } from '../models/user.model';
 import { t } from '../utils/i18n';
 import { logger } from '../utils/logger';
+import { DefaultRoles } from '../enums/defaultRoles.enum';
 
 /**
  * Validate user status and existence
@@ -164,7 +165,7 @@ export const authenticate = async (
 };
 
 export const authorize = (...roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -173,7 +174,38 @@ export const authorize = (...roles: string[]) => {
       return;
     }
 
-    if (!roles.includes(req.user.role)) {
+    // Check if user's role matches any of the required roles
+    let hasPermission = roles.includes(req.user.role);
+
+    // Special handling: If role is "user" and we're checking for STUDENT/GUARDIAN,
+    // we need to check the userType from the database
+    if (!hasPermission && req.user.role === DefaultRoles.USER) {
+      try {
+        const user = await UserModel.findOne({ id: req.user.id })
+          .select('userType roles')
+          .populate('roles', 'name')
+          .lean();
+
+        if (user) {
+          // Check if userType matches any of the required roles (student/guardian)
+          if (user.userType && roles.includes(user.userType)) {
+            hasPermission = true;
+          }
+          // Also check if user has STUDENT or GUARDIAN role in roles array
+          const userRoles = user.roles as any[];
+          if (userRoles && userRoles.some((r: any) => roles.includes(r?.name))) {
+            hasPermission = true;
+          }
+        }
+      } catch (error) {
+        logger.error('Error checking user permissions:', {
+          userId: req.user.id,
+          error: error instanceof Error ? error.message : error,
+        });
+      }
+    }
+
+    if (!hasPermission) {
       res.status(403).json({
         success: false,
         message: t('auth.authorization.forbidden'),

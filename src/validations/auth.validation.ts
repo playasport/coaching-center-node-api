@@ -1,5 +1,8 @@
 import { z } from 'zod';
 import { validationMessages } from '../utils/validationMessages';
+import { UserModel } from '../models/user.model';
+import { DefaultRoles } from '../enums/defaultRoles.enum';
+import { t } from '../utils/i18n';
 
 const mobileNumberSchema = z
   .string({ message: validationMessages.mobileNumber.required() })
@@ -318,6 +321,36 @@ export const userRegisterSchema = z.object({
   })
     .merge(deviceInfoSchema)
     .refine(
+      async (data) => {
+        // Check if email already exists for a user with 'user' role
+        const existingUser = await UserModel.findOne({ 
+          email: data.email.toLowerCase(),
+          isDeleted: false 
+        })
+          .populate('roles', 'name')
+          .lean();
+        
+        if (!existingUser) {
+          return true; // Email doesn't exist, validation passes
+        }
+        
+        // Check if user has 'user' role
+        const roles = existingUser.roles as any[];
+        if (roles && roles.length > 0) {
+          const hasUserRole = roles.some((role: any) => role?.name === DefaultRoles.USER);
+          if (hasUserRole) {
+            return false; // Email exists with 'user' role, validation fails
+          }
+        }
+        
+        return true; // Email exists but doesn't have 'user' role (e.g., academy), validation passes
+      },
+      {
+        message: t('auth.register.emailExists') || 'Email already exists',
+        path: ['email'],
+      }
+    )
+    .refine(
       (data) => data.otp || data.tempToken,
       {
         message: 'Either tempToken or otp is required',
@@ -370,6 +403,31 @@ export const userRegisterSchema = z.object({
       },
       {
         message: 'Student must be at least 13 years old',
+        path: ['dob'],
+      }
+    )
+    .refine(
+      (data) => {
+        // If type is guardian, validate minimum age is 18 years
+        if (data.type === 'guardian' && data.dob) {
+          const dob = new Date(data.dob);
+          const today = new Date();
+          const age = today.getFullYear() - dob.getFullYear();
+          const monthDiff = today.getMonth() - dob.getMonth();
+          const dayDiff = today.getDate() - dob.getDate();
+          
+          // Calculate exact age
+          let exactAge = age;
+          if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+            exactAge = age - 1;
+          }
+          
+          return exactAge >= 18;
+        }
+        return true; // For student type, no additional age validation needed
+      },
+      {
+        message: 'Parent/Guardian must be at least 18 years old',
         path: ['dob'],
       }
     ),
