@@ -54,12 +54,16 @@ export const updateSettings = async (data: Partial<Settings>): Promise<Settings>
     } else {
       // Merge new data with existing settings (deep merge for nested objects)
       if (data.contact && settings.contact) {
+        // Convert Mongoose subdocument to plain object for merging
+        const existingContact = JSON.parse(JSON.stringify(settings.contact));
+        const existingAddress = existingContact.address || {};
+        
         // Deep merge contact object
         settings.contact = {
-          ...settings.contact.toObject(),
+          ...existingContact,
           ...data.contact,
           address: {
-            ...(settings.contact.address?.toObject() || {}),
+            ...existingAddress,
             ...(data.contact.address || {}),
           },
         } as any;
