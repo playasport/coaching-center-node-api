@@ -162,7 +162,7 @@ router.get('/:id', optionalAuthenticate, academyController.getAcademyById);
  *   get:
  *     summary: Get academies by city name
  *     tags: [Academy]
- *     description: Get list of academies in a specific city. This is an unprotected route.
+ *     description: Get list of academies in a specific city with sport-specific data and images. Returns academies with one image from sport_details per academy. This is an unprotected route.
  *     parameters:
  *       - in: path
  *         name: cityName
@@ -170,6 +170,7 @@ router.get('/:id', optionalAuthenticate, academyController.getAcademyById);
  *         schema:
  *           type: string
  *         description: City name (case-insensitive)
+ *         example: "Kolkata"
  *       - in: query
  *         name: page
  *         schema:
@@ -187,7 +188,7 @@ router.get('/:id', optionalAuthenticate, academyController.getAcademyById);
  *         description: Number of records per page
  *     responses:
  *       200:
- *         description: Academies retrieved successfully
+ *         description: Academies retrieved successfully with sport-specific data and images
  *         content:
  *           application/json:
  *             schema:
@@ -206,21 +207,28 @@ router.get('/:id', optionalAuthenticate, academyController.getAcademyById);
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/AcademyListItem'
+ *                       description: List of academies with sport-specific data and one image per academy
  *                     pagination:
  *                       type: object
  *                       properties:
  *                         page:
  *                           type: integer
+ *                           example: 1
  *                         limit:
  *                           type: integer
+ *                           example: 10
  *                         total:
  *                           type: integer
+ *                           example: 50
  *                         totalPages:
  *                           type: integer
+ *                           example: 5
  *                         hasNextPage:
  *                           type: boolean
+ *                           example: true
  *                         hasPrevPage:
  *                           type: boolean
+ *                           example: false
  */
 router.get('/city/:cityName', academyController.getAcademiesByCity);
 

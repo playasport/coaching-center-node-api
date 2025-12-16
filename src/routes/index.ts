@@ -19,6 +19,8 @@ import webhookRoutes from './webhook.routes';
 import academyRoutes from './academy.routes';
 import homeRoutes from './home.routes';
 import reelRoutes from './reel.routes';
+import * as academyController from '../controllers/academy.controller';
+import { optionalAuthenticate } from '../middleware/auth.middleware';
 import { t } from '../utils/i18n';
 import { ApiResponse } from '../utils/ApiResponse';
 
@@ -63,6 +65,134 @@ router.use('/location', locationRoutes);
  *         description: Server error
  */
 router.get('/top-cities', locationController.getTopCities);
+
+/**
+ * @swagger
+ * /city/{cityName}:
+ *   get:
+ *     summary: Get academies by city name (alias route)
+ *     tags: [Academy]
+ *     description: Get list of academies in a specific city with sport-specific data and images. Returns academies with one image from sport_details per academy. This is an alias for /academies/city/{cityName}. This is an unprotected route.
+ *     parameters:
+ *       - in: path
+ *         name: cityName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: City name (case-insensitive)
+ *         example: "Kolkata"
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of records per page
+ *     responses:
+ *       200:
+ *         description: Academies retrieved successfully with sport-specific data and images
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Academies retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/AcademyListItem'
+ *                       description: List of academies with sport-specific data and one image per academy
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 10
+ *                         total:
+ *                           type: integer
+ *                           example: 50
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 5
+ *                         hasNextPage:
+ *                           type: boolean
+ *                           example: true
+ *                         hasPrevPage:
+ *                           type: boolean
+ *                           example: false
+ */
+router.get('/city/:cityName', academyController.getAcademiesByCity);
+
+/**
+ * @swagger
+ * /sport/{slug}:
+ *   get:
+ *     summary: Get academies by sport slug (alias route)
+ *     tags: [Academy]
+ *     description: Get academies that offer a specific sport. This is an alias for /academies/sport/{slug}. If location (latitude, longitude) is provided, academies are sorted by distance (nearest first) and distance is shown in km. This is an unprotected route.
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Sport slug (e.g., 'cricket', 'football')
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of records per page
+ *       - in: query
+ *         name: latitude
+ *         schema:
+ *           type: number
+ *           minimum: -90
+ *           maximum: 90
+ *         description: User's latitude (optional, for distance-based sorting)
+ *       - in: query
+ *         name: longitude
+ *         schema:
+ *           type: number
+ *           minimum: -180
+ *           maximum: 180
+ *         description: User's longitude (optional, for distance-based sorting)
+ *     responses:
+ *       200:
+ *         description: Academies retrieved successfully
+ *       404:
+ *         description: Sport not found
+ */
+router.get('/sport/:slug', optionalAuthenticate, academyController.getAcademiesBySport);
+
 router.use('/', basicRoutes);
 router.use('/academy/coaching-center', coachingCenterRoutes);
 router.use('/academy/employee', employeeRoutes);

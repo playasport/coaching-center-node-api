@@ -460,7 +460,7 @@ export const getAcademiesByCity = async (
     // Fetch academies
     const academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo is_popular')
-      .select('id center_name logo location sports age')
+      .select('id center_name logo location sports age allowed_genders sport_details')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(pageSize)
@@ -469,15 +469,35 @@ export const getAcademiesByCity = async (
     const totalPages = Math.ceil(total / pageSize);
 
     return {
-      data: academies.map((academy: any) => ({
-        _id: academy._id.toString(),
-        id: academy.id || academy._id.toString(),
-        center_name: academy.center_name,
-        logo: academy.logo,
-        location: academy.location,
-        sports: academy.sports || [],
-        age: academy.age,
-      })) as AcademyListItem[],
+      data: academies.map((academy: any) => {
+        // Get first active image from sport_details
+        let image: string | null = null;
+        if (academy.sport_details && Array.isArray(academy.sport_details)) {
+          for (const sportDetail of academy.sport_details) {
+            if (sportDetail.images && Array.isArray(sportDetail.images)) {
+              const activeImage = sportDetail.images.find(
+                (img: any) => img.is_active && !img.is_deleted && img.url
+              );
+              if (activeImage) {
+                image = activeImage.url;
+                break;
+              }
+            }
+          }
+        }
+
+        return {
+          _id: academy._id.toString(),
+          id: academy.id || academy._id.toString(),
+          center_name: academy.center_name,
+          logo: academy.logo,
+          image: image,
+          location: academy.location,
+          sports: academy.sports || [],
+          age: academy.age,
+          allowed_genders: academy.allowed_genders || [],
+        };
+      }) as AcademyListItem[],
       pagination: {
         page: pageNumber,
         limit: pageSize,
