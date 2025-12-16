@@ -4568,6 +4568,107 @@ const options: swaggerJsdoc.Options = {
           },
         },
       },
+      Settings: {
+        type: 'object',
+        description: 'Application settings with flexible structure for future extensibility',
+        properties: {
+          _id: {
+            type: 'string',
+            example: '507f1f77bcf86cd799439011',
+            description: 'MongoDB Object ID',
+          },
+          app_name: {
+            type: 'string',
+            nullable: true,
+            example: 'Play A Sport',
+            description: 'Application name',
+          },
+          app_logo: {
+            type: 'string',
+            format: 'uri',
+            nullable: true,
+            example: 'https://example.com/logo.png',
+            description: 'Application logo URL',
+          },
+          contact: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              number: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                },
+                nullable: true,
+                example: ['+91-9876543210', '+91-9876543211'],
+                description: 'Array of contact numbers',
+              },
+              email: {
+                type: 'string',
+                format: 'email',
+                nullable: true,
+                example: 'contact@playasport.in',
+                description: 'Contact email address',
+              },
+              address: {
+                type: 'object',
+                nullable: true,
+                properties: {
+                  office: {
+                    type: 'string',
+                    nullable: true,
+                    example: '123 Main Street, Kolkata',
+                    description: 'Office address',
+                  },
+                  registered: {
+                    type: 'string',
+                    nullable: true,
+                    example: '456 Corporate Avenue, Mumbai',
+                    description: 'Registered address',
+                  },
+                },
+              },
+              whatsapp: {
+                type: 'string',
+                nullable: true,
+                example: '+91-9876543210',
+                description: 'WhatsApp contact number',
+              },
+              instagram: {
+                type: 'string',
+                format: 'uri',
+                nullable: true,
+                example: 'https://instagram.com/playasport',
+                description: 'Instagram profile URL',
+              },
+              facebook: {
+                type: 'string',
+                format: 'uri',
+                nullable: true,
+                example: 'https://facebook.com/playasport',
+                description: 'Facebook page URL',
+              },
+              youtube: {
+                type: 'string',
+                format: 'uri',
+                nullable: true,
+                example: 'https://youtube.com/playasport',
+                description: 'YouTube channel URL',
+              },
+            },
+          },
+          createdAt: {
+            type: 'string',
+            format: 'date-time',
+            example: '2024-01-01T00:00:00.000Z',
+          },
+          updatedAt: {
+            type: 'string',
+            format: 'date-time',
+            example: '2024-01-01T00:00:00.000Z',
+          },
+        },
+      },
     },
     tags: [
       {
@@ -4647,6 +4748,10 @@ const options: swaggerJsdoc.Options = {
         description: 'Webhook endpoints for payment verification',
       },
       {
+        name: 'Settings',
+        description: 'Application settings management endpoints',
+      },
+      {
         name: 'Academy',
         description: 'Public academy endpoints for browsing and searching academies',
       },
@@ -4683,7 +4788,7 @@ const options: swaggerJsdoc.Options = {
       },
       {
         name: 'System & Utilities',
-        tags: ['Role', 'Locale', 'Health', 'Webhook'],
+        tags: ['Role', 'Locale', 'Health', 'Webhook', 'Settings'],
       },
     ],
   },

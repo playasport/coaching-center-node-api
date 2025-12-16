@@ -535,6 +535,18 @@
     "sportNotFound": "Sport not found or inactive",
     "coachNotFound": "Coach (employee) not found",
     "coachNotInCenter": "Coach does not belong to the specified center"
+  },
+  "settings": {
+    "get": {
+      "success": "Settings retrieved successfully"
+    },
+    "update": {
+      "success": "Settings updated successfully",
+      "dataRequired": "Settings data is required"
+    },
+    "reset": {
+      "success": "Settings reset successfully"
+    }
   }
 }
 

@@ -1613,6 +1613,44 @@
             "description": "Get all roles. Requires authentication."
           },
           "response": []
+        },
+        {
+          "name": "Get Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["settings"]
+            },
+            "description": "Get application settings including app name, logo, and contact information. Returns default settings if none exist. This is a public endpoint."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/settings",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["settings"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Settings retrieved successfully\",\n  \"data\": {\n    \"_id\": \"507f1f77bcf86cd799439011\",\n    \"app_name\": \"Play A Sport\",\n    \"app_logo\": \"https://playasport.com/logo.png\",\n    \"contact\": {\n      \"number\": [\"+919230981848\", \"+919230981845\"],\n      \"email\": \"info@playasport.com\",\n      \"address\": {\n        \"office\": \"BD-357, sector-1, saltlake city, Kolkata, West Bengal, India, 700064\",\n        \"registered\": \"AE-694, Sector 1, Salt Lake City, Bidhan Nagar AE Market, North 24 Parganas, Saltlake, West Bengal, India, 700064\"\n      },\n      \"whatsapp\": \"+919230981848\",\n      \"instagram\": \"https://www.instagram.com/playasport.in/\",\n      \"facebook\": \"https://www.facebook.com/PlayASportIndia\",\n      \"youtube\": \"https://www.youtube.com/@PlayASport_in\"\n    },\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2024-01-01T00:00:00.000Z\"\n  }\n}"
+            }
+          ]
         }
       ],
       "description": "System and utility endpoints"
