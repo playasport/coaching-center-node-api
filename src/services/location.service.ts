@@ -1,4 +1,4 @@
-import { CountryModel, StateModel, CityModel, Country, State, City } from '../models/location.model';
+import { CountryModel, StateModel, CityModel, Country, State } from '../models/location.model';
 import { CoachingCenterModel } from '../models/coachingCenter.model';
 import { logger } from '../utils/logger';
 
@@ -30,32 +30,159 @@ export const getStatesByCountry = async (countryCode: string): Promise<State[]> 
   }
 };
 
-export const getCitiesByState = async (stateName: string, countryCode?: string): Promise<City[]> => {
+export interface CityResponse {
+  _id?: string;
+  name: string;
+  state?: {
+    id?: string;
+    name?: string;
+    code?: string;
+  };
+  country?: {
+    id?: string;
+    name?: string;
+    code?: string;
+  };
+  latitude?: number;
+  longitude?: number;
+}
+
+export const getCitiesByState = async (stateName: string, countryCode?: string): Promise<CityResponse[]> => {
   try {
-    const query: any = { stateName: { $regex: new RegExp(`^${stateName}$`, 'i') } };
+    // Decode URL encoding, trim, and normalize spaces
+    const normalizedStateName = decodeURIComponent(stateName)
+      .trim()
+      .replace(/\s+/g, ' '); // Normalize multiple spaces to single space
+    
+    // Escape special regex characters
+    const escapedStateName = normalizedStateName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    const query: any = { 
+      stateName: { 
+        $regex: new RegExp(`^${escapedStateName}$`, 'i') 
+      } 
+    };
     
     if (countryCode) {
-      query.countryCode = countryCode;
+      query.countryCode = countryCode.trim();
     }
 
-    const cities = await CityModel.find(query)
+    let cities = await CityModel.find(query)
       .select('name stateId stateName stateCode countryId countryCode countryName latitude longitude')
       .sort({ name: 1 })
       .lean();
-    return cities as City[];
+    
+    // If no results with exact match, try case-insensitive partial match
+    if (cities.length === 0) {
+      const partialQuery: any = {
+        stateName: { $regex: new RegExp(escapedStateName, 'i') }
+      };
+      if (countryCode) {
+        partialQuery.countryCode = countryCode.trim();
+      }
+      cities = await CityModel.find(partialQuery)
+        .select('name stateId stateName stateCode countryId countryCode countryName latitude longitude')
+        .sort({ name: 1 })
+        .lean();
+    }
+    
+    // Transform to nested structure
+    return cities.map((city: any) => {
+      const result: CityResponse = {
+        _id: city._id?.toString(),
+        name: city.name,
+      };
+
+      // Add state object if state info exists
+      if (city.stateId || city.stateName || city.stateCode) {
+        result.state = {};
+        if (city.stateId) result.state.id = city.stateId;
+        if (city.stateName) result.state.name = city.stateName;
+        if (city.stateCode) result.state.code = city.stateCode;
+      }
+
+      // Add country object if country info exists
+      if (city.countryId || city.countryName || city.countryCode) {
+        result.country = {};
+        if (city.countryId) result.country.id = city.countryId;
+        if (city.countryName) result.country.name = city.countryName;
+        if (city.countryCode) result.country.code = city.countryCode;
+      }
+
+      // Add coordinates if they exist
+      if (city.latitude !== undefined && city.latitude !== null) {
+        result.latitude = city.latitude;
+      }
+      if (city.longitude !== undefined && city.longitude !== null) {
+        result.longitude = city.longitude;
+      }
+
+      return result;
+    }).filter(city => city.state && (city.state.id || city.state.name)); // Only include cities with state info
   } catch (error) {
     logger.error('Failed to fetch cities', { stateName, countryCode, error });
     throw error;
   }
 };
 
-export const getCitiesByStateId = async (stateId: string): Promise<City[]> => {
+export const getCitiesByStateId = async (stateId: string): Promise<CityResponse[]> => {
   try {
-    const cities = await CityModel.find({ stateId })
+    const trimmedStateId = stateId.trim();
+    
+    // First, try to find cities by stateId field directly
+    let cities = await CityModel.find({ stateId: trimmedStateId })
       .select('name stateId stateName stateCode countryId countryCode countryName latitude longitude')
       .sort({ name: 1 })
       .lean();
-    return cities as City[];
+    
+    // If no results, try to find state by MongoDB _id, then get its stateId value
+    if (cities.length === 0) {
+      const state = await StateModel.findById(trimmedStateId)
+        .select('_id name')
+        .lean();
+      
+      if (state) {
+        // Try to find cities by stateName if we found the state
+        cities = await CityModel.find({ stateName: state.name })
+          .select('name stateId stateName stateCode countryId countryCode countryName latitude longitude')
+          .sort({ name: 1 })
+          .lean();
+      }
+    }
+    
+    // Transform to nested structure
+    return cities.map((city: any) => {
+      const result: CityResponse = {
+        _id: city._id?.toString(),
+        name: city.name,
+      };
+
+      // Add state object if state info exists
+      if (city.stateId || city.stateName || city.stateCode) {
+        result.state = {};
+        if (city.stateId) result.state.id = city.stateId;
+        if (city.stateName) result.state.name = city.stateName;
+        if (city.stateCode) result.state.code = city.stateCode;
+      }
+
+      // Add country object if country info exists
+      if (city.countryId || city.countryName || city.countryCode) {
+        result.country = {};
+        if (city.countryId) result.country.id = city.countryId;
+        if (city.countryName) result.country.name = city.countryName;
+        if (city.countryCode) result.country.code = city.countryCode;
+      }
+
+      // Add coordinates if they exist
+      if (city.latitude !== undefined && city.latitude !== null) {
+        result.latitude = city.latitude;
+      }
+      if (city.longitude !== undefined && city.longitude !== null) {
+        result.longitude = city.longitude;
+      }
+
+      return result;
+    }).filter(city => city.state && (city.state.id || city.state.name)); // Only include cities with state info
   } catch (error) {
     logger.error('Failed to fetch cities by state ID', { stateId, error });
     throw error;

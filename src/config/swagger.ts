@@ -1107,12 +1107,22 @@ const options: swaggerJsdoc.Options = {
           properties: {
             _id: { type: 'string', example: '507f1f77bcf86cd799439013' },
             name: { type: 'string', example: 'New Delhi' },
-            stateId: { type: 'string', example: '507f1f77bcf86cd799439012' },
-            stateName: { type: 'string', example: 'Delhi' },
-            stateCode: { type: 'string', example: 'DL' },
-            countryId: { type: 'string', example: '507f1f77bcf86cd799439011' },
-            countryCode: { type: 'string', example: 'IN' },
-            countryName: { type: 'string', example: 'India' },
+            state: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', example: '507f1f77bcf86cd799439012' },
+                name: { type: 'string', example: 'Delhi' },
+                code: { type: 'string', example: 'DL' },
+              },
+            },
+            country: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', example: '507f1f77bcf86cd799439011' },
+                name: { type: 'string', example: 'India' },
+                code: { type: 'string', example: 'IN' },
+              },
+            },
             latitude: { type: 'number', example: 28.6139 },
             longitude: { type: 'number', example: 77.209 },
           },

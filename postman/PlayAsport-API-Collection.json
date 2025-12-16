@@ -1432,32 +1432,50 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/location/cities?stateName=Delhi&countryCode=IN",
+              "raw": "{{baseUrl}}/location/cities?stateId=694119952301f6a1798b1300",
               "host": ["{{baseUrl}}"],
               "path": ["location", "cities"],
               "query": [
                 {
-                  "key": "stateName",
-                  "value": "Delhi",
-                  "description": "State name"
-                },
-                {
-                  "key": "countryCode",
-                  "value": "IN",
-                  "description": "Country code",
-                  "disabled": true
-                },
-                {
                   "key": "stateId",
-                  "value": "",
-                  "description": "State ID (alternative to stateName)",
-                  "disabled": true
+                  "value": "694119952301f6a1798b1300",
+                  "description": "State ID (MongoDB ObjectId or state reference ID)"
                 }
               ]
             },
-            "description": "Get cities by state. Public endpoint."
+            "description": "Get cities by state ID. Returns cities with nested state and country objects. Accepts MongoDB ObjectId or state reference ID. Public endpoint."
           },
-          "response": []
+          "response": [
+            {
+              "name": "Success - Cities List",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/location/cities?stateId=694119952301f6a1798b1300",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["location", "cities"],
+                  "query": [
+                    {
+                      "key": "stateId",
+                      "value": "694119952301f6a1798b1300"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Cities retrieved successfully\",\n  \"data\": {\n    \"cities\": [\n      {\n        \"_id\": \"507f1f77bcf86cd799439013\",\n        \"name\": \"New Delhi\",\n        \"state\": {\n          \"id\": \"507f1f77bcf86cd799439012\",\n          \"name\": \"Delhi\",\n          \"code\": \"DL\"\n        },\n        \"country\": {\n          \"id\": \"507f1f77bcf86cd799439011\",\n          \"name\": \"India\",\n          \"code\": \"IN\"\n        },\n        \"latitude\": 28.6139,\n        \"longitude\": 77.209\n      },\n      {\n        \"_id\": \"507f1f77bcf86cd799439014\",\n        \"name\": \"Dwarka\",\n        \"state\": {\n          \"id\": \"507f1f77bcf86cd799439012\",\n          \"name\": \"Delhi\",\n          \"code\": \"DL\"\n        },\n        \"country\": {\n          \"id\": \"507f1f77bcf86cd799439011\",\n          \"name\": \"India\",\n          \"code\": \"IN\"\n        },\n        \"latitude\": 28.5923,\n        \"longitude\": 77.0487\n      }\n    ]\n  }\n}"
+            }
+          ]
         },
         {
           "name": "Get Top Cities",

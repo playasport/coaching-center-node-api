@@ -44,23 +44,13 @@ export const getCities = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { stateName, stateId, countryCode } = req.query;
+    const { stateId } = req.query;
 
-    if (!stateName && !stateId) {
+    if (!stateId || typeof stateId !== 'string') {
       throw new ApiError(400, t('location.cities.stateRequired'));
     }
 
-    let cities;
-    if (stateId && typeof stateId === 'string') {
-      cities = await locationService.getCitiesByStateId(stateId);
-    } else if (stateName && typeof stateName === 'string') {
-      cities = await locationService.getCitiesByState(
-        stateName,
-        countryCode as string | undefined
-      );
-    } else {
-      throw new ApiError(400, t('location.cities.stateRequired'));
-    }
+    const cities = await locationService.getCitiesByStateId(stateId);
 
     const response = new ApiResponse(200, { cities }, t('location.cities.success'));
     res.json(response);

@@ -79,31 +79,17 @@ router.get('/states', locationController.getStates);
  * @swagger
  * /location/cities:
  *   get:
- *     summary: Get cities by state
+ *     summary: Get cities by state ID
  *     tags: [Location]
- *     description: Retrieve a list of cities for a specific state
+ *     description: Retrieve a list of cities for a specific state using state ID (MongoDB ObjectId or state reference ID)
  *     parameters:
  *       - in: query
- *         name: stateName
- *         required: false
- *         schema:
- *           type: string
- *         description: State name
- *         example: "Delhi"
- *       - in: query
  *         name: stateId
- *         required: false
+ *         required: true
  *         schema:
  *           type: string
- *         description: State ID
- *         example: "state-id-123"
- *       - in: query
- *         name: countryCode
- *         required: false
- *         schema:
- *           type: string
- *         description: Country code (optional, for filtering)
- *         example: "IN"
+ *         description: State ID (MongoDB ObjectId or state reference ID)
+ *         example: "694119952301f6a1798b1300"
  *     responses:
  *       200:
  *         description: List of cities retrieved successfully
@@ -126,7 +112,7 @@ router.get('/states', locationController.getStates);
  *                       items:
  *                         $ref: '#/components/schemas/City'
  *       400:
- *         description: State name or state ID is required
+ *         description: State ID is required
  */
 router.get('/cities', locationController.getCities);
 
