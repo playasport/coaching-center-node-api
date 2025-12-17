@@ -10,6 +10,49 @@ import type { BatchCreateInput, BatchUpdateInput } from '../validations/batch.va
 import { getUserObjectId } from '../utils/userCache';
 import { config } from '../config/env';
 
+/**
+ * Round a number to 2 decimal places to avoid floating-point precision issues
+ * Uses parseFloat with toFixed to ensure accurate rounding
+ */
+const roundToTwoDecimals = (value: number | null | undefined): number | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  // Use parseFloat with toFixed(2) for more accurate rounding
+  // This handles edge cases better than Math.round(value * 100) / 100
+  return parseFloat(value.toFixed(2));
+};
+
+/**
+ * Recursively round all numeric values in an object to 2 decimal places
+ * This is useful for fee_configuration which may contain various amount/price fields
+ */
+const roundNumericValues = (obj: any): any => {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  
+  if (typeof obj === 'number') {
+    return roundToTwoDecimals(obj);
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => roundNumericValues(item));
+  }
+  
+  if (typeof obj === 'object') {
+    const rounded: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        rounded[key] = roundNumericValues(obj[key]);
+      }
+    }
+    return rounded;
+  }
+  
+  return obj;
+};
+
 export interface PaginatedResult<T> {
   data: T[];
   pagination: {
@@ -97,8 +140,14 @@ export const createBatch = async (data: BatchCreateInput, loggedInUserId: string
         min: data.age.min,
         max: data.age.max,
       },
-      admission_fee: data.admission_fee || null,
-      fee_structure: data.fee_structure, // Required
+      admission_fee: roundToTwoDecimals(data.admission_fee),
+      fee_structure: data.fee_structure
+        ? {
+            ...data.fee_structure,
+            admission_fee: roundToTwoDecimals(data.fee_structure.admission_fee),
+            fee_configuration: roundNumericValues(data.fee_structure.fee_configuration),
+          }
+        : null,
       status: data.status || 'draft',
       is_active: true,
       is_deleted: false,
@@ -422,8 +471,16 @@ export const updateBatch = async (id: string, data: BatchUpdateInput, loggedInUs
         max: data.age.max,
       };
     }
-    if (data.admission_fee !== undefined) updateData.admission_fee = data.admission_fee || null;
-    if (data.fee_structure !== undefined) updateData.fee_structure = data.fee_structure || null;
+    if (data.admission_fee !== undefined) updateData.admission_fee = roundToTwoDecimals(data.admission_fee);
+    if (data.fee_structure !== undefined) {
+      updateData.fee_structure = data.fee_structure
+        ? {
+            ...data.fee_structure,
+            admission_fee: roundToTwoDecimals(data.fee_structure.admission_fee),
+            fee_configuration: roundNumericValues(data.fee_structure.fee_configuration),
+          }
+        : null;
+    }
     if (data.status !== undefined) updateData.status = data.status;
 
     // Update batch

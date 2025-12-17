@@ -699,11 +699,20 @@ router.patch(
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Current user details fetched successfully
+ *         description: Current user details fetched successfully. User properties are spread directly in the data object.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/UserResponse'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "User details fetched successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
  *       401:
  *         description: Unauthorized
  *         content:

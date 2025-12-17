@@ -89,9 +89,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/user/booking/order",
+              "raw": "{{baseUrl}}/user/booking/create-order",
               "host": ["{{baseUrl}}"],
-              "path": ["user", "booking", "order"]
+              "path": ["user", "booking", "create-order"]
             },
             "description": "Create a Razorpay payment order and booking record. Returns booking details and Razorpay order information."
           },
@@ -311,7 +311,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"academy@example.com\",\n  \"password\": \"Password@123\",\n  \"mobile\": \"9876543210\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\"\n}",
+              "raw": "{\n  \"email\": \"academy@example.com\",\n  \"password\": \"Password@123\",\n  \"mobile\": \"9876543210\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"otp\": \"123456\",\n  \"fcmToken\": \"fcm_token_here\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"device_unique_id\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -323,7 +323,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["academy", "auth", "register"]
             },
-            "description": "Register a new academy user with OTP verification. Returns access token (15 minutes) and device-specific refresh token."
+            "description": "Register a new academy user with OTP verification. Returns access token (15 minutes) and device-specific refresh token. OTP must be obtained via /academy/auth/send-otp endpoint first."
           },
           "response": []
         },
@@ -398,7 +398,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"academy@example.com\"\n}",
+              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"mode\": \"register\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -410,7 +410,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["academy", "auth", "send-otp"]
             },
-            "description": "Send OTP to academy user's email for verification"
+            "description": "Send OTP to academy user's mobile number for verification. Modes: login, register, profile_update, forgot_password. Default is 'login'."
           },
           "response": []
         },
@@ -427,7 +427,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"academy@example.com\",\n  \"otp\": \"123456\"\n}",
+              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"mode\": \"login\",\n  \"fcmToken\": \"fcm_token_here\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"device_unique_id\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -439,7 +439,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["academy", "auth", "verify-otp"]
             },
-            "description": "Verify OTP for academy user"
+            "description": "Verify OTP for academy user. For login mode, returns access and refresh tokens if user exists. Modes: login, register, profile_update, forgot_password."
           },
           "response": []
         },

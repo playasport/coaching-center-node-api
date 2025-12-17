@@ -163,6 +163,12 @@ export const registerAcademyUser = async (data: AcademyRegisterInput): Promise<R
     throw new ApiError(400, t('validation.otp.required'));
   }
 
+  // Check if email already exists before OTP verification
+  const existingUser = await userService.findByEmail(email);
+  if (existingUser) {
+    throw new ApiError(400, t('auth.register.emailExists'));
+  }
+
   const otpStatus = await otpService.verifyOtp(
     { channel: OtpChannel.MOBILE, identifier: mobile },
     otp,
@@ -178,11 +184,6 @@ export const registerAcademyUser = async (data: AcademyRegisterInput): Promise<R
     };
 
     throw new ApiError(400, messageMap[otpStatus] ?? t('auth.login.invalidOtp'));
-  }
-
-  const existingUser = await userService.findByEmail(email);
-  if (existingUser) {
-    throw new ApiError(400, t('auth.register.emailExists'));
   }
 
   const user = await userService.create({
@@ -1020,6 +1021,20 @@ export const registerUser = async (data: UserRegisterInput): Promise<RegisterRes
   // Generate a random password since users don't set passwords (OTP-based auth only)
   const randomPassword = `${uuidv4()}!User${Math.floor(Math.random() * 1000)}`;
 
+  // Check if email already exists before OTP verification
+  const existingUser = await userService.findByEmail(email);
+  
+  // If user exists with USER role, throw error immediately
+  if (existingUser) {
+    const existingRoles = existingUser.roles as any[];
+    const existingRoleName = existingRoles && existingRoles.length > 0 ? existingRoles[0]?.name : null;
+    
+    if (existingRoleName === DefaultRoles.USER) {
+      // User already has the user role, return error immediately
+      throw new ApiError(400, t('auth.register.emailExists'));
+    }
+  }
+
   let verifiedMobile: string;
 
   // Verify temporary registration token (issued after OTP verification)
@@ -1065,7 +1080,6 @@ export const registerUser = async (data: UserRegisterInput): Promise<RegisterRes
     throw new ApiError(400, t('validation.otp.required') || 'Either tempToken or otp is required');
   }
 
-  const existingUser = await userService.findByEmail(email);
   let user: User;
   
   if (existingUser) {
@@ -1084,9 +1098,6 @@ export const registerUser = async (data: UserRegisterInput): Promise<RegisterRes
         throw new ApiError(500, t('errors.internalServerError'));
       }
       user = updatedUser;
-    } else if (existingRoleName === DefaultRoles.USER) {
-      // User already has the user role, return existing user
-      throw new ApiError(400, t('auth.register.emailExists'));
     } else {
       // User exists with different role, add user role (keep existing role)
       const updatedUser = await userService.update(existingUser.id, { 

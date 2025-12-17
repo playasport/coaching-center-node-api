@@ -224,6 +224,13 @@ const batchSchema = new Schema<Batch>(
       type: Number,
       default: null,
       min: [0, 'Admission fee cannot be negative'],
+      set: (value: number | null | undefined) => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        // Round to 2 decimal places to avoid floating-point precision issues
+        return parseFloat(value.toFixed(2));
+      },
     },
     fee_structure: {
       type: {
@@ -239,6 +246,13 @@ const batchSchema = new Schema<Batch>(
           type: Number,
           default: null,
           min: [0, 'Admission fee cannot be negative'],
+          set: (value: number | null | undefined) => {
+            if (value === null || value === undefined) {
+              return null;
+            }
+            // Round to 2 decimal places to avoid floating-point precision issues
+            return parseFloat(value.toFixed(2));
+          },
         },
       },
       default: null,
@@ -290,8 +304,51 @@ batchSchema.index({ user: 1, center: 1 });
 batchSchema.index({ center: 1, is_active: 1, is_deleted: 1 });
 batchSchema.index({ 'fee_structure.fee_type': 1 });
 
+// Helper function to round numeric values recursively
+const roundNumericValues = (obj: any): any => {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  
+  if (typeof obj === 'number') {
+    return parseFloat(obj.toFixed(2));
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => roundNumericValues(item));
+  }
+  
+  if (typeof obj === 'object') {
+    const rounded: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        rounded[key] = roundNumericValues(obj[key]);
+      }
+    }
+    return rounded;
+  }
+  
+  return obj;
+};
+
 // Validate that end_time is after start_time and max capacity >= min capacity
+// Also round all numeric values in fee_configuration to avoid floating-point precision issues
 batchSchema.pre('save', function (next) {
+  // Round admission_fee if it exists
+  if (this.admission_fee !== null && this.admission_fee !== undefined) {
+    this.admission_fee = parseFloat(this.admission_fee.toFixed(2));
+  }
+
+  // Round fee_structure values
+  if (this.fee_structure) {
+    if (this.fee_structure.admission_fee !== null && this.fee_structure.admission_fee !== undefined) {
+      this.fee_structure.admission_fee = parseFloat(this.fee_structure.admission_fee.toFixed(2));
+    }
+    if (this.fee_structure.fee_configuration) {
+      this.fee_structure.fee_configuration = roundNumericValues(this.fee_structure.fee_configuration);
+    }
+  }
+
   // Validate scheduled times
   if (this.scheduled && this.scheduled.start_time && this.scheduled.end_time) {
     const [startHour, startMin] = this.scheduled.start_time.split(':').map(Number);

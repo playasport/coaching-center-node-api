@@ -377,9 +377,15 @@ const options: swaggerJsdoc.Options = {
                 user: {
                   $ref: '#/components/schemas/User',
                 },
-                token: {
+                accessToken: {
                   type: 'string',
                   example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                  description: 'JWT access token (short-lived, 15 minutes)',
+                },
+                refreshToken: {
+                  type: 'string',
+                  example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                  description: 'JWT refresh token. Validity: Web apps (7 days), Mobile apps (90 days). Device-specific tokens are stored and linked to the device.',
                 },
               },
             },
@@ -646,7 +652,8 @@ const options: swaggerJsdoc.Options = {
         },
         UserRegisterRequest: {
           type: 'object',
-          required: ['firstName', 'email', 'password', 'mobile', 'type', 'dob', 'gender', 'otp'],
+          required: ['firstName', 'email', 'type', 'dob', 'gender'],
+          description: 'Register a new user (student or guardian). Password is NOT required - users authenticate via OTP only. Either tempToken or otp is required (not both). When using tempToken, mobile is NOT required as it is extracted from the token for security.',
           properties: {
             firstName: {
               type: 'string',
@@ -661,15 +668,10 @@ const options: swaggerJsdoc.Options = {
               format: 'email',
               example: 'user@example.com',
             },
-            password: {
-              type: 'string',
-              minLength: 8,
-              example: 'StrongPass@123',
-            },
             mobile: {
               type: 'string',
               example: '9876543210',
-              description: 'User mobile number used for OTP verification',
+              description: 'Mobile number (required only for legacy OTP flow). When using tempToken, mobile is NOT required - it will be extracted from the tempToken for security.',
             },
             type: {
               type: 'string',
@@ -681,17 +683,22 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               format: 'date',
               example: '2000-01-15',
-              description: 'Date of birth in YYYY-MM-DD format (age must be at least 3 years)',
+              description: 'Date of birth in YYYY-MM-DD format. Age must be at least 3 years. For students, minimum age is 13 years.',
             },
             gender: {
               type: 'string',
               enum: ['male', 'female', 'other'],
               example: 'male',
             },
+            tempToken: {
+              type: 'string',
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+              description: 'Temporary registration token received from verify-otp endpoint (valid for 30 minutes). When using tempToken, OTP is NOT required - the tempToken already verifies that OTP was validated. Either tempToken or otp is required, but not both.',
+            },
             otp: {
               type: 'string',
               example: '123456',
-              description: 'OTP received on mobile via /user/auth/send-otp (mode: register)',
+              description: 'OTP code (legacy support only). Note: If using the new registration flow with tempToken, do NOT provide OTP. Either tempToken or otp is required, but not both.',
             },
             fcmToken: {
               type: 'string',

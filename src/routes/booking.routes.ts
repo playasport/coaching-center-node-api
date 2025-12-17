@@ -48,10 +48,7 @@ const router = Router();
  *                   type: string
  *                   example: "Booking summary retrieved successfully"
  *                 data:
- *                   type: object
- *                   properties:
- *                     summary:
- *                       $ref: '#/components/schemas/BookingSummary'
+ *                   $ref: '#/components/schemas/BookingSummary'
  *       400:
  *         description: Validation error or invalid data
  *       401:
@@ -166,7 +163,7 @@ router.post(
  *                 description: Razorpay payment signature for verification
  *     responses:
  *       200:
- *         description: Payment verified successfully
+ *         description: Payment verified successfully. Booking properties are spread directly in the data object.
  *         content:
  *           application/json:
  *             schema:
@@ -179,10 +176,7 @@ router.post(
  *                   type: string
  *                   example: "Payment verified successfully"
  *                 data:
- *                   type: object
- *                   properties:
- *                     booking:
- *                       $ref: '#/components/schemas/Booking'
+ *                   $ref: '#/components/schemas/Booking'
  *       400:
  *         description: Validation error, invalid signature, or payment already verified
  *       401:
