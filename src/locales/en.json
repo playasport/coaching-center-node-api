@@ -332,7 +332,24 @@
   "sport": {
     "getAll": {
       "success": "Sports retrieved successfully"
-    }
+    },
+    "getById": {
+      "success": "Sport retrieved successfully"
+    },
+    "create": {
+      "success": "Sport created successfully",
+      "failed": "Failed to create sport"
+    },
+    "update": {
+      "success": "Sport updated successfully",
+      "failed": "Failed to update sport"
+    },
+    "delete": {
+      "success": "Sport deleted successfully",
+      "failed": "Failed to delete sport"
+    },
+    "notFound": "Sport not found",
+    "alreadyExists": "Sport with this name already exists"
   },
   "coachingCenter": {
     "create": {

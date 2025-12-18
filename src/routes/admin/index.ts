@@ -5,6 +5,7 @@ import dashboardRoutes from './dashboard.routes';
 import coachingCenterRoutes from './coaching-center.routes';
 import userRoutes from './user.routes';
 import roleRoutes from './role.routes';
+import sportRoutes from './sport.routes';
 
 const router = Router();
 
@@ -15,5 +16,6 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/coaching-centers', coachingCenterRoutes);
 router.use('/users', userRoutes);
 router.use('/roles', roleRoutes);
+router.use('/sports', sportRoutes);
 
 export default router;

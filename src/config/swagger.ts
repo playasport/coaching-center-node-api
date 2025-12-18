@@ -2928,6 +2928,68 @@ const options: swaggerJsdoc.Options = {
               example: true,
               description: 'Whether the sport is marked as popular',
             },
+            is_active: {
+              type: 'boolean',
+              example: true,
+              description: 'Whether the sport is active',
+            },
+          },
+        },
+        SportCreate: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: {
+              type: 'string',
+              example: 'Football',
+              description: 'Name of the sport',
+            },
+            logo: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              example: 'https://bucket.s3.region.amazonaws.com/logos/football.png',
+              description: 'Logo URL of the sport',
+            },
+            is_active: {
+              type: 'boolean',
+              example: true,
+              default: true,
+              description: 'Whether the sport is active',
+            },
+            is_popular: {
+              type: 'boolean',
+              example: false,
+              default: false,
+              description: 'Whether the sport is marked as popular',
+            },
+          },
+        },
+        SportUpdate: {
+          type: 'object',
+          properties: {
+            name: {
+              type: 'string',
+              example: 'Football Updated',
+              description: 'Name of the sport',
+            },
+            logo: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              example: 'https://bucket.s3.region.amazonaws.com/logos/football-updated.png',
+              description: 'Logo URL of the sport',
+            },
+            is_active: {
+              type: 'boolean',
+              example: true,
+              description: 'Whether the sport is active',
+            },
+            is_popular: {
+              type: 'boolean',
+              example: true,
+              description: 'Whether the sport is marked as popular',
+            },
           },
         },
         HomeData: {
@@ -6080,6 +6142,10 @@ const options: swaggerJsdoc.Options = {
       {
         name: 'Admin Roles',
         description: 'Admin panel role management endpoints (Super Admin only for create/update/delete)',
+      },
+      {
+        name: 'Admin Sports',
+        description: 'Admin panel sport management endpoints (Super Admin only for create/update/delete)',
       },
     ],
     'x-tagGroups': [

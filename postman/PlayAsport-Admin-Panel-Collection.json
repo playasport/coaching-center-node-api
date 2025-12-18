@@ -50,6 +50,11 @@
       "key": "coachingCenterId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "sportId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -1223,6 +1228,211 @@
               ]
             },
             "description": "Delete a coaching center. Requires coaching_center:delete permission."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sport Management",
+      "description": "Sport management endpoints (Super Admin only for create/update/delete)",
+      "item": [
+        {
+          "name": "Get All Sports",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.sports && response.data.sports.length > 0) {",
+                  "        pm.collectionVariables.set('sportId', response.data.sports[0].id || response.data.sports[0]._id || response.data.sports[0].custom_id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/sports?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "sports"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by sport name",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "Filter by active status",
+                  "disabled": true
+                },
+                {
+                  "key": "isPopular",
+                  "value": "true",
+                  "description": "Filter by popular status",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all sports with pagination and filters. Requires sport:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sport by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/sports/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "sports", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{sportId}}",
+                  "description": "Sport ID (MongoDB ObjectId or custom_id)"
+                }
+              ]
+            },
+            "description": "Get a specific sport by ID. Requires sport:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Sport",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.sport) {",
+                  "        pm.collectionVariables.set('sportId', response.data.sport.id || response.data.sport._id || response.data.sport.custom_id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Basketball\",\n  \"logo\": \"https://bucket.s3.region.amazonaws.com/logos/basketball.png\",\n  \"is_active\": true,\n  \"is_popular\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/sports",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "sports"]
+            },
+            "description": "Create a new sport. Super Admin only. Requires sport:create permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Sport",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Basketball Updated\",\n  \"is_popular\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/sports/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "sports", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{sportId}}",
+                  "description": "Sport ID"
+                }
+              ]
+            },
+            "description": "Update an existing sport. Super Admin only. Requires sport:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Sport",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/sports/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "sports", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{sportId}}",
+                  "description": "Sport ID"
+                }
+              ]
+            },
+            "description": "Delete a sport. Super Admin only. Requires sport:delete permission."
           },
           "response": []
         }
