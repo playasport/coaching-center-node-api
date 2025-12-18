@@ -26,6 +26,26 @@ const defaultRoles = [
     visibleToRoles: [DefaultRoles.SUPER_ADMIN, DefaultRoles.ADMIN, DefaultRoles.ACADEMY], // Can be viewed by SUPER_ADMIN, ADMIN, and ACADEMY
   },
   {
+    name: DefaultRoles.STUDENT,
+    description: 'Student with student-specific permissions',
+    visibleToRoles: [DefaultRoles.SUPER_ADMIN, DefaultRoles.ADMIN, DefaultRoles.ACADEMY, DefaultRoles.USER], // Can be viewed by SUPER_ADMIN, ADMIN, ACADEMY, and USER
+  },
+  {
+    name: DefaultRoles.GUARDIAN,
+    description: 'Guardian with guardian-specific permissions',
+    visibleToRoles: [DefaultRoles.SUPER_ADMIN, DefaultRoles.ADMIN, DefaultRoles.ACADEMY, DefaultRoles.USER], // Can be viewed by SUPER_ADMIN, ADMIN, ACADEMY, and USER
+  },
+  {
+    name: DefaultRoles.EMPLOYEE,
+    description: 'Employee with employee management permissions',
+    visibleToRoles: [DefaultRoles.SUPER_ADMIN, DefaultRoles.ADMIN, DefaultRoles.ACADEMY], // Can be viewed by SUPER_ADMIN, ADMIN, and ACADEMY
+  },
+  {
+    name: DefaultRoles.AGENT,
+    description: 'Agent with agent-specific permissions',
+    visibleToRoles: [DefaultRoles.SUPER_ADMIN, DefaultRoles.ADMIN, DefaultRoles.ACADEMY], // Can be viewed by SUPER_ADMIN, ADMIN, and ACADEMY
+  },
+  {
     name: 'staff',
     description: 'Staff with staff management permissions',
     visibleToRoles: [DefaultRoles.SUPER_ADMIN, DefaultRoles.ADMIN, DefaultRoles.USER, DefaultRoles.ACADEMY], // Can be viewed by SUPER_ADMIN, ADMIN, USER, and ACADEMY

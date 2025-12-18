@@ -5,5 +5,7 @@ export enum DefaultRoles {
   ACADEMY = 'academy',
   STUDENT = 'student',
   GUARDIAN = 'guardian',
+  EMPLOYEE = 'employee',
+  AGENT = 'agent',
 }
 

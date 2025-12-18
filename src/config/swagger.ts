@@ -103,18 +103,34 @@ const options: swaggerJsdoc.Options = {
               example: 'https://bucket.s3.region.amazonaws.com/profile-images/user-id.jpg',
               nullable: true,
             },
-            role: {
-              type: 'object',
-              properties: {
-                id: {
-                  type: 'string',
-                  example: 'student',
-                },
-                name: {
-                  type: 'string',
-                  example: 'student',
+            roles: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: {
+                    type: 'string',
+                    example: '507f1f77bcf86cd799439011',
+                  },
+                  name: {
+                    type: 'string',
+                    example: 'user',
+                  },
+                  description: {
+                    type: 'string',
+                    example: 'Regular user',
+                    nullable: true,
+                  },
                 },
               },
+              description: 'Array of user roles',
+            },
+            userType: {
+              type: 'string',
+              enum: ['student', 'guardian'],
+              example: 'student',
+              nullable: true,
+              description: 'User type (only applies when role includes "user")',
             },
             isActive: {
               type: 'boolean',
@@ -4675,6 +4691,732 @@ const options: swaggerJsdoc.Options = {
             example: '2024-01-01T00:00:00.000Z',
           },
         },
+        // Admin Panel Schemas
+        AdminLoginResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Login successful',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                user: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', example: 'user-id-123' },
+                    email: { type: 'string', example: 'admin@example.com' },
+                    firstName: { type: 'string', example: 'John' },
+                    lastName: { type: 'string', example: 'Doe' },
+                    roles: {
+                      type: 'array',
+                      items: { type: 'string' },
+                      example: ['super_admin'],
+                    },
+                  },
+                },
+                accessToken: {
+                  type: 'string',
+                  example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                },
+                refreshToken: {
+                  type: 'string',
+                  example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                },
+              },
+            },
+          },
+        },
+        AdminProfileResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Profile retrieved successfully',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                user: {
+                  $ref: '#/components/schemas/User',
+                },
+              },
+            },
+          },
+        },
+        AdminUpdateProfileRequest: {
+          type: 'object',
+          properties: {
+            firstName: {
+              type: 'string',
+              example: 'John',
+            },
+            lastName: {
+              type: 'string',
+              example: 'Doe',
+            },
+            mobile: {
+              type: 'string',
+              pattern: '^[6-9]\\d{9}$',
+              example: '9876543210',
+            },
+          },
+        },
+        AdminChangePasswordRequest: {
+          type: 'object',
+          required: ['currentPassword', 'newPassword'],
+          properties: {
+            currentPassword: {
+              type: 'string',
+              format: 'password',
+              example: 'Current@123',
+            },
+            newPassword: {
+              type: 'string',
+              format: 'password',
+              minLength: 8,
+              example: 'New@123456',
+              description: 'Must contain at least 8 characters, one uppercase, one lowercase, one number, and one special character',
+            },
+          },
+        },
+        Permission: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+            },
+            role: {
+              $ref: '#/components/schemas/Role',
+            },
+            section: {
+              type: 'string',
+              enum: [
+                'coaching_center',
+                'employee',
+                'batch',
+                'booking',
+                'student',
+                'participant',
+                'fee_type_config',
+                'sport',
+                'facility',
+                'location',
+                'settings',
+                'reel',
+                'role',
+                'user',
+                'academy_auth',
+                'user_auth',
+                'permission',
+                'dashboard',
+              ],
+              example: 'coaching_center',
+            },
+            actions: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['view', 'create', 'update', 'delete'],
+              },
+              example: ['view', 'create', 'update'],
+            },
+            isActive: {
+              type: 'boolean',
+              example: true,
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+          },
+        },
+        PermissionsResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Permissions retrieved successfully',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                permissions: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/Permission',
+                  },
+                },
+              },
+            },
+          },
+        },
+        CreatePermissionRequest: {
+          type: 'object',
+          required: ['role', 'section', 'actions'],
+          properties: {
+            role: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Role ID (MongoDB ObjectId)',
+            },
+            section: {
+              type: 'string',
+              enum: [
+                'coaching_center',
+                'employee',
+                'batch',
+                'booking',
+                'student',
+                'participant',
+                'fee_type_config',
+                'sport',
+                'facility',
+                'location',
+                'settings',
+                'reel',
+                'role',
+                'user',
+                'academy_auth',
+                'user_auth',
+                'permission',
+                'dashboard',
+              ],
+              example: 'coaching_center',
+            },
+            actions: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['view', 'create', 'update', 'delete'],
+              },
+              minItems: 1,
+              example: ['view', 'create', 'update'],
+            },
+            isActive: {
+              type: 'boolean',
+              default: true,
+              example: true,
+            },
+          },
+        },
+        UpdatePermissionRequest: {
+          type: 'object',
+          properties: {
+            section: {
+              type: 'string',
+              enum: [
+                'coaching_center',
+                'employee',
+                'batch',
+                'booking',
+                'student',
+                'participant',
+                'fee_type_config',
+                'sport',
+                'facility',
+                'location',
+                'settings',
+                'reel',
+                'role',
+                'user',
+                'academy_auth',
+                'user_auth',
+                'permission',
+                'dashboard',
+              ],
+            },
+            actions: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['view', 'create', 'update', 'delete'],
+              },
+              minItems: 1,
+            },
+            isActive: {
+              type: 'boolean',
+            },
+          },
+        },
+        BulkUpdatePermissionsRequest: {
+          type: 'object',
+          required: ['role', 'permissions'],
+          properties: {
+            role: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Role ID (MongoDB ObjectId)',
+            },
+            permissions: {
+              type: 'array',
+              minItems: 1,
+              items: {
+                type: 'object',
+                required: ['section', 'actions'],
+                properties: {
+                  section: {
+                    type: 'string',
+                    enum: [
+                      'coaching_center',
+                      'employee',
+                      'batch',
+                      'booking',
+                      'student',
+                      'participant',
+                      'fee_type_config',
+                      'sport',
+                      'facility',
+                      'location',
+                      'settings',
+                      'reel',
+                      'role',
+                      'user',
+                      'academy_auth',
+                      'user_auth',
+                      'permission',
+                      'dashboard',
+                    ],
+                  },
+                  actions: {
+                    type: 'array',
+                    items: {
+                      type: 'string',
+                      enum: ['view', 'create', 'update', 'delete'],
+                    },
+                    minItems: 1,
+                  },
+                  isActive: {
+                    type: 'boolean',
+                    default: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        SectionsResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Sections retrieved successfully',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                sections: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      value: { type: 'string', example: 'coaching_center' },
+                      label: { type: 'string', example: 'Coaching Center' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        ActionsResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Actions retrieved successfully',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                actions: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      value: { type: 'string', example: 'view' },
+                      label: { type: 'string', example: 'View' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        DashboardStatsResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Statistics retrieved successfully',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                stats: {
+                  type: 'object',
+                  properties: {
+                    users: {
+                      type: 'object',
+                      properties: {
+                        total: { type: 'integer', example: 1000 },
+                        active: { type: 'integer', example: 950 },
+                        inactive: { type: 'integer', example: 50 },
+                      },
+                    },
+                    coachingCenters: {
+                      type: 'object',
+                      properties: {
+                        total: { type: 'integer', example: 150 },
+                        active: { type: 'integer', example: 140 },
+                        inactive: { type: 'integer', example: 10 },
+                      },
+                    },
+                    bookings: {
+                      type: 'object',
+                      properties: {
+                        total: { type: 'integer', example: 500 },
+                        pending: { type: 'integer', example: 50 },
+                        completed: { type: 'integer', example: 450 },
+                      },
+                    },
+                    batches: {
+                      type: 'object',
+                      properties: {
+                        total: { type: 'integer', example: 200 },
+                        active: { type: 'integer', example: 180 },
+                        inactive: { type: 'integer', example: 20 },
+                      },
+                    },
+                    employees: {
+                      type: 'object',
+                      properties: {
+                        total: { type: 'integer', example: 300 },
+                        active: { type: 'integer', example: 280 },
+                        inactive: { type: 'integer', example: 20 },
+                      },
+                    },
+                    students: {
+                      type: 'object',
+                      properties: {
+                        total: { type: 'integer', example: 800 },
+                      },
+                    },
+                    participants: {
+                      type: 'object',
+                      properties: {
+                        total: { type: 'integer', example: 1200 },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        CreateAdminUserRequest: {
+          type: 'object',
+          required: ['email', 'password', 'firstName', 'roles'],
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'newuser@example.com',
+              description: 'User email address (must be unique)',
+            },
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 8,
+              example: 'SecurePass@123',
+              description: 'Password must contain at least 8 characters, one uppercase, one lowercase, one number, and one special character',
+            },
+            firstName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 100,
+              example: 'John',
+            },
+            lastName: {
+              type: 'string',
+              maxLength: 100,
+              nullable: true,
+              example: 'Doe',
+            },
+            mobile: {
+              type: 'string',
+              pattern: '^[6-9]\\d{9}$',
+              nullable: true,
+              example: '9876543210',
+              description: 'Indian mobile number (10 digits starting with 6-9)',
+            },
+            gender: {
+              type: 'string',
+              enum: ['male', 'female', 'other'],
+              nullable: true,
+              example: 'male',
+            },
+            dob: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              example: '1990-01-01T00:00:00.000Z',
+            },
+            roles: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              minItems: 1,
+              example: ['user'],
+              description: 'Array of role names (e.g., ["user", "admin"])',
+            },
+            userType: {
+              type: 'string',
+              enum: ['student', 'guardian'],
+              nullable: true,
+              example: 'student',
+              description: 'Only applies when role includes "user"',
+            },
+            isActive: {
+              type: 'boolean',
+              default: true,
+              example: true,
+            },
+            address: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                line1: {
+                  type: 'string',
+                  maxLength: 255,
+                },
+                line2: {
+                  type: 'string',
+                  maxLength: 255,
+                },
+                area: {
+                  type: 'string',
+                  maxLength: 255,
+                },
+                city: {
+                  type: 'string',
+                },
+                state: {
+                  type: 'string',
+                },
+                country: {
+                  type: 'string',
+                },
+                pincode: {
+                  type: 'string',
+                  pattern: '^\\d{6}$',
+                },
+              },
+            },
+          },
+        },
+        UpdateAdminUserRequest: {
+          type: 'object',
+          description: 'All fields are optional. Roles can be updated by providing an array of role names.',
+          properties: {
+            firstName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 100,
+              example: 'John',
+            },
+            lastName: {
+              type: 'string',
+              maxLength: 100,
+              nullable: true,
+              example: 'Doe',
+            },
+            mobile: {
+              type: 'string',
+              pattern: '^[6-9]\\d{9}$',
+              nullable: true,
+              example: '9876543210',
+            },
+            gender: {
+              type: 'string',
+              enum: ['male', 'female', 'other'],
+              nullable: true,
+              example: 'male',
+            },
+            dob: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              example: '1990-01-01T00:00:00.000Z',
+            },
+            roles: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              minItems: 1,
+              example: ['user', 'admin'],
+              description: 'Array of role names to assign to user',
+            },
+            userType: {
+              type: 'string',
+              enum: ['student', 'guardian'],
+              nullable: true,
+              example: 'student',
+            },
+            isActive: {
+              type: 'boolean',
+              example: true,
+            },
+            address: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                line1: {
+                  type: 'string',
+                  maxLength: 255,
+                },
+                line2: {
+                  type: 'string',
+                  maxLength: 255,
+                },
+                area: {
+                  type: 'string',
+                  maxLength: 255,
+                },
+                city: {
+                  type: 'string',
+                },
+                state: {
+                  type: 'string',
+                },
+                country: {
+                  type: 'string',
+                },
+                pincode: {
+                  type: 'string',
+                  pattern: '^\\d{6}$',
+                },
+              },
+            },
+          },
+        },
+        Role: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+            },
+            name: {
+              type: 'string',
+              example: 'admin',
+            },
+            description: {
+              type: 'string',
+              example: 'Administrator with elevated permissions',
+              nullable: true,
+            },
+            visibleToRoles: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              nullable: true,
+              example: ['super_admin', 'admin'],
+              description: 'Array of role names that can view this role. If null, only SUPER_ADMIN and ADMIN can view it.',
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+          },
+        },
+        CreateRoleRequest: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 50,
+              pattern: '^[a-z_]+$',
+              example: 'manager',
+              description: 'Role name must be lowercase with underscores only (e.g., "new_role"). Cannot be a default system role.',
+            },
+            description: {
+              type: 'string',
+              maxLength: 500,
+              nullable: true,
+              example: 'Manager role with management permissions',
+            },
+            visibleToRoles: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              nullable: true,
+              example: ['super_admin', 'admin'],
+              description: 'Array of role names that can view this role. If null or empty, only SUPER_ADMIN and ADMIN can view it.',
+            },
+          },
+        },
+        UpdateRoleRequest: {
+          type: 'object',
+          description: 'All fields are optional. For default roles, only description and visibleToRoles can be updated.',
+          properties: {
+            description: {
+              type: 'string',
+              maxLength: 500,
+              nullable: true,
+              example: 'Updated description',
+            },
+            visibleToRoles: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              nullable: true,
+              example: ['super_admin', 'admin', 'academy'],
+              description: 'Array of role names that can view this role. If null or empty, only SUPER_ADMIN and ADMIN can view it.',
+            },
+          },
+        },
       },
     },
     tags: [
@@ -4766,6 +5508,30 @@ const options: swaggerJsdoc.Options = {
         name: 'Home',
         description: 'Home page data endpoints',
       },
+      {
+        name: 'Admin Auth',
+        description: 'Admin panel authentication endpoints for Super Admin, Admin, Employee, and Agent roles',
+      },
+      {
+        name: 'Admin Permissions',
+        description: 'Permission management endpoints for role-based access control (Super Admin only for create/update/delete)',
+      },
+      {
+        name: 'Admin Dashboard',
+        description: 'Admin dashboard statistics and analytics endpoints',
+      },
+      {
+        name: 'Admin Coaching Centers',
+        description: 'Admin panel coaching center management endpoints with permission-based access',
+      },
+      {
+        name: 'Admin Users',
+        description: 'Admin panel user management endpoints with permission-based access',
+      },
+      {
+        name: 'Admin Roles',
+        description: 'Admin panel role management endpoints (Super Admin only for create/update/delete)',
+      },
     ],
     'x-tagGroups': [
       {
@@ -4796,6 +5562,17 @@ const options: swaggerJsdoc.Options = {
       {
         name: 'System & Utilities',
         tags: ['Role', 'Locale', 'Health', 'Webhook', 'Settings'],
+      },
+      {
+        name: 'Admin Panel',
+        tags: [
+          'Admin Auth',
+          'Admin Permissions',
+          'Admin Dashboard',
+          'Admin Coaching Centers',
+          'Admin Users',
+          'Admin Roles',
+        ],
       },
     ],
   },

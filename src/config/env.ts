@@ -97,6 +97,7 @@ export const config = {
       userCache: Number(process.env.REDIS_DB_USER_CACHE || 1), // DB 1: User cache
       tokenBlacklist: Number(process.env.REDIS_DB_TOKEN_BLACKLIST || 2), // DB 2: Token blacklist
       rateLimit: Number(process.env.REDIS_DB_RATE_LIMIT || 3), // DB 3: Rate limiting
+      permissionCache: Number(process.env.REDIS_DB_PERMISSION_CACHE || 4), // DB 4: Permission cache
     },
   },
   pagination: {

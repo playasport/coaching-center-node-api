@@ -1,0 +1,1106 @@
+{
+  "info": {
+    "name": "PlayAsport Admin Panel API",
+    "description": "Complete API collection for PlayAsport Admin Panel - includes Admin Authentication, Permission Management, Dashboard, User Management, Coaching Center Management, and Role-Based Access Control (RBAC)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{adminAccessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "adminAccessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminRefreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "roleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "permissionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "coachingCenterId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Admin Authentication",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.accessToken) {",
+                  "        pm.collectionVariables.set('adminAccessToken', response.data.accessToken);",
+                  "        pm.collectionVariables.set('adminRefreshToken', response.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "auth", "login"]
+            },
+            "description": "Login as admin user (Super Admin, Admin, Employee, or Agent). Requires admin role."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Admin Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "auth", "profile"]
+            },
+            "description": "Get authenticated admin user's profile information"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Admin Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"mobile\": \"9876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "auth", "profile"]
+            },
+            "description": "Update admin user's profile information"
+          },
+          "response": []
+        },
+        {
+          "name": "Change Admin Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Current@123\",\n  \"newPassword\": \"New@123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/auth/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "auth", "password"]
+            },
+            "description": "Change admin user's password"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Admin Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.accessToken) {",
+                  "        pm.collectionVariables.set('adminAccessToken', response.data.accessToken);",
+                  "        pm.collectionVariables.set('adminRefreshToken', response.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{adminRefreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "auth", "refresh"]
+            },
+            "description": "Refresh admin access token using refresh token. Returns new access and refresh tokens."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{adminRefreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "auth", "logout"]
+            },
+            "description": "Logout admin user and blacklist current tokens"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout Admin from All Devices",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/auth/logout-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "auth", "logout-all"]
+            },
+            "description": "Logout admin user from all devices and blacklist all tokens"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Permission Management",
+      "description": "All permission management endpoints. Create, Update, Delete operations require Super Admin role.",
+      "item": [
+        {
+          "name": "Get All Permissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/permissions?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "permissions"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page"
+                }
+              ]
+            },
+            "description": "Get all permissions with pagination. Super Admin sees all, others see only their role's permissions."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Available Sections",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/permissions/sections",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "permissions", "sections"]
+            },
+            "description": "Get list of all available sections in the system"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Available Actions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/permissions/actions",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "permissions", "actions"]
+            },
+            "description": "Get list of all available actions (view, create, update, delete)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Permissions by Role",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.role) {",
+                  "        pm.collectionVariables.set('roleId', response.data.role.id || response.data.role._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/permissions/role/:roleId",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "permissions", "role", ":roleId"],
+              "variable": [
+                {
+                  "key": "roleId",
+                  "value": "{{roleId}}",
+                  "description": "Role ID (MongoDB ObjectId)"
+                }
+              ]
+            },
+            "description": "Get all permissions for a specific role"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Permission by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.permission) {",
+                  "        pm.collectionVariables.set('permissionId', response.data.permission.id || response.data.permission._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/permissions/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "permissions", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{permissionId}}",
+                  "description": "Permission ID"
+                }
+              ]
+            },
+            "description": "Get a specific permission by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Permission (Super Admin Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.permission) {",
+                  "        pm.collectionVariables.set('permissionId', response.data.permission.id || response.data.permission._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"{{roleId}}\",\n  \"section\": \"coaching_center\",\n  \"actions\": [\"view\", \"create\", \"update\"],\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/permissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "permissions"]
+            },
+            "description": "Create a new permission for a role. Requires Super Admin role."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Permission (Super Admin Only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"actions\": [\"view\", \"create\", \"update\", \"delete\"],\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/permissions/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "permissions", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{permissionId}}",
+                  "description": "Permission ID"
+                }
+              ]
+            },
+            "description": "Update an existing permission. Requires Super Admin role."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Permission (Super Admin Only)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/permissions/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "permissions", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{permissionId}}",
+                  "description": "Permission ID"
+                }
+              ]
+            },
+            "description": "Delete a permission. Requires Super Admin role."
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Update Permissions (Super Admin Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"{{roleId}}\",\n  \"permissions\": [\n    {\n      \"section\": \"coaching_center\",\n      \"actions\": [\"view\", \"create\", \"update\"],\n      \"isActive\": true\n    },\n    {\n      \"section\": \"employee\",\n      \"actions\": [\"view\", \"create\"],\n      \"isActive\": true\n    },\n    {\n      \"section\": \"batch\",\n      \"actions\": [\"view\"],\n      \"isActive\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/permissions/bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "permissions", "bulk"]
+            },
+            "description": "Bulk update all permissions for a role. This replaces all existing permissions. Requires Super Admin role."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/dashboard/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "dashboard", "stats"]
+            },
+            "description": "Get comprehensive dashboard statistics including users, coaching centers, bookings, batches, employees, and more. Requires dashboard:view permission."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "description": "User management endpoints with permission-based access control",
+      "item": [
+        {
+          "name": "Get All Users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.users && response.data.users.length > 0) {",
+                  "        pm.collectionVariables.set('userId', response.data.users[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page"
+                }
+              ]
+            },
+            "description": "Get paginated list of all users. Requires user:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"SecurePass@123\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"mobile\": \"9876543210\",\n  \"gender\": \"male\",\n  \"dob\": \"1990-01-01T00:00:00.000Z\",\n  \"roles\": [\"user\"],\n  \"userType\": \"student\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"]
+            },
+            "description": "Create a new user with specified roles and password. Requires user:create permission.\n\n**Required Fields:**\n- email: Valid email, must be unique\n- password: Min 8 chars, must contain uppercase, lowercase, number, special char\n- firstName: User's first name\n- roles: Array of role names (at least one)\n\n**Optional Fields:**\n- lastName, mobile, gender, dob, userType, isActive, address"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.user) {",
+                  "        pm.collectionVariables.set('userId', response.data.user.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{userId}}",
+                  "description": "User ID"
+                }
+              ]
+            },
+            "description": "Get a specific user by ID. Requires user:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Updated Name\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{userId}}",
+                  "description": "User ID"
+                }
+              ]
+            },
+            "description": "Update a user. Requires user:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{userId}}",
+                  "description": "User ID"
+                }
+              ]
+            },
+            "description": "Soft delete a user. Requires user:delete permission."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Role Management",
+      "description": "Role management endpoints (Super Admin only for create/update/delete)",
+      "item": [
+        {
+          "name": "Get All Roles",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.roles && response.data.roles.length > 0) {",
+                  "        pm.collectionVariables.set('roleId', response.data.roles[0].id || response.data.roles[0]._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/roles?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "roles"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page"
+                }
+              ]
+            },
+            "description": "Get all roles in the system with pagination. Requires role:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Role by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/roles/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "roles", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{roleId}}",
+                  "description": "Role ID"
+                }
+              ]
+            },
+            "description": "Get a specific role by ID. Requires role:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"manager\",\n  \"description\": \"Manager role with management permissions\",\n  \"visibleToRoles\": [\"super_admin\", \"admin\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "roles"]
+            },
+            "description": "Create a new role. Super Admin only. Role name must be lowercase with underscores only. Cannot create default system roles."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.role) {",
+                  "        pm.collectionVariables.set('roleId', response.data.role.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated description\",\n  \"visibleToRoles\": [\"super_admin\", \"admin\", \"academy\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/roles/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "roles", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{roleId}}",
+                  "description": "Role ID"
+                }
+              ]
+            },
+            "description": "Update a role. Super Admin only. For default roles, only description and visibleToRoles can be updated."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/roles/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "roles", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{roleId}}",
+                  "description": "Role ID"
+                }
+              ]
+            },
+            "description": "Delete a role. Super Admin only. Default system roles cannot be deleted. Role must not be assigned to any users."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Coaching Center Management",
+      "description": "Coaching center management endpoints with permission-based access control",
+      "item": [
+        {
+          "name": "Get All Coaching Centers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.coachingCenters && response.data.coachingCenters.length > 0) {",
+                  "        pm.collectionVariables.set('coachingCenterId', response.data.coachingCenters[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/coaching-centers?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "coaching-centers"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page"
+                }
+              ]
+            },
+            "description": "Get paginated list of all coaching centers. Requires coaching_center:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Coaching Center by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/coaching-centers/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "coaching-centers", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{coachingCenterId}}",
+                  "description": "Coaching Center ID"
+                }
+              ]
+            },
+            "description": "Get a specific coaching center by ID. Requires coaching_center:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Coaching Center",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"center_name\": \"Updated Center Name\",\n  \"status\": \"published\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/coaching-centers/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "coaching-centers", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{coachingCenterId}}",
+                  "description": "Coaching Center ID"
+                }
+              ]
+            },
+            "description": "Update a coaching center. Requires coaching_center:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Coaching Center",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/coaching-centers/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "coaching-centers", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{coachingCenterId}}",
+                  "description": "Coaching Center ID"
+                }
+              ]
+            },
+            "description": "Delete a coaching center. Requires coaching_center:delete permission."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

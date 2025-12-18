@@ -10,6 +10,8 @@
     "import:locations": "tsx scripts/import-location-data.ts",
     "import:sports": "tsx scripts/import-sports-data.ts",
     "seed:roles": "tsx scripts/seed-roles.ts",
+    "seed:permissions": "tsx scripts/seed-permissions.ts",
+    "seed:super-admin": "tsx scripts/seed-super-admin.ts",
     "seed:fee-type-configs": "tsx scripts/seed-fee-type-configs.ts",
     "drop:role-index": "tsx scripts/drop-role-id-index.ts"
   },

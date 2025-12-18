@@ -7,6 +7,7 @@ import { thumbnailWorker, thumbnailQueue } from './queue/thumbnailQueue';
 import { closeUserCache } from './utils/userCache';
 import { closeTokenBlacklist } from './utils/tokenBlacklist';
 import { closeRateLimit } from './middleware/rateLimit.middleware';
+import { closePermissionCache } from './services/permission.service';
 import { startMediaCleanupJob } from './jobs/mediaCleanup.job';
 
 const startServer = async (): Promise<void> => {
@@ -57,6 +58,9 @@ const gracefulShutdown = async (signal: string) => {
     
     // Close rate limit Redis connection
     await closeRateLimit();
+    
+    // Close permission cache Redis connection
+    await closePermissionCache();
     
     // Disconnect database
     await disconnectDatabase();

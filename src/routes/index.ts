@@ -20,6 +20,7 @@ import academyRoutes from './academy.routes';
 import homeRoutes from './home.routes';
 import reelRoutes from './reel.routes';
 import settingsRoutes from './settings.routes';
+import adminRoutes from './admin';
 import * as academyController from '../controllers/academy.controller';
 import { optionalAuthenticate } from '../middleware/auth.middleware';
 import { t } from '../utils/i18n';
@@ -206,6 +207,8 @@ router.use('/webhook', webhookRoutes);
 router.use('/home', homeRoutes);
 router.use('/', reelRoutes);
 router.use('/settings', settingsRoutes);
+// Admin routes - must be registered before public routes to avoid conflicts
+router.use('/admin', adminRoutes);
 // Public academy routes - must be registered after other routes to avoid conflicts
 router.use('/academies', academyRoutes);
 router.get('/health', (_req, res) => {
