@@ -273,20 +273,24 @@ const bankInformationSchema = new Schema<BankInformation>(
   {
     bank_name: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
     },
     account_number: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
     },
     ifsc_code: {
       type: String,
-      required: true,
+      required: false,
       uppercase: true,
+      default: null,
     },
     account_holder_name: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
     },
     gst_number: {
       type: String,
@@ -370,7 +374,8 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
     },
     bank_information: {
       type: bankInformationSchema,
-      required: true,
+      required: false,
+      default: null,
     },
     status: {
       type: String,

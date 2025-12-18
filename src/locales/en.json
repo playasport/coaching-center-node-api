@@ -486,6 +486,8 @@
       "slugRequired": "Sport slug is required",
       "sportNotFound": "Sport not found"
     },
+    "exists": "Academy already exists with this email or mobile number",
+    "userExists": "User already exists with this email or mobile number",
     "validation": {
       "invalidLocationCoordinates": "Invalid location coordinates",
       "invalidRadius": "Invalid radius. Radius must be greater than 0 and not exceed the maximum allowed radius"
@@ -589,4 +591,3 @@
     }
   }
 }
-

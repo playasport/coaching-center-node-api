@@ -274,7 +274,7 @@ export const updateCoachingCenter = async (
     }
 
     if (data.status === 'published' && existingCenter.status !== 'published') {
-      commonService.validatePublishStatus({ ...existingCenter.toObject(), ...data });
+      commonService.validatePublishStatus({ ...existingCenter.toObject(), ...data }, false);
     }
 
     // Handle other fields

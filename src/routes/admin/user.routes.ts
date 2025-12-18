@@ -320,7 +320,8 @@ router.get('/:id', requirePermission(Section.USER, Action.VIEW), userController.
  *                   mobile: "9876543210"
  *                   gender: "male"
  *                   roles:
- *                     - name: "user"
+ *                     - id: "507f1f77bcf86cd799439011"
+ *                       name: "user"
  *                       description: "Regular user"
  *                   userType: "student"
  *                   isActive: true

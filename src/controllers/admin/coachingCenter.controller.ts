@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
@@ -8,12 +8,23 @@ import * as commonService from '../../services/common/coachingCenterCommon.servi
 /**
  * Get all coaching centers (admin view)
  */
-export const getAllCoachingCenters = async (req: Request, res: Response): Promise<void> => {
+export const getAllCoachingCenters = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const { userId, status, search, sportId, isActive, sortBy, sortOrder } = req.query;
 
-    const result = await adminCoachingCenterService.getAllCoachingCenters(page, limit);
+    const filters = {
+      userId: userId as string,
+      status: status as string,
+      search: search as string,
+      sportId: sportId as string,
+      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      sortBy: sortBy as string,
+      sortOrder: sortOrder as 'asc' | 'desc',
+    };
+
+    const result = await adminCoachingCenterService.getAllCoachingCenters(page, limit, filters);
 
     const response = new ApiResponse(
       200,
@@ -22,15 +33,14 @@ export const getAllCoachingCenters = async (req: Request, res: Response): Promis
     );
     res.json(response);
   } catch (error) {
-    if (error instanceof ApiError) throw error;
-    throw new ApiError(500, t('errors.internalServerError'));
+    next(error);
   }
 };
 
 /**
  * Get coaching center by ID (admin view)
  */
-export const getCoachingCenter = async (req: Request, res: Response): Promise<void> => {
+export const getCoachingCenter = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
     const coachingCenter = await commonService.getCoachingCenterById(id);
@@ -42,41 +52,65 @@ export const getCoachingCenter = async (req: Request, res: Response): Promise<vo
     const response = new ApiResponse(200, { coachingCenter }, t('admin.coachingCenters.retrieved'));
     res.json(response);
   } catch (error) {
-    if (error instanceof ApiError) throw error;
-    throw new ApiError(500, t('errors.internalServerError'));
+    next(error);
+  }
+};
+
+/**
+ * Get coaching centers by user ID (admin view)
+ */
+export const getCoachingCentersByUserId = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const { sortBy, sortOrder } = req.query;
+
+    const result = await adminCoachingCenterService.getCoachingCentersByUserId(
+      userId, 
+      page, 
+      limit, 
+      sortBy as string, 
+      sortOrder as 'asc' | 'desc'
+    );
+
+    const response = new ApiResponse(
+      200,
+      result,
+      t('admin.coachingCenters.retrieved')
+    );
+    res.json(response);
+  } catch (error) {
+    next(error);
   }
 };
 
 /**
  * Create coaching center by admin
- * Allows admin to create center for a specific academy user
+ * Allows admin to create center by providing academy owner details
  */
-export const createCoachingCenterByAdmin = async (req: Request, res: Response): Promise<void> => {
+export const createCoachingCenterByAdmin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { userId } = req.body;
-    if (!userId) {
-      throw new ApiError(400, 'userId is required to create coaching center for an academy');
-    }
-
-    const coachingCenter = await adminCoachingCenterService.createCoachingCenterByAdmin(req.body, userId);
+    const { bank_information, ...data } = req.body;
+    
+    const coachingCenter = await adminCoachingCenterService.createCoachingCenterByAdmin(data);
 
     const response = new ApiResponse(201, { coachingCenter }, t('coachingCenter.create.success'));
     res.status(201).json(response);
   } catch (error) {
-    if (error instanceof ApiError) throw error;
-    throw new ApiError(500, t('errors.internalServerError'));
+    next(error);
   }
 };
 
 /**
  * Update coaching center (admin)
  */
-export const updateCoachingCenter = async (req: Request, res: Response): Promise<void> => {
+export const updateCoachingCenter = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
-    const data = req.body;
+    const { bank_information, ...data } = req.body;
 
-    // Use common update logic
+    // Use admin update logic which supports userId change
     const coachingCenter = await adminCoachingCenterService.updateCoachingCenterByAdmin(id, data);
 
     if (!coachingCenter) {
@@ -86,15 +120,14 @@ export const updateCoachingCenter = async (req: Request, res: Response): Promise
     const response = new ApiResponse(200, { coachingCenter }, t('admin.coachingCenters.updated'));
     res.json(response);
   } catch (error) {
-    if (error instanceof ApiError) throw error;
-    throw new ApiError(500, t('errors.internalServerError'));
+    next(error);
   }
 };
 
 /**
  * Delete coaching center (admin)
  */
-export const deleteCoachingCenter = async (req: Request, res: Response): Promise<void> => {
+export const deleteCoachingCenter = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
     await commonService.deleteCoachingCenter(id);
@@ -102,15 +135,14 @@ export const deleteCoachingCenter = async (req: Request, res: Response): Promise
     const response = new ApiResponse(200, null, t('admin.coachingCenters.deleted'));
     res.json(response);
   } catch (error) {
-    if (error instanceof ApiError) throw error;
-    throw new ApiError(500, t('errors.internalServerError'));
+    next(error);
   }
 };
 
 /**
  * Toggle coaching center status (admin)
  */
-export const toggleStatus = async (req: Request, res: Response): Promise<void> => {
+export const toggleStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
     const coachingCenter = await commonService.toggleCoachingCenterStatus(id);
@@ -118,7 +150,32 @@ export const toggleStatus = async (req: Request, res: Response): Promise<void> =
     const response = new ApiResponse(200, { coachingCenter }, t('admin.coachingCenters.updated'));
     res.json(response);
   } catch (error) {
-    if (error instanceof ApiError) throw error;
-    throw new ApiError(500, t('errors.internalServerError'));
+    next(error);
+  }
+};
+
+/**
+ * Remove media from coaching center (admin)
+ */
+export const removeMedia = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { mediaType, uniqueId, sportId } = req.body;
+
+    if (!mediaType || !uniqueId) {
+      throw new ApiError(400, t('coachingCenter.media.missingParams'));
+    }
+
+    await commonService.removeMediaFromCoachingCenter(
+      id,
+      mediaType as 'logo' | 'document' | 'image' | 'video',
+      uniqueId,
+      sportId
+    );
+
+    const response = new ApiResponse(200, { success: true }, t('coachingCenter.media.removeSuccess'));
+    res.json(response);
+  } catch (error) {
+    next(error);
   }
 };

@@ -991,7 +991,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/admin/coaching-centers?page=1&limit=10",
+              "raw": "{{baseUrl}}/admin/coaching-centers?page=1&limit=10&status=published&search=Elite&isActive=true",
               "host": ["{{baseUrl}}"],
               "path": ["admin", "coaching-centers"],
               "query": [
@@ -1004,6 +1004,43 @@
                   "key": "limit",
                   "value": "10",
                   "description": "Number of records per page"
+                },
+                {
+                  "key": "userId",
+                  "value": "",
+                  "description": "Filter by Academy owner ID",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "published",
+                  "description": "Filter by status (draft, published)"
+                },
+                {
+                  "key": "search",
+                  "value": "Elite",
+                  "description": "Search by center name, email, or mobile"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "Filter by active status"
+                },
+                {
+                  "key": "sportId",
+                  "value": "",
+                  "description": "Filter by sport ID",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "description": "Field to sort by"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "Sort order (asc, desc)"
                 }
               ]
             },
@@ -1039,6 +1076,95 @@
           "response": []
         },
         {
+          "name": "Get Coaching Centers by User ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/coaching-centers/user/:userId?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "coaching-centers", "user", ":userId"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}",
+                  "description": "User ID"
+                }
+              ]
+            },
+            "description": "Get all coaching centers belonging to a specific academy user with pagination. Requires coaching_center:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Coaching Center",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"academy_owner\": {\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"academy.owner@example.com\",\n    \"mobile\": \"9876543210\"\n  },\n  \"center_name\": \"Elite Sports Academy\",\n  \"mobile_number\": \"9876543210\",\n  \"email\": \"info@elitesportsacademy.com\",\n  \"logo\": \"https://bucket.s3.region.amazonaws.com/logos/elite-academy.png\",\n  \"documents\": [\n    {\n      \"unique_id\": \"h8l9i1jk-02l4-1i53-i75h-70m60h154h1i\",\n      \"url\": \"https://bucket.s3.region.amazonaws.com/documents/coachingCentres/certificate.pdf\"\n    }\n  ],\n  \"sports\": [\"507f1f77bcf86cd799439011\"],\n  \"sport_details\": [\n    {\n      \"sport_id\": \"507f1f77bcf86cd799439011\",\n      \"description\": \"Professional cricket coaching with international level facilities.\",\n      \"images\": [\n        {\n          \"unique_id\": \"aeddb4dc-35e7-4b86-b08a-03f93a487a4b\",\n          \"url\": \"https://bucket.s3.region.amazonaws.com/images/coachingCentres/cricket1.jpg\"\n        }\n      ],\n      \"videos\": [\n        {\n          \"unique_id\": \"c3g4d6ef-57g9-6d08-d20c-25h15c609c6d\",\n          \"url\": \"https://bucket.s3.region.amazonaws.com/videos/coachingCentres/cricket-training.mp4\",\n          \"thumbnail\": \"https://bucket.s3.region.amazonaws.com/videos/coachingCentres/cricket-training_thumb.jpg\"\n        }\n      ]\n    }\n  ],\n  \"age\": {\n    \"min\": 5,\n    \"max\": 18\n  },\n  \"location\": {\n    \"latitude\": 28.6139,\n    \"longitude\": 77.209,\n    \"address\": {\n      \"line1\": \"123 Sports Complex\",\n      \"line2\": \"Near Metro Station\",\n      \"city\": \"New Delhi\",\n      \"state\": \"Delhi\",\n      \"country\": \"India\",\n      \"pincode\": \"110001\"\n    }\n  },\n  \"operational_timing\": {\n    \"operating_days\": [\"monday\", \"tuesday\", \"wednesday\", \"thursday\", \"friday\"],\n    \"opening_time\": \"09:00\",\n    \"closing_time\": \"18:00\"\n  },\n  \"allowed_genders\": [\"male\", \"female\"],\n  \"allowed_disabled\": false,\n  \"is_only_for_disabled\": false,\n  \"experience\": 5,\n  \"status\": \"published\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/coaching-centers",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "coaching-centers"]
+            },
+            "description": "Create a new coaching center by providing academy owner details. A new user with 'academy' role will be created if email/mobile doesn't exist. Center will be directly published. Requires coaching_center:create permission."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.coachingCenter) {",
+                  "        pm.collectionVariables.set('coachingCenterId', response.data.coachingCenter.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
           "name": "Update Coaching Center",
           "request": {
             "method": "PATCH",
@@ -1055,7 +1181,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"center_name\": \"Updated Center Name\",\n  \"status\": \"published\"\n}"
+              "raw": "{\n  \"center_name\": \"Updated Elite Sports Academy\",\n  \"mobile_number\": \"9876543211\",\n  \"location\": {\n    \"address\": {\n      \"line2\": \"Updated Metro Station Area\"\n    }\n  },\n  \"operational_timing\": {\n    \"operating_days\": [\"monday\", \"tuesday\", \"wednesday\", \"thursday\", \"friday\", \"saturday\"],\n    \"opening_time\": \"08:00\",\n    \"closing_time\": \"19:00\"\n  },\n  \"status\": \"published\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/admin/coaching-centers/:id",
@@ -1069,7 +1195,7 @@
                 }
               ]
             },
-            "description": "Update a coaching center. Requires coaching_center:update permission."
+            "description": "Update an existing coaching center. Status will always result in 'published' when updated by admin. Banking information is not accepted via this route. Requires coaching_center:update permission."
           },
           "response": []
         },

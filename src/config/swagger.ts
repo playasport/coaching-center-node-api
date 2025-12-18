@@ -1453,6 +1453,510 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        AdminCoachingCenterCreateRequest: {
+          type: 'object',
+          required: [
+            'center_name',
+            'mobile_number',
+            'email',
+            'sports',
+            'sport_details',
+            'age',
+            'location',
+            'operational_timing',
+            'allowed_genders',
+            'allowed_disabled',
+            'is_only_for_disabled',
+            'experience',
+            'academy_owner',
+          ],
+          properties: {
+            academy_owner: {
+              type: 'object',
+              required: ['firstName', 'email', 'mobile'],
+              properties: {
+                firstName: { type: 'string', example: 'Academy Owner' },
+                lastName: { type: 'string', example: 'Name' },
+                email: { type: 'string', format: 'email', example: 'academy@example.com' },
+                mobile: { type: 'string', example: '9876543210' },
+              },
+              description: 'Academy owner details. A new user with role "academy" will be created if email/mobile doesn\'t exist.',
+            },
+            center_name: {
+              type: 'string',
+              example: 'Elite Sports Academy',
+              description: 'Name of the coaching center',
+            },
+            mobile_number: {
+              type: 'string',
+              example: '9876543210',
+              description: 'Mobile number (10 digits, starting with 6-9)',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'info@elitesportsacademy.com',
+              description: 'Email address',
+            },
+            rules_regulation: {
+              type: 'array',
+              items: {
+                type: 'string',
+                maxLength: 500,
+              },
+              example: ['All students must wear proper sports attire', 'Punctuality is mandatory', 'Regular attendance is required'],
+              description: 'Rules and regulations (array of strings)',
+            },
+            logo: {
+              type: 'string',
+              format: 'uri',
+              example: 'https://bucket.s3.region.amazonaws.com/logos/elite-academy.png',
+              description: 'Logo URL',
+            },
+            sports: {
+              type: 'array',
+              items: {
+                type: 'string',
+                description: 'Sport ObjectId',
+              },
+              example: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'],
+              description: 'Array of sport IDs (for quick reference/search)',
+            },
+            sport_details: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['sport_id', 'description'],
+                properties: {
+                  sport_id: {
+                    type: 'string',
+                    example: '507f1f77bcf86cd799439011',
+                    description: 'Sport ObjectId (must be in sports array)',
+                  },
+                  description: {
+                    type: 'string',
+                    minLength: 5,
+                    maxLength: 2000,
+                    example: 'Professional cricket coaching with international level facilities. Our coaches have played at state and national levels.',
+                    description: 'Sport-specific description (min 5 characters)',
+                  },
+                  images: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        unique_id: { type: 'string', example: 'aeddb4dc-35e7-4b86-b08a-03f93a487a4b' },
+                        url: { type: 'string', format: 'uri', example: 'https://bucket.s3.region.amazonaws.com/images/coachingCentres/cricket1.jpg' },
+                        is_active: { type: 'boolean', default: true },
+                        is_deleted: { type: 'boolean', default: false },
+                      },
+                    },
+                    description: 'Sport-specific images',
+                  },
+                  videos: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        unique_id: { type: 'string', example: 'c3g4d6ef-57g9-6d08-d20c-25h15c609c6d' },
+                        url: { type: 'string', format: 'uri', example: 'https://bucket.s3.region.amazonaws.com/videos/coachingCentres/cricket-training.mp4' },
+                        thumbnail: { 
+                          type: 'string', 
+                          format: 'uri', 
+                          example: 'https://bucket.s3.region.amazonaws.com/videos/coachingCentres/cricket-training_thumb.jpg',
+                          description: 'Video thumbnail URL (auto-generated if not provided)',
+                          nullable: true,
+                        },
+                        is_active: { type: 'boolean', default: true },
+                        is_deleted: { type: 'boolean', default: false },
+                      },
+                    },
+                    description: 'Sport-specific videos (thumbnail auto-generated if not provided)',
+                  },
+                },
+              },
+              description: 'Sport-specific data (description, images, videos). Each sport in sports array should have corresponding entry here.',
+            },
+            age: {
+              type: 'object',
+              required: ['min', 'max'],
+              properties: {
+                min: {
+                  type: 'number',
+                  example: 5,
+                  description: 'Minimum age',
+                },
+                max: {
+                  type: 'number',
+                  example: 18,
+                  description: 'Maximum age',
+                },
+              },
+            },
+            location: {
+              type: 'object',
+              required: ['latitude', 'longitude', 'address'],
+              properties: {
+                latitude: {
+                  type: 'number',
+                  example: 28.6139,
+                  description: 'Latitude coordinate',
+                },
+                longitude: {
+                  type: 'number',
+                  example: 77.209,
+                  description: 'Longitude coordinate',
+                },
+                address: {
+                  type: 'object',
+                  required: ['line1', 'line2', 'city', 'state', 'country', 'pincode'],
+                  properties: {
+                    line1: {
+                      type: 'string',
+                      example: '123 Sports Complex',
+                    },
+                    line2: {
+                      type: 'string',
+                      example: 'Near Metro Station',
+                    },
+                    city: {
+                      type: 'string',
+                      example: 'New Delhi',
+                    },
+                    state: {
+                      type: 'string',
+                      example: 'Delhi',
+                    },
+                    country: {
+                      type: 'string',
+                      example: 'India',
+                    },
+                    pincode: {
+                      type: 'string',
+                      example: '110001',
+                    },
+                  },
+                },
+              },
+            },
+            facility: {
+              oneOf: [
+                {
+                  type: 'string',
+                  example: '507f1f77bcf86cd799439011',
+                  description: 'Facility ID (if facility already exists)',
+                },
+                {
+                  type: 'object',
+                  properties: {
+                    name: {
+                      type: 'string',
+                      example: 'Swimming Pool',
+                      description: 'Facility name (required)',
+                    },
+                    description: {
+                      type: 'string',
+                      example: 'Olympic size swimming pool',
+                      description: 'Facility description (optional)',
+                    },
+                    icon: {
+                      type: 'string',
+                      format: 'uri',
+                      example: 'https://example.com/icons/swimming.png',
+                      description: 'Facility icon URL (optional)',
+                    },
+                  },
+                  required: ['name'],
+                  description: 'Facility object (if creating new facility)',
+                },
+              ],
+              description: 'Facility ID (string) or Facility object (name, description, icon). If object is provided and facility with same name exists, existing facility ID will be used. Otherwise, new facility will be created.',
+            },
+            operational_timing: {
+              type: 'object',
+              required: ['operating_days', 'opening_time', 'closing_time'],
+              properties: {
+                operating_days: {
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                    enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+                  },
+                  example: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+                  description: 'Days of operation',
+                },
+                opening_time: {
+                  type: 'string',
+                  example: '09:00',
+                  pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$',
+                  description: 'Opening time in HH:MM format',
+                },
+                closing_time: {
+                  type: 'string',
+                  example: '18:00',
+                  pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$',
+                  description: 'Closing time in HH:MM format',
+                },
+              },
+            },
+            documents: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  unique_id: { type: 'string', example: 'h8l9i1jk-02l4-1i53-i75h-70m60h154h1i' },
+                  url: { type: 'string', format: 'uri', example: 'https://bucket.s3.region.amazonaws.com/documents/coachingCentres/certificate.pdf' },
+                  is_active: { type: 'boolean', default: true },
+                  is_deleted: { type: 'boolean', default: false },
+                },
+              },
+              description: 'General documents (not sport-specific). Sport-specific images and videos are in sport_details.',
+            },
+            status: {
+              type: 'string',
+              enum: ['published'],
+              default: 'published',
+              example: 'published',
+              description: 'Status of the coaching center (Always published for admin)',
+            },
+            allowed_genders: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['male', 'female', 'other'],
+              },
+              minItems: 1,
+              example: ['male', 'female'],
+              description: 'Array of allowed genders for the coaching center (required, at least one gender must be selected)',
+            },
+            allowed_disabled: {
+              type: 'boolean',
+              example: false,
+              description: 'Whether disabled students are allowed (required)',
+            },
+            is_only_for_disabled: {
+              type: 'boolean',
+              example: false,
+              description: 'Whether the coaching center is exclusively for disabled students (required)',
+            },
+            experience: {
+              type: 'number',
+              minimum: 0,
+              example: 5,
+              description: 'Number of years of experience (required, must be a non-negative integer)',
+            },
+          },
+        },
+        AdminCoachingCenterUpdateRequest: {
+          type: 'object',
+          required: [
+            'allowed_genders',
+            'allowed_disabled',
+            'is_only_for_disabled',
+            'experience',
+          ],
+          description: 'Update coaching center request for admin. Banking information is removed as it is not inserted by admin.',
+          properties: {
+            userId: {
+              type: 'string',
+              description: 'ID of the academy user who owns this center. Only admins can provide this to change owner.',
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+            },
+            center_name: {
+              type: 'string',
+              maxLength: 255,
+              example: 'Elite Sports Academy',
+              description: 'Name of the coaching center',
+            },
+            mobile_number: {
+              type: 'string',
+              pattern: '^[6-9]\\d{9}$',
+              example: '9876543210',
+              description: 'Mobile number (10 digits, starting with 6-9).',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'info@elitesportsacademy.com',
+              description: 'Email address.',
+            },
+            rules_regulation: {
+              type: 'array',
+              items: {
+                type: 'string',
+                maxLength: 500,
+              },
+              nullable: true,
+              example: ['All students must wear proper sports attire', 'Punctuality is mandatory'],
+              description: 'Rules and regulations (array of strings)',
+            },
+            logo: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              example: 'https://bucket.s3.region.amazonaws.com/logos/elite-academy.png',
+              description: 'Logo URL.',
+            },
+            sports: {
+              type: 'array',
+              items: {
+                type: 'string',
+                description: 'Sport ObjectId',
+              },
+              example: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'],
+              description: 'Array of sport IDs (for quick reference/search).',
+            },
+            sport_details: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['sport_id', 'description'],
+                properties: {
+                  sport_id: {
+                    type: 'string',
+                    example: '507f1f77bcf86cd799439011',
+                    description: 'Sport ObjectId (must be in sports array)',
+                  },
+                  description: {
+                    type: 'string',
+                    minLength: 5,
+                    maxLength: 2000,
+                    example: 'Professional cricket coaching with international level facilities.',
+                    description: 'Sport-specific description (min 5 characters)',
+                  },
+                  images: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        unique_id: { type: 'string', example: 'aeddb4dc-35e7-4b86-b08a-03f93a487a4b' },
+                        url: { type: 'string', format: 'uri', example: 'https://bucket.s3.region.amazonaws.com/images/coachingCentres/cricket1.jpg' },
+                        is_active: { type: 'boolean', default: true },
+                        is_deleted: { type: 'boolean', default: false },
+                      },
+                    },
+                    description: 'Sport-specific images',
+                  },
+                  videos: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        unique_id: { type: 'string', example: 'c3g4d6ef-57g9-6d08-d20c-25h15c609c6d' },
+                        url: { type: 'string', format: 'uri', example: 'https://bucket.s3.region.amazonaws.com/videos/coachingCentres/cricket-training.mp4' },
+                        thumbnail: { 
+                          type: 'string', 
+                          format: 'uri', 
+                          example: 'https://bucket.s3.region.amazonaws.com/videos/coachingCentres/cricket-training_thumb.jpg',
+                          description: 'Video thumbnail URL (auto-generated if not provided)',
+                          nullable: true,
+                        },
+                        is_active: { type: 'boolean', default: true },
+                        is_deleted: { type: 'boolean', default: false },
+                      },
+                    },
+                    description: 'Sport-specific videos (thumbnail auto-generated if not provided)',
+                  },
+                },
+              },
+              description: 'Sport-specific data (description, images, videos).',
+            },
+            age: {
+              type: 'object',
+              properties: {
+                min: { type: 'number', example: 5 },
+                max: { type: 'number', example: 18 },
+              },
+              description: 'Age range.',
+            },
+            location: {
+              type: 'object',
+              properties: {
+                latitude: { type: 'number', example: 28.6139 },
+                longitude: { type: 'number', example: 77.209 },
+                address: {
+                  type: 'object',
+                  properties: {
+                    line1: { type: 'string' },
+                    line2: { type: 'string', example: 'Near Metro' },
+                    city: { type: 'string', example: 'New Delhi' },
+                    state: { type: 'string', example: 'Delhi' },
+                    country: { type: 'string', example: 'India' },
+                    pincode: { type: 'string', example: '110001' },
+                  },
+                },
+              },
+              description: 'Location details.',
+            },
+            facility: {
+              type: 'array',
+              items: {
+                oneOf: [
+                  { type: 'string', description: 'Facility ID' },
+                  { 
+                    type: 'object',
+                    properties: { name: { type: 'string' } }
+                  }
+                ]
+              },
+              description: 'Array of facility IDs or objects',
+            },
+            operational_timing: {
+              type: 'object',
+              properties: {
+                operating_days: { type: 'array', items: { type: 'string' } },
+                opening_time: { type: 'string' },
+                closing_time: { type: 'string' },
+              },
+              description: 'Operational timing.',
+            },
+            documents: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  unique_id: { type: 'string', example: 'h8l9i1jk-02l4-1i53-i75h-70m60h154h1i' },
+                  url: { type: 'string', format: 'uri', example: 'https://bucket.s3.region.amazonaws.com/documents/coachingCentres/certificate.pdf' },
+                  is_active: { type: 'boolean', default: true },
+                  is_deleted: { type: 'boolean', default: false },
+                },
+              },
+              description: 'General documents (not sport-specific)',
+            },
+            status: {
+              type: 'string',
+              enum: ['published'],
+              example: 'published',
+              description: 'Status of the coaching center. Always published for admin.',
+            },
+            allowed_genders: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['male', 'female', 'other'],
+              },
+              minItems: 1,
+              example: ['male', 'female'],
+              description: 'Array of allowed genders for the coaching center',
+            },
+            allowed_disabled: {
+              type: 'boolean',
+              example: false,
+              description: 'Whether disabled students are allowed',
+            },
+            is_only_for_disabled: {
+              type: 'boolean',
+              example: false,
+              description: 'Whether the coaching center is exclusively for disabled students',
+            },
+            experience: {
+              type: 'number',
+              minimum: 0,
+              example: 5,
+              description: 'Number of years of experience',
+            },
+          },
+        },
         CoachingCenterCreateRequest: {
           type: 'object',
           required: [
@@ -1471,6 +1975,11 @@ const options: swaggerJsdoc.Options = {
             'experience',
           ],
           properties: {
+            userId: {
+              type: 'string',
+              description: 'ID of the academy user who owns this center. Only admins can provide this to create center for others.',
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+            },
             center_name: {
               type: 'string',
               example: 'Elite Sports Academy',
@@ -1773,6 +2282,11 @@ const options: swaggerJsdoc.Options = {
           ],
           description: 'Update coaching center request. The fields allowed_genders, allowed_disabled, is_only_for_disabled, and experience are required. Other fields are optional. If status is set to "published", all required fields must be present (either from existing data or in this update).',
           properties: {
+            userId: {
+              type: 'string',
+              description: 'ID of the academy user who owns this center. Only admins can provide this to change owner.',
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+            },
             center_name: {
               type: 'string',
               maxLength: 255,
