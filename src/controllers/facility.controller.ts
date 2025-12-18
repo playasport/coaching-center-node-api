@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../utils/ApiResponse';
 import { t } from '../utils/i18n';
-import * as facilityService from '../services/facility.service';
+import * as facilityService from '../services/common/facility.service';
 
 export const getAllFacilities = async (
   _req: Request,

@@ -7,7 +7,7 @@ import { ApiResponse } from '../../utils/ApiResponse';
 import { t } from '../../utils/i18n';
 import { logger } from '../../utils/logger';
 import { DefaultRoles } from '../../enums/defaultRoles.enum';
-import * as authService from '../../services/auth.service';
+import * as authService from '../../services/client/auth.service';
 import type {
   AdminLoginInput,
   AdminUpdateProfileInput,

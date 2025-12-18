@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
-import * as participantService from '../services/participant.service';
+import * as participantService from '../services/client/participant.service';
 import type { ParticipantCreateInput, ParticipantUpdateInput } from '../validations/participant.validation';
 
 export const createParticipant = async (

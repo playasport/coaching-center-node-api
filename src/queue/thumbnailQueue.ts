@@ -2,7 +2,7 @@ import { Queue, Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { config } from '../config/env';
 import { logger } from '../utils/logger';
-import { generateVideoThumbnail } from '../services/videoThumbnail.service';
+import { generateVideoThumbnail } from '../services/common/videoThumbnail.service';
 import { CoachingCenterModel } from '../models/coachingCenter.model';
 
 // Redis connection for BullMQ

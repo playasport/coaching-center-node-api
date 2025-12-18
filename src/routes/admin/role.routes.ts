@@ -82,20 +82,7 @@ router.use(authenticate, requireAdmin);
  *                       items:
  *                         $ref: '#/components/schemas/Role'
  *                     pagination:
- *                       type: object
- *                       properties:
- *                         total:
- *                           type: integer
- *                         page:
- *                           type: integer
- *                         limit:
- *                           type: integer
- *                         totalPages:
- *                           type: integer
- *                         hasNextPage:
- *                           type: boolean
- *                         hasPrevPage:
- *                           type: boolean
+ *                       $ref: '#/components/schemas/Pagination'
  *             example:
  *               success: true
  *               message: "Roles retrieved successfully"

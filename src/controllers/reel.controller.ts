@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../utils/ApiResponse';
-import * as reelService from '../services/reel.service';
+import * as reelService from '../services/client/reel.service';
 
 /**
  * Get paginated list of reels

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { t } from '../../utils/i18n';
 import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
-import * as academyAuthService from '../../services/auth.service';
+import * as academyAuthService from '../../services/client/auth.service';
 import type {
   AcademyRegisterInput,
   AcademyLoginInput,

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getDashboardStats as getDashboardStatsService } from '../../services/admin.service';
+import { getDashboardStats as getDashboardStatsService } from '../../services/admin/admin.service';
 import { ApiError } from '../../utils/ApiError';
 import { ApiResponse } from '../../utils/ApiResponse';
 import { t } from '../../utils/i18n';

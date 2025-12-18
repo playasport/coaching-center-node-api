@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
-import * as bookingService from '../services/booking.service';
+import * as bookingService from '../services/client/booking.service';
 import type { BookingSummaryInput, CreateOrderInput, VerifyPaymentInput, UserBookingListInput, DeleteOrderInput } from '../validations/booking.validation';
 import { BookingStatus, PaymentStatus } from '../models/booking.model';
 

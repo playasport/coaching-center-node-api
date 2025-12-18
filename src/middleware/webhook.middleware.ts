@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { getPaymentService } from '../services/payment/PaymentService';
+import { getPaymentService } from '../services/common/payment/PaymentService';
 import { logger } from '../utils/logger';
 
 const paymentService = getPaymentService();

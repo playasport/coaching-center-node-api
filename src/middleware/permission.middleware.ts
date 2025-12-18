@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { checkPermission } from '../services/permission.service';
+import { checkPermission } from '../services/admin/permission.service';
 import { Section } from '../enums/section.enum';
 import { Action } from '../enums/section.enum';
 import { DefaultRoles } from '../enums/defaultRoles.enum';

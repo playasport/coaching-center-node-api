@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
-import * as academyBookingService from '../../services/academyBooking.service';
+import * as academyBookingService from '../../services/academy/booking.service';
 import { BookingStatus } from '../../models/booking.model';
 
 /**

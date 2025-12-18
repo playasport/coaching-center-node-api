@@ -7,7 +7,7 @@ import { thumbnailWorker, thumbnailQueue } from './queue/thumbnailQueue';
 import { closeUserCache } from './utils/userCache';
 import { closeTokenBlacklist } from './utils/tokenBlacklist';
 import { closeRateLimit } from './middleware/rateLimit.middleware';
-import { closePermissionCache } from './services/permission.service';
+import { closePermissionCache } from './services/admin/permission.service';
 import { startMediaCleanupJob } from './jobs/mediaCleanup.job';
 
 const startServer = async (): Promise<void> => {

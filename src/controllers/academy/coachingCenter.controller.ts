@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
-import * as coachingCenterService from '../../services/coachingCenter.service';
+import * as coachingCenterService from '../../services/academy/coachingCenter.service';
 import type { CoachingCenterCreateInput, CoachingCenterUpdateInput } from '../../validations/coachingCenter.validation';
 
 export const createCoachingCenter = async (

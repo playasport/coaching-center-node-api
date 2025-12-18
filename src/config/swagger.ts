@@ -62,6 +62,41 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        Pagination: {
+          type: 'object',
+          properties: {
+            total: {
+              type: 'integer',
+              example: 100,
+              description: 'Total number of records',
+            },
+            page: {
+              type: 'integer',
+              example: 1,
+              description: 'Current page number',
+            },
+            limit: {
+              type: 'integer',
+              example: 10,
+              description: 'Number of records per page',
+            },
+            totalPages: {
+              type: 'integer',
+              example: 10,
+              description: 'Total number of pages',
+            },
+            hasNextPage: {
+              type: 'boolean',
+              example: true,
+              description: 'Whether there is a next page',
+            },
+            hasPrevPage: {
+              type: 'boolean',
+              example: false,
+              description: 'Whether there is a previous page',
+            },
+          },
+        },
         User: {
           type: 'object',
           properties: {

@@ -10,8 +10,8 @@ import { Types } from 'mongoose';
 import {
   invalidatePermissionCache,
   getRolePermissions,
-} from '../../services/permission.service';
-import { getAllSections, getAllActions } from '../../services/admin.service';
+} from '../../services/admin/permission.service';
+import { getAllSections, getAllActions } from '../../services/admin/admin.service';
 import type {
   CreatePermissionInput,
   UpdatePermissionInput,
@@ -348,7 +348,7 @@ export const getMyPermissions = async (req: Request, res: Response): Promise<voi
       throw new ApiError(401, t('auth.authorization.unauthorized'));
     }
 
-    const { getUserPermissions } = await import('../../services/permission.service');
+    const { getUserPermissions } = await import('../../services/admin/permission.service');
     const permissions = await getUserPermissions(req.user.id);
 
     // Transform to simplified format: { section: [actions] }

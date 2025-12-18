@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
-import * as locationService from '../services/location.service';
+import * as locationService from '../services/common/location.service';
 
 export const getCountries = async (
   _req: Request,

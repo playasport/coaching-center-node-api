@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../utils/ApiResponse';
 import { t } from '../utils/i18n';
-import * as sportService from '../services/sport.service';
+import * as sportService from '../services/common/sport.service';
 
 export const getAllSports = async (
   _req: Request,

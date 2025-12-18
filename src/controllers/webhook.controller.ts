@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
-import * as webhookService from '../services/webhook.service';
+import * as webhookService from '../services/common/webhook.service';
 
 /**
  * Handle Razorpay webhook

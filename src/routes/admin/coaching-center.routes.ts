@@ -56,18 +56,9 @@ router.use(authenticate, requireAdmin);
  *                     coachingCenters:
  *                       type: array
  *                       items:
- *                         type: object
+ *                         $ref: '#/components/schemas/CoachingCenter'
  *                     pagination:
- *                       type: object
- *                       properties:
- *                         page:
- *                           type: integer
- *                         limit:
- *                           type: integer
- *                         total:
- *                           type: integer
- *                         totalPages:
- *                           type: integer
+ *                       $ref: '#/components/schemas/Pagination'
  *             example:
  *               success: true
  *               message: "Coaching centers retrieved successfully"
@@ -97,6 +88,70 @@ router.get(
   '/',
   requirePermission(Section.COACHING_CENTER, Action.VIEW),
   coachingCenterController.getAllCoachingCenters
+);
+
+/**
+ * @swagger
+ * /admin/coaching-centers:
+ *   post:
+ *     summary: Create coaching center (admin)
+ *     description: Create a coaching center for a specific academy user. Requires coaching_center:create permission.
+ *     tags: [Admin Coaching Centers]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, center_name, email, sports]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: ID of the academy user who owns this center
+ *               center_name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               sports:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *           example:
+ *             userId: "user-123"
+ *             center_name: "Elite Sports Academy"
+ *             email: "elite@example.com"
+ *             sports: ["sport-id-1", "sport-id-2"]
+ *             status: "draft"
+ *     responses:
+ *       201:
+ *         description: Coaching center created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Coaching center created successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     coachingCenter:
+ *                       $ref: '#/components/schemas/CoachingCenter'
+ *       400:
+ *         description: Bad request
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ */
+router.post(
+  '/',
+  requirePermission(Section.COACHING_CENTER, Action.CREATE),
+  coachingCenterController.createCoachingCenterByAdmin
 );
 
 /**
@@ -237,6 +292,47 @@ router.patch(
   '/:id',
   requirePermission(Section.COACHING_CENTER, Action.UPDATE),
   coachingCenterController.updateCoachingCenter
+);
+
+/**
+ * @swagger
+ * /admin/coaching-centers/{id}/toggle-status:
+ *   patch:
+ *     summary: Toggle coaching center status (admin)
+ *     description: Activate or deactivate a coaching center. Requires coaching_center:update permission.
+ *     tags: [Admin Coaching Centers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Status toggled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Coaching center updated successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     coachingCenter:
+ *                       $ref: '#/components/schemas/CoachingCenter'
+ */
+router.patch(
+  '/:id/toggle-status',
+  requirePermission(Section.COACHING_CENTER, Action.UPDATE),
+  coachingCenterController.toggleStatus
 );
 
 /**

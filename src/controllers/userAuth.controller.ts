@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { t } from '../utils/i18n';
 import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
-import * as authService from '../services/auth.service';
+import * as authService from '../services/client/auth.service';
 import type {
   UserRegisterInput,
   UserSocialLoginInput,
@@ -11,7 +11,7 @@ import type {
   UserPasswordChangeInput,
   UserFavoriteSportsUpdateInput,
 } from '../validations/auth.validation';
-import { userService } from '../services/user.service';
+import { userService } from '../services/client/user.service';
 
 export const registerUser = async (
   req: Request,

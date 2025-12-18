@@ -3,7 +3,7 @@ import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
 import { config } from '../config/env';
-import * as homeService from '../services/home.service';
+import * as homeService from '../services/client/home.service';
 
 /**
  * Get home page data (nearby academies and popular sports)

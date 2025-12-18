@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { CoachingCenterModel } from '../models/coachingCenter.model';
-import * as mediaService from '../services/coachingCenterMedia.service';
+import * as mediaService from '../services/common/coachingCenterMedia.service';
 import { logger } from '../utils/logger';
 
 /**

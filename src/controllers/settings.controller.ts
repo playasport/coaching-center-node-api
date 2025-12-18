@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
-import * as settingsService from '../services/settings.service';
+import * as settingsService from '../services/common/settings.service';
 
 /**
  * Get application settings

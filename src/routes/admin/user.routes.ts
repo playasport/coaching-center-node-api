@@ -151,7 +151,7 @@ router.post(
  *                       items:
  *                         $ref: '#/components/schemas/User'
  *                     pagination:
- *                       type: object
+ *                       $ref: '#/components/schemas/Pagination'
  *             example:
  *               success: true
  *               message: "Users retrieved successfully"

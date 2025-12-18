@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
-import * as roleService from '../services/role.service';
+import * as roleService from '../services/admin/role.service';
 
 /**
  * Get list of roles visible to the logged-in user
