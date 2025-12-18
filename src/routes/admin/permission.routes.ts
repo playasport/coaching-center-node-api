@@ -2,9 +2,6 @@ import { Router } from 'express';
 import * as permissionController from '../../controllers/admin/permission.controller';
 import { authenticate } from '../../middleware/auth.middleware';
 import { requireAdmin } from '../../middleware/admin.middleware';
-import { requirePermission } from '../../middleware/permission.middleware';
-import { Section } from '../../enums/section.enum';
-import { Action } from '../../enums/section.enum';
 import { validate } from '../../middleware/validation.middleware';
 import {
   createPermissionSchema,

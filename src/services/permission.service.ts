@@ -4,7 +4,6 @@ import { config } from '../config/env';
 import { logger } from '../utils/logger';
 import { PermissionModel, Permission } from '../models/permission.model';
 import { UserModel } from '../models/user.model';
-import { RoleModel } from '../models/role.model';
 import { Section } from '../enums/section.enum';
 import { Action } from '../enums/section.enum';
 import { DefaultRoles } from '../enums/defaultRoles.enum';

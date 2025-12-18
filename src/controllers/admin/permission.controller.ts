@@ -17,7 +17,6 @@ import type {
   UpdatePermissionInput,
   BulkUpdatePermissionsInput,
 } from '../../validations/permission.validation';
-import { Section } from '../../enums/section.enum';
 
 /**
  * Get all permissions
@@ -285,7 +284,7 @@ export const bulkUpdatePermissions = async (req: Request, res: Response): Promis
     await PermissionModel.deleteMany({ role: data.role });
 
     // Create new permissions
-    const permissions = await PermissionModel.insertMany(
+    await PermissionModel.insertMany(
       data.permissions.map((perm) => ({
         role: data.role,
         section: perm.section,
