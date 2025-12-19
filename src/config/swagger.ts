@@ -6147,6 +6147,10 @@ const options: swaggerJsdoc.Options = {
         name: 'Admin Sports',
         description: 'Admin panel sport management endpoints (Super Admin only for create/update/delete)',
       },
+      {
+        name: 'Admin Bookings',
+        description: 'Admin panel booking management endpoints with permission-based access control',
+      },
     ],
     'x-tagGroups': [
       {
