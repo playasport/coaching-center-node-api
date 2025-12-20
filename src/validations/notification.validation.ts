@@ -1,12 +1,9 @@
 import { z } from 'zod';
-import { NotificationChannel, NotificationPriority } from '../types/notification.types';
 
 // Send notification schema (admin)
 export const sendNotificationSchema = z.object({
   body: z.object({
-    recipientType: z.enum(['user', 'academy'], {
-      errorMap: () => ({ message: 'Recipient type must be either "user" or "academy"' }),
-    }),
+    recipientType: z.enum(['user', 'academy'], 'Recipient type must be either "user" or "academy"'),
     recipientId: z.string().min(1, 'Recipient ID is required'),
     title: z.string().min(1, 'Title is required').max(200, 'Title must be less than 200 characters'),
     body: z.string().min(1, 'Body is required').max(1000, 'Body must be less than 1000 characters'),
@@ -16,9 +13,9 @@ export const sendNotificationSchema = z.object({
       .optional()
       .default(['push']),
     priority: z.enum(['high', 'medium', 'low']).optional().default('medium'),
-    data: z.record(z.unknown()).optional(),
+    data: z.record(z.string(), z.unknown()).optional(),
     imageUrl: z.string().url('Invalid image URL').optional().nullable(),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
   }),
 });
 
@@ -27,9 +24,7 @@ export type SendNotificationInput = z.infer<typeof sendNotificationSchema>['body
 // Test notification schema
 export const testNotificationSchema = z.object({
   body: z.object({
-    recipientType: z.enum(['user', 'academy'], {
-      errorMap: () => ({ message: 'Recipient type must be either "user" or "academy"' }),
-    }),
+    recipientType: z.enum(['user', 'academy'], 'Recipient type must be either "user" or "academy"'),
     recipientId: z.string().min(1, 'Recipient ID is required'),
     channels: z
       .array(z.enum(['sms', 'email', 'whatsapp', 'push']))

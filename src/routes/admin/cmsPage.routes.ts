@@ -5,7 +5,6 @@ import { requireAdmin } from '../../middleware/admin.middleware';
 import { requirePermission } from '../../middleware/permission.middleware';
 import { Section } from '../../enums/section.enum';
 import { Action } from '../../enums/section.enum';
-import { CmsPagePlatform } from '../../models/cmsPage.model';
 
 const router = Router();
 

@@ -29,6 +29,7 @@ export const sendNotification = async (
 
     const notification = await notificationService.createAndSendNotification({
       ...input,
+      imageUrl: input.imageUrl ?? undefined, // Convert null to undefined
       metadata,
     });
 

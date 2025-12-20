@@ -67,8 +67,8 @@ export class PaymentService {
    */
   async isPaymentEnabled(): Promise<boolean> {
     try {
-      const { getSettingValue } = await import('../common/settings.service');
-      const paymentEnabled = await getSettingValue<boolean>('payment.enabled');
+      const { getSettingValue } = await import('../settings.service');
+      const paymentEnabled = (await getSettingValue('payment.enabled')) as boolean | null;
       return paymentEnabled ?? true; // Default to enabled if not set
     } catch (error) {
       logger.error('Failed to check payment enabled status', error);

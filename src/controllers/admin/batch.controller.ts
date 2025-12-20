@@ -3,7 +3,6 @@ import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
 import * as adminBatchService from '../../services/admin/adminBatch.service';
-import * as batchService from '../../services/academy/batch.service';
 import type { BatchUpdateInput } from '../../validations/batch.validation';
 
 /**
