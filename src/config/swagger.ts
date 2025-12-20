@@ -6155,6 +6155,14 @@ const options: swaggerJsdoc.Options = {
         name: 'Admin Bookings',
         description: 'Admin panel booking management endpoints with permission-based access control',
       },
+      {
+        name: 'Admin Transactions',
+        description: 'Admin panel transaction management endpoints for viewing and managing all financial transactions with permission-based access control',
+      },
+      {
+        name: 'Admin Payments',
+        description: 'Admin panel payment management endpoints for viewing and managing payment transactions specifically with permission-based access control',
+      },
     ],
     'x-tagGroups': [
       {
@@ -6196,6 +6204,9 @@ const options: swaggerJsdoc.Options = {
           'Admin Users',
           'Admin Roles',
           'Admin Batches',
+          'Admin Bookings',
+          'Admin Transactions',
+          'Admin Payments',
         ],
       },
     ],

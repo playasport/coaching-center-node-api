@@ -65,6 +65,16 @@
       "key": "batchId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "transactionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "paymentId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -1926,6 +1936,658 @@
             "description": "Soft delete a batch. Requires batch:delete permission."
           },
           "response": []
+        }
+      ]
+    },
+    {
+      "name": "Transaction Management",
+      "description": "Transaction management endpoints for viewing and managing all financial transactions (payments, refunds) with permission-based access control",
+      "item": [
+        {
+          "name": "Get All Transactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.transactions && response.data.transactions.length > 0) {",
+                  "        pm.collectionVariables.set('transactionId', response.data.transactions[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/transactions?page=1&limit=10&status=success&type=payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "transactions"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "success",
+                  "description": "Filter by status (pending, processing, success, failed, cancelled, refunded)"
+                },
+                {
+                  "key": "type",
+                  "value": "payment",
+                  "description": "Filter by type (payment, refund, partial_refund)"
+                },
+                {
+                  "key": "source",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by source (user_verification, webhook, manual)"
+                },
+                {
+                  "key": "userId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by user ID"
+                },
+                {
+                  "key": "bookingId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by booking ID"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Search by transaction ID, Razorpay order ID, payment ID, or refund ID"
+                },
+                {
+                  "key": "startDate",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter from date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter until date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "created_at",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all transactions with pagination and filters. Requires transaction:view permission."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/transactions?page=1&limit=10&status=success&type=payment",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "transactions"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "status",
+                      "value": "success"
+                    },
+                    {
+                      "key": "type",
+                      "value": "payment"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Transactions retrieved successfully\",\n  \"data\": {\n    \"transactions\": [\n      {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"transaction_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"booking_id\": \"BK123456\",\n        \"user_name\": \"John Doe\",\n        \"user_email\": \"john.doe@example.com\",\n        \"amount\": 5000,\n        \"currency\": \"INR\",\n        \"type\": \"payment\",\n        \"status\": \"success\",\n        \"source\": \"webhook\",\n        \"payment_method\": \"card\",\n        \"razorpay_order_id\": \"order_MNOP1234567890\",\n        \"razorpay_payment_id\": \"pay_ABCD1234567890\",\n        \"razorpay_refund_id\": null,\n        \"failure_reason\": null,\n        \"processed_at\": \"2024-01-15T10:30:00.000Z\",\n        \"created_at\": \"2024-01-15T10:25:00.000Z\"\n      },\n      {\n        \"id\": \"660e8400-e29b-41d4-a716-446655440001\",\n        \"transaction_id\": \"660e8400-e29b-41d4-a716-446655440001\",\n        \"booking_id\": \"BK123457\",\n        \"user_name\": \"Jane Smith\",\n        \"user_email\": \"jane.smith@example.com\",\n        \"amount\": 3000,\n        \"currency\": \"INR\",\n        \"type\": \"refund\",\n        \"status\": \"refunded\",\n        \"source\": \"manual\",\n        \"payment_method\": \"upi\",\n        \"razorpay_order_id\": \"order_QRST1234567890\",\n        \"razorpay_payment_id\": \"pay_EFGH1234567890\",\n        \"razorpay_refund_id\": \"rfnd_IJKL1234567890\",\n        \"failure_reason\": null,\n        \"processed_at\": \"2024-01-16T14:20:00.000Z\",\n        \"created_at\": \"2024-01-15T11:00:00.000Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 10,\n      \"total\": 150,\n      \"totalPages\": 15\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Transaction Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/transactions/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "transactions", "stats"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter statistics from date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter statistics until date (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Get transaction statistics for admin dashboard. Requires transaction:view permission."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/transactions/stats",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "transactions", "stats"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Transaction statistics retrieved successfully\",\n  \"data\": {\n    \"stats\": {\n      \"total\": 1500,\n      \"byStatus\": {\n        \"pending\": 50,\n        \"processing\": 10,\n        \"success\": 1400,\n        \"failed\": 30,\n        \"cancelled\": 5,\n        \"refunded\": 5\n      },\n      \"byType\": {\n        \"payment\": 1450,\n        \"refund\": 40,\n        \"partial_refund\": 10\n      },\n      \"totalAmount\": 7500000,\n      \"successAmount\": 7250000,\n      \"failedAmount\": 150000,\n      \"refundedAmount\": 100000\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Transaction by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/transactions/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "transactions", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{transactionId}}",
+                  "description": "Transaction ID"
+                }
+              ]
+            },
+            "description": "Get detailed transaction information by ID. Requires transaction:view permission."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/transactions/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "transactions", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "{{transactionId}}"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Transaction retrieved successfully\",\n  \"data\": {\n    \"transaction\": {\n      \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"booking\": {\n        \"id\": \"507f1f77bcf86cd799439011\",\n        \"booking_id\": \"BK123456\",\n        \"amount\": 5000,\n        \"currency\": \"INR\",\n        \"status\": \"confirmed\",\n        \"payment\": {\n          \"razorpay_order_id\": \"order_MNOP1234567890\",\n          \"razorpay_payment_id\": \"pay_ABCD1234567890\",\n          \"status\": \"success\",\n          \"payment_method\": \"card\",\n          \"paid_at\": \"2024-01-15T10:30:00.000Z\"\n        },\n        \"participants\": [\n          {\n            \"id\": \"507f1f77bcf86cd799439012\",\n            \"firstName\": \"John\",\n            \"lastName\": \"Doe Jr\"\n          }\n        ],\n        \"batch\": {\n          \"id\": \"507f1f77bcf86cd799439013\",\n          \"name\": \"Morning Cricket Batch\"\n        },\n        \"center\": {\n          \"id\": \"507f1f77bcf86cd799439014\",\n          \"center_name\": \"Elite Sports Academy\"\n        },\n        \"sport\": {\n          \"id\": \"507f1f77bcf86cd799439015\",\n          \"name\": \"Cricket\"\n        }\n      },\n      \"user\": {\n        \"id\": \"507f1f77bcf86cd799439016\",\n        \"firstName\": \"John\",\n        \"lastName\": \"Doe\",\n        \"email\": \"john.doe@example.com\",\n        \"mobile\": \"+919876543210\"\n      },\n      \"razorpay_order_id\": \"order_MNOP1234567890\",\n      \"razorpay_payment_id\": \"pay_ABCD1234567890\",\n      \"razorpay_refund_id\": null,\n      \"type\": \"payment\",\n      \"status\": \"success\",\n      \"source\": \"webhook\",\n      \"amount\": 5000,\n      \"currency\": \"INR\",\n      \"payment_method\": \"card\",\n      \"razorpay_signature\": \"signature_xyz123\",\n      \"failure_reason\": null,\n      \"processed_at\": \"2024-01-15T10:30:00.000Z\",\n      \"created_at\": \"2024-01-15T10:25:00.000Z\",\n      \"updatedAt\": \"2024-01-15T10:30:00.000Z\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Transaction Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"success\",\n  \"notes\": \"Manually verified payment\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/transactions/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "transactions", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{transactionId}}",
+                  "description": "Transaction ID"
+                }
+              ]
+            },
+            "description": "Update transaction status manually (admin override). Requires transaction:update permission."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"success\",\n  \"notes\": \"Manually verified payment\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/transactions/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "transactions", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "{{transactionId}}"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Transaction status updated successfully\",\n  \"data\": {\n    \"transaction\": {\n      \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"booking\": {\n        \"id\": \"507f1f77bcf86cd799439011\",\n        \"booking_id\": \"BK123456\"\n      },\n      \"user\": {\n        \"id\": \"507f1f77bcf86cd799439016\",\n        \"firstName\": \"John\",\n        \"lastName\": \"Doe\",\n        \"email\": \"john.doe@example.com\",\n        \"mobile\": \"+919876543210\"\n      },\n      \"razorpay_order_id\": \"order_MNOP1234567890\",\n      \"razorpay_payment_id\": \"pay_ABCD1234567890\",\n      \"razorpay_refund_id\": null,\n      \"type\": \"payment\",\n      \"status\": \"success\",\n      \"source\": \"manual\",\n      \"amount\": 5000,\n      \"currency\": \"INR\",\n      \"payment_method\": \"card\",\n      \"failure_reason\": null,\n      \"metadata\": {\n        \"adminUpdatedBy\": \"admin-user-id\",\n        \"adminUpdatedAt\": \"2024-01-15T11:00:00.000Z\",\n        \"adminNotes\": \"Manually verified payment\"\n      },\n      \"processed_at\": \"2024-01-15T10:30:00.000Z\",\n      \"created_at\": \"2024-01-15T10:25:00.000Z\",\n      \"updatedAt\": \"2024-01-15T11:00:00.000Z\"\n    }\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Payment Management",
+      "description": "Payment management endpoints for viewing and managing payment transactions specifically with permission-based access control",
+      "item": [
+        {
+          "name": "Get All Payments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.payments && response.data.payments.length > 0) {",
+                  "        pm.collectionVariables.set('paymentId', response.data.payments[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/payments?page=1&limit=10&status=success",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "payments"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "success",
+                  "description": "Filter by status (pending, processing, success, failed, cancelled)"
+                },
+                {
+                  "key": "paymentMethod",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by payment method (card, netbanking, upi, wallet, etc.)"
+                },
+                {
+                  "key": "userId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by user ID"
+                },
+                {
+                  "key": "bookingId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by booking ID"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Search by payment ID, Razorpay order ID, or payment ID"
+                },
+                {
+                  "key": "startDate",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter from date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter until date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "created_at",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all payments (payment type transactions) with pagination and filters. Requires payment:view permission."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments?page=1&limit=10&status=success",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "payments"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "status",
+                      "value": "success"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Payments retrieved successfully\",\n  \"data\": {\n    \"payments\": [\n      {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"payment_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"booking_id\": \"BK123456\",\n        \"user_name\": \"John Doe\",\n        \"user_email\": \"john.doe@example.com\",\n        \"amount\": 5000,\n        \"currency\": \"INR\",\n        \"status\": \"success\",\n        \"payment_method\": \"card\",\n        \"razorpay_order_id\": \"order_MNOP1234567890\",\n        \"razorpay_payment_id\": \"pay_ABCD1234567890\",\n        \"failure_reason\": null,\n        \"processed_at\": \"2024-01-15T10:30:00.000Z\",\n        \"created_at\": \"2024-01-15T10:25:00.000Z\"\n      },\n      {\n        \"id\": \"660e8400-e29b-41d4-a716-446655440001\",\n        \"payment_id\": \"660e8400-e29b-41d4-a716-446655440001\",\n        \"booking_id\": \"BK123457\",\n        \"user_name\": \"Jane Smith\",\n        \"user_email\": \"jane.smith@example.com\",\n        \"amount\": 3000,\n        \"currency\": \"INR\",\n        \"status\": \"failed\",\n        \"payment_method\": \"upi\",\n        \"razorpay_order_id\": \"order_QRST1234567890\",\n        \"razorpay_payment_id\": \"pay_EFGH1234567890\",\n        \"failure_reason\": \"Payment declined by bank\",\n        \"processed_at\": null,\n        \"created_at\": \"2024-01-15T11:00:00.000Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 10,\n      \"total\": 1450,\n      \"totalPages\": 145\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Payment Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/payments/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "payments", "stats"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter statistics from date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter statistics until date (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Get payment statistics for admin dashboard. Requires payment:view permission."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments/stats",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "payments", "stats"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Payment statistics retrieved successfully\",\n  \"data\": {\n    \"stats\": {\n      \"total\": 1450,\n      \"successful\": 1400,\n      \"failed\": 30,\n      \"pending\": 20,\n      \"totalAmount\": 7250000,\n      \"successfulAmount\": 7000000,\n      \"failedAmount\": 150000,\n      \"byPaymentMethod\": {\n        \"card\": 800,\n        \"netbanking\": 300,\n        \"upi\": 250,\n        \"wallet\": 100\n      }\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Payment Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"success\",\n  \"notes\": \"Manually verified payment\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/payments/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "payments", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{paymentId}}",
+                  "description": "Payment ID"
+                }
+              ]
+            },
+            "description": "Update payment status manually (admin override). Also updates booking payment status if set to success. Requires payment:update permission."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"success\",\n  \"notes\": \"Manually verified payment\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "payments", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "{{paymentId}}"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Payment status updated successfully\",\n  \"data\": {\n    \"payment\": {\n      \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"booking\": {\n        \"id\": \"507f1f77bcf86cd799439011\",\n        \"booking_id\": \"BK123456\"\n      },\n      \"user\": {\n        \"id\": \"507f1f77bcf86cd799439016\",\n        \"firstName\": \"John\",\n        \"lastName\": \"Doe\",\n        \"email\": \"john.doe@example.com\",\n        \"mobile\": \"+919876543210\"\n      },\n      \"razorpay_order_id\": \"order_MNOP1234567890\",\n      \"razorpay_payment_id\": \"pay_ABCD1234567890\",\n      \"razorpay_refund_id\": null,\n      \"type\": \"payment\",\n      \"status\": \"success\",\n      \"source\": \"manual\",\n      \"amount\": 5000,\n      \"currency\": \"INR\",\n      \"payment_method\": \"card\",\n      \"failure_reason\": null,\n      \"metadata\": {\n        \"adminUpdatedBy\": \"admin-user-id\",\n        \"adminUpdatedAt\": \"2024-01-15T11:00:00.000Z\",\n        \"adminNotes\": \"Manually verified payment\"\n      },\n      \"processed_at\": \"2024-01-15T10:30:00.000Z\",\n      \"created_at\": \"2024-01-15T10:25:00.000Z\",\n      \"updatedAt\": \"2024-01-15T11:00:00.000Z\"\n    }\n  }\n}"
+            }
+          ]
         }
       ]
     }

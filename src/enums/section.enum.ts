@@ -17,6 +17,8 @@ export enum Section {
   USER_AUTH = 'user_auth',
   PERMISSION = 'permission',
   DASHBOARD = 'dashboard',
+  TRANSACTION = 'transaction',
+  PAYMENT = 'payment',
 }
 
 export enum Action {
