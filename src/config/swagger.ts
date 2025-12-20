@@ -6168,8 +6168,16 @@ const options: swaggerJsdoc.Options = {
         description: 'Admin panel banner management endpoints for creating, updating, and managing promotional banners with advanced features like scheduling, positioning, and targeting',
       },
       {
+        name: 'Admin CMS Pages',
+        description: 'Admin panel CMS page management endpoints for creating, updating, and managing content pages like privacy policy, terms and conditions, etc.',
+      },
+      {
         name: 'Banners',
         description: 'Public banner endpoints for users to fetch active banners by position with filtering options',
+      },
+      {
+        name: 'CMS Pages',
+        description: 'Public CMS page endpoints for users to access content pages like privacy policy, terms and conditions, etc.',
       },
       {
         name: 'Academy Banners',
@@ -6201,7 +6209,7 @@ const options: swaggerJsdoc.Options = {
       },
       {
         name: 'Public Endpoints',
-        tags: ['Academy', 'Home', 'Basic', 'Location', 'Sport', 'Reels', 'Banners'],
+        tags: ['Academy', 'Home', 'Basic', 'Location', 'Sport', 'Reels', 'Banners', 'CMS Pages'],
       },
       {
         name: 'System & Utilities',
@@ -6221,6 +6229,7 @@ const options: swaggerJsdoc.Options = {
           'Admin Transactions',
           'Admin Payments',
           'Admin Banners',
+          'Admin CMS Pages',
         ],
       },
     ],

@@ -22,6 +22,7 @@ import homeRoutes from './home.routes';
 import reelRoutes from './reel.routes';
 import settingsRoutes from './settings.routes';
 import bannerRoutes from './banner.routes';
+import cmsPageRoutes from './cmsPage.routes';
 import adminRoutes from './admin';
 import * as academyController from '../controllers/academy.controller';
 import { optionalAuthenticate } from '../middleware/auth.middleware';
@@ -211,6 +212,7 @@ router.use('/home', homeRoutes);
 router.use('/', reelRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/banners', bannerRoutes);
+router.use('/pages', cmsPageRoutes);
 // Admin routes - must be registered before public routes to avoid conflicts
 router.use('/admin', adminRoutes);
 // Public academy routes - must be registered after other routes to avoid conflicts

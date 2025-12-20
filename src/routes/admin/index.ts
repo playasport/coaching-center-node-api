@@ -11,6 +11,7 @@ import batchRoutes from './batch.routes';
 import transactionRoutes from './transaction.routes';
 import paymentRoutes from './payment.routes';
 import bannerRoutes from './banner.routes';
+import cmsPageRoutes from './cmsPage.routes';
 
 const router = Router();
 
@@ -27,5 +28,6 @@ router.use('/batches', batchRoutes);
 router.use('/transactions', transactionRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/banners', bannerRoutes);
+router.use('/cms-pages', cmsPageRoutes);
 
 export default router;

@@ -2837,6 +2837,108 @@
       "description": "Public banner endpoints for users to fetch active banners by position with filtering options. Authentication is optional."
     },
     {
+      "name": "CMS Pages",
+      "item": [
+        {
+          "name": "Get CMS Page by Slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pages/:slug?platform=",
+              "host": ["{{baseUrl}}"],
+              "path": ["pages", ":slug"],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "privacy-policy",
+                  "description": "CMS page slug (e.g., privacy-policy, terms-and-conditions, about-us)"
+                }
+              ],
+              "query": [
+                {
+                  "key": "platform",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by platform (web, app, both) - optional"
+                }
+              ]
+            },
+            "description": "Get an active CMS page by its slug. This is a public endpoint that doesn't require authentication. Returns HTML content that can be rendered directly in the frontend."
+          },
+          "response": [
+            {
+              "name": "Success - Privacy Policy",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/pages/privacy-policy",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["pages", "privacy-policy"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"CMS page retrieved successfully\",\n  \"data\": {\n    \"page\": {\n      \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"slug\": \"privacy-policy\",\n      \"title\": \"Privacy Policy\",\n      \"content\": \"<h1>Privacy Policy</h1><p>This Privacy Policy describes how we collect, use, and protect your personal information.</p><h2>Information We Collect</h2><p>We collect information that you provide directly to us when you register for an account, make a booking, or contact us for support.</p><h2>How We Use Your Information</h2><ul><li>To process your bookings and payments</li><li>To communicate with you about your account</li><li>To improve our services</li></ul>\",\n      \"platform\": \"both\",\n      \"isActive\": true,\n      \"version\": 1,\n      \"createdAt\": \"2024-01-15T10:00:00.000Z\",\n      \"updatedAt\": \"2024-01-15T10:00:00.000Z\"\n    }\n  }\n}"
+            },
+            {
+              "name": "Success - Terms and Conditions",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/pages/terms-and-conditions",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["pages", "terms-and-conditions"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"CMS page retrieved successfully\",\n  \"data\": {\n    \"page\": {\n      \"id\": \"660e8400-e29b-41d4-a716-446655440001\",\n      \"slug\": \"terms-and-conditions\",\n      \"title\": \"Terms and Conditions\",\n      \"content\": \"<h1>Terms and Conditions</h1><p>Please read these terms and conditions carefully before using our service.</p><h2>Acceptance of Terms</h2><p>By accessing and using this service, you accept and agree to be bound by the terms and provision of this agreement.</p>\",\n      \"platform\": \"both\",\n      \"isActive\": true,\n      \"version\": 1,\n      \"createdAt\": \"2024-01-15T10:00:00.000Z\",\n      \"updatedAt\": \"2024-01-15T10:00:00.000Z\"\n    }\n  }\n}"
+            },
+            {
+              "name": "Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/pages/non-existent-page",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["pages", "non-existent-page"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"CMS page not found\",\n  \"statusCode\": 404\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Public CMS page endpoints for users to access content pages like privacy policy, terms and conditions, about us, etc. No authentication required."
+    },
+    {
       "name": "Academy Banners",
       "item": [
         {
