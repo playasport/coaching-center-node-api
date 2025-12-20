@@ -3077,6 +3077,410 @@
         }
       ],
       "description": "Banner endpoints for coaching centers to view banners displayed on their center pages. Requires authentication with ACADEMY role."
+    },
+    {
+      "name": "Admin Notifications",
+      "item": [
+        {
+          "name": "Send Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipientType\": \"user\",\n  \"recipientId\": \"user-uuid-here\",\n  \"title\": \"New Booking Confirmed\",\n  \"body\": \"Your booking for Cricket Batch has been confirmed.\",\n  \"channels\": [\"push\", \"email\"],\n  \"priority\": \"medium\",\n  \"data\": {\n    \"bookingId\": \"BK-2024-0001\",\n    \"type\": \"booking\",\n    \"batchId\": \"batch-uuid-123\",\n    \"amount\": 5000\n  },\n  \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/notifications/image.png\",\n  \"metadata\": {\n    \"customField\": \"custom-value\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/notifications/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "notifications", "send"]
+            },
+            "description": "Send a notification to a user or academy through multiple channels (SMS, Email, WhatsApp, Push). Requires admin authentication. Note: The metadata field is automatically populated with source: 'admin_panel' and adminId from the authenticated admin user. You can provide additional metadata fields which will be merged with the auto-populated ones."
+          },
+          "response": []
+        },
+        {
+          "name": "Test Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipientType\": \"user\",\n  \"recipientId\": \"user-uuid-here\",\n  \"channels\": [\"push\", \"email\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/notifications/test",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "notifications", "test"]
+            },
+            "description": "Send a test notification to verify notification channels are working. Requires admin authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "Admin panel notification management endpoints for sending notifications to users and academies. Requires admin authentication."
+    },
+    {
+      "name": "User Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications?page=1&limit=10&isRead=",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page (default: 10, max: 100)"
+                },
+                {
+                  "key": "isRead",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by read status (true/false) - optional"
+                }
+              ]
+            },
+            "description": "Get paginated list of notifications for the authenticated user. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications", "unread-count"]
+            },
+            "description": "Get count of unread notifications for the authenticated user. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications/:id/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications", ":id", "read"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification-uuid-here",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Mark a specific notification as read. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Unread",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications/:id/unread",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications", ":id", "unread"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification-uuid-here",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Mark a specific notification as unread. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications", "read-all"]
+            },
+            "description": "Mark all notifications as read for the authenticated user. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification-uuid-here",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Delete a specific notification. Requires USER role authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "User notification endpoints for viewing and managing notifications. Requires USER role authentication."
+    },
+    {
+      "name": "Academy Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/notifications?page=1&limit=10&isRead=",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "notifications"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page (default: 10, max: 100)"
+                },
+                {
+                  "key": "isRead",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by read status (true/false) - optional"
+                }
+              ]
+            },
+            "description": "Get paginated list of notifications for the authenticated academy. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/notifications/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "notifications", "unread-count"]
+            },
+            "description": "Get count of unread notifications for the authenticated academy. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/notifications/:id/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "notifications", ":id", "read"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification-uuid-here",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Mark a specific notification as read. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Unread",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/notifications/:id/unread",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "notifications", ":id", "unread"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification-uuid-here",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Mark a specific notification as unread. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/notifications/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "notifications", "read-all"]
+            },
+            "description": "Mark all notifications as read for the authenticated academy. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/notifications/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "notifications", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification-uuid-here",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Delete a specific notification. Requires ACADEMY role authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "Academy notification endpoints for viewing and managing notifications. Requires ACADEMY role authentication."
     }
   ]
 }

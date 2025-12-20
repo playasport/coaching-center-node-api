@@ -522,6 +522,35 @@
       "failed": "Failed to get nearby academies"
     }
   },
+  "notification": {
+    "send": {
+      "success": "Notification sent successfully"
+    },
+    "list": {
+      "success": "Notifications retrieved successfully"
+    },
+    "markRead": {
+      "success": "Notification marked as read"
+    },
+    "markUnread": {
+      "success": "Notification marked as unread"
+    },
+    "markAllRead": {
+      "success": "All notifications marked as read"
+    },
+    "delete": {
+      "success": "Notification deleted successfully"
+    },
+    "unreadCount": {
+      "success": "Unread count retrieved successfully"
+    },
+    "create": {
+      "failed": "Failed to create notification"
+    },
+    "recipientNotFound": "Recipient not found",
+    "userDetailsNotFound": "User details not found",
+    "notFound": "Notification not found"
+  },
   "batch": {
     "create": {
       "success": "Batch created successfully",

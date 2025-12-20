@@ -21,6 +21,7 @@ export enum Section {
   PAYMENT = 'payment',
   BANNER = 'banner',
   CMS_PAGE = 'cms_page',
+  NOTIFICATION = 'notification',
 }
 
 export enum Action {

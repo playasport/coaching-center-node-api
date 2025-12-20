@@ -6028,6 +6028,253 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        Notification: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+              description: 'Notification UUID',
+            },
+            recipientType: {
+              type: 'string',
+              enum: ['user', 'academy'],
+              example: 'user',
+              description: 'Type of recipient',
+            },
+            recipientId: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Recipient ObjectId (User or Academy owner)',
+            },
+            title: {
+              type: 'string',
+              example: 'New Booking Confirmed',
+              description: 'Notification title',
+            },
+            body: {
+              type: 'string',
+              example: 'Your booking for Cricket Batch has been confirmed.',
+              description: 'Notification body/message',
+            },
+            channels: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['sms', 'email', 'whatsapp', 'push'],
+              },
+              example: ['push', 'email'],
+              description: 'Channels through which notification was sent',
+            },
+            priority: {
+              type: 'string',
+              enum: ['high', 'medium', 'low'],
+              example: 'medium',
+              description: 'Notification priority',
+            },
+            data: {
+              type: 'object',
+              additionalProperties: true,
+              nullable: true,
+              example: {
+                bookingId: 'BK-2024-0001',
+                type: 'booking',
+                batchId: 'batch-uuid-123',
+                amount: 5000,
+              },
+              description: 'Additional data for push notifications (values can be any JSON-serializable type: string, number, boolean, object, array)',
+            },
+            imageUrl: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              example: 'https://bucket.s3.region.amazonaws.com/notifications/image.png',
+              description: 'Image URL for push notifications (optional, can be null)',
+            },
+            isRead: {
+              type: 'boolean',
+              example: false,
+              description: 'Whether notification has been read',
+            },
+            readAt: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              example: '2024-01-15T10:30:00.000Z',
+              description: 'Timestamp when notification was read',
+            },
+            sent: {
+              type: 'boolean',
+              example: true,
+              description: 'Whether notification was successfully sent',
+            },
+            sentAt: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              example: '2024-01-15T10:00:00.000Z',
+              description: 'Timestamp when notification was sent',
+            },
+            error: {
+              type: 'string',
+              nullable: true,
+              example: null,
+              description: 'Error message if sending failed',
+            },
+            metadata: {
+              type: 'object',
+              additionalProperties: true,
+              nullable: true,
+              example: {
+                source: 'admin_panel',
+                adminId: 'admin-uuid-123',
+              },
+              description: 'Additional metadata',
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-15T10:00:00.000Z',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-15T10:00:00.000Z',
+            },
+          },
+        },
+        NotificationListResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Notifications retrieved successfully',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                notifications: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/Notification',
+                  },
+                },
+                pagination: {
+                  $ref: '#/components/schemas/Pagination',
+                },
+                unreadCount: {
+                  type: 'number',
+                  example: 5,
+                  description: 'Total count of unread notifications',
+                },
+              },
+            },
+          },
+        },
+        SendNotificationRequest: {
+          type: 'object',
+          required: ['recipientType', 'recipientId', 'title', 'body'],
+          properties: {
+            recipientType: {
+              type: 'string',
+              enum: ['user', 'academy'],
+              example: 'user',
+              description: 'Type of recipient',
+            },
+            recipientId: {
+              type: 'string',
+              example: 'user-uuid-here',
+              description: 'User ID or Academy ID (custom string ID)',
+            },
+            title: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 200,
+              example: 'New Booking Confirmed',
+              description: 'Notification title',
+            },
+            body: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 1000,
+              example: 'Your booking for Cricket Batch has been confirmed.',
+              description: 'Notification body/message',
+            },
+            channels: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['sms', 'email', 'whatsapp', 'push'],
+              },
+              minItems: 1,
+              default: ['push'],
+              example: ['push', 'email'],
+              description: 'Channels to send notification through',
+            },
+            priority: {
+              type: 'string',
+              enum: ['high', 'medium', 'low'],
+              default: 'medium',
+              example: 'medium',
+              description: 'Notification priority',
+            },
+            data: {
+              type: 'object',
+              additionalProperties: true,
+              nullable: true,
+              example: { bookingId: 'BK-2024-0001', type: 'booking' },
+              description: 'Additional data for push notifications',
+            },
+            imageUrl: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              example: 'https://bucket.s3.region.amazonaws.com/notifications/image.png',
+              description: 'Image URL for push notifications (optional, can be null)',
+            },
+            metadata: {
+              type: 'object',
+              additionalProperties: true,
+              nullable: true,
+              example: {
+                customField: 'custom-value',
+              },
+              description: 'Additional metadata (optional). Note: source and adminId are automatically populated from authenticated admin user.',
+            },
+          },
+        },
+        TestNotificationRequest: {
+          type: 'object',
+          required: ['recipientType', 'recipientId'],
+          properties: {
+            recipientType: {
+              type: 'string',
+              enum: ['user', 'academy'],
+              example: 'user',
+              description: 'Type of recipient',
+            },
+            recipientId: {
+              type: 'string',
+              example: 'user-uuid-here',
+              description: 'User ID or Academy ID (custom string ID)',
+            },
+            channels: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['sms', 'email', 'whatsapp', 'push'],
+              },
+              minItems: 1,
+              default: ['push'],
+              example: ['push', 'email'],
+              description: 'Channels to test',
+            },
+          },
+        },
       },
     },
     tags: [
@@ -6183,6 +6430,18 @@ const options: swaggerJsdoc.Options = {
         name: 'Academy Banners',
         description: 'Banner endpoints for coaching centers to view banners displayed on their center pages',
       },
+      {
+        name: 'Admin Notifications',
+        description: 'Admin panel notification management endpoints for sending notifications to users and academies',
+      },
+      {
+        name: 'User Notifications',
+        description: 'User notification endpoints for viewing and managing notifications',
+      },
+      {
+        name: 'Academy Notifications',
+        description: 'Academy notification endpoints for viewing and managing notifications',
+      },
     ],
     'x-tagGroups': [
       {
@@ -6230,7 +6489,12 @@ const options: swaggerJsdoc.Options = {
           'Admin Payments',
           'Admin Banners',
           'Admin CMS Pages',
+          'Admin Notifications',
         ],
+      },
+      {
+        name: 'Notifications',
+        tags: ['User Notifications', 'Academy Notifications'],
       },
     ],
   },

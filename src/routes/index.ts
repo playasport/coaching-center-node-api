@@ -17,6 +17,8 @@ import roleRoutes from './role.routes';
 import participantRoutes from './participant.routes';
 import bookingRoutes from './booking.routes';
 import webhookRoutes from './webhook.routes';
+import notificationRoutes from './notification.routes';
+import academyNotificationRoutes from './academy/notification.routes';
 import academyRoutes from './academy.routes';
 import homeRoutes from './home.routes';
 import reelRoutes from './reel.routes';
@@ -36,6 +38,7 @@ router.use('/academy/auth', academyAuthRoutes);
 router.use('/user/auth', userAuthRoutes);
 router.use('/user/participant', participantRoutes);
 router.use('/user/booking', bookingRoutes);
+router.use('/user/notifications', notificationRoutes);
 router.use('/location', locationRoutes);
 
 /**
@@ -206,6 +209,7 @@ router.use('/academy/fee-type-config', feeTypeConfigRoutes);
 router.use('/academy/booking', academyBookingRoutes);
 router.use('/academy/my-student', studentRoutes);
 router.use('/academy/banners', academyBannerRoutes);
+router.use('/academy/notifications', academyNotificationRoutes);
 router.use('/role', roleRoutes);
 router.use('/webhook', webhookRoutes);
 router.use('/home', homeRoutes);

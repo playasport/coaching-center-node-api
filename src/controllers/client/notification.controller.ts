@@ -1,0 +1,154 @@
+import { Request, Response, NextFunction } from 'express';
+import { ApiResponse } from '../../utils/ApiResponse';
+import { ApiError } from '../../utils/ApiError';
+import * as notificationService from '../../services/common/notification.service';
+import { t } from '../../utils/i18n';
+
+/**
+ * Get notifications for user
+ */
+export const getNotifications = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const isRead = req.query.isRead === 'true' ? true : req.query.isRead === 'false' ? false : undefined;
+
+    const result = await notificationService.getNotifications(
+      'user',
+      req.user.id,
+      page,
+      limit,
+      isRead
+    );
+
+    const response = new ApiResponse(200, result, t('notification.list.success'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get unread count for user
+ */
+export const getUnreadCount = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const count = await notificationService.getUnreadCount('user', req.user.id);
+
+    const response = new ApiResponse(200, { count }, t('notification.unreadCount.success'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Mark notification as read
+ */
+export const markAsRead = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const { id } = req.params;
+
+    const notification = await notificationService.markAsRead(id, 'user', req.user.id);
+
+    const response = new ApiResponse(200, notification, t('notification.markRead.success'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Mark notification as unread
+ */
+export const markAsUnread = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const { id } = req.params;
+
+    const notification = await notificationService.markAsUnread(id, 'user', req.user.id);
+
+    const response = new ApiResponse(200, notification, t('notification.markUnread.success'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Mark all notifications as read
+ */
+export const markAllAsRead = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const result = await notificationService.markAllAsRead('user', req.user.id);
+
+    const response = new ApiResponse(200, result, t('notification.markAllRead.success'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Delete notification
+ */
+export const deleteNotification = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const { id } = req.params;
+
+    await notificationService.deleteNotification(id, 'user', req.user.id);
+
+    const response = new ApiResponse(200, null, t('notification.delete.success'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
