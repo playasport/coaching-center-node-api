@@ -13,6 +13,7 @@ import paymentRoutes from './payment.routes';
 import bannerRoutes from './banner.routes';
 import cmsPageRoutes from './cmsPage.routes';
 import notificationRoutes from './notification.routes';
+import settingsRoutes from './settings.routes';
 
 const router = Router();
 
@@ -31,5 +32,6 @@ router.use('/payments', paymentRoutes);
 router.use('/banners', bannerRoutes);
 router.use('/cms-pages', cmsPageRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/settings', settingsRoutes);
 
 export default router;

@@ -5291,6 +5291,98 @@ const options: swaggerJsdoc.Options = {
               },
             },
           },
+          basic_info: {
+            type: 'object',
+            nullable: true,
+            description: 'Extended basic information',
+            properties: {
+              about_us: { type: 'string', nullable: true, example: 'About our platform...' },
+              support_email: { type: 'string', format: 'email', nullable: true, example: 'support@playasport.in' },
+              support_phone: { type: 'string', nullable: true, example: '+91-9876543210' },
+              meta_description: { type: 'string', nullable: true, example: 'Meta description for SEO' },
+              meta_keywords: { type: 'string', nullable: true, example: 'sports, coaching, academy' },
+            },
+          },
+          fees: {
+            type: 'object',
+            nullable: true,
+            description: 'Fee configuration',
+            properties: {
+              platform_fee: { type: 'number', nullable: true, example: 200, description: 'Platform fee amount' },
+              gst_percentage: { type: 'number', nullable: true, example: 18, description: 'GST percentage' },
+              gst_enabled: { type: 'boolean', nullable: true, example: true, description: 'Whether GST is enabled' },
+              currency: { type: 'string', nullable: true, example: 'INR', description: 'Currency code' },
+            },
+          },
+          notifications: {
+            type: 'object',
+            nullable: true,
+            description: 'Notification configuration (sensitive fields excluded in public endpoints)',
+            properties: {
+              enabled: { type: 'boolean', nullable: true, example: true },
+              sms: {
+                type: 'object',
+                nullable: true,
+                properties: {
+                  enabled: { type: 'boolean', nullable: true, example: true },
+                  provider: { type: 'string', nullable: true, example: 'twilio' },
+                  from_number: { type: 'string', nullable: true, example: '+1234567890' },
+                  sender_id: { type: 'string', nullable: true },
+                },
+              },
+              email: {
+                type: 'object',
+                nullable: true,
+                properties: {
+                  enabled: { type: 'boolean', nullable: true, example: true },
+                  host: { type: 'string', nullable: true, example: 'smtp.gmail.com' },
+                  port: { type: 'number', nullable: true, example: 587 },
+                  from: { type: 'string', nullable: true, example: 'noreply@playasport.in' },
+                  from_name: { type: 'string', nullable: true, example: 'PlayAsport' },
+                  secure: { type: 'boolean', nullable: true, example: false },
+                },
+              },
+              whatsapp: {
+                type: 'object',
+                nullable: true,
+                properties: {
+                  enabled: { type: 'boolean', nullable: true, example: true },
+                  provider: { type: 'string', nullable: true, example: 'twilio' },
+                  from_number: { type: 'string', nullable: true, example: '+1234567890' },
+                },
+              },
+              push: {
+                type: 'object',
+                nullable: true,
+                properties: {
+                  enabled: { type: 'boolean', nullable: true, example: true },
+                },
+              },
+            },
+          },
+          payment: {
+            type: 'object',
+            nullable: true,
+            description: 'Payment configuration (sensitive fields excluded in public endpoints)',
+            properties: {
+              enabled: { type: 'boolean', nullable: true, example: true, description: 'Whether payment gateway is enabled' },
+              gateway: { type: 'string', nullable: true, example: 'razorpay', enum: ['razorpay', 'stripe', 'payu', 'cashfree'] },
+              razorpay: {
+                type: 'object',
+                nullable: true,
+                properties: {
+                  enabled: { type: 'boolean', nullable: true, example: true },
+                },
+              },
+              stripe: {
+                type: 'object',
+                nullable: true,
+                properties: {
+                  enabled: { type: 'boolean', nullable: true, example: false },
+                },
+              },
+            },
+          },
           createdAt: {
             type: 'string',
             format: 'date-time',
@@ -6435,6 +6527,10 @@ const options: swaggerJsdoc.Options = {
         description: 'Admin panel notification management endpoints for sending notifications to users and academies',
       },
       {
+        name: 'Admin Settings',
+        description: 'Admin panel settings management endpoints for managing application settings including fees, notifications, payment, and basic information (includes sensitive data)',
+      },
+      {
         name: 'User Notifications',
         description: 'User notification endpoints for viewing and managing notifications',
       },
@@ -6490,6 +6586,7 @@ const options: swaggerJsdoc.Options = {
           'Admin Banners',
           'Admin CMS Pages',
           'Admin Notifications',
+          'Admin Settings',
         ],
       },
       {

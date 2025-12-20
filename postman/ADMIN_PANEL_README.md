@@ -117,6 +117,19 @@ Permissions are structured as:
 - `PATCH /admin/coaching-centers/:id` - Update coaching center
 - `DELETE /admin/coaching-centers/:id` - Delete coaching center
 
+### Settings Management (`/admin/settings`)
+
+- `GET /admin/settings` - Get all settings (includes sensitive data, decrypted)
+- `PUT /admin/settings` - Update settings (supports partial updates)
+- `PATCH /admin/settings/basic-info` - Update basic information
+- `PATCH /admin/settings/fees` - Update fee configuration (platform fee, GST, currency)
+- `PATCH /admin/settings/notifications` - Update notification configuration (SMS, Email, WhatsApp, Push)
+- `PATCH /admin/settings/payment` - Update payment gateway configuration
+- `PATCH /admin/settings/payment/toggle` - Toggle payment gateway enable/disable
+- `POST /admin/settings/reset` - Reset settings to default values
+
+**Note:** Sensitive fields (API keys, passwords, credentials) are automatically encrypted at rest. Admin endpoints require `settings:view` (for GET) or `settings:update` (for POST/PATCH/PUT) permissions.
+
 ## Testing Workflow
 
 ### 1. Initial Setup

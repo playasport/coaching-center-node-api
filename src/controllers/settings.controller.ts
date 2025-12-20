@@ -5,7 +5,7 @@ import { t } from '../utils/i18n';
 import * as settingsService from '../services/common/settings.service';
 
 /**
- * Get application settings
+ * Get application settings (public - excludes sensitive data)
  */
 export const getSettings = async (
   _req: Request,
@@ -13,7 +13,7 @@ export const getSettings = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const settings = await settingsService.getSettings();
+    const settings = await settingsService.getPublicSettings();
     const response = new ApiResponse(200, { ...settings }, t('settings.get.success'));
     res.json(response);
   } catch (error) {

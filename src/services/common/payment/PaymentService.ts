@@ -63,9 +63,29 @@ export class PaymentService {
   }
 
   /**
+   * Check if payment is enabled
+   */
+  async isPaymentEnabled(): Promise<boolean> {
+    try {
+      const { getSettingValue } = await import('../common/settings.service');
+      const paymentEnabled = await getSettingValue<boolean>('payment.enabled');
+      return paymentEnabled ?? true; // Default to enabled if not set
+    } catch (error) {
+      logger.error('Failed to check payment enabled status', error);
+      return true; // Default to enabled on error
+    }
+  }
+
+  /**
    * Create a payment order
    */
   async createOrder(orderData: CreateOrderData): Promise<PaymentOrderResponse> {
+    // Check if payment is enabled
+    const isEnabled = await this.isPaymentEnabled();
+    if (!isEnabled) {
+      throw new Error('Payment gateway is currently disabled. Please contact support.');
+    }
+
     if (!this.gateway) {
       throw new Error('Payment gateway not initialized');
     }

@@ -17,11 +17,103 @@ export interface ContactInfo {
   youtube?: string | null;
 }
 
+// Fee configuration interface
+export interface FeeConfig {
+  platform_fee?: number | null;
+  gst_percentage?: number | null;
+  gst_enabled?: boolean | null;
+  currency?: string | null;
+}
+
+// SMS configuration interface
+export interface SmsConfig {
+  enabled?: boolean | null;
+  provider?: string | null;
+  api_key?: string | null; // Encrypted
+  api_secret?: string | null; // Encrypted
+  from_number?: string | null;
+  sender_id?: string | null;
+}
+
+// Email configuration interface
+export interface EmailConfig {
+  enabled?: boolean | null;
+  host?: string | null;
+  port?: number | null;
+  username?: string | null; // Encrypted
+  password?: string | null; // Encrypted
+  from?: string | null;
+  from_name?: string | null;
+  secure?: boolean | null;
+}
+
+// WhatsApp configuration interface
+export interface WhatsAppConfig {
+  enabled?: boolean | null;
+  provider?: string | null;
+  api_key?: string | null; // Encrypted
+  api_secret?: string | null; // Encrypted
+  from_number?: string | null;
+  account_sid?: string | null; // Encrypted (for Twilio)
+  auth_token?: string | null; // Encrypted (for Twilio)
+}
+
+// Notification configuration interface
+export interface NotificationConfig {
+  enabled?: boolean | null;
+  sms?: SmsConfig | null;
+  email?: EmailConfig | null;
+  whatsapp?: WhatsAppConfig | null;
+  push?: {
+    enabled?: boolean | null;
+  } | null;
+}
+
+// Payment configuration interface
+export interface PaymentConfig {
+  enabled?: boolean | null;
+  gateway?: string | null; // 'razorpay' | 'stripe' | 'payu' | 'cashfree'
+  razorpay?: {
+    key_id?: string | null; // Encrypted
+    key_secret?: string | null; // Encrypted
+    enabled?: boolean | null;
+  } | null;
+  stripe?: {
+    api_key?: string | null; // Encrypted
+    secret_key?: string | null; // Encrypted
+    enabled?: boolean | null;
+  } | null;
+  // Add other payment gateways as needed
+}
+
+// Basic information interface (extended)
+export interface BasicInfo {
+  app_name?: string | null;
+  app_logo?: string | null;
+  about_us?: string | null;
+  support_email?: string | null;
+  support_phone?: string | null;
+  meta_description?: string | null;
+  meta_keywords?: string | null;
+}
+
 // Settings interface - flexible structure
 export interface Settings {
+  // Basic Information
   app_name?: string | null;
   app_logo?: string | null;
   contact?: ContactInfo | null;
+  basic_info?: BasicInfo | null;
+  
+  // Fee Configuration
+  fees?: FeeConfig | null;
+  
+  // Notification Configuration
+  notifications?: NotificationConfig | null;
+  
+  // Payment Configuration
+  payment?: PaymentConfig | null;
+  
   // Additional dynamic fields can be added here
   // Using Schema.Types.Mixed for future flexibility
   [key: string]: any; // Allow additional dynamic fields

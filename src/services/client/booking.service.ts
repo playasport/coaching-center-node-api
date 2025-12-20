@@ -438,17 +438,23 @@ export const getBookingSummary = async (
     const totalBaseFee = roundToTwoDecimals(perParticipantFee * participantCount);
     const baseAmount = roundToTwoDecimals(totalAdmissionFee + totalBaseFee);
 
-    // Platform fee (from config, default 200)
-    const platformFee = config.booking.platformFee;
+    // Get fee configuration from settings (fallback to config for backward compatibility)
+    const { getSettingValue } = await import('../common/settings.service');
+    const platformFeeSetting = await getSettingValue<number>('fees.platform_fee');
+    const gstPercentageSetting = await getSettingValue<number>('fees.gst_percentage');
+    const gstEnabled = await getSettingValue<boolean>('fees.gst_enabled');
+    
+    const platformFee = platformFeeSetting ?? config.booking.platformFee;
+    const gstPercentage = gstPercentageSetting ?? config.booking.gstPercentage;
+    const isGstEnabled = gstEnabled ?? true;
 
     // Subtotal before GST
     const subtotal = roundToTwoDecimals(baseAmount + platformFee);
 
-    // GST calculation (from config, default 18%)
-    const gstPercentage = config.booking.gstPercentage;
-    const gst = roundToTwoDecimals((subtotal * gstPercentage) / 100);
+    // GST calculation (from settings, default from config if not set, only if GST is enabled)
+    const gst = isGstEnabled ? roundToTwoDecimals((subtotal * gstPercentage) / 100) : 0;
 
-    // Total amount including GST
+    // Total amount including GST (if enabled)
     const totalAmount = roundToTwoDecimals(subtotal + gst);
 
     if (totalAmount <= 0) {
