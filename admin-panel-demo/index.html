@@ -60,6 +60,10 @@
                     <span class="nav-icon">👔</span>
                     <span>Roles</span>
                 </a>
+                <a href="#" class="nav-item" data-page="banners" data-section="banner">
+                    <span class="nav-icon">🖼️</span>
+                    <span>Banners</span>
+                </a>
                 <a href="#" class="nav-item" data-page="profile">
                     <span class="nav-icon">👤</span>
                     <span>Profile</span>
@@ -252,6 +256,66 @@
                         <tbody id="centersTableBody">
                             <tr>
                                 <td colspan="5" class="text-center">Loading coaching centers...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Banners Page -->
+            <div id="bannersPage" class="page">
+                <div class="page-header">
+                    <h2>Banner Management</h2>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button id="addBannerBtn" class="btn btn-primary" style="display: none;">+ Add Banner</button>
+                        <div class="pagination-controls">
+                            <button id="prevBannersBtn" class="btn btn-outline">Previous</button>
+                            <span id="bannersPageInfo">Page 1 of 1</span>
+                            <button id="nextBannersBtn" class="btn btn-outline">Next</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <select id="bannerPositionFilter" class="form-control" style="width: 200px;">
+                        <option value="">All Positions</option>
+                        <option value="homepage_top">Homepage Top</option>
+                        <option value="homepage_middle">Homepage Middle</option>
+                        <option value="homepage_bottom">Homepage Bottom</option>
+                        <option value="category_top">Category Top</option>
+                        <option value="category_sidebar">Category Sidebar</option>
+                        <option value="sport_page">Sport Page</option>
+                        <option value="center_page">Center Page</option>
+                        <option value="search_results">Search Results</option>
+                        <option value="mobile_app_home">Mobile App Home</option>
+                        <option value="mobile_app_category">Mobile App Category</option>
+                    </select>
+                    <select id="bannerStatusFilter" class="form-control" style="width: 150px;">
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="expired">Expired</option>
+                        <option value="draft">Draft</option>
+                    </select>
+                    <input type="text" id="bannerSearchInput" class="form-control" placeholder="Search by title..." style="width: 200px;">
+                    <button id="refreshBannersBtn" class="btn btn-outline">Refresh</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Image</th>
+                                <th>Title</th>
+                                <th>Position</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Views</th>
+                                <th>Clicks</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bannersTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center">Loading banners...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -477,6 +541,124 @@
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" id="cancelPermissionBtn">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Banner Modal -->
+    <div id="bannerModal" class="modal">
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2 id="bannerModalTitle">Create New Banner</h2>
+                <button class="modal-close" id="closeBannerModal">&times;</button>
+            </div>
+            <form id="bannerForm" class="form">
+                <div class="form-group">
+                    <label for="bannerTitle">Title *</label>
+                    <input type="text" id="bannerTitle" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="bannerDescription">Description</label>
+                    <textarea id="bannerDescription" class="form-control" rows="3"></textarea>
+                </div>
+                
+                <!-- Image Upload Section -->
+                <div class="form-group">
+                    <label>Desktop Image *</label>
+                    <div style="display: flex; gap: 10px; align-items: flex-start;">
+                        <div style="flex: 1;">
+                            <input type="file" id="bannerDesktopImage" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" class="form-control">
+                            <small>JPEG, PNG, WebP, or GIF (max 5MB)</small>
+                        </div>
+                        <button type="button" id="uploadDesktopImageBtn" class="btn btn-outline">Upload</button>
+                    </div>
+                    <div id="desktopImagePreview" style="margin-top: 10px; display: none;">
+                        <img id="desktopImagePreviewImg" src="" alt="Desktop Preview" style="max-width: 200px; max-height: 150px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="margin-top: 5px;">
+                            <small id="desktopImageUrl" style="color: var(--text-secondary); word-break: break-all;"></small>
+                        </div>
+                    </div>
+                    <input type="hidden" id="bannerImageUrl">
+                </div>
+
+                <div class="form-group">
+                    <label>Mobile Image (Optional)</label>
+                    <div style="display: flex; gap: 10px; align-items: flex-start;">
+                        <div style="flex: 1;">
+                            <input type="file" id="bannerMobileImage" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" class="form-control">
+                            <small>JPEG, PNG, WebP, or GIF (max 5MB)</small>
+                        </div>
+                        <button type="button" id="uploadMobileImageBtn" class="btn btn-outline">Upload</button>
+                    </div>
+                    <div id="mobileImagePreview" style="margin-top: 10px; display: none;">
+                        <img id="mobileImagePreviewImg" src="" alt="Mobile Preview" style="max-width: 200px; max-height: 150px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="margin-top: 5px;">
+                            <small id="mobileImageUrl" style="color: var(--text-secondary); word-break: break-all;"></small>
+                        </div>
+                    </div>
+                    <input type="hidden" id="bannerMobileImageUrl">
+                </div>
+
+                <div class="form-group">
+                    <label for="bannerLinkUrl">Link URL</label>
+                    <input type="text" id="bannerLinkUrl" class="form-control" placeholder="/sports/cricket or https://example.com">
+                </div>
+                <div class="form-group">
+                    <label for="bannerLinkType">Link Type</label>
+                    <select id="bannerLinkType" class="form-control">
+                        <option value="internal">Internal</option>
+                        <option value="external">External</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="bannerPosition">Position *</label>
+                    <select id="bannerPosition" class="form-control" required>
+                        <option value="">Select Position</option>
+                        <option value="homepage_top">Homepage Top</option>
+                        <option value="homepage_middle">Homepage Middle</option>
+                        <option value="homepage_bottom">Homepage Bottom</option>
+                        <option value="category_top">Category Top</option>
+                        <option value="category_sidebar">Category Sidebar</option>
+                        <option value="sport_page">Sport Page</option>
+                        <option value="center_page">Center Page</option>
+                        <option value="search_results">Search Results</option>
+                        <option value="mobile_app_home">Mobile App Home</option>
+                        <option value="mobile_app_category">Mobile App Category</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="bannerPriority">Priority</label>
+                    <input type="number" id="bannerPriority" class="form-control" value="0" min="0">
+                    <small>Higher numbers appear first (default: 0)</small>
+                </div>
+                <div class="form-group">
+                    <label for="bannerStatus">Status</label>
+                    <select id="bannerStatus" class="form-control">
+                        <option value="draft">Draft</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="bannerTargetAudience">Target Audience</label>
+                    <select id="bannerTargetAudience" class="form-control">
+                        <option value="all">All Users</option>
+                        <option value="new_users">New Users</option>
+                        <option value="existing_users">Existing Users</option>
+                        <option value="premium_users">Premium Users</option>
+                        <option value="mobile_users">Mobile Users</option>
+                        <option value="web_users">Web Users</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="bannerIsActive" checked> Active
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBannerBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Banner</button>
                 </div>
             </form>
         </div>

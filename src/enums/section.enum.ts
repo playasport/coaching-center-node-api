@@ -19,6 +19,7 @@ export enum Section {
   DASHBOARD = 'dashboard',
   TRANSACTION = 'transaction',
   PAYMENT = 'payment',
+  BANNER = 'banner',
 }
 
 export enum Action {

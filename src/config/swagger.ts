@@ -6163,6 +6163,18 @@ const options: swaggerJsdoc.Options = {
         name: 'Admin Payments',
         description: 'Admin panel payment management endpoints for viewing and managing payment transactions specifically with permission-based access control',
       },
+      {
+        name: 'Admin Banners',
+        description: 'Admin panel banner management endpoints for creating, updating, and managing promotional banners with advanced features like scheduling, positioning, and targeting',
+      },
+      {
+        name: 'Banners',
+        description: 'Public banner endpoints for users to fetch active banners by position with filtering options',
+      },
+      {
+        name: 'Academy Banners',
+        description: 'Banner endpoints for coaching centers to view banners displayed on their center pages',
+      },
     ],
     'x-tagGroups': [
       {
@@ -6180,6 +6192,7 @@ const options: swaggerJsdoc.Options = {
           'Fee Type',
           'Academy Booking',
           'Academy Student',
+          'Academy Banners',
         ],
       },
       {
@@ -6188,7 +6201,7 @@ const options: swaggerJsdoc.Options = {
       },
       {
         name: 'Public Endpoints',
-        tags: ['Academy', 'Home', 'Basic', 'Location', 'Sport', 'Reels'],
+        tags: ['Academy', 'Home', 'Basic', 'Location', 'Sport', 'Reels', 'Banners'],
       },
       {
         name: 'System & Utilities',
@@ -6207,6 +6220,7 @@ const options: swaggerJsdoc.Options = {
           'Admin Bookings',
           'Admin Transactions',
           'Admin Payments',
+          'Admin Banners',
         ],
       },
     ],

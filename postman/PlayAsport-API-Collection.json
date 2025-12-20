@@ -2673,6 +2673,308 @@
         }
       ],
       "description": "Public endpoints for viewing reels. Returns only approved reels with completed video processing from active users."
+    },
+    {
+      "name": "Banners",
+      "item": [
+        {
+          "name": "Get Banners by Position",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/banners/homepage_top?limit=5&sportId=&centerId=&targetAudience=all",
+              "host": ["{{baseUrl}}"],
+              "path": ["banners", "homepage_top"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5",
+                  "description": "Maximum number of banners to return (default: 10)"
+                },
+                {
+                  "key": "sportId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter banners by sport ID (optional)"
+                },
+                {
+                  "key": "centerId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter banners by center ID (optional)"
+                },
+                {
+                  "key": "targetAudience",
+                  "value": "all",
+                  "disabled": true,
+                  "description": "Filter by target audience (all, new_users, existing_users, premium_users, mobile_users, web_users)"
+                }
+              ]
+            },
+            "description": "Get active banners for a specific position. Banners are filtered by scheduling, targeting, and sorted by priority. Public endpoint (authentication optional)."
+          },
+          "response": [
+            {
+              "name": "Success - Banners List",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/banners/homepage_top?limit=5",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["banners", "homepage_top"],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banners retrieved successfully\",\n  \"data\": {\n    \"banners\": [\n      {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"title\": \"Summer Sports Camp 2024\",\n        \"description\": \"Join our exciting summer sports camp\",\n        \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/summer-camp.jpg\",\n        \"mobileImageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/summer-camp-mobile.jpg\",\n        \"linkUrl\": \"/sports/cricket\",\n        \"linkType\": \"internal\",\n        \"position\": \"homepage_top\",\n        \"priority\": 10\n      },\n      {\n        \"id\": \"660e8400-e29b-41d4-a716-446655440001\",\n        \"title\": \"Winter Registration Open\",\n        \"description\": \"Register now for winter sports coaching\",\n        \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/winter.jpg\",\n        \"mobileImageUrl\": null,\n        \"linkUrl\": \"/campaigns/winter-2024\",\n        \"linkType\": \"internal\",\n        \"position\": \"homepage_top\",\n        \"priority\": 8\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Track Banner View",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/banners/:id/track/view",
+              "host": ["{{baseUrl}}"],
+              "path": ["banners", ":id", "track", "view"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "550e8400-e29b-41d4-a716-446655440000",
+                  "description": "Banner ID"
+                }
+              ]
+            },
+            "description": "Track banner view (increment viewCount). This endpoint is optional and failures are silently ignored. Public endpoint (authentication optional)."
+          },
+          "response": [
+            {
+              "name": "Success - View Tracked",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/banners/550e8400-e29b-41d4-a716-446655440000/track/view",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["banners", "550e8400-e29b-41d4-a716-446655440000", "track", "view"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banner view tracked successfully\",\n  \"data\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Track Banner Click",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/banners/:id/track/click",
+              "host": ["{{baseUrl}}"],
+              "path": ["banners", ":id", "track", "click"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "550e8400-e29b-41d4-a716-446655440000",
+                  "description": "Banner ID"
+                }
+              ]
+            },
+            "description": "Track banner click (increment clickCount). This endpoint is optional and failures are silently ignored. Public endpoint (authentication optional)."
+          },
+          "response": [
+            {
+              "name": "Success - Click Tracked",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/banners/550e8400-e29b-41d4-a716-446655440000/track/click",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["banners", "550e8400-e29b-41d4-a716-446655440000", "track", "click"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banner click tracked successfully\",\n  \"data\": null\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Public banner endpoints for users to fetch active banners by position with filtering options. Authentication is optional."
+    },
+    {
+      "name": "Academy Banners",
+      "item": [
+        {
+          "name": "Get All Center Banners",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/banners?limit=5&sportId=",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "banners"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5",
+                  "description": "Maximum number of banners per position (default: 5)"
+                },
+                {
+                  "key": "sportId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter banners by sport ID (optional)"
+                }
+              ]
+            },
+            "description": "Get all active banners that are displayed on the coaching center's page. Returns banners grouped by position. Requires authentication with ACADEMY role."
+          },
+          "response": [
+            {
+              "name": "Success - Banners by Position",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/banners?limit=5",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "banners"],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banners retrieved successfully\",\n  \"data\": {\n    \"banners\": {\n      \"center_page\": [\n        {\n          \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n          \"title\": \"Elite Academy Special Offer\",\n          \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/elite-academy.jpg\",\n          \"linkUrl\": \"/centers/elite-academy\",\n          \"linkType\": \"internal\",\n          \"position\": \"center_page\",\n          \"priority\": 10\n        }\n      ],\n      \"homepage_top\": [\n        {\n          \"id\": \"660e8400-e29b-41d4-a716-446655440001\",\n          \"title\": \"Summer Sports Camp\",\n          \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/summer.jpg\",\n          \"linkUrl\": \"/campaigns/summer\",\n          \"linkType\": \"internal\",\n          \"position\": \"homepage_top\",\n          \"priority\": 8\n        }\n      ]\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Banners by Position",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/banners/center_page?limit=10&sportId=",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "banners", "center_page"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Maximum number of banners to return (default: 10)"
+                },
+                {
+                  "key": "sportId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter banners by sport ID (optional)"
+                }
+              ]
+            },
+            "description": "Get active banners for a specific position that are displayed on the coaching center's page. Requires authentication with ACADEMY role."
+          },
+          "response": [
+            {
+              "name": "Success - Banners List",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/banners/center_page?limit=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "banners", "center_page"],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banners retrieved successfully\",\n  \"data\": {\n    \"banners\": [\n      {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"title\": \"Elite Academy Special Offer\",\n        \"description\": \"Special discount for new students\",\n        \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/elite-academy.jpg\",\n        \"mobileImageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/elite-academy-mobile.jpg\",\n        \"linkUrl\": \"/centers/elite-academy\",\n        \"linkType\": \"internal\",\n        \"position\": \"center_page\",\n        \"priority\": 10\n      }\n    ]\n  }\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Banner endpoints for coaching centers to view banners displayed on their center pages. Requires authentication with ACADEMY role."
     }
   ]
 }

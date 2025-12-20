@@ -75,6 +75,11 @@
       "key": "paymentId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "bannerId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -2588,6 +2593,476 @@
               "body": "{\n  \"success\": true,\n  \"message\": \"Payment status updated successfully\",\n  \"data\": {\n    \"payment\": {\n      \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"booking\": {\n        \"id\": \"507f1f77bcf86cd799439011\",\n        \"booking_id\": \"BK123456\"\n      },\n      \"user\": {\n        \"id\": \"507f1f77bcf86cd799439016\",\n        \"firstName\": \"John\",\n        \"lastName\": \"Doe\",\n        \"email\": \"john.doe@example.com\",\n        \"mobile\": \"+919876543210\"\n      },\n      \"razorpay_order_id\": \"order_MNOP1234567890\",\n      \"razorpay_payment_id\": \"pay_ABCD1234567890\",\n      \"razorpay_refund_id\": null,\n      \"type\": \"payment\",\n      \"status\": \"success\",\n      \"source\": \"manual\",\n      \"amount\": 5000,\n      \"currency\": \"INR\",\n      \"payment_method\": \"card\",\n      \"failure_reason\": null,\n      \"metadata\": {\n        \"adminUpdatedBy\": \"admin-user-id\",\n        \"adminUpdatedAt\": \"2024-01-15T11:00:00.000Z\",\n        \"adminNotes\": \"Manually verified payment\"\n      },\n      \"processed_at\": \"2024-01-15T10:30:00.000Z\",\n      \"created_at\": \"2024-01-15T10:25:00.000Z\",\n      \"updatedAt\": \"2024-01-15T11:00:00.000Z\"\n    }\n  }\n}"
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "Banner Management",
+      "description": "Advanced banner management endpoints for creating, updating, and managing promotional banners with scheduling, positioning, targeting, and analytics",
+      "item": [
+        {
+          "name": "Get All Banners",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.banners && response.data.banners.length > 0) {",
+                  "        pm.collectionVariables.set('bannerId', response.data.banners[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/banners?page=1&limit=10&position=homepage_top&status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "banners"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "position",
+                  "value": "homepage_top",
+                  "description": "Filter by position (homepage_top, homepage_middle, homepage_bottom, category_top, etc.)"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by status (active, inactive, expired, draft)"
+                },
+                {
+                  "key": "targetAudience",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by target audience (all, new_users, existing_users, etc.)"
+                },
+                {
+                  "key": "isActive",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by active status (true/false)"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Search by title or description"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all banners with pagination and filters. Requires banner:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Banner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Summer Sports Camp 2024\",\n  \"description\": \"Join our exciting summer sports camp\",\n  \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/summer-camp.jpg\",\n  \"mobileImageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/summer-camp-mobile.jpg\",\n  \"linkUrl\": \"/sports/cricket\",\n  \"linkType\": \"internal\",\n  \"position\": \"homepage_top\",\n  \"priority\": 10,\n  \"status\": \"active\",\n  \"targetAudience\": \"all\",\n  \"isActive\": true,\n  \"isOnlyForAcademy\": false,\n  \"sportIds\": [\"sport-id-1\"],\n  \"centerIds\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/banners",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "banners"]
+            },
+            "description": "Create a new banner. Requires banner:create permission. **Recommended:** Upload images first using the upload endpoints, then use the returned URLs here. **Image Formats:** JPEG, PNG, WebP, GIF (max 5MB each)."
+          },
+          "response": [
+            {
+              "name": "Success - Banner Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Summer Sports Camp 2024\",\n  \"description\": \"Join our exciting summer sports camp\",\n  \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/desktop/uuid.jpg\",\n  \"mobileImageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/mobile/uuid.jpg\",\n  \"linkUrl\": \"/sports/cricket\",\n  \"linkType\": \"internal\",\n  \"position\": \"homepage_top\",\n  \"priority\": 10,\n  \"status\": \"active\",\n  \"targetAudience\": \"all\",\n  \"isActive\": true,\n  \"isOnlyForAcademy\": false,\n  \"sportIds\": [\"sport-id-1\"],\n  \"centerIds\": null\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/banners",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "banners"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banner created successfully\",\n  \"data\": {\n    \"banner\": {\n      \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"title\": \"Summer Sports Camp 2024\",\n      \"description\": \"Join our exciting summer sports camp\",\n      \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/desktop/uuid.jpg\",\n      \"mobileImageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/mobile/uuid.jpg\",\n      \"linkUrl\": \"/sports/cricket\",\n      \"linkType\": \"internal\",\n      \"position\": \"homepage_top\",\n      \"priority\": 10,\n      \"status\": \"active\",\n      \"targetAudience\": \"all\",\n      \"isActive\": true,\n      \"isOnlyForAcademy\": false,\n      \"clickCount\": 0,\n      \"viewCount\": 0,\n      \"createdAt\": \"2024-01-15T10:00:00.000Z\",\n      \"updatedAt\": \"2024-01-15T10:00:00.000Z\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Upload Banner Image (Single)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": [],
+                  "description": "Banner image file (JPEG, PNG, WebP, or GIF). Max size 5MB."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/banners/upload-image?type=desktop",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "banners", "upload-image"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "desktop",
+                  "description": "Image type: desktop or mobile",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Upload a single banner image (desktop or mobile). Images are automatically compressed (except GIF). Returns imageUrl. Requires banner:create permission."
+          },
+          "response": [
+            {
+              "name": "Success - Image Uploaded",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": []
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/banners/upload-image?type=desktop",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "banners", "upload-image"],
+                  "query": [
+                    {
+                      "key": "type",
+                      "value": "desktop"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banner image uploaded successfully\",\n  \"data\": {\n    \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/desktop/550e8400-e29b-41d4-a716-446655440000.jpg\",\n    \"type\": \"desktop\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Upload Banner Images (Desktop & Mobile)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": [],
+                  "description": "Desktop banner image (required). Max size 5MB."
+                },
+                {
+                  "key": "mobileImage",
+                  "type": "file",
+                  "src": [],
+                  "description": "Mobile banner image (optional). Max size 5MB.",
+                  "disabled": false
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/banners/upload-images",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "banners", "upload-images"]
+            },
+            "description": "Upload both desktop and mobile banner images in a single request. Images are automatically compressed (except GIF). Returns imageUrl and mobileImageUrl. Requires banner:create permission."
+          },
+          "response": [
+            {
+              "name": "Success - Images Uploaded",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": []
+                    },
+                    {
+                      "key": "mobileImage",
+                      "type": "file",
+                      "src": []
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/banners/upload-images",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "banners", "upload-images"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banner images uploaded successfully\",\n  \"data\": {\n    \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/desktop/550e8400-e29b-41d4-a716-446655440000.jpg\",\n    \"mobileImageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/mobile/660e8400-e29b-41d4-a716-446655440001.jpg\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Banner by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/banners/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "banners", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{bannerId}}",
+                  "description": "Banner ID"
+                }
+              ]
+            },
+            "description": "Get detailed banner information by ID. Requires banner:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Banner",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Summer Sports Camp 2024\",\n  \"priority\": 15,\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/banners/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "banners", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{bannerId}}",
+                  "description": "Banner ID"
+                }
+              ]
+            },
+            "description": "Update banner details. Requires banner:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Banner Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/banners/:id/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "banners", ":id", "status"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{bannerId}}",
+                  "description": "Banner ID"
+                }
+              ]
+            },
+            "description": "Update banner status. Requires banner:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Reorder Banners",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bannerOrders\": [\n    {\n      \"id\": \"banner-id-1\",\n      \"priority\": 10\n    },\n    {\n      \"id\": \"banner-id-2\",\n      \"priority\": 9\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/banners/reorder",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "banners", "reorder"]
+            },
+            "description": "Reorder banners by updating their priorities. Requires banner:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Banner",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/banners/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "banners", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{bannerId}}",
+                  "description": "Banner ID"
+                }
+              ]
+            },
+            "description": "Soft delete a banner. Requires banner:delete permission."
+          },
+          "response": []
         }
       ]
     }

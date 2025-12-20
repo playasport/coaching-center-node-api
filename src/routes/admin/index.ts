@@ -10,6 +10,7 @@ import bookingRoutes from './booking.routes';
 import batchRoutes from './batch.routes';
 import transactionRoutes from './transaction.routes';
 import paymentRoutes from './payment.routes';
+import bannerRoutes from './banner.routes';
 
 const router = Router();
 
@@ -25,5 +26,6 @@ router.use('/bookings', bookingRoutes);
 router.use('/batches', batchRoutes);
 router.use('/transactions', transactionRoutes);
 router.use('/payments', paymentRoutes);
+router.use('/banners', bannerRoutes);
 
 export default router;

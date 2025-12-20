@@ -19,6 +19,8 @@ let currentUsersPage = 1;
 let currentCentersPage = 1;
 let currentPermissionsPage = 1;
 let currentRolesPage = 1;
+let currentBannersPage = 1;
+let editingBannerId = null;
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
@@ -136,6 +138,37 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('roleFilter')?.addEventListener('change', () => {
         currentPermissionsPage = 1;
         loadPermissions();
+    });
+
+    // Banner Management
+    document.getElementById('addBannerBtn')?.addEventListener('click', () => openBannerModal());
+    document.getElementById('closeBannerModal')?.addEventListener('click', () => closeBannerModal());
+    document.getElementById('cancelBannerBtn')?.addEventListener('click', () => closeBannerModal());
+    document.getElementById('bannerForm')?.addEventListener('submit', handleSaveBanner);
+    document.getElementById('uploadDesktopImageBtn')?.addEventListener('click', () => uploadBannerImage('desktop'));
+    document.getElementById('uploadMobileImageBtn')?.addEventListener('click', () => uploadBannerImage('mobile'));
+    document.getElementById('refreshBannersBtn')?.addEventListener('click', loadBanners);
+    document.getElementById('bannerPositionFilter')?.addEventListener('change', () => {
+        currentBannersPage = 1;
+        loadBanners();
+    });
+    document.getElementById('bannerStatusFilter')?.addEventListener('change', () => {
+        currentBannersPage = 1;
+        loadBanners();
+    });
+    document.getElementById('bannerSearchInput')?.addEventListener('input', debounce(() => {
+        currentBannersPage = 1;
+        loadBanners();
+    }, 500));
+    document.getElementById('prevBannersBtn')?.addEventListener('click', () => {
+        if (currentBannersPage > 1) {
+            currentBannersPage--;
+            loadBanners();
+        }
+    });
+    document.getElementById('nextBannersBtn')?.addEventListener('click', () => {
+        currentBannersPage++;
+        loadBanners();
     });
 });
 
@@ -337,6 +370,19 @@ function navigateToPage(page) {
                 showToast('You do not have permission to view roles', 'error');
             }
             break;
+        case 'banners':
+            if (hasPermission('banner', 'view')) {
+                loadBanners();
+                updateMenuVisibility();
+                // Show/hide add button based on permission
+                const addBtn = document.getElementById('addBannerBtn');
+                if (addBtn) {
+                    addBtn.style.display = hasPermission('banner', 'create') ? 'inline-flex' : 'none';
+                }
+            } else {
+                showToast('You do not have permission to view banners', 'error');
+            }
+            break;
         case 'profile':
             loadProfile();
             break;
@@ -350,6 +396,7 @@ function getPageTitle(page) {
         'users': 'User Management',
         'coaching-centers': 'Coaching Center Management',
         'roles': 'Role Management',
+        'banners': 'Banner Management',
         'profile': 'My Profile',
     };
     return titles[page] || 'Dashboard';
@@ -1664,3 +1711,347 @@ window.addEventListener('unhandledrejection', (event) => {
         setTimeout(() => handleLogout(), 2000);
     }
 });
+
+// Debounce helper
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Banner Management Functions
+async function loadBanners() {
+    if (!hasPermission('banner', 'view')) {
+        showToast('You do not have permission to view banners', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+        const position = document.getElementById('bannerPositionFilter')?.value || '';
+        const status = document.getElementById('bannerStatusFilter')?.value || '';
+        const search = document.getElementById('bannerSearchInput')?.value || '';
+        
+        let url = `/admin/banners?page=${currentBannersPage}&limit=10`;
+        if (position) url += `&position=${position}`;
+        if (status) url += `&status=${status}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+
+        const response = await apiRequest(url);
+        const banners = response.data.banners;
+        const pagination = response.data.pagination;
+
+        const tbody = document.getElementById('bannersTableBody');
+        tbody.innerHTML = '';
+
+        if (banners.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center">No banners found</td></tr>';
+            return;
+        }
+
+        banners.forEach(banner => {
+            const row = document.createElement('tr');
+            const statusBadge = getStatusBadge(banner.status);
+            const imageUrl = banner.imageUrl || banner.mobileImageUrl || '';
+            const imagePreview = imageUrl ? 
+                `<img src="${imageUrl}" alt="${banner.title}" style="width: 80px; height: 50px; object-fit: cover; border-radius: 4px;">` : 
+                '<span style="color: var(--text-secondary);">No image</span>';
+
+            row.innerHTML = `
+                <td>${imagePreview}</td>
+                <td><strong>${banner.title || 'Untitled'}</strong></td>
+                <td><span class="badge badge-info">${formatPosition(banner.position)}</span></td>
+                <td>${banner.priority || 0}</td>
+                <td>${statusBadge}</td>
+                <td>${banner.viewCount || 0}</td>
+                <td>${banner.clickCount || 0}</td>
+                <td class="action-buttons">
+                    <button class="btn btn-sm btn-outline" onclick="editBanner('${banner.id}')">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteBanner('${banner.id}')">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        const pageInfo = document.getElementById('bannersPageInfo');
+        const prevBtn = document.getElementById('prevBannersBtn');
+        const nextBtn = document.getElementById('nextBannersBtn');
+
+        if (pagination && pageInfo && prevBtn && nextBtn) {
+            pageInfo.textContent = `Page ${pagination.page} of ${pagination.totalPages}`;
+            prevBtn.disabled = pagination.page === 1;
+            nextBtn.disabled = !pagination.hasNextPage;
+            currentBannersPage = pagination.page;
+        }
+    } catch (error) {
+        showToast(error.message || 'Failed to load banners', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+function getStatusBadge(status) {
+    const badges = {
+        'active': '<span class="badge badge-success">Active</span>',
+        'inactive': '<span class="badge badge-danger">Inactive</span>',
+        'expired': '<span class="badge badge-secondary">Expired</span>',
+        'draft': '<span class="badge badge-info">Draft</span>',
+    };
+    return badges[status] || '<span class="badge">Unknown</span>';
+}
+
+function formatPosition(position) {
+    return position.split('_').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+}
+
+function openBannerModal(bannerId = null) {
+    if (!hasPermission('banner', bannerId ? 'update' : 'create')) {
+        showToast(`You do not have permission to ${bannerId ? 'edit' : 'create'} banners`, 'error');
+        return;
+    }
+
+    editingBannerId = bannerId;
+    const modal = document.getElementById('bannerModal');
+    if (!modal) {
+        console.error('Banner modal not found in DOM');
+        showToast('Banner modal not found. Please refresh the page.', 'error');
+        return;
+    }
+
+    const form = document.getElementById('bannerForm');
+    const title = document.getElementById('bannerModalTitle');
+    
+    if (title) {
+        title.textContent = bannerId ? 'Edit Banner' : 'Create New Banner';
+    }
+    
+    if (form) {
+        form.reset();
+    }
+    
+    // Reset image previews
+    const desktopPreview = document.getElementById('desktopImagePreview');
+    const mobilePreview = document.getElementById('mobileImagePreview');
+    const desktopImageUrl = document.getElementById('bannerImageUrl');
+    const mobileImageUrl = document.getElementById('bannerMobileImageUrl');
+    
+    if (desktopPreview) desktopPreview.style.display = 'none';
+    if (mobilePreview) mobilePreview.style.display = 'none';
+    if (desktopImageUrl) desktopImageUrl.value = '';
+    if (mobileImageUrl) mobileImageUrl.value = '';
+
+    if (bannerId) {
+        loadBannerData(bannerId);
+    }
+
+    modal.classList.add('active');
+}
+
+function closeBannerModal() {
+    document.getElementById('bannerModal').classList.remove('active');
+    editingBannerId = null;
+}
+
+async function loadBannerData(bannerId) {
+    try {
+        showLoading();
+        const response = await apiRequest(`/admin/banners/${bannerId}`);
+        const banner = response.data.banner;
+
+        document.getElementById('bannerTitle').value = banner.title || '';
+        document.getElementById('bannerDescription').value = banner.description || '';
+        document.getElementById('bannerLinkUrl').value = banner.linkUrl || '';
+        document.getElementById('bannerLinkType').value = banner.linkType || 'internal';
+        document.getElementById('bannerPosition').value = banner.position || '';
+        document.getElementById('bannerPriority').value = banner.priority || 0;
+        document.getElementById('bannerStatus').value = banner.status || 'draft';
+        document.getElementById('bannerTargetAudience').value = banner.targetAudience || 'all';
+        document.getElementById('bannerIsActive').checked = banner.isActive !== false;
+
+        // Set image URLs
+        if (banner.imageUrl) {
+            document.getElementById('bannerImageUrl').value = banner.imageUrl;
+            document.getElementById('desktopImagePreviewImg').src = banner.imageUrl;
+            document.getElementById('desktopImageUrl').textContent = banner.imageUrl;
+            document.getElementById('desktopImagePreview').style.display = 'block';
+        }
+        if (banner.mobileImageUrl) {
+            document.getElementById('bannerMobileImageUrl').value = banner.mobileImageUrl;
+            document.getElementById('mobileImagePreviewImg').src = banner.mobileImageUrl;
+            document.getElementById('mobileImageUrl').textContent = banner.mobileImageUrl;
+            document.getElementById('mobileImagePreview').style.display = 'block';
+        }
+    } catch (error) {
+        showToast(error.message || 'Failed to load banner data', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function uploadBannerImage(type) {
+    const fileInput = type === 'desktop' ? 
+        document.getElementById('bannerDesktopImage') : 
+        document.getElementById('bannerMobileImage');
+    
+    if (!fileInput.files || !fileInput.files[0]) {
+        showToast('Please select an image file', 'error');
+        return;
+    }
+
+    const file = fileInput.files[0];
+    
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('File size must be less than 5MB', 'error');
+        return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+        showToast('Invalid file type. Allowed: JPEG, PNG, WebP, GIF', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const endpoint = type === 'desktop' ? 
+            `/admin/banners/upload-image?type=desktop` : 
+            `/admin/banners/upload-image?type=mobile`;
+        
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            },
+            body: formData
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to upload image');
+        }
+
+        const data = await response.json();
+        const imageUrl = data.data.imageUrl;
+
+        if (type === 'desktop') {
+            document.getElementById('bannerImageUrl').value = imageUrl;
+            document.getElementById('desktopImagePreviewImg').src = imageUrl;
+            document.getElementById('desktopImageUrl').textContent = imageUrl;
+            document.getElementById('desktopImagePreview').style.display = 'block';
+        } else {
+            document.getElementById('bannerMobileImageUrl').value = imageUrl;
+            document.getElementById('mobileImagePreviewImg').src = imageUrl;
+            document.getElementById('mobileImageUrl').textContent = imageUrl;
+            document.getElementById('mobileImagePreview').style.display = 'block';
+        }
+
+        showToast('Image uploaded successfully!', 'success');
+        fileInput.value = ''; // Clear file input
+    } catch (error) {
+        showToast(error.message || 'Failed to upload image', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function handleSaveBanner(e) {
+    e.preventDefault();
+
+    const action = editingBannerId ? 'update' : 'create';
+    if (!hasPermission('banner', action)) {
+        showToast(`You do not have permission to ${action} banners`, 'error');
+        return;
+    }
+
+    const imageUrl = document.getElementById('bannerImageUrl').value;
+    if (!imageUrl) {
+        showToast('Please upload a desktop image', 'error');
+        return;
+    }
+
+    const status = document.getElementById('bannerStatus').value;
+
+    try {
+        showLoading();
+        const bannerData = {
+            title: document.getElementById('bannerTitle').value,
+            description: document.getElementById('bannerDescription').value,
+            imageUrl: imageUrl,
+            mobileImageUrl: document.getElementById('bannerMobileImageUrl').value || null,
+            linkUrl: document.getElementById('bannerLinkUrl').value || null,
+            linkType: document.getElementById('bannerLinkType').value || 'internal',
+            position: document.getElementById('bannerPosition').value,
+            priority: parseInt(document.getElementById('bannerPriority').value) || 0,
+            status: status,
+            targetAudience: document.getElementById('bannerTargetAudience').value,
+            isActive: document.getElementById('bannerIsActive').checked,
+        };
+
+        if (editingBannerId) {
+            await apiRequest(`/admin/banners/${editingBannerId}`, {
+                method: 'PATCH',
+                body: JSON.stringify(bannerData)
+            });
+            showToast('Banner updated successfully!', 'success');
+        } else {
+            await apiRequest('/admin/banners', {
+                method: 'POST',
+                body: JSON.stringify(bannerData)
+            });
+            showToast('Banner created successfully!', 'success');
+        }
+
+        closeBannerModal();
+        loadBanners();
+    } catch (error) {
+        showToast(error.message || `Failed to ${action} banner`, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+function editBanner(bannerId) {
+    if (!hasPermission('banner', 'update')) {
+        showToast('You do not have permission to edit banners', 'error');
+        return;
+    }
+    openBannerModal(bannerId);
+}
+
+async function deleteBanner(bannerId) {
+    if (!hasPermission('banner', 'delete')) {
+        showToast('You do not have permission to delete banners', 'error');
+        return;
+    }
+
+    if (!confirm('Are you sure you want to delete this banner? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        showLoading();
+        await apiRequest(`/admin/banners/${bannerId}`, {
+            method: 'DELETE'
+        });
+
+        showToast('Banner deleted successfully!', 'success');
+        loadBanners();
+    } catch (error) {
+        showToast(error.message || 'Failed to delete banner', 'error');
+    } finally {
+        hideLoading();
+    }
+}
