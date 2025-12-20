@@ -60,6 +60,11 @@
       "key": "bookingId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "batchId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -1606,6 +1611,319 @@
               ]
             },
             "description": "Soft delete a booking. Requires booking:delete permission."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Batch Management",
+      "description": "Batch management endpoints with permission-based access control",
+      "item": [
+        {
+          "name": "Get All Batches",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.batches && response.data.batches.length > 0) {",
+                  "        pm.collectionVariables.set('batchId', response.data.batches[0]._id || response.data.batches[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/batches?page=1&limit=10&status=published&isActive=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "batches"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "published",
+                  "description": "Filter by status (published, draft, inactive)"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "Filter by active status"
+                },
+                {
+                  "key": "userId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by Academy owner ID"
+                },
+                {
+                  "key": "centerId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by Coaching Center ID"
+                },
+                {
+                  "key": "sportId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by Sport ID"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Search by batch name"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "disabled": true,
+                  "description": "Field to sort by"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "disabled": true,
+                  "description": "Sort order (asc/desc)"
+                }
+              ]
+            },
+            "description": "Get all batches with pagination and filters. Requires batch:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Batch by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/batches/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "batches", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{batchId}}",
+                  "description": "Batch ID"
+                }
+              ]
+            },
+            "description": "Get detailed batch information by ID. Requires batch:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Batches by User ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/batches/user/:userId?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "batches", "user", ":userId"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}",
+                  "description": "User ID (UUID)"
+                }
+              ]
+            },
+            "description": "Get all batches belonging to a specific academy user. Requires batch:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Batches by Center ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/batches/center/:centerId?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "batches", "center", ":centerId"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "centerId",
+                  "value": "{{coachingCenterId}}",
+                  "description": "Coaching Center ID"
+                }
+              ]
+            },
+            "description": "Get all batches for a specific coaching center. Requires batch:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Batch",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Batch Name\",\n  \"status\": \"published\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/batches/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "batches", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{batchId}}",
+                  "description": "Batch ID"
+                }
+              ]
+            },
+            "description": "Update an existing batch. All fields are optional. However, if you provide nested objects (scheduled, duration, capacity, age, fee_structure), you must provide ALL required fields within those objects.\n\nExample - Simple update (only top-level fields):\n{\n  \"name\": \"Updated Batch Name\",\n  \"status\": \"published\"\n}\n\nExample - Complete update with nested objects:\n{\n  \"name\": \"Updated Morning Batch\",\n  \"scheduled\": {\n    \"start_date\": \"2024-12-01\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": {\n    \"count\": 3,\n    \"type\": \"month\"\n  },\n  \"capacity\": {\n    \"min\": 10,\n    \"max\": 30\n  },\n  \"age\": {\n    \"min\": 8,\n    \"max\": 12\n  },\n  \"fee_structure\": {\n    \"fee_type\": \"monthly\",\n    \"fee_configuration\": {\n      \"base_price\": 2000\n    }\n  },\n  \"status\": \"published\"\n}\n\nRequires batch:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Batch Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/batches/:id/toggle-status",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "batches", ":id", "toggle-status"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{batchId}}",
+                  "description": "Batch ID"
+                }
+              ]
+            },
+            "description": "Toggle batch active/inactive status. Requires batch:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Batch",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/batches/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "batches", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{batchId}}",
+                  "description": "Batch ID"
+                }
+              ]
+            },
+            "description": "Soft delete a batch. Requires batch:delete permission."
           },
           "response": []
         }

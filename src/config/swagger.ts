@@ -6144,6 +6144,10 @@ const options: swaggerJsdoc.Options = {
         description: 'Admin panel role management endpoints (Super Admin only for create/update/delete)',
       },
       {
+        name: 'Admin Batches',
+        description: 'Admin panel batch management endpoints with permission-based access',
+      },
+      {
         name: 'Admin Sports',
         description: 'Admin panel sport management endpoints (Super Admin only for create/update/delete)',
       },
@@ -6191,6 +6195,7 @@ const options: swaggerJsdoc.Options = {
           'Admin Coaching Centers',
           'Admin Users',
           'Admin Roles',
+          'Admin Batches',
         ],
       },
     ],

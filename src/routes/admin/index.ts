@@ -7,6 +7,7 @@ import userRoutes from './user.routes';
 import roleRoutes from './role.routes';
 import sportRoutes from './sport.routes';
 import bookingRoutes from './booking.routes';
+import batchRoutes from './batch.routes';
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.use('/users', userRoutes);
 router.use('/roles', roleRoutes);
 router.use('/sports', sportRoutes);
 router.use('/bookings', bookingRoutes);
+router.use('/batches', batchRoutes);
 
 export default router;
