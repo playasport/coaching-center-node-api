@@ -14,6 +14,8 @@ import bannerRoutes from './banner.routes';
 import cmsPageRoutes from './cmsPage.routes';
 import notificationRoutes from './notification.routes';
 import settingsRoutes from './settings.routes';
+import highlightRoutes from './highlight.routes';
+import queueRoutes from './queue.routes';
 
 const router = Router();
 
@@ -33,5 +35,7 @@ router.use('/banners', bannerRoutes);
 router.use('/cms-pages', cmsPageRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/settings', settingsRoutes);
+router.use('/highlights', highlightRoutes);
+router.use('/queues', queueRoutes);
 
 export default router;

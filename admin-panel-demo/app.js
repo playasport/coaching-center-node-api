@@ -21,6 +21,8 @@ let currentPermissionsPage = 1;
 let currentRolesPage = 1;
 let currentBannersPage = 1;
 let editingBannerId = null;
+let currentHighlightsPage = 1;
+let editingHighlightId = null;
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
@@ -170,6 +172,68 @@ document.addEventListener('DOMContentLoaded', () => {
         currentBannersPage++;
         loadBanners();
     });
+
+    // Highlight Management
+    document.getElementById('addHighlightBtn')?.addEventListener('click', () => openHighlightModal());
+    document.getElementById('closeHighlightModal')?.addEventListener('click', () => closeHighlightModal());
+    document.getElementById('cancelHighlightBtn')?.addEventListener('click', () => closeHighlightModal());
+    document.getElementById('highlightForm')?.addEventListener('submit', handleSaveHighlight);
+    document.getElementById('uploadHighlightVideoBtn')?.addEventListener('click', () => uploadHighlightVideo());
+    document.getElementById('uploadHighlightThumbnailBtn')?.addEventListener('click', () => uploadHighlightThumbnail());
+    document.getElementById('refreshHighlightsBtn')?.addEventListener('click', loadHighlights);
+
+    // Queue Management
+    document.getElementById('refreshQueuesBtn')?.addEventListener('click', loadQueues);
+
+    // Log Viewer
+    document.getElementById('refreshLogsBtn')?.addEventListener('click', () => {
+        currentLogsPage = 1;
+        loadLogs();
+    });
+    document.getElementById('logTypeFilter')?.addEventListener('change', () => {
+        currentLogsPage = 1;
+        loadLogs();
+    });
+    document.getElementById('logLevelFilter')?.addEventListener('change', () => {
+        currentLogsPage = 1;
+        loadLogs();
+    });
+    document.getElementById('logSearchInput')?.addEventListener('input', debounce(() => {
+        currentLogsPage = 1;
+        loadLogs();
+    }, 500));
+    document.getElementById('prevLogsBtn')?.addEventListener('click', () => {
+        if (currentLogsPage > 1) {
+            currentLogsPage--;
+            loadLogs();
+        }
+    });
+    document.getElementById('nextLogsBtn')?.addEventListener('click', () => {
+        currentLogsPage++;
+        loadLogs();
+    });
+    document.getElementById('highlightStatusFilter')?.addEventListener('change', () => {
+        currentHighlightsPage = 1;
+        loadHighlights();
+    });
+    document.getElementById('highlightVideoProcessingStatusFilter')?.addEventListener('change', () => {
+        currentHighlightsPage = 1;
+        loadHighlights();
+    });
+    document.getElementById('highlightSearchInput')?.addEventListener('input', debounce(() => {
+        currentHighlightsPage = 1;
+        loadHighlights();
+    }, 500));
+    document.getElementById('prevHighlightsBtn')?.addEventListener('click', () => {
+        if (currentHighlightsPage > 1) {
+            currentHighlightsPage--;
+            loadHighlights();
+        }
+    });
+    document.getElementById('nextHighlightsBtn')?.addEventListener('click', () => {
+        currentHighlightsPage++;
+        loadHighlights();
+    });
 });
 
 // API Helper Functions
@@ -309,18 +373,19 @@ function navigateToPage(page) {
     }
 
     // Check permissions for this page (except profile which is always accessible)
+    // Note: We check permissions in the switch statement as well, so this is just a warning
     if (page !== 'profile') {
         const navItem = document.querySelector(`[data-page="${page}"]`);
         const section = navItem?.dataset.section;
         
         if (section && !hasPermission(section, 'view')) {
-            showToast('You do not have permission to access this page', 'error');
-            navigateToPage('dashboard');
-            return;
+            console.warn(`Permission check failed for page ${page}, section ${section}`);
+            // Don't return early - let the switch statement handle it with proper error messages
         }
     }
 
     // Load page data
+    console.log('Executing switch statement for page:', page);
     switch (page) {
         case 'dashboard':
             if (hasPermission('dashboard', 'view')) {
@@ -383,6 +448,44 @@ function navigateToPage(page) {
                 showToast('You do not have permission to view banners', 'error');
             }
             break;
+        case 'highlights':
+            if (hasPermission('highlight', 'view')) {
+                loadHighlights();
+                updateMenuVisibility();
+                // Show/hide add button based on permission
+                const addHighlightBtn = document.getElementById('addHighlightBtn');
+                if (addHighlightBtn) {
+                    addHighlightBtn.style.display = hasPermission('highlight', 'create') ? 'inline-flex' : 'none';
+                }
+                // Load users and coaching centers for form
+                if (hasPermission('highlight', 'create')) {
+                    loadUsersForHighlight();
+                    loadCoachingCentersForHighlight();
+                }
+            } else {
+                showToast('You do not have permission to view highlights', 'error');
+            }
+            break;
+        case 'queues':
+            console.log('Queues case triggered, checking permission...');
+            if (hasPermission('settings', 'view')) {
+                console.log('Permission granted, calling loadQueues()');
+                loadQueues();
+            } else {
+                console.log('Permission denied for queues');
+                showToast('You do not have permission to view queues', 'error');
+            }
+            break;
+        case 'logs':
+            console.log('Logs case triggered, checking permission...');
+            if (hasPermission('settings', 'view')) {
+                console.log('Permission granted, calling loadLogs()');
+                loadLogs();
+            } else {
+                console.log('Permission denied for logs');
+                showToast('You do not have permission to view logs', 'error');
+            }
+            break;
         case 'profile':
             loadProfile();
             break;
@@ -397,6 +500,9 @@ function getPageTitle(page) {
         'coaching-centers': 'Coaching Center Management',
         'roles': 'Role Management',
         'banners': 'Banner Management',
+        'highlights': 'Highlight Management',
+        'queues': 'Queue Management',
+        'logs': 'Log Viewer',
         'profile': 'My Profile',
     };
     return titles[page] || 'Dashboard';
@@ -2051,6 +2157,828 @@ async function deleteBanner(bannerId) {
         loadBanners();
     } catch (error) {
         showToast(error.message || 'Failed to delete banner', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// ==================== HIGHLIGHT MANAGEMENT ====================
+
+async function loadHighlights() {
+    if (!hasPermission('highlight', 'view')) {
+        showToast('You do not have permission to view highlights', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+        const status = document.getElementById('highlightStatusFilter')?.value || '';
+        const videoProcessingStatus = document.getElementById('highlightVideoProcessingStatusFilter')?.value || '';
+        const search = document.getElementById('highlightSearchInput')?.value || '';
+        
+        let url = `/admin/highlights?page=${currentHighlightsPage}&limit=10`;
+        if (status) url += `&status=${status}`;
+        if (videoProcessingStatus) url += `&videoProcessingStatus=${videoProcessingStatus}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+
+        const response = await apiRequest(url);
+        const highlights = response.data.highlights;
+        const pagination = response.data.pagination;
+
+        const tbody = document.getElementById('highlightsTableBody');
+        tbody.innerHTML = '';
+
+        if (highlights.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center">No highlights found</td></tr>';
+            return;
+        }
+
+        highlights.forEach(highlight => {
+            const row = document.createElement('tr');
+            const thumbnail = highlight.thumbnailUrl || 'https://via.placeholder.com/100x60?text=No+Thumbnail';
+            const statusClass = {
+                'published': 'status-success',
+                'archived': 'status-info',
+                'blocked': 'status-danger',
+                'deleted': 'status-muted'
+            }[highlight.status] || 'status-muted';
+            
+            const videoProcessingStatusClass = {
+                'not_started': 'status-muted',
+                'processing': 'status-warning',
+                'completed': 'status-success',
+                'failed': 'status-danger'
+            }[highlight.videoProcessingStatus] || 'status-muted';
+            
+            const canEdit = hasPermission('highlight', 'update');
+            const canDelete = hasPermission('highlight', 'delete');
+            
+            const actionButtons = [];
+            if (canEdit) {
+                actionButtons.push(`<button class="btn btn-sm btn-outline" onclick="editHighlight('${highlight.id}')">Edit</button>`);
+            }
+            if (canDelete && highlight.status !== 'deleted') {
+                actionButtons.push(`<button class="btn btn-sm btn-danger" onclick="deleteHighlight('${highlight.id}')">Delete</button>`);
+            }
+            if (canEdit) {
+                actionButtons.push(`<button class="btn btn-sm btn-outline" onclick="updateHighlightStatus('${highlight.id}', '${highlight.status}')">Change Status</button>`);
+            }
+            if (canEdit && highlight.videoUrl) {
+                actionButtons.push(`<button class="btn btn-sm btn-primary" onclick="reprocessHighlightVideo('${highlight.id}')" title="Reprocess video (works for both processed and unprocessed videos)">Reprocess Video</button>`);
+            }
+            const actionsHtml = actionButtons.length > 0 ? actionButtons.join(' ') : '<span class="text-muted">No actions</span>';
+
+            const userName = highlight.userId?.firstName && highlight.userId?.lastName 
+                ? `${highlight.userId.firstName} ${highlight.userId.lastName}`
+                : highlight.userId?.email || 'N/A';
+
+            row.innerHTML = `
+                <td><img src="${thumbnail}" alt="Thumbnail" style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;"></td>
+                <td><strong>${highlight.title}</strong><br><small style="color: var(--text-secondary);">${highlight.description || 'No description'}</small></td>
+                <td>${userName}</td>
+                <td><span class="status-badge ${statusClass}">${highlight.status}</span></td>
+                <td><span class="status-badge ${videoProcessingStatusClass}">${highlight.videoProcessingStatus || 'not_started'}</span></td>
+                <td>${highlight.viewsCount || 0}</td>
+                <td>${highlight.likesCount || 0}</td>
+                <td>${new Date(highlight.createdAt).toLocaleDateString()}</td>
+                <td class="action-buttons">${actionsHtml}</td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        const pageInfo = document.getElementById('highlightsPageInfo');
+        const prevBtn = document.getElementById('prevHighlightsBtn');
+        const nextBtn = document.getElementById('nextHighlightsBtn');
+
+        if (pagination && pageInfo && prevBtn && nextBtn) {
+            pageInfo.textContent = `Page ${pagination.page} of ${pagination.totalPages}`;
+            prevBtn.disabled = pagination.page === 1;
+            nextBtn.disabled = !pagination.hasNextPage;
+            currentHighlightsPage = pagination.page;
+        }
+    } catch (error) {
+        showToast(error.message || 'Failed to load highlights', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+function openHighlightModal(highlightId = null) {
+    if (!hasPermission('highlight', 'create') && !highlightId) {
+        showToast('You do not have permission to create highlights', 'error');
+        return;
+    }
+    if (highlightId && !hasPermission('highlight', 'update')) {
+        showToast('You do not have permission to edit highlights', 'error');
+        return;
+    }
+
+    editingHighlightId = highlightId;
+    const modal = document.getElementById('highlightModal');
+    const form = document.getElementById('highlightForm');
+    const title = document.getElementById('highlightModalTitle');
+
+    if (highlightId) {
+        title.textContent = 'Edit Highlight';
+        loadHighlightForEdit(highlightId);
+    } else {
+        title.textContent = 'Create New Highlight';
+        form.reset();
+        document.getElementById('highlightVideoUrl').value = '';
+        document.getElementById('highlightThumbnailUrl').value = '';
+        document.getElementById('videoPreview').style.display = 'none';
+        document.getElementById('thumbnailPreview').style.display = 'none';
+    }
+
+    modal.classList.add('active');
+}
+
+function closeHighlightModal() {
+    document.getElementById('highlightModal').classList.remove('active');
+    editingHighlightId = null;
+    document.getElementById('highlightForm').reset();
+    document.getElementById('highlightVideoUrl').value = '';
+    document.getElementById('highlightThumbnailUrl').value = '';
+    document.getElementById('videoPreview').style.display = 'none';
+    document.getElementById('thumbnailPreview').style.display = 'none';
+}
+
+async function loadHighlightForEdit(highlightId) {
+    try {
+        showLoading();
+        const response = await apiRequest(`/admin/highlights/${highlightId}`);
+        const highlight = response.data.highlight;
+
+        document.getElementById('highlightTitle').value = highlight.title || '';
+        document.getElementById('highlightDescription').value = highlight.description || '';
+        // Use ObjectId (_id) for userId
+        document.getElementById('highlightUserId').value = highlight.userId?._id?.toString() || highlight.userId?.toString() || '';
+        document.getElementById('highlightCoachingCenterId').value = highlight.coachingCenterId?._id?.toString() || highlight.coachingCenterId?.toString() || '';
+        document.getElementById('highlightDuration').value = highlight.duration || 0;
+        document.getElementById('highlightStatus').value = highlight.status || 'published';
+        
+        if (highlight.videoUrl) {
+            document.getElementById('highlightVideoUrl').value = highlight.videoUrl;
+            const videoPreview = document.getElementById('videoPreview');
+            const videoPlayer = document.getElementById('videoPreviewPlayer');
+            videoPlayer.src = highlight.videoUrl;
+            videoPreview.style.display = 'block';
+            document.getElementById('videoUrl').textContent = highlight.videoUrl;
+        }
+        
+        if (highlight.thumbnailUrl) {
+            document.getElementById('highlightThumbnailUrl').value = highlight.thumbnailUrl;
+            const thumbnailPreview = document.getElementById('thumbnailPreview');
+            document.getElementById('thumbnailPreviewImg').src = highlight.thumbnailUrl;
+            thumbnailPreview.style.display = 'block';
+            document.getElementById('thumbnailUrl').textContent = highlight.thumbnailUrl;
+        }
+    } catch (error) {
+        showToast(error.message || 'Failed to load highlight', 'error');
+        closeHighlightModal();
+    } finally {
+        hideLoading();
+    }
+}
+
+async function loadUsersForHighlight() {
+    try {
+        const response = await apiRequest('/admin/users?limit=1000');
+        const users = response.data.users;
+        
+        const select = document.getElementById('highlightUserId');
+        if (!select) return;
+        
+        const currentValue = select.value;
+        select.innerHTML = '<option value="">Select User</option>';
+        users.forEach(user => {
+            const option = document.createElement('option');
+            // Use ObjectId (_id) instead of custom id
+            option.value = user._id || user.id;
+            const name = user.firstName && user.lastName 
+                ? `${user.firstName} ${user.lastName} (${user.email})`
+                : user.email;
+            option.textContent = name;
+            select.appendChild(option);
+        });
+        if (currentValue) {
+            select.value = currentValue;
+        }
+    } catch (error) {
+        console.error('Failed to load users:', error);
+    }
+}
+
+async function loadCoachingCentersForHighlight() {
+    try {
+        const response = await apiRequest('/admin/coaching-centers?limit=1000');
+        const centers = response.data.coachingCenters || response.data.centers || [];
+        
+        const select = document.getElementById('highlightCoachingCenterId');
+        if (!select) return;
+        
+        const currentValue = select.value;
+        select.innerHTML = '<option value="">None</option>';
+        centers.forEach(center => {
+            const option = document.createElement('option');
+            // Use ObjectId (_id) instead of custom id
+            option.value = center._id || center.id;
+            option.textContent = center.center_name || center.name || center.id;
+            select.appendChild(option);
+        });
+        if (currentValue) {
+            select.value = currentValue;
+        }
+    } catch (error) {
+        console.error('Failed to load coaching centers:', error);
+    }
+}
+
+async function uploadHighlightVideo() {
+    const fileInput = document.getElementById('highlightVideo');
+    
+    if (!fileInput.files || !fileInput.files[0]) {
+        showToast('Please select a video file', 'error');
+        return;
+    }
+
+    const file = fileInput.files[0];
+    
+    // Validate file size (100MB)
+    if (file.size > 100 * 1024 * 1024) {
+        showToast('File size must be less than 100MB', 'error');
+        return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska'];
+    if (!allowedTypes.includes(file.type)) {
+        showToast('Invalid file type. Allowed: MP4, MPEG, MOV, AVI, WebM, MKV', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+        const formData = new FormData();
+        formData.append('video', file);
+
+        const url = `${API_BASE_URL}/admin/highlights/upload-video`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || 'Upload failed');
+        }
+
+        const videoUrl = data.data.videoUrl;
+        document.getElementById('highlightVideoUrl').value = videoUrl;
+        
+        const videoPreview = document.getElementById('videoPreview');
+        const videoPlayer = document.getElementById('videoPreviewPlayer');
+        videoPlayer.src = videoUrl;
+        videoPreview.style.display = 'block';
+        document.getElementById('videoUrl').textContent = videoUrl;
+
+        showToast('Video uploaded successfully!', 'success');
+    } catch (error) {
+        showToast(error.message || 'Failed to upload video', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function uploadHighlightThumbnail() {
+    const fileInput = document.getElementById('highlightThumbnail');
+    
+    if (!fileInput.files || !fileInput.files[0]) {
+        showToast('Please select an image file', 'error');
+        return;
+    }
+
+    const file = fileInput.files[0];
+    
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('File size must be less than 5MB', 'error');
+        return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+        showToast('Invalid file type. Allowed: JPEG, PNG, WebP', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+        const formData = new FormData();
+        formData.append('thumbnail', file);
+
+        const url = `${API_BASE_URL}/admin/highlights/upload-thumbnail`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || 'Upload failed');
+        }
+
+        const thumbnailUrl = data.data.thumbnailUrl;
+        document.getElementById('highlightThumbnailUrl').value = thumbnailUrl;
+        
+        const thumbnailPreview = document.getElementById('thumbnailPreview');
+        document.getElementById('thumbnailPreviewImg').src = thumbnailUrl;
+        thumbnailPreview.style.display = 'block';
+        document.getElementById('thumbnailUrl').textContent = thumbnailUrl;
+
+        showToast('Thumbnail uploaded successfully!', 'success');
+    } catch (error) {
+        showToast(error.message || 'Failed to upload thumbnail', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function handleSaveHighlight(e) {
+    e.preventDefault();
+
+    const action = editingHighlightId ? 'update' : 'create';
+    if (!hasPermission('highlight', action)) {
+        showToast(`You do not have permission to ${action} highlights`, 'error');
+        return;
+    }
+
+    const videoUrl = document.getElementById('highlightVideoUrl').value;
+    if (!videoUrl && !editingHighlightId) {
+        showToast('Please upload a video', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+        const highlightData = {
+            title: document.getElementById('highlightTitle').value,
+            description: document.getElementById('highlightDescription').value || null,
+            userId: document.getElementById('highlightUserId').value,
+            coachingCenterId: document.getElementById('highlightCoachingCenterId').value || null,
+            duration: parseFloat(document.getElementById('highlightDuration').value) || 0,
+            status: document.getElementById('highlightStatus').value,
+        };
+
+        if (videoUrl) {
+            highlightData.videoUrl = videoUrl;
+        }
+        
+        const thumbnailUrl = document.getElementById('highlightThumbnailUrl').value;
+        if (thumbnailUrl) {
+            highlightData.thumbnailUrl = thumbnailUrl;
+        }
+
+        if (editingHighlightId) {
+            await apiRequest(`/admin/highlights/${editingHighlightId}`, {
+                method: 'PATCH',
+                body: highlightData
+            });
+            showToast('Highlight updated successfully!', 'success');
+        } else {
+            await apiRequest('/admin/highlights', {
+                method: 'POST',
+                body: highlightData
+            });
+            showToast('Highlight created successfully! Video processing will start automatically.', 'success');
+        }
+
+        closeHighlightModal();
+        loadHighlights();
+    } catch (error) {
+        showToast(error.message || `Failed to ${action} highlight`, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+function editHighlight(highlightId) {
+    if (!hasPermission('highlight', 'update')) {
+        showToast('You do not have permission to edit highlights', 'error');
+        return;
+    }
+    openHighlightModal(highlightId);
+}
+
+async function deleteHighlight(highlightId) {
+    if (!hasPermission('highlight', 'delete')) {
+        showToast('You do not have permission to delete highlights', 'error');
+        return;
+    }
+
+    if (!confirm('Are you sure you want to delete this highlight? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        showLoading();
+        await apiRequest(`/admin/highlights/${highlightId}`, {
+            method: 'DELETE'
+        });
+
+        showToast('Highlight deleted successfully!', 'success');
+        loadHighlights();
+    } catch (error) {
+        showToast(error.message || 'Failed to delete highlight', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function updateHighlightStatus(highlightId, currentStatus) {
+    if (!hasPermission('highlight', 'update')) {
+        showToast('You do not have permission to update highlight status', 'error');
+        return;
+    }
+
+    const statuses = ['published', 'archived', 'blocked'];
+    const currentIndex = statuses.indexOf(currentStatus);
+    const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+    
+    const newStatus = prompt(`Current status: ${currentStatus}\nEnter new status (published, archived, blocked):`, nextStatus);
+    
+    if (!newStatus || !statuses.includes(newStatus.toLowerCase())) {
+        return;
+    }
+
+    try {
+        showLoading();
+        await apiRequest(`/admin/highlights/${highlightId}/status`, {
+            method: 'PATCH',
+            body: { status: newStatus.toLowerCase() }
+        });
+
+        showToast('Highlight status updated successfully!', 'success');
+        loadHighlights();
+    } catch (error) {
+        showToast(error.message || 'Failed to update highlight status', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function reprocessHighlightVideo(highlightId) {
+    if (!hasPermission('highlight', 'update')) {
+        showToast('You do not have permission to reprocess videos', 'error');
+        return;
+    }
+
+    if (!confirm('Are you sure you want to reprocess this video? This will process the video again in the background, regardless of its current processing status.')) {
+        return;
+    }
+
+    try {
+        showLoading();
+        const response = await apiRequest(`/admin/highlights/${highlightId}/process-video`, {
+            method: 'POST'
+        });
+
+        showToast(response.message || 'Video processing job has been queued. The video will be reprocessed in the background.', 'success');
+        loadHighlights();
+    } catch (error) {
+        showToast(error.message || 'Failed to reprocess video', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// ==================== QUEUE MANAGEMENT ====================
+
+let currentQueuesPage = 1;
+let currentLogsPage = 1;
+let currentLogType = 'application';
+
+async function loadQueues() {
+    console.log('loadQueues() called');
+    if (!hasPermission('settings', 'view')) {
+        console.log('Permission check failed in loadQueues()');
+        showToast('You do not have permission to view queues', 'error');
+        return;
+    }
+
+    try {
+        console.log('Making API request to /admin/queues');
+        showLoading();
+        const response = await apiRequest('/admin/queues');
+        console.log('API response received:', response);
+        const queues = response.data.queues || [];
+
+        const container = document.getElementById('queuesContainer');
+        container.innerHTML = '';
+
+        if (queues.length === 0) {
+            container.innerHTML = '<div class="text-center">No queues found</div>';
+            return;
+        }
+
+        queues.forEach(queue => {
+            const queueCard = document.createElement('div');
+            queueCard.className = 'card';
+            queueCard.style.marginBottom = '20px';
+
+            const pausedClass = queue.paused ? 'status-danger' : 'status-success';
+            const canUpdate = hasPermission('settings', 'update');
+            const canDelete = hasPermission('settings', 'delete');
+
+            queueCard.innerHTML = `
+                <div style="padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin: 0;">${queue.name}</h3>
+                        <span class="status-badge ${pausedClass}">${queue.paused ? 'Paused' : 'Active'}</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <strong>Active:</strong> ${queue.active || 0}
+                        </div>
+                        <div>
+                            <strong>Waiting:</strong> ${queue.waiting || 0}
+                        </div>
+                        <div>
+                            <strong>Completed:</strong> ${queue.completed || 0}
+                        </div>
+                        <div>
+                            <strong>Failed:</strong> ${queue.failed || 0}
+                        </div>
+                        <div>
+                            <strong>Delayed:</strong> ${queue.delayed || 0}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        ${canUpdate ? `
+                            <button class="btn btn-sm btn-outline" onclick="viewQueueJobs('${queue.name}')">View Jobs</button>
+                            ${queue.paused ? 
+                                `<button class="btn btn-sm btn-primary" onclick="resumeQueue('${queue.name}')">Resume</button>` :
+                                `<button class="btn btn-sm btn-warning" onclick="pauseQueue('${queue.name}')">Pause</button>`
+                            }
+                        ` : ''}
+                        ${canDelete ? `
+                            <button class="btn btn-sm btn-danger" onclick="cleanQueue('${queue.name}')">Clean</button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            container.appendChild(queueCard);
+        });
+    } catch (error) {
+        showToast(error.message || 'Failed to load queues', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function viewQueueJobs(queueName) {
+    if (!hasPermission('settings', 'view')) {
+        showToast('You do not have permission to view queue jobs', 'error');
+        return;
+    }
+
+    const status = prompt('Enter job status filter (active, waiting, completed, failed, delayed, all):', 'all');
+    if (!status) return;
+
+    try {
+        showLoading();
+        const response = await apiRequest(`/admin/queues/${queueName}/jobs?status=${status}&page=1&limit=50`);
+        const jobs = response.data.jobs || [];
+
+        let jobsHtml = `<h3>Jobs in ${queueName} (${status})</h3><table class="data-table"><thead><tr><th>ID</th><th>Name</th><th>State</th><th>Progress</th><th>Actions</th></tr></thead><tbody>`;
+        
+        if (jobs.length === 0) {
+            jobsHtml += '<tr><td colspan="5" class="text-center">No jobs found</td></tr>';
+        } else {
+            jobs.forEach(job => {
+                const canUpdate = hasPermission('settings', 'update');
+                const canDelete = hasPermission('settings', 'delete');
+                const actions = [];
+                
+                if (canUpdate && job.state === 'failed') {
+                    actions.push(`<button class="btn btn-sm btn-primary" onclick="retryJob('${queueName}', '${job.id}')">Retry</button>`);
+                }
+                if (canDelete) {
+                    actions.push(`<button class="btn btn-sm btn-danger" onclick="removeJob('${queueName}', '${job.id}')">Remove</button>`);
+                }
+
+                jobsHtml += `
+                    <tr>
+                        <td>${job.id}</td>
+                        <td>${job.name || 'N/A'}</td>
+                        <td><span class="status-badge">${job.state || 'unknown'}</span></td>
+                        <td>${typeof job.progress === 'object' ? JSON.stringify(job.progress) : job.progress || 'N/A'}</td>
+                        <td>${actions.join(' ') || 'No actions'}</td>
+                    </tr>
+                `;
+            });
+        }
+        jobsHtml += '</tbody></table>';
+
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'block';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 90%; max-height: 90vh; overflow-y: auto;">
+                <div class="modal-header">
+                    <h2>Queue Jobs: ${queueName}</h2>
+                    <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                </div>
+                <div style="padding: 20px;">
+                    ${jobsHtml}
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    } catch (error) {
+        showToast(error.message || 'Failed to load queue jobs', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function pauseQueue(queueName) {
+    if (!hasPermission('settings', 'update')) {
+        showToast('You do not have permission to pause queues', 'error');
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to pause the queue "${queueName}"?`)) {
+        return;
+    }
+
+    try {
+        showLoading();
+        await apiRequest(`/admin/queues/${queueName}/pause`, { method: 'POST' });
+        showToast('Queue paused successfully', 'success');
+        loadQueues();
+    } catch (error) {
+        showToast(error.message || 'Failed to pause queue', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function resumeQueue(queueName) {
+    if (!hasPermission('settings', 'update')) {
+        showToast('You do not have permission to resume queues', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+        await apiRequest(`/admin/queues/${queueName}/resume`, { method: 'POST' });
+        showToast('Queue resumed successfully', 'success');
+        loadQueues();
+    } catch (error) {
+        showToast(error.message || 'Failed to resume queue', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function retryJob(queueName, jobId) {
+    if (!hasPermission('settings', 'update')) {
+        showToast('You do not have permission to retry jobs', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+        await apiRequest(`/admin/queues/${queueName}/jobs/${jobId}/retry`, { method: 'POST' });
+        showToast('Job retried successfully', 'success');
+        viewQueueJobs(queueName);
+    } catch (error) {
+        showToast(error.message || 'Failed to retry job', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function removeJob(queueName, jobId) {
+    if (!hasPermission('settings', 'delete')) {
+        showToast('You do not have permission to remove jobs', 'error');
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to remove job ${jobId}?`)) {
+        return;
+    }
+
+    try {
+        showLoading();
+        await apiRequest(`/admin/queues/${queueName}/jobs/${jobId}`, { method: 'DELETE' });
+        showToast('Job removed successfully', 'success');
+        viewQueueJobs(queueName);
+    } catch (error) {
+        showToast(error.message || 'Failed to remove job', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function cleanQueue(queueName) {
+    if (!hasPermission('settings', 'delete')) {
+        showToast('You do not have permission to clean queues', 'error');
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to clean the queue "${queueName}"? This will remove completed and failed jobs.`)) {
+        return;
+    }
+
+    try {
+        showLoading();
+        await apiRequest(`/admin/queues/${queueName}/clean?grace=1000&limit=1000`, { method: 'POST' });
+        showToast('Queue cleaned successfully', 'success');
+        loadQueues();
+    } catch (error) {
+        showToast(error.message || 'Failed to clean queue', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// ==================== LOG VIEWER ====================
+
+async function loadLogs() {
+    console.log('loadLogs() called');
+    if (!hasPermission('settings', 'view')) {
+        console.log('Permission check failed in loadLogs()');
+        showToast('You do not have permission to view logs', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+        const logType = document.getElementById('logTypeFilter')?.value || 'application';
+        const level = document.getElementById('logLevelFilter')?.value || '';
+        const search = document.getElementById('logSearchInput')?.value || '';
+
+        let url = `/admin/queues/logs/${logType}?page=${currentLogsPage}&limit=100`;
+        if (level) url += `&level=${level}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+
+        console.log('Making API request to:', url);
+        const response = await apiRequest(url);
+        console.log('API response received:', response);
+        const logs = response.data.logs || [];
+        const pagination = response.data.pagination || {};
+
+        const tbody = document.getElementById('logsTableBody');
+        tbody.innerHTML = '';
+
+        if (logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center">No logs found</td></tr>';
+            return;
+        }
+
+        logs.forEach(log => {
+            const levelClass = {
+                'debug': 'status-muted',
+                'info': 'status-info',
+                'warn': 'status-warning',
+                'error': 'status-danger'
+            }[log.level] || 'status-muted';
+
+            const details = typeof log.data === 'object' ? JSON.stringify(log.data, null, 2) : log.data || '';
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${new Date(log.timestamp).toLocaleString()}</td>
+                <td><span class="status-badge ${levelClass}">${log.level || 'N/A'}</span></td>
+                <td style="max-width: 400px; word-break: break-word;">${log.message || 'N/A'}</td>
+                <td style="max-width: 500px; word-break: break-word; font-size: 12px;">
+                    ${details ? `<pre style="margin: 0; white-space: pre-wrap;">${details}</pre>` : 'N/A'}
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        const pageInfo = document.getElementById('logsPageInfo');
+        const prevBtn = document.getElementById('prevLogsBtn');
+        const nextBtn = document.getElementById('nextLogsBtn');
+
+        if (pagination && pageInfo && prevBtn && nextBtn) {
+            pageInfo.textContent = `Page ${pagination.page || 1} of ${pagination.totalPages || 1}`;
+            prevBtn.disabled = (pagination.page || 1) === 1;
+            nextBtn.disabled = !pagination.hasNextPage;
+            currentLogsPage = pagination.page || 1;
+        }
+    } catch (error) {
+        showToast(error.message || 'Failed to load logs', 'error');
     } finally {
         hideLoading();
     }

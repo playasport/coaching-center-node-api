@@ -1453,6 +1453,133 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        StreamHighlight: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: 'a9e7fb78-085a-4cbc-993c-9784f8f6576a',
+              description: 'Unique identifier for the highlight',
+            },
+            title: {
+              type: 'string',
+              maxLength: 60,
+              example: 'Rajib Soccer Academy Highlights',
+              description: 'Title of the highlight (max 60 characters)',
+            },
+            description: {
+              type: 'string',
+              nullable: true,
+              example: 'Rajib Soccer Academy is committed to developing young football talent...',
+              description: 'Description of the highlight',
+            },
+            videoUrl: {
+              type: 'string',
+              format: 'uri',
+              example: 'https://bucket.s3.region.amazonaws.com/highlights/video.mp4',
+              description: 'URL to the highlight video',
+            },
+            thumbnailUrl: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              example: 'https://bucket.s3.region.amazonaws.com/highlights/thumbnail.jpg',
+              description: 'URL to the thumbnail image',
+            },
+            hlsUrls: {
+              type: 'object',
+              nullable: true,
+              additionalProperties: {
+                type: 'string',
+                format: 'uri',
+              },
+              example: {
+                '360p': 'https://bucket.s3.region.amazonaws.com/highlights/360p.m3u8',
+                '480p': 'https://bucket.s3.region.amazonaws.com/highlights/480p.m3u8',
+                '720p': 'https://bucket.s3.region.amazonaws.com/highlights/720p.m3u8',
+                '1080p': 'https://bucket.s3.region.amazonaws.com/highlights/1080p.m3u8',
+              },
+              description: 'HLS video URLs for different resolutions',
+            },
+            masterM3u8Url: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              example: 'https://bucket.s3.region.amazonaws.com/highlights/master.m3u8',
+              description: 'Master M3U8 playlist URL',
+            },
+            previewUrl: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              example: 'https://bucket.s3.region.amazonaws.com/highlights/preview.mp4',
+              description: 'Preview video URL',
+            },
+            duration: {
+              type: 'number',
+              example: 3600,
+              description: 'Duration in seconds',
+            },
+            viewsCount: {
+              type: 'integer',
+              example: 757,
+              description: 'Number of views',
+            },
+            likesCount: {
+              type: 'integer',
+              example: 0,
+              description: 'Number of likes',
+            },
+            commentsCount: {
+              type: 'integer',
+              example: 0,
+              description: 'Number of comments',
+            },
+            status: {
+              type: 'string',
+              enum: ['published', 'archived', 'blocked', 'deleted'],
+              example: 'published',
+              description: 'Status of the highlight',
+            },
+            videoProcessingStatus: {
+              type: 'string',
+              enum: ['not_started', 'processing', 'completed', 'failed'],
+              example: 'not_started',
+              description: 'Video processing job status',
+            },
+            userId: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'User ID (MongoDB ObjectId) who created the highlight',
+            },
+            coachingCenterId: {
+              type: 'string',
+              nullable: true,
+              example: '507f1f77bcf86cd799439012',
+              description: 'Coaching center ID (MongoDB ObjectId, optional)',
+            },
+            publishedAt: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              example: '2024-01-15T10:30:00.000Z',
+              description: 'Timestamp when highlight was published',
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-15T10:00:00.000Z',
+              description: 'Timestamp when highlight was created',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-15T10:30:00.000Z',
+              description: 'Timestamp when highlight was last updated',
+            },
+          },
+        },
         AdminCoachingCenterCreateRequest: {
           type: 'object',
           required: [
@@ -6531,6 +6658,14 @@ const options: swaggerJsdoc.Options = {
         description: 'Admin panel settings management endpoints for managing application settings including fees, notifications, payment, and basic information (includes sensitive data)',
       },
       {
+        name: 'Admin Highlights',
+        description: 'Admin panel highlight management endpoints for creating, updating, and managing video highlights with video processing in background',
+      },
+      {
+        name: 'Admin Queues',
+        description: 'Admin panel queue management endpoints for viewing and managing background job queues (thumbnail generation, video processing) and viewing logs',
+      },
+      {
         name: 'User Notifications',
         description: 'User notification endpoints for viewing and managing notifications',
       },
@@ -6587,6 +6722,8 @@ const options: swaggerJsdoc.Options = {
           'Admin CMS Pages',
           'Admin Notifications',
           'Admin Settings',
+          'Admin Highlights',
+          'Admin Queues',
         ],
       },
       {

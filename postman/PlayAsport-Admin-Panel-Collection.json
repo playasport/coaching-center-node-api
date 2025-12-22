@@ -85,6 +85,21 @@
       "key": "cmsPageId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "highlightId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "queueName",
+      "value": "thumbnail-generation",
+      "type": "string"
+    },
+    {
+      "key": "jobId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -3523,6 +3538,729 @@
               "path": ["admin", "settings", "reset"]
             },
             "description": "Reset all settings to default values (populated from environment variables). WARNING: This will delete all existing settings. Use with caution. Requires settings:update permission."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Highlights Management",
+      "item": [
+        {
+          "name": "Upload Highlight Video",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "video",
+                  "type": "file",
+                  "src": [],
+                  "description": "Video file (MP4, MPEG, MOV, AVI, WebM, MKV). Max size 100MB."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/highlights/upload-video",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "highlights", "upload-video"]
+            },
+            "description": "Upload a video file for highlight. Video processing happens in background. Requires highlight:create permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Highlight Thumbnail",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "thumbnail",
+                  "type": "file",
+                  "src": [],
+                  "description": "Thumbnail image (JPEG, PNG, WebP). Max size 5MB."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/highlights/upload-thumbnail",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "highlights", "upload-thumbnail"]
+            },
+            "description": "Upload a thumbnail image for highlight. Requires highlight:create permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Highlight Media (Video + Thumbnail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "video",
+                  "type": "file",
+                  "src": [],
+                  "description": "Video file (required). Max size 100MB."
+                },
+                {
+                  "key": "thumbnail",
+                  "type": "file",
+                  "src": [],
+                  "description": "Thumbnail image (optional). Max size 5MB."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/highlights/upload-media",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "highlights", "upload-media"]
+            },
+            "description": "Upload both video and thumbnail in a single request. Requires highlight:create permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Highlights",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/highlights?page=1&limit=10&status=published&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "highlights"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page"
+                },
+                {
+                  "key": "status",
+                  "value": "published",
+                  "description": "Filter by status (published, archived, blocked, deleted)",
+                  "disabled": true
+                },
+                {
+                  "key": "videoProcessingStatus",
+                  "value": "",
+                  "description": "Filter by video processing status (not_started, processing, completed, failed)",
+                  "disabled": true
+                },
+                {
+                  "key": "coachingCenterId",
+                  "value": "",
+                  "description": "Filter by coaching center ID",
+                  "disabled": true
+                },
+                {
+                  "key": "userId",
+                  "value": "",
+                  "description": "Filter by user ID (ObjectId)",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by title or description",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "description": "Sort field"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "Sort order (asc, desc)"
+                }
+              ]
+            },
+            "description": "Get all highlights with pagination, filtering, and search. Requires highlight:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Highlight by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/highlights/{{highlightId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "highlights", "{{highlightId}}"]
+            },
+            "description": "Get a specific highlight by ID. Requires highlight:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Highlight",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Rajib Soccer Academy Highlights\",\n  \"description\": \"Rajib Soccer Academy is committed to developing young football talent through structured coaching, fitness training, and match exposure.\",\n  \"videoUrl\": \"https://bucket.s3.region.amazonaws.com/highlights/video.mp4\",\n  \"thumbnailUrl\": \"https://bucket.s3.region.amazonaws.com/highlights/thumbnail.jpg\",\n  \"userId\": \"507f1f77bcf86cd799439011\",\n  \"coachingCenterId\": \"507f1f77bcf86cd799439012\"\n}\n\nNotes:\n- title: max 60 characters\n- userId must be a valid MongoDB ObjectId (24 hex characters)\n- coachingCenterId is optional, must be MongoDB ObjectId if provided\n- duration is optional - will be automatically extracted from video during processing\n- thumbnailUrl is optional - if not provided, a thumbnail will be automatically generated during video processing\n- If thumbnailUrl is already set, it won't be regenerated\n- Video processing starts automatically in background (videoProcessingStatus: not_started → processing → completed)"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/highlights",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "highlights"]
+            },
+            "description": "Create a new highlight. Video processing will start automatically in background. Requires highlight:create permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Highlight",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Highlight Title\",\n  \"description\": \"Updated description\",\n  \"videoUrl\": \"https://bucket.s3.region.amazonaws.com/highlights/new-video.mp4\",\n  \"thumbnailUrl\": \"https://bucket.s3.region.amazonaws.com/highlights/new-thumbnail.jpg\",\n  \"status\": \"published\"\n}\n\nNotes:\n- title: max 60 characters\n- status can be: published, archived, blocked, deleted (processing status removed)\n- videoProcessingStatus is managed automatically by the system (not_started, processing, completed, failed)\n- duration is optional - will be automatically extracted from video during processing if videoUrl changes\n- If videoUrl changes, video will be reprocessed in background and duration will be updated\n- If thumbnailUrl is already set, it won't be regenerated during reprocessing\n- All fields are optional except the ones you want to update"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/highlights/{{highlightId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "highlights", "{{highlightId}}"]
+            },
+            "description": "Update a highlight. If videoUrl changes, video will be reprocessed in background. Requires highlight:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Highlight Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"published\"\n}\n\nValid status values:\n- published: Highlight is published and visible\n- archived: Highlight is archived\n- blocked: Highlight is blocked\n- deleted: Highlight is soft-deleted\n\nNote: 'processing' status has been removed. Video processing status is tracked separately via videoProcessingStatus field (not_started, processing, completed, failed)."
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/highlights/{{highlightId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "highlights", "{{highlightId}}", "status"]
+            },
+            "description": "Update highlight status (published, archived, blocked, deleted). Note: 'processing' status has been removed. Video processing status is tracked separately via videoProcessingStatus field. Requires highlight:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Reprocess Highlight Video",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/highlights/{{highlightId}}/process-video",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "highlights", "{{highlightId}}", "process-video"]
+            },
+            "description": "Manually trigger video processing for a highlight. This will process the video again regardless of current processing status (works for both processed and unprocessed videos). The videoProcessingStatus will be set to 'processing' and the video will be reprocessed in the background. Duration will be automatically extracted from the video. If a thumbnail already exists, it will be preserved. Requires highlight:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Preview Video",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "preview",
+                  "type": "file",
+                  "src": [],
+                  "description": "Preview video file (MP4, MPEG, MOV, AVI, WebM, MKV). Max size 100MB. This is typically a smaller, compressed version of the main video used for quick previews."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/highlights/{{highlightId}}/upload-preview",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "highlights", "{{highlightId}}", "upload-preview"]
+            },
+            "description": "Upload a preview video for a specific highlight. The preview video is typically a smaller, compressed version of the main video used for quick previews. The previewUrl will be updated in the highlight record. Requires highlight:update permission.\n\nNotes:\n- Accepts video files: MP4, MPEG, MOV, AVI, WebM, MKV\n- Max file size: 100MB (configurable via MAX_VIDEO_SIZE_MB)\n- The preview video will be uploaded to S3 and the highlight's previewUrl will be updated\n- If a preview video already exists, it will be replaced with the new one"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Highlight",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/highlights/{{highlightId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "highlights", "{{highlightId}}"]
+            },
+            "description": "Delete a highlight (soft delete). Requires highlight:delete permission."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Queue Management",
+      "item": [
+        {
+          "name": "Get All Queues",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/queues",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "queues"]
+            },
+            "description": "Get statistics for all queues (thumbnail generation, video processing). Requires settings:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Queue Jobs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/queues/{{queueName}}/jobs?status=all&page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "queues", "{{queueName}}", "jobs"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "Filter by status (active, waiting, completed, failed, delayed, all)",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "description": "Items per page"
+                }
+              ]
+            },
+            "description": "Get jobs from a specific queue. Queue names: thumbnail-generation, video-processing-reel. Requires settings:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Queue Job by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/queues/{{queueName}}/jobs/{{jobId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "queues", "{{queueName}}", "jobs", "{{jobId}}"]
+            },
+            "description": "Get a specific job by ID from a queue. Requires settings:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Retry Failed Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/queues/{{queueName}}/jobs/{{jobId}}/retry",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "queues", "{{queueName}}", "jobs", "{{jobId}}", "retry"]
+            },
+            "description": "Retry a failed job. Requires settings:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Job",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/queues/{{queueName}}/jobs/{{jobId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "queues", "{{queueName}}", "jobs", "{{jobId}}"]
+            },
+            "description": "Remove a job from queue. Requires settings:delete permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Pause Queue",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/queues/{{queueName}}/pause",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "queues", "{{queueName}}", "pause"]
+            },
+            "description": "Pause a queue (stops processing new jobs). Requires settings:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Resume Queue",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/queues/{{queueName}}/resume",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "queues", "{{queueName}}", "resume"]
+            },
+            "description": "Resume a paused queue. Requires settings:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Clean Queue",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/queues/{{queueName}}/clean?grace=1000&limit=1000",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "queues", "{{queueName}}", "clean"],
+              "query": [
+                {
+                  "key": "grace",
+                  "value": "1000",
+                  "description": "Grace period in milliseconds",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "1000",
+                  "description": "Maximum number of jobs to clean",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Clean a queue by removing completed and failed jobs. Requires settings:delete permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Application Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/queues/logs/application?page=1&limit=100&level=info&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "queues", "logs", "application"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Items per page"
+                },
+                {
+                  "key": "level",
+                  "value": "info",
+                  "description": "Filter by log level (debug, info, warn, error)",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search in log messages",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get application logs with filtering options. Requires settings:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Queue Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/queues/logs/queue?queueName=&page=1&limit=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "queues", "logs", "queue"],
+              "query": [
+                {
+                  "key": "queueName",
+                  "value": "",
+                  "description": "Filter by specific queue name",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Items per page"
+                }
+              ]
+            },
+            "description": "Get queue-related logs. Requires settings:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Video Processing Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/queues/logs/video-processing?jobId=&page=1&limit=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "queues", "logs", "video-processing"],
+              "query": [
+                {
+                  "key": "jobId",
+                  "value": "",
+                  "description": "Filter by specific job ID",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Items per page"
+                }
+              ]
+            },
+            "description": "Get video processing logs. Requires settings:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Logs by Job ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/queues/logs/job/{{jobId}}?page=1&limit=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "queues", "logs", "job", "{{jobId}}"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Items per page"
+                }
+              ]
+            },
+            "description": "Get logs for a specific job ID. Requires settings:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Log File Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/queues/logs/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "queues", "logs", "info"]
+            },
+            "description": "Get log file information (size, last modified, etc.). Requires settings:view permission."
           },
           "response": []
         }

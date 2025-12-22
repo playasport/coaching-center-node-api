@@ -130,6 +130,22 @@ Permissions are structured as:
 
 **Note:** Sensitive fields (API keys, passwords, credentials) are automatically encrypted at rest. Admin endpoints require `settings:view` (for GET) or `settings:update` (for POST/PATCH/PUT) permissions.
 
+### Highlights Management (`/admin/highlights`)
+
+- `POST /admin/highlights/upload-video` - Upload video file for highlight
+- `POST /admin/highlights/upload-thumbnail` - Upload thumbnail image for highlight
+- `POST /admin/highlights/upload-media` - Upload both video and thumbnail in one request
+- `GET /admin/highlights` - Get all highlights (paginated, with filters)
+- `GET /admin/highlights/:id` - Get highlight by ID
+- `POST /admin/highlights` - Create new highlight
+- `PATCH /admin/highlights/:id` - Update highlight
+- `PATCH /admin/highlights/:id/status` - Update highlight status
+- `POST /admin/highlights/:id/process-video` - Manually trigger video processing
+- `POST /admin/highlights/:id/upload-preview` - Upload preview video for highlight
+- `DELETE /admin/highlights/:id` - Delete highlight (soft delete)
+
+**Note:** Highlights require `highlight:view`, `highlight:create`, `highlight:update`, or `highlight:delete` permissions. Video processing happens automatically in the background when a highlight is created or updated with a new video URL.
+
 ## Testing Workflow
 
 ### 1. Initial Setup

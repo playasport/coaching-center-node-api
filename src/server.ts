@@ -4,6 +4,8 @@ import { connectDatabase, disconnectDatabase } from './config/database';
 import { setLocale } from './utils/i18n';
 import { logger } from './utils/logger';
 import { thumbnailWorker, thumbnailQueue } from './queue/thumbnailQueue';
+import { videoProcessingQueue } from './queue/videoProcessingQueue';
+import { closeVideoProcessingWorker } from './queue/videoProcessingWorker';
 import { closeUserCache } from './utils/userCache';
 import { closeTokenBlacklist } from './utils/tokenBlacklist';
 import { closeRateLimit } from './middleware/rateLimit.middleware';
@@ -49,6 +51,14 @@ const gracefulShutdown = async (signal: string) => {
     // Close thumbnail queue
     await thumbnailQueue.close();
     logger.info('Thumbnail queue closed');
+    
+    // Close video processing worker
+    await closeVideoProcessingWorker();
+    logger.info('Video processing worker closed');
+    
+    // Close video processing queue
+    await videoProcessingQueue.close();
+    logger.info('Video processing queue closed');
     
     // Close user cache Redis connection
     await closeUserCache();

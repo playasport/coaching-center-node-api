@@ -11,7 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 let s3Client: S3Client | null = null;
 
-const getS3Client = (): S3Client | null => {
+export const getS3Client = (): S3Client | null => {
   if (s3Client) {
     return s3Client;
   }

@@ -137,4 +137,7 @@ export const config = {
   admin: {
     email: process.env.ADMIN_EMAIL || '',
   },
+  videoProcessing: {
+    concurrency: Number(process.env.VIDEO_PROCESSING_CONCURRENCY || 2), // Number of videos to process simultaneously
+  },
 };
