@@ -6723,6 +6723,7 @@ const options: swaggerJsdoc.Options = {
           'Admin Notifications',
           'Admin Settings',
           'Admin Highlights',
+          'Admin Reels',
           'Admin Queues',
         ],
       },

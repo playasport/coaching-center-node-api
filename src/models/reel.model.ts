@@ -1,11 +1,5 @@
 import { Schema, model, HydratedDocument, Types } from 'mongoose';
-
-export enum VideoProcessedStatus {
-  PROCESSING = 'proccesing',
-  FAILED = 'failed',
-  DONE = 'done',
-  EMPTY = '',
-}
+import { VideoProcessingStatus } from './streamHighlight.model';
 
 export enum ReelStatus {
   APPROVED = 'approved',
@@ -26,12 +20,15 @@ export interface Reel {
   masterM3u8Url?: string | null;
   previewUrl?: string | null;
   hlsUrls?: {
+    '240p'?: string;
     '360p'?: string;
     '480p'?: string;
+    '720p'?: string;
+    '1080p'?: string;
     [key: string]: string | undefined;
   } | null;
   status: ReelStatus;
-  videoProcessedStatus: VideoProcessedStatus;
+  videoProcessingStatus: VideoProcessingStatus;
   viewsCount: number;
   likesCount: number;
   commentsCount: number;
@@ -74,11 +71,11 @@ const reelSchema = new Schema<Reel>(
       required: true,
       index: true,
     },
-    videoProcessedStatus: {
+    videoProcessingStatus: {
       type: String,
-      enum: Object.values(VideoProcessedStatus),
-      required: true,
-      default: VideoProcessedStatus.PROCESSING,
+      enum: Object.values(VideoProcessingStatus),
+      required: false,
+      default: VideoProcessingStatus.NOT_STARTED,
       index: true,
     },
     viewsCount: { type: Number, required: true, default: 0 },
@@ -109,7 +106,7 @@ const reelSchema = new Schema<Reel>(
 // Indexes for common queries
 reelSchema.index({ userId: 1, deletedAt: 1 });
 reelSchema.index({ status: 1, deletedAt: 1 });
-reelSchema.index({ videoProcessedStatus: 1 });
+reelSchema.index({ videoProcessingStatus: 1 });
 reelSchema.index({ createdAt: -1 });
 
 export const ReelModel = model<Reel>('Reel', reelSchema);

@@ -23,6 +23,8 @@ let currentBannersPage = 1;
 let editingBannerId = null;
 let currentHighlightsPage = 1;
 let editingHighlightId = null;
+let currentReelsPage = 1;
+let editingReelId = null;
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
@@ -233,6 +235,49 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('nextHighlightsBtn')?.addEventListener('click', () => {
         currentHighlightsPage++;
         loadHighlights();
+    });
+
+    // Reel management
+    document.getElementById('addReelBtn')?.addEventListener('click', () => openReelModal());
+    document.getElementById('closeReelModal')?.addEventListener('click', () => closeReelModal());
+    document.getElementById('cancelReelBtn')?.addEventListener('click', () => closeReelModal());
+    document.getElementById('reelForm')?.addEventListener('submit', handleSaveReel);
+    document.getElementById('uploadReelVideoBtn')?.addEventListener('click', () => uploadReelVideo());
+    document.getElementById('uploadReelThumbnailBtn')?.addEventListener('click', () => uploadReelThumbnail());
+    document.getElementById('refreshReelsBtn')?.addEventListener('click', loadReels);
+    document.getElementById('reelStatusFilter')?.addEventListener('change', () => {
+        currentReelsPage = 1;
+        loadReels();
+    });
+    document.getElementById('reelVideoProcessedStatusFilter')?.addEventListener('change', () => {
+        currentReelsPage = 1;
+        loadReels();
+    });
+    document.getElementById('reelSearchInput')?.addEventListener('input', debounce(() => {
+        currentReelsPage = 1;
+        loadReels();
+    }, 500));
+    document.getElementById('prevReelsBtn')?.addEventListener('click', () => {
+        if (currentReelsPage > 1) {
+            currentReelsPage--;
+            loadReels();
+        }
+    });
+    document.getElementById('nextReelsBtn')?.addEventListener('click', () => {
+        currentReelsPage++;
+        loadReels();
+    });
+    
+    // Character counters for reel form
+    document.getElementById('reelTitle')?.addEventListener('input', (e) => {
+        const count = e.target.value.length;
+        const counter = document.getElementById('reelTitleCount');
+        if (counter) counter.textContent = `${count}/60`;
+    });
+    document.getElementById('reelDescription')?.addEventListener('input', (e) => {
+        const count = e.target.value.length;
+        const counter = document.getElementById('reelDescriptionCount');
+        if (counter) counter.textContent = `${count}/300`;
     });
 });
 
@@ -466,6 +511,24 @@ function navigateToPage(page) {
                 showToast('You do not have permission to view highlights', 'error');
             }
             break;
+        case 'reels':
+            if (hasPermission('reel', 'view')) {
+                loadReels();
+                updateMenuVisibility();
+                // Show/hide add button based on permission
+                const addReelBtn = document.getElementById('addReelBtn');
+                if (addReelBtn) {
+                    addReelBtn.style.display = hasPermission('reel', 'create') ? 'inline-flex' : 'none';
+                }
+                // Load users and sports for form
+                if (hasPermission('reel', 'create')) {
+                    loadUsersForReel();
+                    loadSportsForReel();
+                }
+            } else {
+                showToast('You do not have permission to view reels', 'error');
+            }
+            break;
         case 'queues':
             console.log('Queues case triggered, checking permission...');
             if (hasPermission('settings', 'view')) {
@@ -497,6 +560,7 @@ function getPageTitle(page) {
         'dashboard': 'Dashboard',
         'permissions': 'Permission Management',
         'users': 'User Management',
+        'reels': 'Reel Management',
         'coaching-centers': 'Coaching Center Management',
         'roles': 'Role Management',
         'banners': 'Banner Management',
@@ -2983,3 +3047,510 @@ async function loadLogs() {
         hideLoading();
     }
 }
+// ==================== REEL MANAGEMENT ====================
+
+async function loadReels() {
+    if (!hasPermission('reel', 'view')) {
+        showToast('You do not have permission to view reels', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+        const status = document.getElementById('reelStatusFilter')?.value || '';
+        const videoProcessedStatus = document.getElementById('reelVideoProcessedStatusFilter')?.value || '';
+        const search = document.getElementById('reelSearchInput')?.value || '';
+        
+        let url = `/admin/reels?page=${currentReelsPage}&limit=10`;
+        if (status) url += `&status=${status}`;
+        if (videoProcessedStatus) url += `&videoProcessedStatus=${videoProcessedStatus}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+
+        const response = await apiRequest(url);
+        const reels = response.data.reels;
+        const pagination = response.data.pagination;
+
+        const tbody = document.getElementById('reelsTableBody');
+        tbody.innerHTML = '';
+
+        if (reels.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center">No reels found</td></tr>';
+            return;
+        }
+
+        reels.forEach(reel => {
+            const row = document.createElement('tr');
+            const thumbnail = reel.thumbnailPath || 'https://via.placeholder.com/100x60?text=No+Thumbnail';
+            const statusClass = {
+                'approved': 'status-success',
+                'rejected': 'status-danger',
+                'blocked': 'status-danger',
+                'pending': 'status-warning'
+            }[reel.status] || 'status-muted';
+
+            const videoProcessingStatusClass = {
+                'proccesing': 'status-warning',
+                'failed': 'status-danger',
+                'done': 'status-success',
+                '': 'status-muted'
+            }[reel.videoProcessedStatus] || 'status-muted';
+            
+            const canEdit = hasPermission('reel', 'update');
+            const canDelete = hasPermission('reel', 'delete');
+            
+            const actionButtons = [];
+            if (canEdit) {
+                actionButtons.push(`<button class="btn btn-sm btn-outline" onclick="editReel('${reel.id}')">Edit</button>`);
+            }
+            if (canDelete && reel.status !== 'deleted') {
+                actionButtons.push(`<button class="btn btn-sm btn-danger" onclick="deleteReel('${reel.id}')">Delete</button>`);
+            }
+            if (canEdit) {
+                actionButtons.push(`<button class="btn btn-sm btn-outline" onclick="updateReelStatus('${reel.id}', '${reel.status}')">Change Status</button>`);
+            }
+            if (canEdit && reel.originalPath) {
+                actionButtons.push(`<button class="btn btn-sm btn-primary" onclick="reprocessReelVideo('${reel.id}')" title="Reprocess video (works for both processed and unprocessed videos)">Reprocess Video</button>`);
+            }
+            const actionsHtml = actionButtons.length > 0 ? actionButtons.join(' ') : '<span class="text-muted">No actions</span>';
+
+            const userName = reel.userId?.firstName && reel.userId?.lastName 
+                ? `${reel.userId.firstName} ${reel.userId.lastName}`
+                : reel.userId?.email || 'N/A';
+
+            row.innerHTML = `
+                <td><img src="${thumbnail}" alt="Thumbnail" style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;"></td>
+                <td><strong>${reel.title}</strong><br><small style="color: var(--text-secondary);">${reel.description || 'No description'}</small></td>
+                <td>${userName}</td>
+                <td><span class="status-badge ${statusClass}">${reel.status}</span></td>
+                <td><span class="status-badge ${videoProcessingStatusClass}">${reel.videoProcessedStatus || 'empty'}</span></td>
+                <td>${reel.viewsCount || 0}</td>
+                <td>${reel.likesCount || 0}</td>
+                <td>${new Date(reel.createdAt).toLocaleDateString()}</td>
+                <td class="action-buttons">${actionsHtml}</td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        const pageInfo = document.getElementById('reelsPageInfo');
+        const prevBtn = document.getElementById('prevReelsBtn');
+        const nextBtn = document.getElementById('nextReelsBtn');
+
+        if (pagination && pageInfo && prevBtn && nextBtn) {
+            pageInfo.textContent = `Page ${pagination.page} of ${pagination.totalPages}`;
+            prevBtn.disabled = pagination.page === 1;
+            nextBtn.disabled = !pagination.hasNextPage;
+            currentReelsPage = pagination.page;
+        }
+    } catch (error) {
+        showToast(error.message || 'Failed to load reels', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+function openReelModal(reelId = null) {
+    if (!hasPermission('reel', 'create') && !reelId) {
+        showToast('You do not have permission to create reels', 'error');
+        return;
+    }
+    if (reelId && !hasPermission('reel', 'update')) {
+        showToast('You do not have permission to edit reels', 'error');
+        return;
+    }
+
+    editingReelId = reelId;
+    const modal = document.getElementById('reelModal');
+    const form = document.getElementById('reelForm');
+    const title = document.getElementById('reelModalTitle');
+    
+    if (!modal || !form || !title) {
+        console.error('Reel modal elements not found');
+        showToast('Error: Modal elements not found', 'error');
+        return;
+    }
+    
+    if (reelId) {
+        title.textContent = 'Edit Reel';
+        loadReelForEdit(reelId);
+    } else {
+        title.textContent = 'Create New Reel';
+        form.reset();
+        document.getElementById('reelOriginalPath').value = '';
+        document.getElementById('reelThumbnailPath').value = '';
+        const videoPreview = document.getElementById('reelVideoPreview');
+        const thumbnailPreview = document.getElementById('reelThumbnailPreview');
+        if (videoPreview) videoPreview.style.display = 'none';
+        if (thumbnailPreview) thumbnailPreview.style.display = 'none';
+        const titleCount = document.getElementById('reelTitleCount');
+        const descCount = document.getElementById('reelDescriptionCount');
+        if (titleCount) titleCount.textContent = '0/60';
+        if (descCount) descCount.textContent = '0/300';
+        
+        // Load users and sports for new reel
+        loadUsersForReel();
+        loadSportsForReel();
+    }
+    
+    modal.classList.add('active');
+}
+
+function closeReelModal() {
+    const modal = document.getElementById('reelModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+    editingReelId = null;
+}
+
+async function loadReelForEdit(reelId) {
+    try {
+        showLoading();
+        const response = await apiRequest(`/admin/reels/${reelId}`);
+        const reel = response.data.reel;
+
+        document.getElementById('reelTitle').value = reel.title || '';
+        document.getElementById('reelDescription').value = reel.description || '';
+        document.getElementById('reelUserId').value = reel.userId?._id || reel.userId?.id || '';
+        document.getElementById('reelStatus').value = reel.status || 'pending';
+        document.getElementById('reelOriginalPath').value = reel.originalPath || '';
+        document.getElementById('reelThumbnailPath').value = reel.thumbnailPath || '';
+
+        // Update character counters
+        document.getElementById('reelTitleCount').textContent = `${(reel.title || '').length}/60`;
+        document.getElementById('reelDescriptionCount').textContent = `${(reel.description || '').length}/300`;
+
+        // Load sports
+        await loadSportsForReel();
+        if (reel.sportIds && reel.sportIds.length > 0) {
+            const sportSelect = document.getElementById('reelSportIds');
+            Array.from(sportSelect.options).forEach(option => {
+                if (reel.sportIds.includes(option.value)) {
+                    option.selected = true;
+                }
+            });
+        }
+
+        // Show previews if URLs exist
+        if (reel.originalPath) {
+            const videoPreview = document.getElementById('reelVideoPreview');
+            const videoPlayer = document.getElementById('reelVideoPreviewPlayer');
+            videoPlayer.src = reel.originalPath;
+            videoPreview.style.display = 'block';
+            document.getElementById('reelVideoUrl').textContent = reel.originalPath;
+        }
+
+        if (reel.thumbnailPath) {
+            const thumbnailPreview = document.getElementById('reelThumbnailPreview');
+            document.getElementById('reelThumbnailPreviewImg').src = reel.thumbnailPath;
+            document.getElementById('reelThumbnailUrl').textContent = reel.thumbnailPath;
+            thumbnailPreview.style.display = 'block';
+        }
+    } catch (error) {
+        showToast(error.message || 'Failed to load reel', 'error');
+        closeReelModal();
+    } finally {
+        hideLoading();
+    }
+}
+
+async function loadUsersForReel() {
+    try {
+        const response = await apiRequest('/admin/users?page=1&limit=1000');
+        const users = response.data.users;
+        const select = document.getElementById('reelUserId');
+        
+        const currentValue = select.value;
+        select.innerHTML = '<option value="">Select User</option>';
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user._id || user.id;
+            option.textContent = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || user.id;
+            select.appendChild(option);
+        });
+        if (currentValue) {
+            select.value = currentValue;
+        }
+    } catch (error) {
+        console.error('Failed to load users:', error);
+    }
+}
+
+async function loadSportsForReel() {
+    try {
+        const response = await apiRequest('/sports?page=1&limit=1000');
+        const sports = response.data.sports || [];
+        const select = document.getElementById('reelSportIds');
+        
+        select.innerHTML = '<option value="">Select Sports</option>';
+        sports.forEach(sport => {
+            const option = document.createElement('option');
+            option.value = sport.id || sport._id;
+            option.textContent = sport.name || sport.id;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Failed to load sports:', error);
+    }
+}
+
+async function uploadReelVideo() {
+    const fileInput = document.getElementById('reelVideo');
+    
+    if (!fileInput.files || !fileInput.files[0]) {
+        showToast('Please select a video file', 'error');
+        return;
+    }
+
+    const file = fileInput.files[0];
+    
+    // Validate file size (100MB)
+    if (file.size > 100 * 1024 * 1024) {
+        showToast('File size must be less than 100MB', 'error');
+        return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska'];
+    if (!allowedTypes.includes(file.type)) {
+        showToast('Invalid file type. Allowed: MP4, MPEG, MOV, AVI, WebM, MKV', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+        const formData = new FormData();
+        formData.append('video', file);
+
+        const url = `${API_BASE_URL}/admin/reels/upload-video`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || 'Upload failed');
+        }
+
+        const videoUrl = data.data.videoUrl;
+        document.getElementById('reelOriginalPath').value = videoUrl;
+        
+        const videoPreview = document.getElementById('reelVideoPreview');
+        const videoPlayer = document.getElementById('reelVideoPreviewPlayer');
+        videoPlayer.src = videoUrl;
+        videoPreview.style.display = 'block';
+        document.getElementById('reelVideoUrl').textContent = videoUrl;
+
+        showToast('Video uploaded successfully! Note: Video must be 90 seconds or less. Duration will be validated when creating the reel.', 'success');
+    } catch (error) {
+        showToast(error.message || 'Failed to upload video', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function uploadReelThumbnail() {
+    const fileInput = document.getElementById('reelThumbnail');
+    
+    if (!fileInput.files || !fileInput.files[0]) {
+        showToast('Please select an image file', 'error');
+        return;
+    }
+
+    const file = fileInput.files[0];
+    
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('File size must be less than 5MB', 'error');
+        return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+        showToast('Invalid file type. Allowed: JPEG, PNG, WebP', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+        const formData = new FormData();
+        formData.append('thumbnail', file);
+
+        const url = `${API_BASE_URL}/admin/reels/upload-thumbnail`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || 'Upload failed');
+        }
+
+        const thumbnailUrl = data.data.thumbnailUrl;
+        document.getElementById('reelThumbnailPath').value = thumbnailUrl;
+        
+        const thumbnailPreview = document.getElementById('reelThumbnailPreview');
+        document.getElementById('reelThumbnailPreviewImg').src = thumbnailUrl;
+        document.getElementById('reelThumbnailUrl').textContent = thumbnailUrl;
+        thumbnailPreview.style.display = 'block';
+
+        showToast('Thumbnail uploaded successfully!', 'success');
+        fileInput.value = '';
+    } catch (error) {
+        showToast(error.message || 'Failed to upload thumbnail', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function handleSaveReel(e) {
+    e.preventDefault();
+
+    const action = editingReelId ? 'update' : 'create';
+    if (!hasPermission('reel', action)) {
+        showToast(`You do not have permission to ${action} reels`, 'error');
+        return;
+    }
+
+    const originalPath = document.getElementById('reelOriginalPath').value;
+    if (!originalPath) {
+        showToast('Please upload a video', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+        const sportSelect = document.getElementById('reelSportIds');
+        const selectedSports = Array.from(sportSelect.selectedOptions)
+            .map(option => option.value)
+            .filter(value => value !== '');
+
+        const reelData = {
+            title: document.getElementById('reelTitle').value.trim(),
+            description: document.getElementById('reelDescription').value.trim() || null,
+            originalPath: originalPath,
+            thumbnailPath: document.getElementById('reelThumbnailPath').value || null,
+            userId: document.getElementById('reelUserId').value,
+            sportIds: selectedSports.length > 0 ? selectedSports : undefined,
+        };
+
+        if (editingReelId) {
+            reelData.status = document.getElementById('reelStatus').value;
+            await apiRequest(`/admin/reels/${editingReelId}`, {
+                method: 'PATCH',
+                body: JSON.stringify(reelData)
+            });
+            showToast('Reel updated successfully!', 'success');
+        } else {
+            await apiRequest('/admin/reels', {
+                method: 'POST',
+                body: JSON.stringify(reelData)
+            });
+            showToast('Reel created successfully! Video processing will start automatically.', 'success');
+        }
+
+        closeReelModal();
+        loadReels();
+    } catch (error) {
+        showToast(error.message || `Failed to ${action} reel`, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+function editReel(reelId) {
+    if (!hasPermission('reel', 'update')) {
+        showToast('You do not have permission to edit reels', 'error');
+        return;
+    }
+    openReelModal(reelId);
+}
+
+async function deleteReel(reelId) {
+    if (!hasPermission('reel', 'delete')) {
+        showToast('You do not have permission to delete reels', 'error');
+        return;
+    }
+
+    if (!confirm('Are you sure you want to delete this reel? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        showLoading();
+        await apiRequest(`/admin/reels/${reelId}`, {
+            method: 'DELETE'
+        });
+
+        showToast('Reel deleted successfully!', 'success');
+        loadReels();
+    } catch (error) {
+        showToast(error.message || 'Failed to delete reel', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function updateReelStatus(reelId, currentStatus) {
+    if (!hasPermission('reel', 'update')) {
+        showToast('You do not have permission to update reel status', 'error');
+        return;
+    }
+
+    const statuses = ['approved', 'rejected', 'blocked', 'pending'];
+    const currentIndex = statuses.indexOf(currentStatus);
+    const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+
+    if (!confirm(`Change reel status from "${currentStatus}" to "${nextStatus}"?`)) {
+        return;
+    }
+
+    try {
+        showLoading();
+        await apiRequest(`/admin/reels/${reelId}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: nextStatus })
+        });
+
+        showToast('Reel status updated successfully!', 'success');
+        loadReels();
+    } catch (error) {
+        showToast(error.message || 'Failed to update reel status', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function reprocessReelVideo(reelId) {
+    if (!hasPermission('reel', 'update')) {
+        showToast('You do not have permission to reprocess videos', 'error');
+        return;
+    }
+
+    if (!confirm('Reprocess this video? This will process the video again regardless of current processing status.')) {
+        return;
+    }
+
+    try {
+        showLoading();
+        await apiRequest(`/admin/reels/${reelId}/process-video`, {
+            method: 'POST'
+        });
+
+        showToast('Video reprocessing job queued successfully!', 'success');
+        loadReels();
+    } catch (error) {
+        showToast(error.message || 'Failed to reprocess video', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+

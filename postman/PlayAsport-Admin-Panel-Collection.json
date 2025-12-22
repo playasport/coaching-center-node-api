@@ -92,6 +92,11 @@
       "type": "string"
     },
     {
+      "key": "reelId",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "queueName",
       "value": "thumbnail-generation",
       "type": "string"
@@ -3892,6 +3897,360 @@
               "path": ["admin", "highlights", "{{highlightId}}"]
             },
             "description": "Delete a highlight (soft delete). Requires highlight:delete permission."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reels Management",
+      "item": [
+        {
+          "name": "Upload Reel Video",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "video",
+                  "type": "file",
+                  "src": [],
+                  "description": "Video file (MP4, MPEG, MOV, AVI, WebM, MKV). Max size 100MB. Max duration: 90 seconds."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/reels/upload-video",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reels", "upload-video"]
+            },
+            "description": "Upload a video file for reel. Requires reel:create permission.\n\nNotes:\n- Video must be 90 seconds or less in duration\n- Duration is validated automatically during reel creation"
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Reel Thumbnail",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "thumbnail",
+                  "type": "file",
+                  "src": [],
+                  "description": "Thumbnail image (JPEG, PNG, WebP). Max size 5MB."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/reels/upload-thumbnail",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reels", "upload-thumbnail"]
+            },
+            "description": "Upload a thumbnail image for reel. Requires reel:create permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Reel Media (Video + Thumbnail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "video",
+                  "type": "file",
+                  "src": [],
+                  "description": "Video file (MP4, MPEG, MOV, AVI, WebM, MKV). Max size 100MB. Max duration: 90 seconds."
+                },
+                {
+                  "key": "thumbnail",
+                  "type": "file",
+                  "src": [],
+                  "description": "Thumbnail image (JPEG, PNG, WebP). Max size 5MB. Optional."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/reels/upload-media",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reels", "upload-media"]
+            },
+            "description": "Upload both video and thumbnail in a single request. Requires reel:create permission.\n\nNotes:\n- Video must be 90 seconds or less in duration"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Reels",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/reels?page=1&limit=10&status=pending&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reels"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page"
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "description": "Filter by status (approved, rejected, blocked, pending)",
+                  "disabled": true
+                },
+                {
+                  "key": "videoProcessedStatus",
+                  "value": "",
+                  "description": "Filter by video processing status (proccesing, failed, done, '')",
+                  "disabled": true
+                },
+                {
+                  "key": "userId",
+                  "value": "",
+                  "description": "Filter by user ID",
+                  "disabled": true
+                },
+                {
+                  "key": "sportId",
+                  "value": "",
+                  "description": "Filter by sport ID",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by title or description",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "description": "Sort field"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "Sort order (asc, desc)"
+                }
+              ]
+            },
+            "description": "Get all reels with pagination, filtering, and search. Requires reel:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Reel by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/reels/{{reelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reels", "{{reelId}}"]
+            },
+            "description": "Get a specific reel by ID. Requires reel:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Reel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Amazing Football Reel\",\n  \"description\": \"Check out this amazing football moment!\",\n  \"originalPath\": \"https://bucket.s3.region.amazonaws.com/reels/video.mp4\",\n  \"thumbnailPath\": \"https://bucket.s3.region.amazonaws.com/reels/thumbnail.jpg\",\n  \"userId\": \"507f1f77bcf86cd799439011\",\n  \"sportIds\": [\"sport-uuid-1\", \"sport-uuid-2\"]\n}\n\nNotes:\n- title: max 60 characters\n- description: max 300 characters\n- userId must be a valid MongoDB ObjectId (24 hex characters)\n- originalPath: video must be 90 seconds or less in duration (validated automatically)\n- thumbnailPath is optional - if not provided, a thumbnail will be automatically generated during video processing\n- If thumbnailPath is already set, it won't be regenerated\n- Video processing starts automatically in background (videoProcessedStatus: '' → proccesing → done)\n- Video duration is validated before creating the reel"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/reels",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reels"]
+            },
+            "description": "Create a new reel. Video processing will start automatically in background. Requires reel:create permission.\n\nImportant:\n- Video must be 90 seconds or less in duration\n- Duration is validated automatically using ffprobe\n- If video exceeds 90 seconds, creation will fail with a 400 error"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Reel",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Reel Title\",\n  \"description\": \"Updated description\",\n  \"originalPath\": \"https://bucket.s3.region.amazonaws.com/reels/new-video.mp4\",\n  \"thumbnailPath\": \"https://bucket.s3.region.amazonaws.com/reels/new-thumbnail.jpg\",\n  \"status\": \"approved\"\n}\n\nNotes:\n- title: max 60 characters\n- description: max 300 characters\n- status can be: approved, rejected, blocked, pending\n- videoProcessedStatus is managed automatically by the system (proccesing, failed, done, '')\n- If originalPath changes, video will be reprocessed in background (and duration will be validated - must be ≤ 90s)\n- If thumbnailPath is already set, it won't be regenerated during reprocessing\n- All fields are optional except the ones you want to update"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/reels/{{reelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reels", "{{reelId}}"]
+            },
+            "description": "Update a reel. If originalPath changes, video will be reprocessed in background and duration will be validated (must be ≤ 90s). Requires reel:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Reel Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\"\n}\n\nValid status values:\n- approved: Reel is approved and visible\n- rejected: Reel is rejected\n- blocked: Reel is blocked\n- pending: Reel is pending approval"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/reels/{{reelId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reels", "{{reelId}}", "status"]
+            },
+            "description": "Update reel status (approved, rejected, blocked, pending). Requires reel:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Reprocess Reel Video",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/reels/{{reelId}}/process-video",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reels", "{{reelId}}", "process-video"]
+            },
+            "description": "Manually trigger video processing for a reel. This will process the video again regardless of current processing status (works for both processed and unprocessed videos). The videoProcessedStatus will be set to 'proccesing' and the video will be reprocessed in the background. If a thumbnail already exists, it will be preserved. Requires reel:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Preview Video",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "preview",
+                  "type": "file",
+                  "src": [],
+                  "description": "Preview video file (MP4, MPEG, MOV, AVI, WebM, MKV). Max size 100MB. This is typically a smaller, compressed version of the main video used for quick previews."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/reels/{{reelId}}/upload-preview",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reels", "{{reelId}}", "upload-preview"]
+            },
+            "description": "Upload a preview video for a specific reel. The preview video is typically a smaller, compressed version of the main video used for quick previews. The previewUrl will be updated in the reel record. Requires reel:update permission.\n\nNotes:\n- Accepts video files: MP4, MPEG, MOV, AVI, WebM, MKV\n- Max file size: 100MB (configurable via MAX_VIDEO_SIZE_MB)\n- The preview video will be uploaded to S3 and the reel's previewUrl will be updated\n- If a preview video already exists, it will be replaced with the new one"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Reel",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/reels/{{reelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reels", "{{reelId}}"]
+            },
+            "description": "Delete a reel (soft delete). Requires reel:delete permission."
           },
           "response": []
         }

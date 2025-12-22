@@ -11,6 +11,7 @@ import {
   StreamHighlightModel,
   VideoProcessingStatus,
 } from '../models/streamHighlight.model';
+import { ReelModel } from '../models/reel.model';
 
 // Redis connection for BullMQ
 const connection = new Redis({
@@ -58,7 +59,7 @@ export const videoProcessingWorker = new Worker<VideoProcessingJobData>(
         folderPath,
       });
 
-      // Get existing thumbnail URL if highlight exists (to avoid regenerating)
+      // Get existing thumbnail URL if highlight or reel exists (to avoid regenerating)
       let existingThumbnailUrl: string | null = null;
       if (highlightId) {
         const existingHighlight = await StreamHighlightModel.findOne({ id: highlightId }).lean();
@@ -77,13 +78,30 @@ export const videoProcessingWorker = new Worker<VideoProcessingJobData>(
           { new: true }
         );
         logger.info('Updated highlight videoProcessingStatus to PROCESSING', { highlightId });
+      } else if (reelId) {
+        const existingReel = await ReelModel.findOne({ id: reelId }).lean();
+        if (existingReel?.thumbnailPath) {
+          existingThumbnailUrl = existingReel.thumbnailPath;
+          logger.info('Found existing thumbnail, will not regenerate', {
+            reelId,
+            existingThumbnailUrl,
+          });
+        }
+
+        // Update reel videoProcessingStatus to PROCESSING
+        await ReelModel.findOneAndUpdate(
+          { id: reelId },
+          { videoProcessingStatus: VideoProcessingStatus.PROCESSING },
+          { new: true }
+        );
+        logger.info('Updated reel videoProcessingStatus to PROCESSING', { reelId });
       }
 
       // Process the video using our existing function
       // Pass existing thumbnail URL to avoid regenerating if already exists
       const result = await processVideoToHLS(videoUrl, folderPath, reelId, existingThumbnailUrl);
 
-      // Update highlight with processed video URLs and set status to COMPLETED
+      // Update highlight or reel with processed video URLs and set status to COMPLETED
       if (highlightId) {
         // Construct permanent video URL: highlights/{highlightId}/{highlightId}.mp4
         // Extract file extension from original videoUrl
@@ -120,6 +138,41 @@ export const videoProcessingWorker = new Worker<VideoProcessingJobData>(
           permanentVideoUrl,
           thumbnailUpdated: !existingThumbnailUrl,
           duration: result.duration,
+        });
+      } else if (reelId) {
+        // Construct permanent video URL: reels/{reelId}/{reelId}.mp4
+        // Extract file extension from original videoUrl
+        const fileExtension = videoUrl.split('.').pop()?.split('?')[0] || 'mp4';
+        const permanentVideoUrl = `https://${config.aws.s3Bucket}.s3.${config.aws.region}.amazonaws.com/reels/${reelId}/${reelId}.${fileExtension}`;
+        
+        const updateData: any = {
+          videoProcessingStatus: VideoProcessingStatus.COMPLETED,
+          originalPath: permanentVideoUrl, // Update to permanent location
+          masterM3u8Url: result.masterPlaylistUrl,
+          previewUrl: result.previewUrl || undefined,
+          hlsUrls: {
+            '240p': result.qualities.find((q) => q.name === '240p')?.playlistUrl,
+            '360p': result.qualities.find((q) => q.name === '360p')?.playlistUrl,
+            '480p': result.qualities.find((q) => q.name === '480p')?.playlistUrl,
+            '720p': result.qualities.find((q) => q.name === '720p')?.playlistUrl,
+            '1080p': result.qualities.find((q) => q.name === '1080p')?.playlistUrl,
+          },
+        };
+
+        // Only update thumbnailPath if it was generated (not if existing one was used)
+        if (!existingThumbnailUrl && result.thumbnailUrl) {
+          updateData.thumbnailPath = result.thumbnailUrl;
+        }
+
+        await ReelModel.findOneAndUpdate(
+          { id: reelId },
+          { $set: updateData },
+          { new: true, runValidators: true }
+        );
+        logger.info('Updated reel with processed video URLs, permanent videoUrl', {
+          reelId,
+          permanentVideoUrl,
+          thumbnailUpdated: !existingThumbnailUrl,
         });
       }
 
@@ -162,11 +215,12 @@ videoProcessingWorker.on('failed', async (job, error) => {
     data: job?.data,
   });
 
-  // Update highlight videoProcessingStatus to FAILED if it's a highlight
+  // Update highlight or reel videoProcessingStatus to FAILED
   // Note: This is a fallback - the main error handler in the worker function also updates the status
   if (job?.data) {
     const jobData = job.data as VideoProcessingJobData;
     const highlightId = jobData.highlightId;
+    const reelId = jobData.reelId;
 
     if (highlightId) {
       try {
@@ -181,6 +235,22 @@ videoProcessingWorker.on('failed', async (job, error) => {
       } catch (updateError) {
         logger.error('Failed to update highlight status on job failure', {
           highlightId,
+          error: updateError,
+        });
+      }
+    } else if (reelId) {
+      try {
+        await ReelModel.findOneAndUpdate(
+          { id: reelId },
+          { videoProcessingStatus: VideoProcessingStatus.FAILED },
+          { new: true }
+        );
+        logger.info('Updated reel videoProcessingStatus to FAILED (from failed event)', {
+          reelId,
+        });
+      } catch (updateError) {
+        logger.error('Failed to update reel status on job failure', {
+          reelId,
           error: updateError,
         });
       }

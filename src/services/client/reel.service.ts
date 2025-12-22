@@ -1,4 +1,5 @@
-import { ReelModel, ReelStatus, VideoProcessedStatus } from '../../models/reel.model';
+import { ReelModel, ReelStatus } from '../../models/reel.model';
+import { VideoProcessingStatus } from '../../models/streamHighlight.model';
 import { logger } from '../../utils/logger';
 import { ApiError } from '../../utils/ApiError';
 
@@ -27,39 +28,10 @@ export interface ReelsListResponse {
 }
 
 /**
- * Build reel URLs (video, video preview, thumbnail) from reel data
- * Note: Database now stores full URLs, so we use them directly
- */
-export interface ReelUrls {
-  videoUrl: string;
-  videoPreviewUrl: string;
-  thumbnailUrl: string;
-}
-
-export const buildReelUrls = (reel: {
-  masterM3u8Url?: string | null;
-  previewUrl?: string | null;
-  thumbnailPath?: string | null;
-}): ReelUrls => {
-  // Use URLs directly from database (they are already full URLs)
-  return {
-    videoUrl: reel.masterM3u8Url || '',
-    videoPreviewUrl: reel.previewUrl || '',
-    thumbnailUrl: reel.thumbnailPath || '',
-  };
-};
-
-/**
  * Format reel data for API response
+ * Note: All URLs are already stored in the database, so we use them directly
  */
 const formatReelListItem = (reel: any, user: any): ReelListItem => {
-  // Build reel URLs using helper function
-  const urls = buildReelUrls({
-    masterM3u8Url: reel.masterM3u8Url,
-    previewUrl: reel.previewUrl,
-    thumbnailPath: reel.thumbnailPath,
-  });
-
   // Build user name
   // Handle case where user might be null (populate didn't find a match)
   const userName = user
@@ -71,8 +43,8 @@ const formatReelListItem = (reel: any, user: any): ReelListItem => {
 
   return {
     id: reel.id,
-    videoUrl: urls.videoUrl,
-    thumbnailUrl: urls.thumbnailUrl,
+    videoUrl: reel.masterM3u8Url || '', // Use master playlist URL directly from database
+    thumbnailUrl: reel.thumbnailPath || '', // Use thumbnail URL directly from database
     title: reel.title,
     description: reel.description || null,
     share_url: `https://playasport.in/reels/${reel.id}`,
@@ -104,7 +76,7 @@ export const getReelsList = async (
     // Build query - only get approved, non-deleted reels with video processing done
     const query = {
       status: ReelStatus.APPROVED,
-      videoProcessedStatus: VideoProcessedStatus.DONE,
+      videoProcessingStatus: VideoProcessingStatus.COMPLETED,
       deletedAt: null,
     };
 
@@ -233,7 +205,7 @@ export const getReelsListWithIdFirst = async (
           $match: {
             id: reelId,
             status: ReelStatus.APPROVED,
-            videoProcessedStatus: VideoProcessedStatus.DONE,
+            videoProcessingStatus: VideoProcessingStatus.COMPLETED,
             deletedAt: null,
           },
         },
@@ -283,7 +255,7 @@ export const getReelsListWithIdFirst = async (
     const query = {
       id: { $ne: reelId },
       status: ReelStatus.APPROVED,
-      videoProcessedStatus: VideoProcessedStatus.DONE,
+      videoProcessingStatus: VideoProcessingStatus.COMPLETED,
       deletedAt: null,
     };
 
@@ -292,7 +264,7 @@ export const getReelsListWithIdFirst = async (
       {
         $match: {
           status: ReelStatus.APPROVED,
-          videoProcessedStatus: VideoProcessedStatus.DONE,
+          videoProcessingStatus: VideoProcessingStatus.COMPLETED,
           deletedAt: null,
         },
       },

@@ -68,6 +68,10 @@
                     <span class="nav-icon">🎬</span>
                     <span>Highlights</span>
                 </a>
+                <a href="#" class="nav-item" data-page="reels" data-section="reel">
+                    <span class="nav-icon">🎥</span>
+                    <span>Reels</span>
+                </a>
                 <a href="#" class="nav-item" data-page="queues" data-section="settings">
                     <span class="nav-icon">⚙️</span>
                     <span>Queues</span>
@@ -322,6 +326,61 @@
                         <tbody id="highlightsTableBody">
                             <tr>
                                 <td colspan="8" class="text-center">Loading highlights...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Reels Page -->
+            <div id="reelsPage" class="page">
+                <div class="page-header">
+                    <h2>Reel Management</h2>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button id="addReelBtn" class="btn btn-primary" style="display: none;">+ Add Reel</button>
+                        <div class="pagination-controls">
+                            <button id="prevReelsBtn" class="btn btn-outline">Previous</button>
+                            <span id="reelsPageInfo">Page 1 of 1</span>
+                            <button id="nextReelsBtn" class="btn btn-outline">Next</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <select id="reelStatusFilter" class="form-control" style="width: 150px;">
+                        <option value="">All Status</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="blocked">Blocked</option>
+                        <option value="pending">Pending</option>
+                    </select>
+                    <select id="reelVideoProcessedStatusFilter" class="form-control" style="width: 180px;">
+                        <option value="">All Processing Status</option>
+                        <option value="proccesing">Processing</option>
+                        <option value="failed">Failed</option>
+                        <option value="done">Done</option>
+                        <option value="">Empty</option>
+                    </select>
+                    <input type="text" id="reelSearchInput" class="form-control" placeholder="Search by title..." style="width: 200px;">
+                    <button id="refreshReelsBtn" class="btn btn-outline">Refresh</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Thumbnail</th>
+                                <th>Title</th>
+                                <th>User</th>
+                                <th>Status</th>
+                                <th>Processing</th>
+                                <th>Views</th>
+                                <th>Likes</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reelsTableBody">
+                            <tr>
+                                <td colspan="9" class="text-center">Loading reels...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -697,6 +756,95 @@
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" id="cancelHighlightBtn">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Highlight</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Reel Modal -->
+    <div id="reelModal" class="modal">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2 id="reelModalTitle">Create New Reel</h2>
+                <button class="modal-close" id="closeReelModal">&times;</button>
+            </div>
+            <form id="reelForm" class="form">
+                <div class="form-group">
+                    <label for="reelTitle">Title * (max 60 characters)</label>
+                    <input type="text" id="reelTitle" class="form-control" required maxlength="60">
+                    <small id="reelTitleCount" style="color: var(--text-secondary);">0/60</small>
+                </div>
+                <div class="form-group">
+                    <label for="reelDescription">Description (max 300 characters)</label>
+                    <textarea id="reelDescription" class="form-control" rows="3" maxlength="300"></textarea>
+                    <small id="reelDescriptionCount" style="color: var(--text-secondary);">0/300</small>
+                </div>
+                <div class="form-group">
+                    <label for="reelUserId">User *</label>
+                    <select id="reelUserId" class="form-control" required>
+                        <option value="">Select User</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="reelSportIds">Sports (Optional)</label>
+                    <select id="reelSportIds" class="form-control" multiple style="min-height: 100px;">
+                        <option value="">Select Sports</option>
+                    </select>
+                    <small>Hold Ctrl/Cmd to select multiple sports</small>
+                </div>
+                
+                <!-- Video Upload Section -->
+                <div class="form-group">
+                    <label>Video * (max 90 seconds)</label>
+                    <div style="display: flex; gap: 10px; align-items: flex-start;">
+                        <div style="flex: 1;">
+                            <input type="file" id="reelVideo" accept="video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/webm,video/x-matroska" class="form-control">
+                            <small>MP4, MPEG, MOV, AVI, WebM, or MKV (max 100MB, max 90 seconds duration)</small>
+                        </div>
+                        <button type="button" id="uploadReelVideoBtn" class="btn btn-outline">Upload</button>
+                    </div>
+                    <div id="reelVideoPreview" style="margin-top: 10px; display: none;">
+                        <video id="reelVideoPreviewPlayer" controls style="max-width: 100%; max-height: 300px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div style="margin-top: 5px;">
+                            <small id="reelVideoUrl" style="color: var(--text-secondary); word-break: break-all;"></small>
+                        </div>
+                    </div>
+                    <input type="hidden" id="reelOriginalPath">
+                </div>
+
+                <!-- Thumbnail Upload Section -->
+                <div class="form-group">
+                    <label>Thumbnail (Optional)</label>
+                    <div style="display: flex; gap: 10px; align-items: flex-start;">
+                        <div style="flex: 1;">
+                            <input type="file" id="reelThumbnail" accept="image/jpeg,image/jpg,image/png,image/webp" class="form-control">
+                            <small>JPEG, PNG, or WebP (max 5MB)</small>
+                        </div>
+                        <button type="button" id="uploadReelThumbnailBtn" class="btn btn-outline">Upload</button>
+                    </div>
+                    <div id="reelThumbnailPreview" style="margin-top: 10px; display: none;">
+                        <img id="reelThumbnailPreviewImg" src="" alt="Thumbnail Preview" style="max-width: 200px; max-height: 150px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="margin-top: 5px;">
+                            <small id="reelThumbnailUrl" style="color: var(--text-secondary); word-break: break-all;"></small>
+                        </div>
+                    </div>
+                    <input type="hidden" id="reelThumbnailPath">
+                </div>
+
+                <div class="form-group">
+                    <label for="reelStatus">Status</label>
+                    <select id="reelStatus" class="form-control">
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="blocked">Blocked</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelReelBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Reel</button>
                 </div>
             </form>
         </div>

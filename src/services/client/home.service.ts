@@ -7,8 +7,8 @@ import { getUserObjectId } from '../../utils/userCache';
 import { UserModel } from '../../models/user.model';
 import { config } from '../../config/env';
 import type { AcademyListItem } from './academy.service';
-import { ReelModel, ReelStatus, VideoProcessedStatus } from '../../models/reel.model';
-import { buildReelUrls } from './reel.service';
+import { ReelModel, ReelStatus } from '../../models/reel.model';
+import { VideoProcessingStatus } from '../../models/streamHighlight.model';
 
 export interface PopularSport {
   _id: string;
@@ -251,7 +251,7 @@ export const getPopularReels = async (limit: number = 6): Promise<PopularReel[]>
       {
         $match: {
           status: ReelStatus.APPROVED,
-          videoProcessedStatus: VideoProcessedStatus.DONE,
+          videoProcessingStatus: VideoProcessingStatus.COMPLETED,
           deletedAt: null,
         },
       },
@@ -293,13 +293,6 @@ export const getPopularReels = async (limit: number = 6): Promise<PopularReel[]>
     return reels.map((reel: any) => {
       const user = reel.user || null;
 
-      // Build reel URLs using helper function
-      const urls = buildReelUrls({
-        masterM3u8Url: reel.masterM3u8Url,
-        previewUrl: reel.previewUrl,
-        thumbnailPath: reel.thumbnailPath,
-      });
-
       // Build user name
       const userName = user
         ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User'
@@ -310,9 +303,9 @@ export const getPopularReels = async (limit: number = 6): Promise<PopularReel[]>
 
       return {
         id: reel.id,
-        videoUrl: urls.videoUrl,
-        videoPreviewUrl: urls.videoPreviewUrl,
-        thumbnailUrl: urls.thumbnailUrl,
+        videoUrl: reel.masterM3u8Url || '', // Use master playlist URL directly from database
+        videoPreviewUrl: reel.previewUrl || '', // Use preview URL directly from database
+        thumbnailUrl: reel.thumbnailPath || '', // Use thumbnail URL directly from database
         title: reel.title,
         description: reel.description || null,
         user: {
