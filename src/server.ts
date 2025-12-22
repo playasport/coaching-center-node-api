@@ -11,6 +11,7 @@ import { closeTokenBlacklist } from './utils/tokenBlacklist';
 import { closeRateLimit } from './middleware/rateLimit.middleware';
 import { closePermissionCache } from './services/admin/permission.service';
 import { startMediaCleanupJob } from './jobs/mediaCleanup.job';
+import { startPermanentDeleteJob } from './jobs/permanentDelete.job';
 
 const startServer = async (): Promise<void> => {
   try {
@@ -24,6 +25,9 @@ const startServer = async (): Promise<void> => {
 
     // Start media cleanup cron job (runs daily at 2 AM)
     startMediaCleanupJob();
+
+    // Start permanent deletion cron job (runs monthly on the 1st at 3 AM)
+    startPermanentDeleteJob();
 
     // Start server
     app.listen(config.port, () => {
