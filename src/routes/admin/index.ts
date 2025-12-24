@@ -17,6 +17,7 @@ import settingsRoutes from './settings.routes';
 import highlightRoutes from './highlight.routes';
 import reelRoutes from './reel.routes';
 import queueRoutes from './queue.routes';
+import facilityRoutes from './facility.routes';
 
 const router = Router();
 
@@ -39,5 +40,6 @@ router.use('/settings', settingsRoutes);
 router.use('/highlights', highlightRoutes);
 router.use('/reels', reelRoutes);
 router.use('/queues', queueRoutes);
+router.use('/facilities', facilityRoutes);
 
 export default router;

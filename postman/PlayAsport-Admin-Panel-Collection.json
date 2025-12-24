@@ -105,6 +105,11 @@
       "key": "jobId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "facilityId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -4731,6 +4736,236 @@
               "path": ["admin", "queues", "logs", "info"]
             },
             "description": "Get log file information (size, last modified, etc.). Requires settings:view permission."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin Facilities",
+      "description": "Admin panel facility management endpoints for creating, updating, and managing facilities with pagination, filtering, and search",
+      "item": [
+        {
+          "name": "Get All Facilities",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.facilities && response.data.facilities.length > 0) {",
+                  "        pm.collectionVariables.set('facilityId', response.data.facilities[0]._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/facilities?page=1&limit=10&search=&isActive=true&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "facilities"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Search by name, description, or custom_id"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "Filter by active status (true/false)"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "disabled": true,
+                  "description": "Field to sort by (name, createdAt, updatedAt)"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "disabled": true,
+                  "description": "Sort order (asc/desc)"
+                }
+              ]
+            },
+            "description": "Get all facilities with pagination, filtering, and search. Requires facility:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Facility by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/facilities/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "facilities", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{facilityId}}",
+                  "description": "Facility ID (ObjectId or custom_id)"
+                }
+              ]
+            },
+            "description": "Get a specific facility by ID. Supports both MongoDB ObjectId and custom_id (UUID). Requires facility:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Facility",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Swimming Pool\",\n  \"description\": \"Olympic size swimming pool with modern facilities\",\n  \"icon\": \"https://example.com/icons/swimming.png\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/facilities",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "facilities"]
+            },
+            "description": "Create a new facility. Name is required. Requires facility:create permission."
+          },
+          "response": [
+            {
+              "name": "Success - Facility Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Swimming Pool\",\n  \"description\": \"Olympic size swimming pool with modern facilities\",\n  \"icon\": \"https://example.com/icons/swimming.png\",\n  \"is_active\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/facilities",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "facilities"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Facility created successfully\",\n  \"data\": {\n    \"facility\": {\n      \"_id\": \"507f1f77bcf86cd799439011\",\n      \"custom_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"name\": \"Swimming Pool\",\n      \"description\": \"Olympic size swimming pool with modern facilities\",\n      \"icon\": \"https://example.com/icons/swimming.png\",\n      \"is_active\": true,\n      \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n      \"updatedAt\": \"2024-01-01T00:00:00.000Z\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Facility",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Swimming Pool\",\n  \"description\": \"Updated description\",\n  \"icon\": \"https://example.com/icons/swimming-updated.png\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/facilities/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "facilities", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{facilityId}}",
+                  "description": "Facility ID (ObjectId or custom_id)"
+                }
+              ]
+            },
+            "description": "Update facility details. All fields are optional. Requires facility:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Facility",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/facilities/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "facilities", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{facilityId}}",
+                  "description": "Facility ID (ObjectId or custom_id)"
+                }
+              ]
+            },
+            "description": "Soft delete a facility by setting is_active to false. Requires facility:delete permission."
           },
           "response": []
         }

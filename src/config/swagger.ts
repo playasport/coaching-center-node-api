@@ -1278,6 +1278,120 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        Facility: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011',
+              description: 'MongoDB Object ID',
+            },
+            custom_id: {
+              type: 'string',
+              format: 'uuid',
+              example: '06da21af-f11c-4cd9-8ecc-b21d3de9ad2c',
+              description: 'Unique identifier for the facility',
+            },
+            name: {
+              type: 'string',
+              example: 'Swimming Pool',
+              description: 'Name of the facility',
+            },
+            description: {
+              type: 'string',
+              nullable: true,
+              example: 'Olympic size swimming pool with modern facilities',
+              description: 'Description of the facility',
+            },
+            icon: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              example: 'https://bucket.s3.region.amazonaws.com/facilities/swimming-pool-icon.png',
+              description: 'URL of the facility icon',
+            },
+            is_active: {
+              type: 'boolean',
+              example: true,
+              description: 'Whether the facility is active',
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-01T00:00:00.000Z',
+              description: 'Creation timestamp',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-01T00:00:00.000Z',
+              description: 'Last update timestamp',
+            },
+          },
+        },
+        CreateFacilityRequest: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 100,
+              example: 'Swimming Pool',
+              description: 'Name of the facility (required, max 100 characters)',
+            },
+            description: {
+              type: 'string',
+              maxLength: 500,
+              nullable: true,
+              example: 'Olympic size swimming pool with modern facilities',
+              description: 'Description of the facility (optional, max 500 characters)',
+            },
+            icon: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              example: 'https://example.com/icons/swimming.png',
+              description: 'Icon URL for the facility (optional)',
+            },
+            is_active: {
+              type: 'boolean',
+              example: true,
+              description: 'Whether the facility is active (defaults to true)',
+            },
+          },
+        },
+        UpdateFacilityRequest: {
+          type: 'object',
+          properties: {
+            name: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 100,
+              example: 'Updated Swimming Pool',
+              description: 'Name of the facility (optional, max 100 characters)',
+            },
+            description: {
+              type: 'string',
+              maxLength: 500,
+              nullable: true,
+              example: 'Updated description',
+              description: 'Description of the facility (optional, max 500 characters)',
+            },
+            icon: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              example: 'https://example.com/icons/swimming-updated.png',
+              description: 'Icon URL for the facility (optional)',
+            },
+            is_active: {
+              type: 'boolean',
+              example: true,
+              description: 'Whether the facility is active (optional)',
+            },
+          },
+        },
         ReelListItem: {
           type: 'object',
           properties: {
@@ -6672,6 +6786,10 @@ const options: swaggerJsdoc.Options = {
         description: 'Admin panel highlight management endpoints for creating, updating, and managing video highlights with video processing in background',
       },
       {
+        name: 'Admin Facilities',
+        description: 'Admin panel facility management endpoints for creating, updating, and managing facilities with pagination, filtering, and search',
+      },
+      {
         name: 'Admin Queues',
         description: 'Admin panel queue management endpoints for viewing and managing background job queues (thumbnail generation, video processing) and viewing logs',
       },
@@ -6734,6 +6852,7 @@ const options: swaggerJsdoc.Options = {
           'Admin Settings',
           'Admin Highlights',
           'Admin Reels',
+          'Admin Facilities',
           'Admin Queues',
         ],
       },
