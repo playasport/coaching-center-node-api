@@ -3807,6 +3807,16 @@ const options: swaggerJsdoc.Options = {
               nullable: true,
               description: 'Role description',
             },
+            isSystemDefined: {
+              type: 'boolean',
+              example: true,
+              description: 'Indicates if the role is a system-defined role (cannot be deleted or have name changed). System roles include: super_admin, admin, user, academy, student, guardian, employee, agent.',
+            },
+            userCount: {
+              type: 'number',
+              example: 42,
+              description: 'Number of active (non-deleted) users assigned to this role',
+            },
           },
         },
         FeeType: {

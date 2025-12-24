@@ -8,6 +8,7 @@ import { DefaultRoles } from '../../enums/defaultRoles.enum';
 import { UserModel } from '../../models/user.model';
 import type { CreateRoleInput, UpdateRoleInput } from '../../validations/role.validation';
 import { Types } from 'mongoose';
+import * as roleService from '../../services/admin/role.service';
 
 /**
  * Get all roles (admin - Super Admin only)
@@ -16,34 +17,19 @@ export const getAllRoles = async (req: Request, res: Response): Promise<void> =>
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const skip = (page - 1) * limit;
 
-    const total = await RoleModel.countDocuments({});
-    const roles = await RoleModel.find({})
-      .sort({ name: 1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    const totalPages = Math.ceil(total / limit);
+    const result = await roleService.getAllRoles(page, limit);
 
     const response = new ApiResponse(
       200,
-      {
-        roles,
-        pagination: {
-          total,
-          page,
-          limit,
-          totalPages,
-          hasNextPage: page < totalPages,
-          hasPrevPage: page > 1,
-        },
-      },
+      result,
       'Roles retrieved successfully'
     );
     res.json(response);
   } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
     logger.error('Get all roles error:', error);
     throw new ApiError(500, t('errors.internalServerError'));
   }

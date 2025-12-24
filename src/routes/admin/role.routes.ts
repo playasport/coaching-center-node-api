@@ -45,7 +45,13 @@ router.use(authenticate, requireAdmin);
  * /admin/roles:
  *   get:
  *     summary: Get all roles (admin)
- *     description: Retrieve all roles in the system with pagination. Requires role:view permission.
+ *     description: |
+ *       Retrieve all roles in the system with pagination. Requires role:view permission.
+ *       
+ *       **Response includes:**
+ *       - `isSystemDefined`: Indicates if the role is a system-defined role (cannot be deleted or have name changed)
+ *       - `userCount`: Number of active (non-deleted) users assigned to this role
+ *       - All role fields including `id`, `name`, `description`, `visibleToRoles`, `createdAt`, `updatedAt`
  *     tags: [Admin Roles]
  *     security:
  *       - bearerAuth: []
@@ -80,7 +86,30 @@ router.use(authenticate, requireAdmin);
  *                     roles:
  *                       type: array
  *                       items:
- *                         $ref: '#/components/schemas/Role'
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           name:
+ *                             type: string
+ *                           description:
+ *                             type: string
+ *                             nullable: true
+ *                           visibleToRoles:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                             nullable: true
+ *                           isSystemDefined:
+ *                             type: boolean
+ *                           userCount:
+ *                             type: number
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
  *                     pagination:
  *                       $ref: '#/components/schemas/Pagination'
  *             example:
@@ -92,10 +121,28 @@ router.use(authenticate, requireAdmin);
  *                     name: "super_admin"
  *                     description: "Super Administrator with full system access"
  *                     visibleToRoles: null
+ *                     isSystemDefined: true
+ *                     userCount: 1
  *                     createdAt: "2024-01-01T00:00:00.000Z"
  *                     updatedAt: "2024-01-01T00:00:00.000Z"
+ *                   - id: "507f1f77bcf86cd799439012"
+ *                     name: "admin"
+ *                     description: "Administrator with elevated permissions"
+ *                     visibleToRoles: null
+ *                     isSystemDefined: true
+ *                     userCount: 5
+ *                     createdAt: "2024-01-01T00:00:00.000Z"
+ *                     updatedAt: "2024-01-01T00:00:00.000Z"
+ *                   - id: "507f1f77bcf86cd799439015"
+ *                     name: "custom_manager"
+ *                     description: "Custom manager role created by admin"
+ *                     visibleToRoles: ["super_admin", "admin"]
+ *                     isSystemDefined: false
+ *                     userCount: 3
+ *                     createdAt: "2024-01-15T00:00:00.000Z"
+ *                     updatedAt: "2024-01-15T00:00:00.000Z"
  *                 pagination:
- *                   total: 6
+ *                   total: 8
  *                   page: 1
  *                   limit: 10
  *                   totalPages: 1

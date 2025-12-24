@@ -875,9 +875,49 @@
                 }
               ]
             },
-            "description": "Get all roles in the system with pagination. Requires role:view permission."
+            "description": "Get all roles in the system with pagination. Requires role:view permission. Response includes isSystemDefined flag (indicates if role is system-defined and cannot be deleted) and userCount (number of active users assigned to this role)."
           },
-          "response": []
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/roles?page=1&limit=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "roles"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Roles retrieved successfully\",\n  \"data\": {\n    \"roles\": [\n      {\n        \"id\": \"507f1f77bcf86cd799439011\",\n        \"name\": \"super_admin\",\n        \"description\": \"Super Administrator with full system access\",\n        \"visibleToRoles\": null,\n        \"isSystemDefined\": true,\n        \"userCount\": 1,\n        \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n        \"updatedAt\": \"2024-01-01T00:00:00.000Z\"\n      },\n      {\n        \"id\": \"507f1f77bcf86cd799439012\",\n        \"name\": \"admin\",\n        \"description\": \"Administrator with elevated permissions\",\n        \"visibleToRoles\": null,\n        \"isSystemDefined\": true,\n        \"userCount\": 5,\n        \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n        \"updatedAt\": \"2024-01-01T00:00:00.000Z\"\n      },\n      {\n        \"id\": \"507f1f77bcf86cd799439013\",\n        \"name\": \"academy\",\n        \"description\": \"Academy user with coaching center management permissions\",\n        \"visibleToRoles\": [\"super_admin\", \"admin\"],\n        \"isSystemDefined\": true,\n        \"userCount\": 15,\n        \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n        \"updatedAt\": \"2024-01-01T00:00:00.000Z\"\n      },\n      {\n        \"id\": \"507f1f77bcf86cd799439015\",\n        \"name\": \"custom_manager\",\n        \"description\": \"Custom manager role created by admin\",\n        \"visibleToRoles\": [\"super_admin\", \"admin\"],\n        \"isSystemDefined\": false,\n        \"userCount\": 3,\n        \"createdAt\": \"2024-01-15T00:00:00.000Z\",\n        \"updatedAt\": \"2024-01-15T00:00:00.000Z\"\n      }\n    ],\n    \"pagination\": {\n      \"total\": 8,\n      \"page\": 1,\n      \"limit\": 10,\n      \"totalPages\": 1,\n      \"hasNextPage\": false,\n      \"hasPrevPage\": false\n    }\n  }\n}"
+            }
+          ]
         },
         {
           "name": "Get Role by ID",
