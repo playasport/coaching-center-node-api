@@ -3439,16 +3439,87 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"app_name\": \"Play A Sport\",\n  \"app_logo\": \"https://example.com/logo.png\",\n  \"about_us\": \"About our platform...\",\n  \"support_email\": \"support@playasport.in\",\n  \"support_phone\": \"+91-9876543210\",\n  \"meta_description\": \"Meta description for SEO\",\n  \"meta_keywords\": \"sports, coaching, academy\"\n}"
+              "raw": "{\n  \"app_name\": \"Play A Sport\",\n  \"app_logo\": \"https://example.com/logo.png\",\n  \"about_us\": \"About our platform...\",\n  \"support_email\": \"support@playasport.in\",\n  \"support_phone\": \"+91-9876543210\",\n  \"meta_description\": \"Meta description for SEO\",\n  \"meta_keywords\": \"sports, coaching, academy\",\n  \"contact\": {\n    \"number\": [\"+91-9230981848\", \"+91-9230981845\"],\n    \"email\": \"info@playasport.com\",\n    \"address\": {\n      \"office\": \"BD-357, sector-1, saltlake city, Kolkata, West Bengal, India, 700064\",\n      \"registered\": \"AE-694, Sector 1, Salt Lake City, Bidhan Nagar AE Market, North 24 Parganas, Saltlake, West Bengal, India, 700064\"\n    },\n    \"whatsapp\": \"+91-9230981848\",\n    \"instagram\": \"https://www.instagram.com/playasport.in/\",\n    \"facebook\": \"https://www.facebook.com/PlayASportIndia\",\n    \"youtube\": \"https://www.youtube.com/@PlayASport_in\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/admin/settings/basic-info",
               "host": ["{{baseUrl}}"],
               "path": ["admin", "settings", "basic-info"]
             },
-            "description": "Update basic information fields. Requires settings:update permission."
+            "description": "Update basic information including app name, logo, about us, support details, SEO metadata, and contact information (phone numbers, email, addresses, social media links). All fields are optional. Requires settings:update permission."
           },
           "response": []
+        },
+        {
+          "name": "Upload App Logo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "logo",
+                  "type": "file",
+                  "src": [],
+                  "description": "Logo image file (JPEG, PNG, or WebP)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/settings/logo",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "settings", "logo"]
+            },
+            "description": "Upload a logo image file for the application. The image will be automatically compressed and saved to S3. The logo URL will be automatically updated in settings. Requires settings:update permission."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "logo",
+                      "type": "file",
+                      "src": []
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/settings/logo",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "settings", "logo"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Logo uploaded successfully\",\n  \"data\": {\n    \"logoUrl\": \"https://bucket.s3.region.amazonaws.com/images/logo/uuid.jpg\",\n    \"settings\": {\n      \"_id\": \"507f1f77bcf86cd799439011\",\n      \"app_name\": \"Play A Sport\",\n      \"app_logo\": \"https://bucket.s3.region.amazonaws.com/images/logo/uuid.jpg\",\n      \"contact\": {\n        \"number\": [\"+91-9230981848\"],\n        \"email\": \"info@playasport.com\"\n      },\n      \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n      \"updatedAt\": \"2024-01-15T12:30:00.000Z\"\n    }\n  }\n}"
+            }
+          ]
         },
         {
           "name": "Update Fee Configuration",

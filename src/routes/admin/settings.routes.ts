@@ -4,6 +4,7 @@ import { requireAdmin } from '../../middleware/admin.middleware';
 import { requirePermission } from '../../middleware/permission.middleware';
 import { Section, Action } from '../../enums/section.enum';
 import * as settingsController from '../../controllers/admin/settings.controller';
+import { uploadSettingsLogo } from '../../middleware/settingsUpload.middleware';
 
 const router = Router();
 
@@ -237,7 +238,7 @@ router.put('/', requirePermission(Section.SETTINGS, Action.UPDATE), settingsCont
  * /admin/settings/basic-info:
  *   patch:
  *     summary: Update basic information
- *     description: Update basic information fields including app name, logo, about us, support details, and SEO metadata. All fields are optional. Requires settings:update permission.
+ *     description: Update basic information fields including app name, logo, about us, support details, SEO metadata, and contact information (phone numbers, email, addresses, social media links). All fields are optional. Requires settings:update permission.
  *     tags: [Admin Settings]
  *     security:
  *       - bearerAuth: []
@@ -278,6 +279,62 @@ router.put('/', requirePermission(Section.SETTINGS, Action.UPDATE), settingsCont
  *                 type: string
  *                 nullable: true
  *                 example: "sports, coaching, academy"
+ *               contact:
+ *                 type: object
+ *                 nullable: true
+ *                 description: Contact information including phone numbers, email, addresses, and social media links
+ *                 properties:
+ *                   number:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                     nullable: true
+ *                     example: ["+91-9876543210", "+91-9876543211"]
+ *                     description: Array of contact phone numbers
+ *                   email:
+ *                     type: string
+ *                     format: email
+ *                     nullable: true
+ *                     example: "contact@playasport.in"
+ *                     description: Contact email address
+ *                   address:
+ *                     type: object
+ *                     nullable: true
+ *                     description: Contact addresses
+ *                     properties:
+ *                       office:
+ *                         type: string
+ *                         nullable: true
+ *                         example: "BD-357, sector-1, saltlake city, Kolkata, West Bengal, India, 700064"
+ *                         description: Office address
+ *                       registered:
+ *                         type: string
+ *                         nullable: true
+ *                         example: "AE-694, Sector 1, Salt Lake City, Bidhan Nagar AE Market, North 24 Parganas, Saltlake, West Bengal, India, 700064"
+ *                         description: Registered office address
+ *                   whatsapp:
+ *                     type: string
+ *                     nullable: true
+ *                     example: "+91-9876543210"
+ *                     description: WhatsApp contact number
+ *                   instagram:
+ *                     type: string
+ *                     format: uri
+ *                     nullable: true
+ *                     example: "https://www.instagram.com/playasport.in/"
+ *                     description: Instagram profile URL
+ *                   facebook:
+ *                     type: string
+ *                     format: uri
+ *                     nullable: true
+ *                     example: "https://www.facebook.com/PlayASportIndia"
+ *                     description: Facebook page URL
+ *                   youtube:
+ *                     type: string
+ *                     format: uri
+ *                     nullable: true
+ *                     example: "https://www.youtube.com/@PlayASport_in"
+ *                     description: YouTube channel URL
  *           example:
  *             app_name: "Play A Sport"
  *             app_logo: "https://example.com/logo.png"
@@ -286,6 +343,16 @@ router.put('/', requirePermission(Section.SETTINGS, Action.UPDATE), settingsCont
  *             support_phone: "+91-9876543210"
  *             meta_description: "Meta description for SEO"
  *             meta_keywords: "sports, coaching, academy"
+ *             contact:
+ *               number: ["+91-9230981848", "+91-9230981845"]
+ *               email: "info@playasport.com"
+ *               address:
+ *                 office: "BD-357, sector-1, saltlake city, Kolkata, West Bengal, India, 700064"
+ *                 registered: "AE-694, Sector 1, Salt Lake City, Bidhan Nagar AE Market, North 24 Parganas, Saltlake, West Bengal, India, 700064"
+ *               whatsapp: "+91-9230981848"
+ *               instagram: "https://www.instagram.com/playasport.in/"
+ *               facebook: "https://www.facebook.com/PlayASportIndia"
+ *               youtube: "https://www.youtube.com/@PlayASport_in"
  *     responses:
  *       200:
  *         description: Basic information updated successfully
@@ -316,6 +383,78 @@ router.patch(
   '/basic-info',
   requirePermission(Section.SETTINGS, Action.UPDATE),
   settingsController.updateBasicInfo
+);
+
+/**
+ * @swagger
+ * /admin/settings/logo:
+ *   post:
+ *     summary: Upload app logo
+ *     description: Upload a logo image file for the application. The image will be automatically compressed and saved to S3. The logo URL will be automatically updated in settings. Requires settings:update permission.
+ *     tags: [Admin Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - logo
+ *             properties:
+ *               logo:
+ *                 type: string
+ *                 format: binary
+ *                 description: Logo image file (JPEG, PNG, or WebP). Maximum size is based on media.maxImageSize configuration.
+ *           encoding:
+ *             logo:
+ *               contentType: image/jpeg, image/png, image/webp
+ *     responses:
+ *       200:
+ *         description: Logo uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Logo uploaded successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     logoUrl:
+ *                       type: string
+ *                       format: uri
+ *                       example: "https://bucket.s3.region.amazonaws.com/images/logo/uuid.jpg"
+ *                       description: URL of the uploaded logo
+ *                     settings:
+ *                       $ref: '#/components/schemas/Settings'
+ *             example:
+ *               success: true
+ *               message: "Logo uploaded successfully"
+ *               data:
+ *                 logoUrl: "https://bucket.s3.region.amazonaws.com/images/logo/uuid.jpg"
+ *                 settings:
+ *                   _id: "507f1f77bcf86cd799439011"
+ *                   app_name: "Play A Sport"
+ *                   app_logo: "https://bucket.s3.region.amazonaws.com/images/logo/uuid.jpg"
+ *       400:
+ *         description: Bad request - Invalid file type or file size exceeds limit
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ */
+router.post(
+  '/logo',
+  requirePermission(Section.SETTINGS, Action.UPDATE),
+  uploadSettingsLogo,
+  settingsController.uploadLogo
 );
 
 /**

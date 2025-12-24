@@ -2,6 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import * as settingsService from '../../services/common/settings.service';
+import { uploadFileToS3 } from '../../services/common/s3.service';
+import { compressImage, isImage } from '../../utils/imageCompression';
+import { logger } from '../../utils/logger';
 
 /**
  * Get all settings (admin only - includes sensitive data)
@@ -53,11 +56,24 @@ export const updateBasicInfo = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { app_name, app_logo, about_us, support_email, support_phone, meta_description, meta_keywords } = req.body;
+    const { 
+      app_name, 
+      app_logo, 
+      about_us, 
+      support_email, 
+      support_phone, 
+      meta_description, 
+      meta_keywords,
+      contact
+    } = req.body;
 
     const updateData: any = {};
+    
+    // Handle top-level fields
     if (app_name !== undefined) updateData.app_name = app_name;
     if (app_logo !== undefined) updateData.app_logo = app_logo;
+    
+    // Handle basic_info fields
     if (about_us !== undefined || support_email !== undefined || support_phone !== undefined || meta_description !== undefined || meta_keywords !== undefined) {
       updateData.basic_info = {};
       if (about_us !== undefined) updateData.basic_info.about_us = about_us;
@@ -65,6 +81,24 @@ export const updateBasicInfo = async (
       if (support_phone !== undefined) updateData.basic_info.support_phone = support_phone;
       if (meta_description !== undefined) updateData.basic_info.meta_description = meta_description;
       if (meta_keywords !== undefined) updateData.basic_info.meta_keywords = meta_keywords;
+    }
+    
+    // Handle contact information
+    if (contact !== undefined) {
+      updateData.contact = {};
+      if (contact.number !== undefined) updateData.contact.number = contact.number;
+      if (contact.email !== undefined) updateData.contact.email = contact.email;
+      if (contact.whatsapp !== undefined) updateData.contact.whatsapp = contact.whatsapp;
+      if (contact.instagram !== undefined) updateData.contact.instagram = contact.instagram;
+      if (contact.facebook !== undefined) updateData.contact.facebook = contact.facebook;
+      if (contact.youtube !== undefined) updateData.contact.youtube = contact.youtube;
+      
+      // Handle contact address
+      if (contact.address !== undefined) {
+        updateData.contact.address = {};
+        if (contact.address.office !== undefined) updateData.contact.address.office = contact.address.office;
+        if (contact.address.registered !== undefined) updateData.contact.address.registered = contact.address.registered;
+      }
     }
 
     const settings = await settingsService.updateSettings(updateData, false);
@@ -189,6 +223,72 @@ export const togglePayment = async (
     res.json(response);
   } catch (error) {
     next(error);
+  }
+};
+
+/**
+ * Upload app logo
+ */
+export const uploadLogo = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.file) {
+      throw new ApiError(400, 'Logo file is required');
+    }
+
+    // Compress image if it's an image file
+    let fileBuffer = req.file.buffer;
+    if (isImage(req.file.mimetype)) {
+      try {
+        const originalSize = req.file.buffer.length;
+        fileBuffer = await compressImage(req.file.buffer, req.file.mimetype);
+        
+        logger.info('Logo image compressed', {
+          originalSize: `${(originalSize / 1024).toFixed(2)} KB`,
+          compressedSize: `${(fileBuffer.length / 1024).toFixed(2)} KB`,
+          reduction: `${(((originalSize - fileBuffer.length) / originalSize) * 100).toFixed(1)}%`,
+        });
+      } catch (error) {
+        logger.warn('Logo image compression failed, using original', { error });
+        // Continue with original image if compression fails
+      }
+    }
+
+    // Create a modified file object with compressed buffer
+    const compressedFile = {
+      ...req.file,
+      buffer: fileBuffer,
+      size: fileBuffer.length,
+    };
+
+    // Upload to S3 in images/logo folder (permanent location)
+    const logoUrl = await uploadFileToS3({
+      file: compressedFile,
+      folder: 'images/logo',
+    });
+
+    // Update settings with the new logo URL
+    const settings = await settingsService.updateSettings({ app_logo: logoUrl }, false);
+    
+    const response = new ApiResponse(
+      200,
+      { 
+        logoUrl,
+        settings 
+      },
+      'Logo uploaded successfully'
+    );
+    res.json(response);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      next(error);
+    } else {
+      logger.error('Failed to upload logo:', error);
+      next(new ApiError(500, 'Failed to upload logo'));
+    }
   }
 };
 
