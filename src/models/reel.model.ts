@@ -13,7 +13,7 @@ export interface Reel {
   userId: Types.ObjectId; // Reference to User model
   title: string;
   description?: string | null;
-  sportIds: string[]; // Array of sport UUIDs
+  sportIds: Types.ObjectId[]; // Array of sport ObjectIds
   originalPath: string;
   folderPath?: string | null;
   thumbnailPath?: string | null;
@@ -51,7 +51,8 @@ const reelSchema = new Schema<Reel>(
     title: { type: String, required: true, trim: true },
     description: { type: String, default: null, trim: true },
     sportIds: {
-      type: [String],
+      type: [Schema.Types.ObjectId],
+      ref: 'Sport',
       required: true,
       default: [],
       index: true,
@@ -108,5 +109,6 @@ reelSchema.index({ userId: 1, deletedAt: 1 });
 reelSchema.index({ status: 1, deletedAt: 1 });
 reelSchema.index({ videoProcessingStatus: 1 });
 reelSchema.index({ createdAt: -1 });
+reelSchema.index({ sportIds: 1, deletedAt: 1 });
 
 export const ReelModel = model<Reel>('Reel', reelSchema);

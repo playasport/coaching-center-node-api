@@ -110,6 +110,21 @@
       "key": "facilityId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "countryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "stateId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cityId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -4968,6 +4983,616 @@
             "description": "Soft delete a facility by setting is_active to false. Requires facility:delete permission."
           },
           "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin Locations",
+      "description": "Admin panel location management endpoints for creating, updating, and managing countries, states, and cities with pagination, filtering, and search",
+      "item": [
+        {
+          "name": "Countries",
+          "item": [
+            {
+              "name": "Get All Countries",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const response = pm.response.json();",
+                      "    if (response.data && response.data.countries && response.data.countries.length > 0) {",
+                      "        pm.collectionVariables.set('countryId', response.data.countries[0]._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/locations/countries?page=1&limit=10&search=&sortBy=name&sortOrder=asc",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "locations", "countries"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Number of records per page"
+                    },
+                    {
+                      "key": "search",
+                      "value": "",
+                      "disabled": true,
+                      "description": "Search by name, code, iso2, or iso3"
+                    },
+                    {
+                      "key": "region",
+                      "value": "",
+                      "disabled": true,
+                      "description": "Filter by region"
+                    },
+                    {
+                      "key": "subregion",
+                      "value": "",
+                      "disabled": true,
+                      "description": "Filter by subregion"
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "name",
+                      "disabled": true,
+                      "description": "Field to sort by"
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "asc",
+                      "disabled": true,
+                      "description": "Sort order (asc/desc)"
+                    }
+                  ]
+                },
+                "description": "Get all countries with pagination, filtering, and search. Requires location:view permission."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Country by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/locations/countries/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "locations", "countries", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "{{countryId}}",
+                      "description": "Country ID (ObjectId, code, iso2, or iso3)"
+                    }
+                  ]
+                },
+                "description": "Get a specific country by ID. Requires location:view permission."
+              },
+              "response": []
+            },
+            {
+              "name": "Create Country",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"India\",\n  \"code\": \"IN\",\n  \"iso2\": \"IN\",\n  \"iso3\": \"IND\",\n  \"phoneCode\": \"+91\",\n  \"currency\": \"INR\",\n  \"currencySymbol\": \"₹\",\n  \"region\": \"Asia\",\n  \"subregion\": \"Southern Asia\",\n  \"latitude\": 20.5937,\n  \"longitude\": 78.9629\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/locations/countries",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "locations", "countries"]
+                },
+                "description": "Create a new country. Name is required. Requires location:create permission."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Country",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated Country Name\",\n  \"region\": \"Updated Region\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/locations/countries/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "locations", "countries", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "{{countryId}}",
+                      "description": "Country ID (ObjectId, code, iso2, or iso3)"
+                    }
+                  ]
+                },
+                "description": "Update country details. All fields are optional. Requires location:update permission."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Country",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/locations/countries/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "locations", "countries", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "{{countryId}}",
+                      "description": "Country ID (ObjectId, code, iso2, or iso3)"
+                    }
+                  ]
+                },
+                "description": "Delete a country. Cannot delete if country has associated states. Requires location:delete permission."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "States",
+          "item": [
+            {
+              "name": "Get All States",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const response = pm.response.json();",
+                      "    if (response.data && response.data.states && response.data.states.length > 0) {",
+                      "        pm.collectionVariables.set('stateId', response.data.states[0]._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/locations/states?page=1&limit=10&search=&countryId=&countryCode=&sortBy=name&sortOrder=asc",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "locations", "states"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "search",
+                      "value": "",
+                      "disabled": true,
+                      "description": "Search by name, stateCode, or countryName"
+                    },
+                    {
+                      "key": "countryId",
+                      "value": "",
+                      "disabled": true,
+                      "description": "Filter by country ID"
+                    },
+                    {
+                      "key": "countryCode",
+                      "value": "",
+                      "disabled": true,
+                      "description": "Filter by country code"
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "name",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "asc",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Get all states with pagination, filtering, and search. Requires location:view permission."
+              },
+              "response": []
+            },
+            {
+              "name": "Get State by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/locations/states/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "locations", "states", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "{{stateId}}",
+                      "description": "State ID (ObjectId or stateCode)"
+                    }
+                  ]
+                },
+                "description": "Get a specific state by ID. Requires location:view permission."
+              },
+              "response": []
+            },
+            {
+              "name": "Create State",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Delhi\",\n  \"countryCode\": \"IN\",\n  \"stateCode\": \"DL\",\n  \"latitude\": 28.6139,\n  \"longitude\": 77.209\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/locations/states",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "locations", "states"]
+                },
+                "description": "Create a new state. Name and country (countryId or countryCode) are required. Requires location:create permission."
+              },
+              "response": []
+            },
+            {
+              "name": "Update State",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated State Name\",\n  \"stateCode\": \"DL\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/locations/states/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "locations", "states", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "{{stateId}}",
+                      "description": "State ID (ObjectId or stateCode)"
+                    }
+                  ]
+                },
+                "description": "Update state details. All fields are optional. Requires location:update permission."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete State",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/locations/states/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "locations", "states", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "{{stateId}}",
+                      "description": "State ID (ObjectId or stateCode)"
+                    }
+                  ]
+                },
+                "description": "Delete a state. Cannot delete if state has associated cities. Requires location:delete permission."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Cities",
+          "item": [
+            {
+              "name": "Get All Cities",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const response = pm.response.json();",
+                      "    if (response.data && response.data.cities && response.data.cities.length > 0) {",
+                      "        pm.collectionVariables.set('cityId', response.data.cities[0]._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/locations/cities?page=1&limit=10&search=&stateId=&stateName=&countryId=&countryCode=&sortBy=name&sortOrder=asc",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "locations", "cities"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "search",
+                      "value": "",
+                      "disabled": true,
+                      "description": "Search by name, stateName, or countryName"
+                    },
+                    {
+                      "key": "stateId",
+                      "value": "",
+                      "disabled": true,
+                      "description": "Filter by state ID"
+                    },
+                    {
+                      "key": "stateName",
+                      "value": "",
+                      "disabled": true,
+                      "description": "Filter by state name"
+                    },
+                    {
+                      "key": "countryId",
+                      "value": "",
+                      "disabled": true,
+                      "description": "Filter by country ID"
+                    },
+                    {
+                      "key": "countryCode",
+                      "value": "",
+                      "disabled": true,
+                      "description": "Filter by country code"
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "name",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "asc",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Get all cities with pagination, filtering, and search. Requires location:view permission."
+              },
+              "response": []
+            },
+            {
+              "name": "Get City by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/locations/cities/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "locations", "cities", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "{{cityId}}",
+                      "description": "City ID (ObjectId or city name)"
+                    }
+                  ]
+                },
+                "description": "Get a specific city by ID. Requires location:view permission."
+              },
+              "response": []
+            },
+            {
+              "name": "Create City",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"New Delhi\",\n  \"stateName\": \"Delhi\",\n  \"latitude\": 28.6139,\n  \"longitude\": 77.209\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/locations/cities",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "locations", "cities"]
+                },
+                "description": "Create a new city. Name and state (stateId or stateName) are required. Requires location:create permission."
+              },
+              "response": []
+            },
+            {
+              "name": "Update City",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated City Name\",\n  \"latitude\": 28.6139,\n  \"longitude\": 77.209\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/locations/cities/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "locations", "cities", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "{{cityId}}",
+                      "description": "City ID (ObjectId or city name)"
+                    }
+                  ]
+                },
+                "description": "Update city details. All fields are optional. Requires location:update permission."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete City",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/locations/cities/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "locations", "cities", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "{{cityId}}",
+                      "description": "City ID (ObjectId or city name)"
+                    }
+                  ]
+                },
+                "description": "Delete a city. Requires location:delete permission."
+              },
+              "response": []
+            }
+          ]
         }
       ]
     }

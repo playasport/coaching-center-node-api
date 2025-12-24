@@ -40,9 +40,17 @@ export interface AdminReelListItem {
   likesCount: number;
   commentsCount: number;
   status: string;
-    videoProcessingStatus: string;
-  userId: Types.ObjectId;
-  sportIds: string[];
+  videoProcessingStatus: string;
+  userId: Types.ObjectId | { id: string; firstName: string; lastName: string; email: string };
+  sportIds: Types.ObjectId[] | Array<{
+    _id: Types.ObjectId;
+    custom_id: string;
+    name: string;
+    slug: string | null;
+    logo: string | null;
+    is_active: boolean;
+    is_popular: boolean;
+  }>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -78,6 +86,44 @@ export interface UpdateReelInput {
 }
 
 /**
+ * Helper function to build a query that supports both custom id and MongoDB _id
+ */
+const buildReelIdQuery = (id: string): any => {
+  const query: any = { deletedAt: null };
+  
+  // Check if the ID is a valid MongoDB ObjectId
+  if (Types.ObjectId.isValid(id)) {
+    // Support both _id (ObjectId) and custom id (string)
+    query.$or = [
+      { _id: new Types.ObjectId(id) },
+      { id: id }
+    ];
+  } else {
+    // If not a valid ObjectId, only search by custom id
+    query.id = id;
+  }
+  
+  return query;
+};
+
+/**
+ * Helper function to convert sport IDs (strings or ObjectIds) to ObjectIds
+ */
+const convertSportIdsToObjectIds = (sportIds: string[] | undefined): Types.ObjectId[] => {
+  if (!sportIds || sportIds.length === 0) {
+    return [];
+  }
+  
+  return sportIds.map((sportId) => {
+    if (Types.ObjectId.isValid(sportId)) {
+      return new Types.ObjectId(sportId);
+    } else {
+      throw new ApiError(400, `Invalid sport ID: ${sportId}`);
+    }
+  });
+};
+
+/**
  * Get all reels for admin with filters and pagination
  */
 export const getAllReels = async (
@@ -106,7 +152,11 @@ export const getAllReels = async (
 
     // Filter by sport if provided
     if (params.sportId) {
-      query.sportIds = params.sportId;
+      if (Types.ObjectId.isValid(params.sportId)) {
+        query.sportIds = new Types.ObjectId(params.sportId);
+      } else {
+        throw new ApiError(400, 'Invalid sport ID');
+      }
     }
 
     // Search by title or description
@@ -131,6 +181,7 @@ export const getAllReels = async (
     const [reels, total] = await Promise.all([
       ReelModel.find(query)
         .populate('userId', 'id firstName lastName email')
+        .populate('sportIds', '_id custom_id name slug logo is_active is_popular')
         .sort(sort)
         .skip(skip)
         .limit(limit)
@@ -164,8 +215,10 @@ export const getAllReels = async (
  */
 export const getReelById = async (id: string): Promise<Reel | null> => {
   try {
-    const reel = await ReelModel.findOne({ id, deletedAt: null })
+    const query = buildReelIdQuery(id);
+    const reel = await ReelModel.findOne(query)
       .populate('userId', 'id firstName lastName email')
+      .populate('sportIds', '_id custom_id name slug logo is_active is_popular')
       .lean();
 
     return reel as any;
@@ -246,6 +299,9 @@ export const createReel = async (
       }
     }
 
+    // Convert sport IDs to ObjectIds
+    const sportObjectIds = convertSportIdsToObjectIds(data.sportIds);
+
     // Create reel with permanent video URL from the start
     const reelData: any = {
       id: reelId, // Set the ID explicitly
@@ -254,9 +310,9 @@ export const createReel = async (
       description: data.description || null,
       originalPath: finalVideoUrl, // Use permanent URL
       thumbnailPath: finalThumbnailPath, // Use permanent URL if moved
-      sportIds: data.sportIds || [],
-      status: ReelStatus.PENDING, // Default status
-      videoProcessingStatus: VideoProcessingStatus.NOT_STARTED, // Video processing not started yet
+      sportIds: sportObjectIds,
+      status: ReelStatus.APPROVED, // Admin-created reels are approved by default
+      videoProcessingStatus: VideoProcessingStatus.NOT_STARTED, // Will be updated to PROCESSING after enqueueing
     };
 
     // Create reel with permanent URL already set
@@ -278,22 +334,30 @@ export const createReel = async (
       folderPath: `reels/${reel.id}`,
       type: 'reel',
       timestamp: Date.now(),
-    })
-      .then(() => {
-        // Update status to processing when job is successfully enqueued
-        return ReelModel.findOneAndUpdate(
-          { id: reel.id },
-          { videoProcessingStatus: VideoProcessingStatus.PROCESSING },
-          { new: true }
-        );
-      })
-      .catch((error) => {
-        // Log error but don't block - video processing will be retried by queue system
-        logger.error('Failed to enqueue video processing (non-critical)', {
-          reelId: reel.id,
-          error: error instanceof Error ? error.message : error,
-        });
+    }).catch((error) => {
+      // Log error but don't block - video processing will be retried by queue system
+      logger.error('Failed to enqueue video processing (non-critical)', {
+        reelId: reel.id,
+        error: error instanceof Error ? error.message : error,
       });
+    });
+
+    // Update status to processing immediately after job is enqueued
+    // The worker will also update it when it starts, but this gives immediate feedback
+    try {
+      await ReelModel.findOneAndUpdate(
+        { id: reel.id },
+        { videoProcessingStatus: VideoProcessingStatus.PROCESSING },
+        { new: true }
+      );
+      logger.info('Reel video processing status updated to PROCESSING', { reelId: reel.id });
+    } catch (error) {
+      // Log error but don't block - the worker will update it when processing starts
+      logger.error('Failed to update video processing status (non-critical)', {
+        reelId: reel.id,
+        error: error instanceof Error ? error.message : error,
+      });
+    }
 
     // Return the reel - it already has the permanent videoUrl
     logger.info('Reel created with permanent videoUrl', {
@@ -326,7 +390,8 @@ export const updateReel = async (
   adminId: string
 ): Promise<Reel | null> => {
   try {
-    const reel = await ReelModel.findOne({ id, deletedAt: null });
+    const query = buildReelIdQuery(id);
+    const reel = await ReelModel.findOne(query);
 
     if (!reel) {
       return null;
@@ -343,7 +408,7 @@ export const updateReel = async (
       reel.status = data.status;
     }
     if (data.sportIds !== undefined) {
-      reel.sportIds = data.sportIds;
+      reel.sportIds = convertSportIdsToObjectIds(data.sportIds);
     }
     if (data.thumbnailPath !== undefined) {
       const oldThumbnailPath = reel.thumbnailPath;
@@ -423,22 +488,29 @@ export const updateReel = async (
           folderPath: `reels/${reel.id}`,
           type: 'reel',
           timestamp: Date.now(),
-        })
-          .then(() => {
-            // Update status to processing when job is successfully enqueued
-            return ReelModel.findOneAndUpdate(
-              { id: reel.id },
-              { videoProcessingStatus: VideoProcessingStatus.PROCESSING },
-              { new: true }
-            );
-          })
-          .catch((error) => {
-            // Log error but don't block
-            logger.error('Failed to enqueue video reprocessing (non-critical)', {
-              reelId: reel.id,
-              error: error instanceof Error ? error.message : error,
-            });
+        }).catch((error) => {
+          // Log error but don't block - video processing will be retried by queue system
+          logger.error('Failed to enqueue video processing (non-critical)', {
+            reelId: reel.id,
+            error: error instanceof Error ? error.message : error,
           });
+        });
+
+        // Update status to processing immediately after job is enqueued
+        try {
+          await ReelModel.findOneAndUpdate(
+            { id: reel.id },
+            { videoProcessingStatus: VideoProcessingStatus.PROCESSING },
+            { new: true }
+          );
+          logger.info('Reel video processing status updated to PROCESSING during update', { reelId: reel.id });
+        } catch (error) {
+          // Log error but don't block - the worker will update it when processing starts
+          logger.error('Failed to update video processing status (non-critical)', {
+            reelId: reel.id,
+            error: error instanceof Error ? error.message : error,
+          });
+        }
       }
     }
     if (data.userId !== undefined) {
@@ -468,7 +540,8 @@ export const updateReel = async (
  */
 export const deleteReel = async (id: string, adminId: string): Promise<boolean> => {
   try {
-    const reel = await ReelModel.findOne({ id, deletedAt: null });
+    const query = buildReelIdQuery(id);
+    const reel = await ReelModel.findOne(query);
 
     if (!reel) {
       return false;
@@ -495,7 +568,8 @@ export const updateReelStatus = async (
   adminId: string
 ): Promise<Reel | null> => {
   try {
-    const reel = await ReelModel.findOne({ id, deletedAt: null });
+    const query = buildReelIdQuery(id);
+    const reel = await ReelModel.findOne(query);
 
     if (!reel) {
       return null;
@@ -523,7 +597,8 @@ export const reprocessReelVideo = async (
 ): Promise<{ message: string; reel: Reel }> => {
   try {
     // Find the reel
-    const reel = await ReelModel.findOne({ id, deletedAt: null });
+    const query = buildReelIdQuery(id);
+    const reel = await ReelModel.findOne(query);
 
     if (!reel) {
       throw new ApiError(404, 'Reel not found');
@@ -578,24 +653,15 @@ export const reprocessReelVideo = async (
       folderPath: `reels/${reel.id}`,
       type: 'reel',
       timestamp: Date.now(),
-    })
-      .then(() => {
-        // Update status to processing when job is successfully enqueued
-        return ReelModel.findOneAndUpdate(
-          { id: reel.id },
-          { videoProcessingStatus: VideoProcessingStatus.PROCESSING },
-          { new: true }
-        );
-      })
-      .catch((error) => {
-        // Log error but don't block - video processing will be retried by queue system
-        logger.error('Failed to enqueue video reprocessing (non-critical)', {
-          reelId: reel.id,
-          error: error instanceof Error ? error.message : error,
-        });
+    }).catch((error) => {
+      // Log error but don't block - video processing will be retried by queue system
+      logger.error('Failed to enqueue video reprocessing (non-critical)', {
+        reelId: reel.id,
+        error: error instanceof Error ? error.message : error,
       });
+    });
 
-    // Update videoProcessingStatus to PROCESSING immediately
+    // Update videoProcessingStatus to PROCESSING immediately after job is enqueued
     const updatedReel = await ReelModel.findOneAndUpdate(
       { id: reel.id },
       { videoProcessingStatus: VideoProcessingStatus.PROCESSING },
@@ -633,7 +699,8 @@ export const updateReelPreview = async (
   adminId: string
 ): Promise<Reel | null> => {
   try {
-    const reel = await ReelModel.findOne({ id, deletedAt: null });
+    const query = buildReelIdQuery(id);
+    const reel = await ReelModel.findOne(query);
 
     if (!reel) {
       return null;
