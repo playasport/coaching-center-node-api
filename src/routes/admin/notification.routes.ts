@@ -154,5 +154,125 @@ router.post(
   notificationController.testNotification
 );
 
+/**
+ * @swagger
+ * /admin/notifications:
+ *   get:
+ *     summary: Get all notifications
+ *     tags: [Admin Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     description: Get a paginated list of all sent notifications with filters. Requires notification:view permission.
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: recipientType
+ *         schema:
+ *           type: string
+ *           enum: [user, academy]
+ *         description: Filter by recipient type
+ *       - in: query
+ *         name: recipientId
+ *         schema:
+ *           type: string
+ *         description: Filter by recipient ID
+ *       - in: query
+ *         name: channels
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: string
+ *             enum: [sms, email, whatsapp, push]
+ *         description: Filter by notification channels
+ *       - in: query
+ *         name: priority
+ *         schema:
+ *           type: string
+ *           enum: [high, medium, low]
+ *         description: Filter by priority
+ *       - in: query
+ *         name: sent
+ *         schema:
+ *           type: boolean
+ *         description: Filter by sent status
+ *       - in: query
+ *         name: isRead
+ *         schema:
+ *           type: boolean
+ *         description: Filter by read status
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by title or body
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           default: createdAt
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order
+ *     responses:
+ *       200:
+ *         description: Notifications retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Notifications retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     notifications:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Notification'
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *                         hasNextPage:
+ *                           type: boolean
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (not admin or missing notification:view permission)
+ */
+router.get(
+  '/',
+  requirePermission(Section.NOTIFICATION, Action.VIEW),
+  notificationController.getAllNotifications
+);
+
 export default router;
 

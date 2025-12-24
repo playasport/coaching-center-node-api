@@ -3680,6 +3680,158 @@
       ]
     },
     {
+      "name": "Notifications Management",
+      "description": "Admin panel notification management endpoints for sending notifications to users and academies, and viewing all sent notifications",
+      "item": [
+        {
+          "name": "Get All Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/notifications?page=1&limit=10&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "notifications"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of items per page",
+                  "disabled": true
+                },
+                {
+                  "key": "recipientType",
+                  "value": "user",
+                  "description": "Filter by recipient type (user or academy)",
+                  "disabled": true
+                },
+                {
+                  "key": "recipientId",
+                  "value": "",
+                  "description": "Filter by recipient ID",
+                  "disabled": true
+                },
+                {
+                  "key": "channels",
+                  "value": "push",
+                  "description": "Filter by notification channels (sms, email, whatsapp, push)",
+                  "disabled": true
+                },
+                {
+                  "key": "priority",
+                  "value": "medium",
+                  "description": "Filter by priority (high, medium, low)",
+                  "disabled": true
+                },
+                {
+                  "key": "sent",
+                  "value": "true",
+                  "description": "Filter by sent status",
+                  "disabled": true
+                },
+                {
+                  "key": "isRead",
+                  "value": "false",
+                  "description": "Filter by read status",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by title or body",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "description": "Field to sort by",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "Sort order (asc or desc)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get a paginated list of all sent notifications with filters. Supports filtering by recipient type, recipient ID, channels, priority, sent status, read status, and search by title/body. Requires notification:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Send Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipientType\": \"user\",\n  \"recipientId\": \"{{userId}}\",\n  \"title\": \"New Booking Confirmed\",\n  \"body\": \"Your booking for Cricket Batch has been confirmed.\",\n  \"channels\": [\"push\", \"email\"],\n  \"priority\": \"medium\",\n  \"data\": {\n    \"bookingId\": \"BK-2024-0001\",\n    \"type\": \"booking\",\n    \"batchId\": \"batch-uuid-123\",\n    \"amount\": 5000\n  },\n  \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/notifications/image.png\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/notifications/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "notifications", "send"]
+            },
+            "description": "Send a notification to a user or academy through multiple channels (SMS, Email, WhatsApp, Push). Requires notification:create permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Test Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipientType\": \"user\",\n  \"recipientId\": \"{{userId}}\",\n  \"channels\": [\"push\", \"email\", \"sms\", \"whatsapp\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/notifications/test",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "notifications", "test"]
+            },
+            "description": "Send a test notification to verify notification channels are working. Requires notification:create permission."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Highlights Management",
       "item": [
         {
