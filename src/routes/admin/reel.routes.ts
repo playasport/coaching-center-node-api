@@ -338,12 +338,36 @@ router.post(
  *     tags: [Admin Reels]
  *     security:
  *       - bearerAuth: []
+ *     description: |
+ *       Update a reel. All fields are optional.
+ *       
+ *       **File Management:**
+ *       - If `originalPath` or `thumbnailPath` is in temp folder, it will be automatically moved to permanent location
+ *       - Old video/thumbnail files will be deleted from S3 when URLs are changed
+ *       - Permanent paths: `reels/{id}/{id}.mp4` and `reels/{id}/thumbnail.{ext}`
+ *       
+ *       **Video Processing:**
+ *       - If `originalPath` changes, video will be reprocessed in background
+ *       - Video duration will be validated (max 90 seconds)
+ *       - Video processing status will be reset to `not_started` and then `processing`
+ *       
+ *       **User:**
+ *       - `userId` can be updated
+ *       - Must be a valid MongoDB ObjectId (24 hex characters)
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
+ *         description: Reel ID (supports both UUID format and MongoDB ObjectId format for backward compatibility)
+ *         examples:
+ *           uuid:
+ *             value: "42b385a4-ee2d-4d5e-af65-7884afd59645"
+ *             summary: UUID format
+ *           objectId:
+ *             value: "6949205a65bcf6c22e4a7984"
+ *             summary: MongoDB ObjectId format
  *     requestBody:
  *       required: true
  *       content:
@@ -363,8 +387,16 @@ router.post(
  *               originalPath:
  *                 type: string
  *                 format: uri
+ *                 description: "Video URL. If URL is in temp folder, it will be moved to permanent location. Old video will be deleted if URL changes. Video duration will be validated (max 90 seconds)."
  *               thumbnailPath:
  *                 type: string
+ *                 format: uri
+ *                 nullable: true
+ *                 description: "Thumbnail URL. If URL is in temp folder, it will be moved to permanent location. Old thumbnail will be deleted if URL changes."
+ *               userId:
+ *                 type: string
+ *                 description: "User ID (MongoDB ObjectId). Updates the user associated with the reel."
+ *                 example: "507f1f77bcf86cd799439011"
  *                 format: uri
  *                 nullable: true
  *               status:

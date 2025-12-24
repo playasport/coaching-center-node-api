@@ -3,6 +3,7 @@ import * as adminHighlightController from '../../controllers/admin/highlight.con
 import { authenticate } from '../../middleware/auth.middleware';
 import { requireAdmin } from '../../middleware/admin.middleware';
 import { requirePermission } from '../../middleware/permission.middleware';
+import { validate } from '../../middleware/validation.middleware';
 import {
   uploadHighlightVideo,
   uploadHighlightThumbnail,
@@ -11,6 +12,7 @@ import {
 } from '../../middleware/highlightUpload.middleware';
 import { Section } from '../../enums/section.enum';
 import { Action } from '../../enums/section.enum';
+import { updateHighlightStatusSchema } from '../../validations/highlight.validation';
 
 const router = Router();
 
@@ -331,6 +333,14 @@ router.post(
  *         required: true
  *         schema:
  *           type: string
+ *         description: Highlight ID (supports both UUID format and MongoDB ObjectId format for backward compatibility)
+ *         examples:
+ *           uuid:
+ *             value: "42b385a4-ee2d-4d5e-af65-7884afd59645"
+ *             summary: UUID format
+ *           objectId:
+ *             value: "6949205a65bcf6c22e4a7984"
+ *             summary: MongoDB ObjectId format
  *     responses:
  *       200:
  *         description: Successfully retrieved highlight
@@ -361,6 +371,14 @@ router.post(
  *         required: true
  *         schema:
  *           type: string
+ *         description: Highlight ID (supports both UUID format and MongoDB ObjectId format for backward compatibility)
+ *         examples:
+ *           uuid:
+ *             value: "42b385a4-ee2d-4d5e-af65-7884afd59645"
+ *             summary: UUID format
+ *           objectId:
+ *             value: "6949205a65bcf6c22e4a7984"
+ *             summary: MongoDB ObjectId format
  *     requestBody:
  *       required: true
  *       content:
@@ -370,12 +388,31 @@ router.post(
  *             properties:
  *               title:
  *                 type: string
+ *                 maxLength: 60
+ *                 description: "Title (max 60 characters)"
  *               description:
  *                 type: string
+ *                 maxLength: 5000
+ *                 nullable: true
+ *                 description: "Description (max 5000 characters)"
  *               videoUrl:
  *                 type: string
+ *                 format: uri
+ *                 description: "Video URL. If URL is in temp folder, it will be moved to permanent location. Old video will be deleted if URL changes."
  *               thumbnailUrl:
  *                 type: string
+ *                 format: uri
+ *                 nullable: true
+ *                 description: "Thumbnail URL. If URL is in temp folder, it will be moved to permanent location. Old thumbnail will be deleted if URL changes."
+ *               userId:
+ *                 type: string
+ *                 description: "User ID (MongoDB ObjectId). Updates the user associated with the highlight."
+ *                 example: "507f1f77bcf86cd799439011"
+ *               coachingCenterId:
+ *                 type: string
+ *                 nullable: true
+ *                 description: "Coaching Center ID (MongoDB ObjectId). Updates the coaching center associated with the highlight. Can be set to null to remove association."
+ *                 example: "507f1f77bcf86cd799439012"
  *               status:
  *                 type: string
  *                 enum: [published, archived, blocked, deleted]
@@ -394,6 +431,8 @@ router.post(
  *               description: "Updated description"
  *               videoUrl: "https://bucket.s3.region.amazonaws.com/highlights/new-video.mp4"
  *               thumbnailUrl: "https://bucket.s3.region.amazonaws.com/highlights/new-thumbnail.jpg"
+ *               userId: "507f1f77bcf86cd799439011"
+ *               coachingCenterId: "507f1f77bcf86cd799439012"
  *               status: "published"
  *               duration: 4200
  *     responses:
@@ -426,6 +465,14 @@ router.post(
  *         required: true
  *         schema:
  *           type: string
+ *         description: Highlight ID (supports both UUID format and MongoDB ObjectId format for backward compatibility)
+ *         examples:
+ *           uuid:
+ *             value: "42b385a4-ee2d-4d5e-af65-7884afd59645"
+ *             summary: UUID format
+ *           objectId:
+ *             value: "6949205a65bcf6c22e4a7984"
+ *             summary: MongoDB ObjectId format
  *     responses:
  *       200:
  *         description: Highlight deleted successfully
@@ -473,6 +520,14 @@ router.delete(
  *         required: true
  *         schema:
  *           type: string
+ *         description: Highlight ID (supports both UUID format and MongoDB ObjectId format for backward compatibility)
+ *         examples:
+ *           uuid:
+ *             value: "42b385a4-ee2d-4d5e-af65-7884afd59645"
+ *             summary: UUID format
+ *           objectId:
+ *             value: "6949205a65bcf6c22e4a7984"
+ *             summary: MongoDB ObjectId format
  *     requestBody:
  *       required: true
  *       content:
@@ -511,6 +566,7 @@ router.delete(
 router.patch(
   '/:id/status',
   requirePermission(Section.HIGHLIGHT, Action.UPDATE),
+  validate(updateHighlightStatusSchema),
   adminHighlightController.updateHighlightStatus
 );
 
@@ -529,6 +585,14 @@ router.patch(
  *         required: true
  *         schema:
  *           type: string
+ *         description: Highlight ID (supports both UUID format and MongoDB ObjectId format for backward compatibility)
+ *         examples:
+ *           uuid:
+ *             value: "42b385a4-ee2d-4d5e-af65-7884afd59645"
+ *             summary: UUID format
+ *           objectId:
+ *             value: "6949205a65bcf6c22e4a7984"
+ *             summary: MongoDB ObjectId format
  *           example: "a9e7fb78-085a-4cbc-993c-9784f8f6576a"
  *           description: "Highlight ID"
  *     responses:
@@ -600,6 +664,14 @@ router.post(
  *         required: true
  *         schema:
  *           type: string
+ *         description: Highlight ID (supports both UUID format and MongoDB ObjectId format for backward compatibility)
+ *         examples:
+ *           uuid:
+ *             value: "42b385a4-ee2d-4d5e-af65-7884afd59645"
+ *             summary: UUID format
+ *           objectId:
+ *             value: "6949205a65bcf6c22e4a7984"
+ *             summary: MongoDB ObjectId format
  *           example: "507f1f77bcf86cd799439011"
  *           description: "Highlight ID (ObjectId)"
  *     description: Upload a preview video file for a specific highlight. Requires highlight:update permission.

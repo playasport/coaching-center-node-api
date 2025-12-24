@@ -69,10 +69,45 @@ export interface UpdateHighlightInput {
   description?: string | null;
   videoUrl?: string;
   thumbnailUrl?: string | null;
+  userId?: string;
+  coachingCenterId?: string | null;
   status?: HighlightStatus;
   duration?: number;
   metadata?: Record<string, any> | null;
 }
+
+/**
+ * Helper function to find highlight by either UUID id or MongoDB _id
+ * Supports both formats for backward compatibility
+ * Returns a query builder that can be chained with populate, lean, etc.
+ */
+const findHighlightByIdQuery = (id: string, additionalQuery: any = {}) => {
+  // If it's a valid MongoDB ObjectId (24 hex characters), try both _id and id
+  if (Types.ObjectId.isValid(id) && id.length === 24) {
+    return StreamHighlightModel.findOne({
+      $or: [
+        { _id: new Types.ObjectId(id) },
+        { id }
+      ],
+      ...additionalQuery,
+    });
+  }
+  
+  // For UUID format, only try id field
+  return StreamHighlightModel.findOne({
+    id,
+    ...additionalQuery,
+  });
+};
+
+/**
+ * Helper function to find highlight by either UUID id or MongoDB _id (awaited version)
+ * Use this when you don't need to chain populate/lean
+ */
+const findHighlightById = async (id: string, additionalQuery: any = {}) => {
+  const query = findHighlightByIdQuery(id, additionalQuery);
+  return await query;
+};
 
 /**
  * Get all highlights for admin with filters and pagination
@@ -172,18 +207,29 @@ export const getAllHighlights = async (
  */
 export const getHighlightById = async (id: string): Promise<StreamHighlight | null> => {
   try {
-    const highlight = await StreamHighlightModel.findOne({
-      id,
-      deletedAt: null,
-    })
-      .populate('userId', 'firstName lastName email')
-      .populate('coachingCenterId', 'center_name')
+    const query = findHighlightByIdQuery(id, { deletedAt: null });
+    
+    const highlight = await query
+      .populate({
+        path: 'userId',
+        select: 'firstName lastName email',
+        options: { strictPopulate: false }, // Don't throw error if userId doesn't exist
+      })
+      .populate({
+        path: 'coachingCenterId',
+        select: 'center_name',
+        options: { strictPopulate: false }, // Don't throw error if coachingCenterId doesn't exist
+      })
       .lean();
 
     return highlight as any;
   } catch (error) {
-    logger.error('Failed to get highlight by ID', { id, error });
-    throw new ApiError(500, 'Failed to retrieve highlight');
+    logger.error('Failed to get highlight by ID', { 
+      id, 
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    throw new ApiError(500, `Failed to retrieve highlight: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 
@@ -232,6 +278,30 @@ export const createHighlight = async (
       }
     }
 
+    // Move thumbnail from temp folder to permanent location if provided
+    let finalThumbnailUrl = data.thumbnailUrl || null;
+    if (finalThumbnailUrl) {
+      const isTempThumbnailUrl = finalThumbnailUrl.includes('/temp/') || finalThumbnailUrl.includes('.amazonaws.com/temp/');
+      if (isTempThumbnailUrl) {
+        try {
+          finalThumbnailUrl = await moveThumbnailToPermanentLocation(finalThumbnailUrl, highlightId);
+          logger.info('Thumbnail moved from temp to permanent location before highlight creation', {
+            originalUrl: data.thumbnailUrl,
+            newUrl: finalThumbnailUrl,
+            highlightId,
+          });
+        } catch (error) {
+          logger.error('Failed to move thumbnail from temp folder', {
+            thumbnailUrl: data.thumbnailUrl,
+            highlightId,
+            error: error instanceof Error ? error.message : error,
+          });
+          // If move fails, throw error - don't create highlight with temp URL
+          throw new ApiError(500, 'Failed to move thumbnail to permanent location. Please try again.');
+        }
+      }
+    }
+
     // Create highlight with permanent video URL from the start
     const highlightData: any = {
       id: highlightId, // Set the ID explicitly
@@ -239,7 +309,7 @@ export const createHighlight = async (
       title: data.title,
       description: data.description || null,
       videoUrl: finalVideoUrl, // Use permanent URL
-      thumbnailUrl: data.thumbnailUrl || null,
+      thumbnailUrl: finalThumbnailUrl, // Use permanent URL if moved
       duration: 0, // Will be automatically extracted from video during processing
       status: HighlightStatus.PUBLISHED, // Default status
       videoProcessingStatus: VideoProcessingStatus.NOT_STARTED, // Video processing not started yet
@@ -310,7 +380,7 @@ export const updateHighlight = async (
   adminId: string
 ): Promise<StreamHighlight | null> => {
   try {
-    const highlight = await StreamHighlightModel.findOne({ id, deletedAt: null });
+    const highlight = await findHighlightById(id, { deletedAt: null });
 
     if (!highlight) {
       return null;
@@ -324,6 +394,8 @@ export const updateHighlight = async (
       highlight.description = data.description;
     }
     if (data.videoUrl !== undefined) {
+      const oldVideoUrl = highlight.videoUrl;
+      
       // Move video from temp to permanent location if it's in temp folder
       let finalVideoUrl = data.videoUrl;
       // Check for both '/temp/' (in URL) and 'temp/' (at start of S3 key)
@@ -347,7 +419,11 @@ export const updateHighlight = async (
         }
       }
       
-      const oldVideoUrl = highlight.videoUrl;
+      // Delete old video file if URL changed and old URL exists
+      if (oldVideoUrl && oldVideoUrl !== finalVideoUrl) {
+        await deleteS3File(oldVideoUrl);
+      }
+      
       highlight.videoUrl = finalVideoUrl;
       
       // If video URL changed, re-process video (non-blocking)
@@ -378,7 +454,58 @@ export const updateHighlight = async (
       }
     }
     if (data.thumbnailUrl !== undefined) {
-      highlight.thumbnailUrl = data.thumbnailUrl;
+      const oldThumbnailUrl = highlight.thumbnailUrl;
+      
+      // Move thumbnail from temp to permanent location if it's in temp folder
+      let finalThumbnailUrl = data.thumbnailUrl;
+      const isTempUrl = data.thumbnailUrl !== null && (data.thumbnailUrl.includes('/temp/') || data.thumbnailUrl.includes('.amazonaws.com/temp/'));
+      if (isTempUrl && data.thumbnailUrl !== null) {
+        logger.info('Detected temp thumbnail URL, attempting to move', {
+          thumbnailUrl: data.thumbnailUrl,
+          highlightId: highlight.id,
+        });
+        try {
+          finalThumbnailUrl = await moveThumbnailToPermanentLocation(data.thumbnailUrl, highlight.id);
+          
+          // Verify the move was successful (URL should be different)
+          if (finalThumbnailUrl === data.thumbnailUrl) {
+            logger.warn('Thumbnail move returned same URL - move may have failed', {
+              originalUrl: data.thumbnailUrl,
+              finalUrl: finalThumbnailUrl,
+              highlightId: highlight.id,
+            });
+          } else {
+            logger.info('Thumbnail moved from temp to permanent location during update', {
+              originalUrl: data.thumbnailUrl,
+              newUrl: finalThumbnailUrl,
+              highlightId: highlight.id,
+            });
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.error('Failed to move thumbnail from temp folder during update', {
+            thumbnailUrl: data.thumbnailUrl,
+            highlightId: highlight.id,
+            error: errorMessage,
+            stack: error instanceof Error ? error.stack : undefined,
+          });
+          
+          // If it's already an ApiError, re-throw it
+          if (error instanceof ApiError) {
+            throw error;
+          }
+          
+          // Re-throw error instead of silently continuing with temp URL
+          throw new ApiError(500, `Failed to move thumbnail to permanent location: ${errorMessage}`);
+        }
+      }
+      
+      // Delete old thumbnail file if URL changed and old URL exists
+      if (oldThumbnailUrl && oldThumbnailUrl !== finalThumbnailUrl) {
+        await deleteS3File(oldThumbnailUrl);
+      }
+      
+      highlight.thumbnailUrl = finalThumbnailUrl;
     }
     if (data.status !== undefined) {
       highlight.status = data.status;
@@ -392,6 +519,23 @@ export const updateHighlight = async (
     if (data.metadata !== undefined) {
       highlight.metadata = data.metadata;
     }
+    if (data.userId !== undefined) {
+      // Validate user ID
+      if (!Types.ObjectId.isValid(data.userId)) {
+        throw new ApiError(400, 'Invalid user ID');
+      }
+      highlight.userId = new Types.ObjectId(data.userId);
+    }
+    if (data.coachingCenterId !== undefined) {
+      // Handle empty string as null
+      const coachingCenterId = data.coachingCenterId === '' || data.coachingCenterId === null ? null : data.coachingCenterId;
+      
+      // Validate coaching center ID if provided
+      if (coachingCenterId !== null && !Types.ObjectId.isValid(coachingCenterId)) {
+        throw new ApiError(400, 'Invalid coaching center ID');
+      }
+      highlight.coachingCenterId = coachingCenterId ? new Types.ObjectId(coachingCenterId) : null;
+    }
 
     await highlight.save();
 
@@ -399,8 +543,17 @@ export const updateHighlight = async (
 
     return highlight.toObject();
   } catch (error) {
-    logger.error('Failed to update highlight', { id, data, adminId, error });
-    throw new ApiError(500, 'Failed to update highlight');
+    logger.error('Failed to update highlight', { 
+      id, 
+      data, 
+      adminId, 
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(500, `Failed to update highlight: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 
@@ -413,7 +566,7 @@ export const updateHighlightPreview = async (
   adminId: string
 ): Promise<StreamHighlight | null> => {
   try {
-    const highlight = await StreamHighlightModel.findOne({ id, deletedAt: null });
+    const highlight = await findHighlightById(id, { deletedAt: null });
 
     if (!highlight) {
       return null;
@@ -443,7 +596,7 @@ export const updateHighlightPreview = async (
  */
 export const deleteHighlight = async (id: string, adminId: string): Promise<boolean> => {
   try {
-    const highlight = await StreamHighlightModel.findOne({ id, deletedAt: null });
+    const highlight = await findHighlightById(id, { deletedAt: null });
 
     if (!highlight) {
       return false;
@@ -471,7 +624,7 @@ export const reprocessHighlightVideo = async (
 ): Promise<{ message: string; highlight: StreamHighlight }> => {
   try {
     // Find the highlight
-    const highlight = await StreamHighlightModel.findOne({ id, deletedAt: null });
+    const highlight = await findHighlightById(id, { deletedAt: null });
 
     if (!highlight) {
       throw new ApiError(404, 'Highlight not found');
@@ -581,7 +734,7 @@ export const updateHighlightStatus = async (
   adminId: string
 ): Promise<StreamHighlight | null> => {
   try {
-    const highlight = await StreamHighlightModel.findOne({ id, deletedAt: null });
+    const highlight = await findHighlightById(id, { deletedAt: null });
 
     if (!highlight) {
       return null;
@@ -604,6 +757,199 @@ export const updateHighlightStatus = async (
 };
 
 /**
+ * Extract S3 key from S3 URL
+ */
+function extractS3KeyFromUrl(url: string): string {
+  try {
+    // Remove query parameters and fragments
+    const urlWithoutQuery = url.split('?')[0].split('#')[0];
+    
+    logger.debug('Extracting S3 key from URL', { url, urlWithoutQuery });
+    
+    // Try standard format: https://bucket.s3.region.amazonaws.com/key
+    if (urlWithoutQuery.includes('.amazonaws.com/')) {
+      const urlParts = urlWithoutQuery.split('.amazonaws.com/');
+      if (urlParts.length === 2) {
+        let key = urlParts[1];
+        
+        logger.debug('Extracted key before processing', { key });
+        
+        // Decode URL encoding
+        try {
+          key = decodeURIComponent(key);
+        } catch (e) {
+          // If decoding fails, use original key
+          logger.warn('Failed to decode S3 key', { key });
+        }
+        
+        // Remove bucket name if it's in the path (for path-style URLs)
+        const bucketMatch = urlWithoutQuery.match(/https?:\/\/([^.]+)\.s3[.-]/);
+        if (bucketMatch && key.startsWith(bucketMatch[1] + '/')) {
+          key = key.substring(bucketMatch[1].length + 1);
+          logger.debug('Removed bucket name from key', { key, bucket: bucketMatch[1] });
+        }
+        
+        logger.debug('Final extracted S3 key', { key, originalUrl: url });
+        return key;
+      }
+    }
+    
+    throw new Error(`Invalid S3 file URL format: ${url}`);
+  } catch (error) {
+    logger.error('Failed to extract S3 key from URL', { url, error: error instanceof Error ? error.message : error });
+    throw new ApiError(400, `Invalid S3 file URL: ${url}`);
+  }
+}
+
+/**
+ * Delete file from S3
+ */
+async function deleteS3File(fileUrl: string): Promise<void> {
+  try {
+    if (!fileUrl) {
+      return;
+    }
+
+    // Skip if it's a temp URL (will be cleaned up by media cleanup job)
+    const s3Key = extractS3KeyFromUrl(fileUrl);
+    if (s3Key.startsWith('temp/') || s3Key.includes('/temp/')) {
+      logger.info('Skipping deletion of temp file (will be cleaned up by media cleanup)', { fileUrl, s3Key });
+      return;
+    }
+
+    if (!config.aws.s3Bucket) {
+      throw new ApiError(500, 'S3 bucket name not configured');
+    }
+
+    const client = getS3Client();
+    if (!client) {
+      throw new ApiError(500, 'S3 client not configured');
+    }
+
+    const deleteCommand = new DeleteObjectCommand({
+      Bucket: config.aws.s3Bucket,
+      Key: s3Key,
+    });
+
+    await client.send(deleteCommand);
+    logger.info('File deleted from S3', { fileUrl, s3Key });
+  } catch (error) {
+    // Log error but don't throw - file deletion is not critical
+    logger.error('Failed to delete file from S3', {
+      fileUrl,
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+}
+
+/**
+ * Move thumbnail file from temp folder to permanent location
+ * Format: highlights/{highlightId}/thumbnail.{ext}
+ */
+async function moveThumbnailToPermanentLocation(
+  tempThumbnailUrl: string,
+  highlightId: string
+): Promise<string> {
+  try {
+    if (!tempThumbnailUrl) {
+      return tempThumbnailUrl;
+    }
+
+    if (!config.aws.s3Bucket) {
+      throw new ApiError(500, 'S3 bucket name not configured');
+    }
+
+    const client = getS3Client();
+    if (!client) {
+      throw new ApiError(500, 'S3 client not configured');
+    }
+
+    const tempKey = extractS3KeyFromUrl(tempThumbnailUrl);
+    
+    logger.info('Extracted S3 key for thumbnail', { tempThumbnailUrl, tempKey, highlightId });
+    
+    // Check if file is in temp folder
+    const isTempPath = tempKey.startsWith('temp/') || tempKey.includes('/temp/');
+    logger.info('Checking if thumbnail is in temp folder', { 
+      tempKey, 
+      isTempPath, 
+      startsWithTemp: tempKey.startsWith('temp/'), 
+      includesTemp: tempKey.includes('/temp/'),
+      highlightId 
+    });
+    
+    if (!isTempPath) {
+      // Already in permanent location, return as is
+      logger.info('Thumbnail already in permanent location', { tempThumbnailUrl, tempKey });
+      return tempThumbnailUrl;
+    }
+    
+    logger.info('Detected temp thumbnail path, will move to permanent location', { tempKey, highlightId });
+
+    // Get file extension from temp key
+    const fileExtension = tempKey.split('.').pop() || 'jpg';
+    
+    // Create permanent key: highlights/{highlightId}/thumbnail.{ext}
+    const permanentKey = `highlights/${highlightId}/thumbnail.${fileExtension}`;
+
+    logger.info('Moving thumbnail from temp to permanent location', {
+      tempKey,
+      permanentKey,
+      bucket: config.aws.s3Bucket,
+    });
+
+    // Copy file to permanent location
+    const copyCommand = new CopyObjectCommand({
+      Bucket: config.aws.s3Bucket,
+      CopySource: `${config.aws.s3Bucket}/${tempKey}`,
+      Key: permanentKey,
+    });
+
+    await client.send(copyCommand);
+    logger.info('Thumbnail copied to permanent location', { tempKey, permanentKey });
+
+    // Delete temp file
+    const deleteCommand = new DeleteObjectCommand({
+      Bucket: config.aws.s3Bucket,
+      Key: tempKey,
+    });
+
+    await client.send(deleteCommand);
+    logger.info('Temp thumbnail file deleted', { tempKey });
+
+    // Construct permanent URL
+    const permanentUrl = `https://${config.aws.s3Bucket}.s3.${config.aws.region}.amazonaws.com/${permanentKey}`;
+
+    logger.info('Thumbnail successfully moved from temp to permanent location', {
+      tempKey,
+      permanentKey,
+      tempUrl: tempThumbnailUrl,
+      permanentUrl,
+    });
+
+    return permanentUrl;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorName = error instanceof Error ? error.name : 'UnknownError';
+    
+    logger.error('Failed to move thumbnail to permanent location', {
+      tempThumbnailUrl,
+      highlightId,
+      error: errorMessage,
+      errorName,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    
+    // Include the actual error message in the thrown error
+    throw new ApiError(500, `Failed to move thumbnail to permanent location: ${errorName} - ${errorMessage}`);
+  }
+}
+
+/**
  * Move video file from temp folder to permanent location
  * Format: highlights/{highlightId}/{highlightId}.mp4
  */
@@ -622,12 +968,7 @@ async function moveVideoToPermanentLocation(
     }
 
     // Extract S3 key from URL
-    const urlParts = tempVideoUrl.split('.amazonaws.com/');
-    if (urlParts.length !== 2) {
-      throw new ApiError(400, `Invalid S3 file URL: ${tempVideoUrl}`);
-    }
-
-    const tempKey = urlParts[1].split('?')[0]; // Remove query parameters if any
+    const tempKey = extractS3KeyFromUrl(tempVideoUrl);
     
     // Check if file is in temp folder
     // Check for both 'temp/' (at start) and '/temp/' (anywhere in path)

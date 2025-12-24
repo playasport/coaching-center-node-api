@@ -7,6 +7,7 @@ import { RoleModel } from '../../models/role.model';
 import { hashPassword } from '../../utils/password';
 import { logger } from '../../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
+import { Types } from 'mongoose';
 import type { CreateAdminUserInput, UpdateAdminUserInput } from '../../validations/adminUser.validation';
 
 /**
@@ -113,12 +114,28 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
 
 /**
  * Get user by ID (admin view)
+ * Supports both UUID id and MongoDB _id for backward compatibility
  */
 export const getUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
-    const user = await UserModel.findOne({ id, isDeleted: false })
+    // Build query - support both UUID id and MongoDB _id
+    let query: any;
+    if (Types.ObjectId.isValid(id) && id.length === 24) {
+      // Try MongoDB _id first (24 hex characters)
+      query = UserModel.findOne({
+        $or: [
+          { _id: new Types.ObjectId(id), isDeleted: false },
+          { id, isDeleted: false }
+        ]
+      });
+    } else {
+      // Try UUID id format
+      query = UserModel.findOne({ id, isDeleted: false });
+    }
+
+    const user = await query
       .select('-password')
       .populate('roles', 'name description')
       .lean();
@@ -145,8 +162,31 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     const { id } = req.params;
     const data: UpdateAdminUserInput = req.body;
 
+    // Build query - support both UUID id and MongoDB _id
+    let findQuery: any;
+    let updateQuery: any;
+    if (Types.ObjectId.isValid(id) && id.length === 24) {
+      // Try MongoDB _id first (24 hex characters)
+      findQuery = {
+        $or: [
+          { _id: new Types.ObjectId(id), isDeleted: false },
+          { id, isDeleted: false }
+        ]
+      };
+      updateQuery = {
+        $or: [
+          { _id: new Types.ObjectId(id), isDeleted: false },
+          { id, isDeleted: false }
+        ]
+      };
+    } else {
+      // Try UUID id format
+      findQuery = { id, isDeleted: false };
+      updateQuery = { id, isDeleted: false };
+    }
+
     // Check if user exists
-    const existingUser = await UserModel.findOne({ id, isDeleted: false });
+    const existingUser = await UserModel.findOne(findQuery);
     if (!existingUser) {
       throw new ApiError(404, t('auth.user.notFound'));
     }
@@ -190,7 +230,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
 
     // Update user
     const user = await UserModel.findOneAndUpdate(
-      { id, isDeleted: false },
+      updateQuery,
       { $set: updateData },
       { new: true, runValidators: true }
     )
@@ -222,8 +262,23 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
   try {
     const { id } = req.params;
 
+    // Build query - support both UUID id and MongoDB _id
+    let deleteQuery: any;
+    if (Types.ObjectId.isValid(id) && id.length === 24) {
+      // Try MongoDB _id first (24 hex characters)
+      deleteQuery = {
+        $or: [
+          { _id: new Types.ObjectId(id), isDeleted: false },
+          { id, isDeleted: false }
+        ]
+      };
+    } else {
+      // Try UUID id format
+      deleteQuery = { id, isDeleted: false };
+    }
+
     const user = await UserModel.findOneAndUpdate(
-      { id, isDeleted: false },
+      deleteQuery,
       {
         $set: {
           isDeleted: true,

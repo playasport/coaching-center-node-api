@@ -26,6 +26,13 @@ export const updateHighlightSchema = z.object({
     description: z.string().max(5000).nullable().optional(),
     videoUrl: z.string().url().optional(),
     thumbnailUrl: z.string().url().nullable().optional(),
+    userId: z.string().min(1, 'User ID must be a valid MongoDB ObjectId').optional(),
+    coachingCenterId: z
+      .preprocess(
+        (val) => (val === '' ? null : val),
+        z.string().min(1, 'Coaching center ID must be a valid MongoDB ObjectId').nullable().optional()
+      )
+      .optional(),
     status: z.enum([
       HighlightStatus.PUBLISHED,
       HighlightStatus.ARCHIVED,

@@ -759,7 +759,7 @@
                 }
               ]
             },
-            "description": "Get a specific user by ID. Requires user:view permission."
+            "description": "Get a specific user by ID. Requires user:view permission.\n\n**ID Format Support:**\n- UUID format: `550e8400-e29b-41d4-a716-446655440000`\n- MongoDB ObjectId format: `69428b55c8c9ac23116e89da` (24 hex characters)\n\nBoth formats are supported for backward compatibility."
           },
           "response": []
         },
@@ -794,7 +794,7 @@
                 }
               ]
             },
-            "description": "Update a user. Requires user:update permission."
+            "description": "Update a user. Requires user:update permission.\n\n**ID Format Support:**\n- UUID format: `550e8400-e29b-41d4-a716-446655440000`\n- MongoDB ObjectId format: `69428b55c8c9ac23116e89da` (24 hex characters)\n\nBoth formats are supported for backward compatibility."
           },
           "response": []
         },
@@ -821,7 +821,7 @@
                 }
               ]
             },
-            "description": "Soft delete a user. Requires user:delete permission."
+            "description": "Soft delete a user. Requires user:delete permission.\n\n**ID Format Support:**\n- UUID format: `550e8400-e29b-41d4-a716-446655440000`\n- MongoDB ObjectId format: `69428b55c8c9ac23116e89da` (24 hex characters)\n\nBoth formats are supported for backward compatibility."
           },
           "response": []
         }
@@ -3849,7 +3849,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["admin", "highlights", "{{highlightId}}"]
             },
-            "description": "Get a specific highlight by ID. Requires highlight:view permission."
+            "description": "Get a specific highlight by ID. Requires highlight:view permission.\n\n**ID Format Support:**\n- UUID format: `42b385a4-ee2d-4d5e-af65-7884afd59645`\n- MongoDB ObjectId format: `6949205a65bcf6c22e4a7984` (24 hex characters)\n\nBoth formats are supported for backward compatibility."
           },
           "response": []
         },
@@ -3900,14 +3900,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Updated Highlight Title\",\n  \"description\": \"Updated description\",\n  \"videoUrl\": \"https://bucket.s3.region.amazonaws.com/highlights/new-video.mp4\",\n  \"thumbnailUrl\": \"https://bucket.s3.region.amazonaws.com/highlights/new-thumbnail.jpg\",\n  \"status\": \"published\"\n}\n\nNotes:\n- title: max 60 characters\n- status can be: published, archived, blocked, deleted (processing status removed)\n- videoProcessingStatus is managed automatically by the system (not_started, processing, completed, failed)\n- duration is optional - will be automatically extracted from video during processing if videoUrl changes\n- If videoUrl changes, video will be reprocessed in background and duration will be updated\n- If thumbnailUrl is already set, it won't be regenerated during reprocessing\n- All fields are optional except the ones you want to update"
+              "raw": "{\n  \"title\": \"Updated Highlight Title\",\n  \"description\": \"Updated description\",\n  \"videoUrl\": \"https://bucket.s3.region.amazonaws.com/highlights/new-video.mp4\",\n  \"thumbnailUrl\": \"https://bucket.s3.region.amazonaws.com/highlights/new-thumbnail.jpg\",\n  \"userId\": \"507f1f77bcf86cd799439011\",\n  \"coachingCenterId\": \"507f1f77bcf86cd799439012\",\n  \"status\": \"published\"\n}\n\nNotes:\n- title: max 60 characters\n- description: max 5000 characters\n- userId: MongoDB ObjectId (24 hex characters) - updates the user associated with the highlight\n- coachingCenterId: MongoDB ObjectId (24 hex characters) or null - updates/removes coaching center association\n- status can be: published, archived, blocked, deleted (processing status removed)\n- videoProcessingStatus is managed automatically by the system (not_started, processing, completed, failed)\n- duration is optional - will be automatically extracted from video during processing if videoUrl changes\n- If videoUrl changes, video will be reprocessed in background and duration will be updated\n- If thumbnailUrl is already set, it won't be regenerated during reprocessing\n- File Management: If videoUrl/thumbnailUrl is in temp folder, it will be moved to permanent location. Old files will be deleted when URLs change.\n- All fields are optional except the ones you want to update"
             },
             "url": {
               "raw": "{{baseUrl}}/admin/highlights/{{highlightId}}",
               "host": ["{{baseUrl}}"],
               "path": ["admin", "highlights", "{{highlightId}}"]
             },
-            "description": "Update a highlight. If videoUrl changes, video will be reprocessed in background. Requires highlight:update permission."
+            "description": "Update a highlight. If videoUrl changes, video will be reprocessed in background. Requires highlight:update permission.\n\n**File Management:**\n- If videoUrl or thumbnailUrl is in temp folder, it will be automatically moved to permanent location\n- Old video/thumbnail files will be deleted from S3 when URLs are changed\n- Permanent paths: `highlights/{id}/{id}.mp4` and `highlights/{id}/thumbnail.{ext}`\n\n**User and Coaching Center:**\n- `userId` and `coachingCenterId` can be updated\n- Both must be valid MongoDB ObjectIds (24 hex characters)\n- `coachingCenterId` can be set to `null` to remove association\n\n**ID Format Support:**\n- UUID format: `42b385a4-ee2d-4d5e-af65-7884afd59645`\n- MongoDB ObjectId format: `6949205a65bcf6c22e4a7984` (24 hex characters)\n\nBoth formats are supported for backward compatibility."
           },
           "response": []
         },
@@ -3936,7 +3936,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["admin", "highlights", "{{highlightId}}", "status"]
             },
-            "description": "Update highlight status (published, archived, blocked, deleted). Note: 'processing' status has been removed. Video processing status is tracked separately via videoProcessingStatus field. Requires highlight:update permission."
+            "description": "Update highlight status (published, archived, blocked, deleted). Note: 'processing' status has been removed. Video processing status is tracked separately via videoProcessingStatus field. Requires highlight:update permission.\n\n**ID Format Support:**\n- UUID format: `42b385a4-ee2d-4d5e-af65-7884afd59645`\n- MongoDB ObjectId format: `6949205a65bcf6c22e4a7984` (24 hex characters)\n\nBoth formats are supported for backward compatibility."
           },
           "response": []
         },
@@ -3956,7 +3956,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["admin", "highlights", "{{highlightId}}", "process-video"]
             },
-            "description": "Manually trigger video processing for a highlight. This will process the video again regardless of current processing status (works for both processed and unprocessed videos). The videoProcessingStatus will be set to 'processing' and the video will be reprocessed in the background. Duration will be automatically extracted from the video. If a thumbnail already exists, it will be preserved. Requires highlight:update permission."
+            "description": "Manually trigger video processing for a highlight. This will process the video again regardless of current processing status (works for both processed and unprocessed videos). The videoProcessingStatus will be set to 'processing' and the video will be reprocessed in the background. Duration will be automatically extracted from the video. If a thumbnail already exists, it will be preserved. Requires highlight:update permission.\n\n**ID Format Support:**\n- UUID format: `42b385a4-ee2d-4d5e-af65-7884afd59645`\n- MongoDB ObjectId format: `6949205a65bcf6c22e4a7984` (24 hex characters)\n\nBoth formats are supported for backward compatibility."
           },
           "response": []
         },
@@ -3987,7 +3987,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["admin", "highlights", "{{highlightId}}", "upload-preview"]
             },
-            "description": "Upload a preview video for a specific highlight. The preview video is typically a smaller, compressed version of the main video used for quick previews. The previewUrl will be updated in the highlight record. Requires highlight:update permission.\n\nNotes:\n- Accepts video files: MP4, MPEG, MOV, AVI, WebM, MKV\n- Max file size: 100MB (configurable via MAX_VIDEO_SIZE_MB)\n- The preview video will be uploaded to S3 and the highlight's previewUrl will be updated\n- If a preview video already exists, it will be replaced with the new one"
+            "description": "Upload a preview video for a specific highlight. The preview video is typically a smaller, compressed version of the main video used for quick previews. The previewUrl will be updated in the highlight record. Requires highlight:update permission.\n\n**ID Format Support:**\n- UUID format: `42b385a4-ee2d-4d5e-af65-7884afd59645`\n- MongoDB ObjectId format: `6949205a65bcf6c22e4a7984` (24 hex characters)\n\nBoth formats are supported for backward compatibility.\n\n**Notes:**\n- Accepts video files: MP4, MPEG, MOV, AVI, WebM, MKV\n- Max file size: 100MB (configurable via MAX_VIDEO_SIZE_MB)\n- The preview video will be uploaded to S3 and the highlight's previewUrl will be updated\n- If a preview video already exists, it will be replaced with the new one"
           },
           "response": []
         },
@@ -4007,7 +4007,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["admin", "highlights", "{{highlightId}}"]
             },
-            "description": "Delete a highlight (soft delete). Requires highlight:delete permission."
+            "description": "Delete a highlight (soft delete). Requires highlight:delete permission.\n\n**ID Format Support:**\n- UUID format: `42b385a4-ee2d-4d5e-af65-7884afd59645`\n- MongoDB ObjectId format: `6949205a65bcf6c22e4a7984` (24 hex characters)\n\nBoth formats are supported for backward compatibility."
           },
           "response": []
         }
@@ -4254,14 +4254,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Updated Reel Title\",\n  \"description\": \"Updated description\",\n  \"originalPath\": \"https://bucket.s3.region.amazonaws.com/reels/new-video.mp4\",\n  \"thumbnailPath\": \"https://bucket.s3.region.amazonaws.com/reels/new-thumbnail.jpg\",\n  \"status\": \"approved\"\n}\n\nNotes:\n- title: max 60 characters\n- description: max 300 characters\n- status can be: approved, rejected, blocked, pending\n- videoProcessedStatus is managed automatically by the system (proccesing, failed, done, '')\n- If originalPath changes, video will be reprocessed in background (and duration will be validated - must be ≤ 90s)\n- If thumbnailPath is already set, it won't be regenerated during reprocessing\n- All fields are optional except the ones you want to update"
+              "raw": "{\n  \"title\": \"Updated Reel Title\",\n  \"description\": \"Updated description\",\n  \"originalPath\": \"https://bucket.s3.region.amazonaws.com/reels/new-video.mp4\",\n  \"thumbnailPath\": \"https://bucket.s3.region.amazonaws.com/reels/new-thumbnail.jpg\",\n  \"userId\": \"507f1f77bcf86cd799439011\",\n  \"status\": \"approved\"\n}\n\nNotes:\n- title: max 60 characters\n- description: max 300 characters\n- userId: MongoDB ObjectId (24 hex characters) - updates the user associated with the reel\n- status can be: approved, rejected, blocked, pending\n- videoProcessingStatus is managed automatically by the system (not_started, processing, completed, failed)\n- If originalPath changes, video will be reprocessed in background (and duration will be validated - must be ≤ 90s)\n- If thumbnailPath is already set, it won't be regenerated during reprocessing\n- File Management: If originalPath/thumbnailPath is in temp folder, it will be moved to permanent location. Old files will be deleted when URLs change.\n- All fields are optional except the ones you want to update"
             },
             "url": {
               "raw": "{{baseUrl}}/admin/reels/{{reelId}}",
               "host": ["{{baseUrl}}"],
               "path": ["admin", "reels", "{{reelId}}"]
             },
-            "description": "Update a reel. If originalPath changes, video will be reprocessed in background and duration will be validated (must be ≤ 90s). Requires reel:update permission."
+            "description": "Update a reel. If originalPath changes, video will be reprocessed in background and duration will be validated (must be ≤ 90s). Requires reel:update permission.\n\n**File Management:**\n- If originalPath or thumbnailPath is in temp folder, it will be automatically moved to permanent location\n- Old video/thumbnail files will be deleted from S3 when URLs are changed\n- Permanent paths: `reels/{id}/{id}.mp4` and `reels/{id}/thumbnail.{ext}`\n\n**User:**\n- `userId` can be updated\n- Must be a valid MongoDB ObjectId (24 hex characters)\n\n**ID Format Support:**\n- UUID format: `42b385a4-ee2d-4d5e-af65-7884afd59645`\n- MongoDB ObjectId format: `6949205a65bcf6c22e4a7984` (24 hex characters)\n\nBoth formats are supported for backward compatibility."
           },
           "response": []
         },

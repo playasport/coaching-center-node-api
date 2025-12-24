@@ -205,8 +205,14 @@ router.get('/', requirePermission(Section.USER, Action.VIEW), userController.get
  *         required: true
  *         schema:
  *           type: string
- *         description: User ID
- *         example: "550e8400-e29b-41d4-a716-446655440000"
+ *         description: User ID (supports both UUID format and MongoDB ObjectId format for backward compatibility)
+ *         examples:
+ *           uuid:
+ *             value: "550e8400-e29b-41d4-a716-446655440000"
+ *             summary: UUID format
+ *           objectId:
+ *             value: "69428b55c8c9ac23116e89da"
+ *             summary: MongoDB ObjectId format
  *     responses:
  *       200:
  *         description: User retrieved successfully
@@ -273,8 +279,14 @@ router.get('/:id', requirePermission(Section.USER, Action.VIEW), userController.
  *         required: true
  *         schema:
  *           type: string
- *         description: User ID (UUID)
- *         example: "550e8400-e29b-41d4-a716-446655440000"
+ *         description: User ID (supports both UUID format and MongoDB ObjectId format for backward compatibility)
+ *         examples:
+ *           uuid:
+ *             value: "550e8400-e29b-41d4-a716-446655440000"
+ *             summary: UUID format
+ *           objectId:
+ *             value: "69428b55c8c9ac23116e89da"
+ *             summary: MongoDB ObjectId format
  *     requestBody:
  *       required: true
  *       content:
@@ -377,8 +389,14 @@ router.patch(
  *         required: true
  *         schema:
  *           type: string
- *         description: User ID
- *         example: "550e8400-e29b-41d4-a716-446655440000"
+ *         description: User ID (supports both UUID format and MongoDB ObjectId format for backward compatibility)
+ *         examples:
+ *           uuid:
+ *             value: "550e8400-e29b-41d4-a716-446655440000"
+ *             summary: UUID format
+ *           objectId:
+ *             value: "69428b55c8c9ac23116e89da"
+ *             summary: MongoDB ObjectId format
  *     responses:
  *       200:
  *         description: User deleted successfully

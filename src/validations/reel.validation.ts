@@ -25,6 +25,7 @@ export const updateReelSchema = z.object({
     description: z.string().max(300, 'Description must be at most 300 characters').nullable().optional(),
     originalPath: z.string().url().optional(),
     thumbnailPath: z.string().url().nullable().optional(),
+    userId: z.string().min(1, 'User ID must be a valid MongoDB ObjectId').optional(),
     status: z.enum([
       ReelStatus.APPROVED,
       ReelStatus.REJECTED,

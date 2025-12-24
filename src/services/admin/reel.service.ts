@@ -72,6 +72,7 @@ export interface UpdateReelInput {
   description?: string | null;
   originalPath?: string;
   thumbnailPath?: string | null;
+  userId?: string;
   status?: ReelStatus;
   sportIds?: string[];
 }
@@ -221,6 +222,30 @@ export const createReel = async (
       }
     }
 
+    // Move thumbnail from temp folder to permanent location if provided
+    let finalThumbnailPath = data.thumbnailPath || null;
+    if (finalThumbnailPath) {
+      const isTempThumbnailUrl = finalThumbnailPath.includes('/temp/') || finalThumbnailPath.includes('.amazonaws.com/temp/');
+      if (isTempThumbnailUrl) {
+        try {
+          finalThumbnailPath = await moveThumbnailToPermanentLocation(finalThumbnailPath, reelId);
+          logger.info('Thumbnail moved from temp to permanent location before reel creation', {
+            originalUrl: data.thumbnailPath,
+            newUrl: finalThumbnailPath,
+            reelId,
+          });
+        } catch (error) {
+          logger.error('Failed to move thumbnail from temp folder', {
+            thumbnailPath: data.thumbnailPath,
+            reelId,
+            error: error instanceof Error ? error.message : error,
+          });
+          // If move fails, throw error - don't create reel with temp URL
+          throw new ApiError(500, 'Failed to move thumbnail to permanent location. Please try again.');
+        }
+      }
+    }
+
     // Create reel with permanent video URL from the start
     const reelData: any = {
       id: reelId, // Set the ID explicitly
@@ -228,7 +253,7 @@ export const createReel = async (
       title: data.title,
       description: data.description || null,
       originalPath: finalVideoUrl, // Use permanent URL
-      thumbnailPath: data.thumbnailPath || null,
+      thumbnailPath: finalThumbnailPath, // Use permanent URL if moved
       sportIds: data.sportIds || [],
       status: ReelStatus.PENDING, // Default status
       videoProcessingStatus: VideoProcessingStatus.NOT_STARTED, // Video processing not started yet
@@ -321,13 +346,44 @@ export const updateReel = async (
       reel.sportIds = data.sportIds;
     }
     if (data.thumbnailPath !== undefined) {
-      reel.thumbnailPath = data.thumbnailPath;
+      const oldThumbnailPath = reel.thumbnailPath;
+      
+      // Move thumbnail from temp to permanent location if it's in temp folder
+      let finalThumbnailPath = data.thumbnailPath;
+      const isTempUrl = data.thumbnailPath !== null && (data.thumbnailPath.includes('/temp/') || data.thumbnailPath.includes('.amazonaws.com/temp/'));
+      if (isTempUrl && data.thumbnailPath !== null) {
+        try {
+          finalThumbnailPath = await moveThumbnailToPermanentLocation(data.thumbnailPath, reel.id);
+          logger.info('Thumbnail moved from temp to permanent location during update', {
+            originalUrl: data.thumbnailPath,
+            newUrl: finalThumbnailPath,
+            reelId: reel.id,
+          });
+        } catch (error) {
+          logger.error('Failed to move thumbnail from temp folder during update', {
+            thumbnailPath: data.thumbnailPath,
+            reelId: reel.id,
+            error: error instanceof Error ? error.message : error,
+          });
+          // Continue with temp URL if move fails
+          finalThumbnailPath = data.thumbnailPath;
+        }
+      }
+      
+      // Delete old thumbnail file if URL changed and old URL exists
+      if (oldThumbnailPath && oldThumbnailPath !== finalThumbnailPath) {
+        await deleteS3File(oldThumbnailPath);
+      }
+      
+      reel.thumbnailPath = finalThumbnailPath;
     }
 
     if (data.originalPath !== undefined) {
       // Validate video duration (max 90 seconds for reels)
       await validateVideoDuration(data.originalPath, 90);
 
+      const oldVideoUrl = reel.originalPath;
+      
       // Move video from temp to permanent location if it's in temp folder
       let finalVideoUrl = data.originalPath;
       // Check for temp folder: either '/temp/' in URL or '.amazonaws.com/temp/' (S3 key starts with 'temp/')
@@ -351,7 +407,11 @@ export const updateReel = async (
         }
       }
 
-      const oldVideoUrl = reel.originalPath;
+      // Delete old video file if URL changed and old URL exists
+      if (oldVideoUrl && oldVideoUrl !== finalVideoUrl) {
+        await deleteS3File(oldVideoUrl);
+      }
+
       reel.originalPath = finalVideoUrl;
 
       // If video URL changed, re-process video (non-blocking)
@@ -380,6 +440,13 @@ export const updateReel = async (
             });
           });
       }
+    }
+    if (data.userId !== undefined) {
+      // Validate user ID
+      if (!Types.ObjectId.isValid(data.userId)) {
+        throw new ApiError(400, 'Invalid user ID');
+      }
+      reel.userId = new Types.ObjectId(data.userId);
     }
 
     await reel.save();
@@ -592,6 +659,175 @@ export const updateReelPreview = async (
 };
 
 /**
+ * Extract S3 key from S3 URL
+ */
+function extractS3KeyFromUrl(url: string): string {
+  try {
+    // Remove query parameters and fragments
+    const urlWithoutQuery = url.split('?')[0].split('#')[0];
+    
+    // Try standard format: https://bucket.s3.region.amazonaws.com/key
+    if (urlWithoutQuery.includes('.amazonaws.com/')) {
+      const urlParts = urlWithoutQuery.split('.amazonaws.com/');
+      if (urlParts.length === 2) {
+        let key = urlParts[1];
+        
+        // Decode URL encoding
+        try {
+          key = decodeURIComponent(key);
+        } catch (e) {
+          // If decoding fails, use original key
+          logger.warn('Failed to decode S3 key', { key });
+        }
+        
+        // Remove bucket name if it's in the path (for path-style URLs)
+        const bucketMatch = urlWithoutQuery.match(/https?:\/\/([^.]+)\.s3[.-]/);
+        if (bucketMatch && key.startsWith(bucketMatch[1] + '/')) {
+          key = key.substring(bucketMatch[1].length + 1);
+        }
+        
+        return key;
+      }
+    }
+    
+    throw new Error(`Invalid S3 file URL format: ${url}`);
+  } catch (error) {
+    logger.error('Failed to extract S3 key from URL', { url, error });
+    throw new ApiError(400, `Invalid S3 file URL: ${url}`);
+  }
+}
+
+/**
+ * Delete file from S3
+ */
+async function deleteS3File(fileUrl: string): Promise<void> {
+  try {
+    if (!fileUrl) {
+      return;
+    }
+
+    // Skip if it's a temp URL (will be cleaned up by media cleanup job)
+    const s3Key = extractS3KeyFromUrl(fileUrl);
+    if (s3Key.startsWith('temp/') || s3Key.includes('/temp/')) {
+      logger.info('Skipping deletion of temp file (will be cleaned up by media cleanup)', { fileUrl, s3Key });
+      return;
+    }
+
+    if (!config.aws.s3Bucket) {
+      throw new ApiError(500, 'S3 bucket name not configured');
+    }
+
+    const client = getS3Client();
+    if (!client) {
+      throw new ApiError(500, 'S3 client not configured');
+    }
+
+    const deleteCommand = new DeleteObjectCommand({
+      Bucket: config.aws.s3Bucket,
+      Key: s3Key,
+    });
+
+    await client.send(deleteCommand);
+    logger.info('File deleted from S3', { fileUrl, s3Key });
+  } catch (error) {
+    // Log error but don't throw - file deletion is not critical
+    logger.error('Failed to delete file from S3', {
+      fileUrl,
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+}
+
+/**
+ * Move thumbnail file from temp folder to permanent location
+ * Format: reels/{reelId}/thumbnail.{ext}
+ */
+async function moveThumbnailToPermanentLocation(
+  tempThumbnailUrl: string,
+  reelId: string
+): Promise<string> {
+  try {
+    if (!tempThumbnailUrl) {
+      return tempThumbnailUrl;
+    }
+
+    if (!config.aws.s3Bucket) {
+      throw new ApiError(500, 'S3 bucket name not configured');
+    }
+
+    const client = getS3Client();
+    if (!client) {
+      throw new ApiError(500, 'S3 client not configured');
+    }
+
+    const tempKey = extractS3KeyFromUrl(tempThumbnailUrl);
+    
+    // Check if file is in temp folder
+    const isTempPath = tempKey.startsWith('temp/') || tempKey.includes('/temp/');
+    if (!isTempPath) {
+      // Already in permanent location, return as is
+      logger.info('Thumbnail already in permanent location', { tempThumbnailUrl, tempKey });
+      return tempThumbnailUrl;
+    }
+    
+    logger.info('Detected temp thumbnail path, will move to permanent location', { tempKey, reelId });
+
+    // Get file extension from temp key
+    const fileExtension = tempKey.split('.').pop() || 'jpg';
+    
+    // Create permanent key: reels/{reelId}/thumbnail.{ext}
+    const permanentKey = `reels/${reelId}/thumbnail.${fileExtension}`;
+
+    logger.info('Moving thumbnail from temp to permanent location', {
+      tempKey,
+      permanentKey,
+      bucket: config.aws.s3Bucket,
+    });
+
+    // Copy file to permanent location
+    const copyCommand = new CopyObjectCommand({
+      Bucket: config.aws.s3Bucket,
+      CopySource: `${config.aws.s3Bucket}/${tempKey}`,
+      Key: permanentKey,
+    });
+
+    await client.send(copyCommand);
+    logger.info('Thumbnail copied to permanent location', { tempKey, permanentKey });
+
+    // Delete temp file
+    const deleteCommand = new DeleteObjectCommand({
+      Bucket: config.aws.s3Bucket,
+      Key: tempKey,
+    });
+
+    await client.send(deleteCommand);
+    logger.info('Temp thumbnail file deleted', { tempKey });
+
+    // Construct permanent URL
+    const permanentUrl = `https://${config.aws.s3Bucket}.s3.${config.aws.region}.amazonaws.com/${permanentKey}`;
+
+    logger.info('Thumbnail successfully moved from temp to permanent location', {
+      tempKey,
+      permanentKey,
+      tempUrl: tempThumbnailUrl,
+      permanentUrl,
+    });
+
+    return permanentUrl;
+  } catch (error) {
+    logger.error('Failed to move thumbnail to permanent location', {
+      tempThumbnailUrl,
+      reelId,
+      error: error instanceof Error ? error.message : error,
+    });
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(500, 'Failed to move thumbnail to permanent location');
+  }
+}
+
+/**
  * Move video file from temp folder to permanent location
  * Format: reels/{reelId}/{reelId}.mp4
  */
@@ -609,44 +845,8 @@ async function moveVideoToPermanentLocation(
       throw new ApiError(500, 'S3 client not configured');
     }
 
-    // Extract S3 key from URL using robust extraction logic
-    let tempKey: string;
-    try {
-      // Remove query parameters and fragments
-      const urlWithoutQuery = tempVideoUrl.split('?')[0].split('#')[0];
-      
-      // Try standard format: https://bucket.s3.region.amazonaws.com/key
-      if (urlWithoutQuery.includes('.amazonaws.com/')) {
-        const urlParts = urlWithoutQuery.split('.amazonaws.com/');
-        if (urlParts.length === 2) {
-          tempKey = urlParts[1];
-          
-          // Decode URL encoding
-          try {
-            tempKey = decodeURIComponent(tempKey);
-          } catch (e) {
-            // If decoding fails, use original key
-            logger.warn('Failed to decode S3 key', { tempKey });
-          }
-          
-          // Remove bucket name if it's in the path (for path-style URLs)
-          const bucketMatch = urlWithoutQuery.match(/https?:\/\/([^.]+)\.s3[.-]/);
-          if (bucketMatch && tempKey.startsWith(bucketMatch[1] + '/')) {
-            tempKey = tempKey.substring(bucketMatch[1].length + 1);
-          }
-        } else {
-          throw new ApiError(400, `Invalid S3 file URL format: ${tempVideoUrl}`);
-        }
-      } else {
-        throw new ApiError(400, `Invalid S3 file URL format: ${tempVideoUrl}`);
-      }
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw error;
-      }
-      logger.error('Failed to extract S3 key from URL', { tempVideoUrl, error });
-      throw new ApiError(400, `Invalid S3 file URL: ${tempVideoUrl}`);
-    }
+    // Extract S3 key from URL
+    const tempKey = extractS3KeyFromUrl(tempVideoUrl);
 
     // Check if file is in temp folder
     // Check for both 'temp/' (at start) and '/temp/' (anywhere in path)
