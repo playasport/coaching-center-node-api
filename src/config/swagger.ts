@@ -1230,8 +1230,8 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               format: 'uri',
               nullable: true,
-              example: 'https://bucket.s3.region.amazonaws.com/sports/cricket-logo.png',
-              description: 'URL of the sport logo image',
+              example: 'https://bucket.s3.region.amazonaws.com/images/sports/cricket-logo.png',
+              description: 'URL of the sport logo image (uploaded to images/sports/ path)',
             },
             is_popular: {
               type: 'boolean',
@@ -3506,8 +3506,8 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               format: 'uri',
               nullable: true,
-              example: 'https://bucket.s3.region.amazonaws.com/logos/cricket.png',
-              description: 'Logo URL of the sport',
+              example: 'https://bucket.s3.region.amazonaws.com/images/sports/cricket.png',
+              description: 'Logo URL of the sport (uploaded to images/sports/ path)',
             },
             is_popular: {
               type: 'boolean',
@@ -3527,15 +3527,17 @@ const options: swaggerJsdoc.Options = {
           properties: {
             name: {
               type: 'string',
+              minLength: 1,
+              maxLength: 100,
               example: 'Football',
-              description: 'Name of the sport',
+              description: 'Name of the sport (1-100 characters)',
             },
             logo: {
               type: 'string',
               format: 'uri',
               nullable: true,
-              example: 'https://bucket.s3.region.amazonaws.com/logos/football.png',
-              description: 'Logo URL of the sport',
+              example: 'https://bucket.s3.region.amazonaws.com/images/sports/football.png',
+              description: 'Logo URL of the sport (uploaded to images/sports/ path)',
             },
             is_active: {
               type: 'boolean',
@@ -3556,15 +3558,17 @@ const options: swaggerJsdoc.Options = {
           properties: {
             name: {
               type: 'string',
+              minLength: 1,
+              maxLength: 100,
               example: 'Football Updated',
-              description: 'Name of the sport',
+              description: 'Name of the sport (1-100 characters)',
             },
             logo: {
               type: 'string',
               format: 'uri',
               nullable: true,
-              example: 'https://bucket.s3.region.amazonaws.com/logos/football-updated.png',
-              description: 'Logo URL of the sport',
+              example: 'https://bucket.s3.region.amazonaws.com/images/sports/football-updated.png',
+              description: 'Logo URL of the sport (uploaded to images/sports/ path)',
             },
             is_active: {
               type: 'boolean',

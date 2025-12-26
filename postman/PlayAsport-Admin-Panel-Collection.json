@@ -1441,7 +1441,7 @@
           "response": []
         },
         {
-          "name": "Create Sport",
+          "name": "Create Sport (JSON)",
           "event": [
             {
               "listen": "test",
@@ -1473,19 +1473,84 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Basketball\",\n  \"logo\": \"https://bucket.s3.region.amazonaws.com/logos/basketball.png\",\n  \"is_active\": true,\n  \"is_popular\": false\n}"
+              "raw": "{\n  \"name\": \"Basketball\",\n  \"logo\": \"https://bucket.s3.region.amazonaws.com/images/sports/basketball.png\",\n  \"is_active\": true,\n  \"is_popular\": false\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/admin/sports",
               "host": ["{{baseUrl}}"],
               "path": ["admin", "sports"]
             },
-            "description": "Create a new sport. Super Admin only. Requires sport:create permission."
+            "description": "Create a new sport with logo URL. Super Admin only. Requires sport:create permission.\n\n**Validation:**\n- Sport name: 1-100 characters (required)\n- Logo: Valid URL (optional)\n- is_active: Boolean (default: true)\n- is_popular: Boolean (default: false)"
           },
           "response": []
         },
         {
-          "name": "Update Sport",
+          "name": "Create Sport with Image Upload",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.sport) {",
+                  "        pm.collectionVariables.set('sportId', response.data.sport.id || response.data.sport._id || response.data.sport.custom_id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Cricket",
+                  "type": "text",
+                  "description": "Sport name (1-100 characters)"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": [],
+                  "description": "Sport logo/image file (JPEG, PNG, WebP) - max 5MB. Images are automatically resized (max width 1500px) and compressed (target 500KB). Filename format: images/sports/{sport-slug}.{extension}"
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "type": "text",
+                  "description": "Whether the sport is active (default: true)"
+                },
+                {
+                  "key": "is_popular",
+                  "value": "false",
+                  "type": "text",
+                  "description": "Whether the sport is popular (default: false)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/sports",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "sports"]
+            },
+            "description": "Create a new sport with image upload. Super Admin only. Requires sport:create permission.\n\n**Validation:**\n- Sport name: 1-100 characters (required)\n- Image: JPEG, PNG, WebP file - max 5MB (optional)\n- is_active: Boolean (default: true)\n- is_popular: Boolean (default: false)\n\n**Image Processing:**\n- Images are automatically resized if width exceeds 1500px (maintains aspect ratio)\n- Images are automatically compressed to optimize file size (target: 500KB max)\n- Filename format: images/sports/{sport-slug}.{extension} (e.g., images/sports/cricket.jpg)\n- New uploads automatically replace old images with the same sport name"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Sport (JSON)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1501,7 +1566,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Basketball Updated\",\n  \"is_popular\": true\n}"
+              "raw": "{\n  \"name\": \"Basketball Updated\",\n  \"logo\": \"https://bucket.s3.region.amazonaws.com/images/sports/basketball.jpg\",\n  \"is_popular\": true\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/admin/sports/:id",
@@ -1515,7 +1580,63 @@
                 }
               ]
             },
-            "description": "Update an existing sport. Super Admin only. Requires sport:update permission."
+            "description": "Update an existing sport with logo URL. Super Admin only. Requires sport:update permission.\n\n**Validation:**\n- Sport name: 1-100 characters (optional)\n- Logo: Valid URL (optional)\n- is_active: Boolean (optional)\n- is_popular: Boolean (optional)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Sport with Image Upload",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Cricket Updated",
+                  "type": "text",
+                  "description": "Sport name (1-100 characters)"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": [],
+                  "description": "Sport logo/image file (JPEG, PNG, WebP) - max 5MB. Images are automatically resized (max width 1500px) and compressed (target 500KB). Filename format: images/sports/{sport-slug}.{extension}"
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "type": "text",
+                  "description": "Whether the sport is active"
+                },
+                {
+                  "key": "is_popular",
+                  "value": "true",
+                  "type": "text",
+                  "description": "Whether the sport is popular"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/sports/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "sports", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{sportId}}",
+                  "description": "Sport ID (MongoDB ObjectId or custom_id)"
+                }
+              ]
+            },
+            "description": "Update an existing sport with image upload. Super Admin only. Requires sport:update permission.\n\n**Validation:**\n- Sport name: 1-100 characters (optional)\n- Image: JPEG, PNG, WebP file - max 5MB (optional)\n- is_active: Boolean (optional)\n- is_popular: Boolean (optional)\n\n**Image Processing:**\n- Images are automatically resized if width exceeds 1500px (maintains aspect ratio)\n- Images are automatically compressed to optimize file size (target: 500KB max)\n- Filename format: images/sports/{sport-slug}.{extension} (e.g., images/sports/cricket.jpg)\n- New uploads automatically replace old images with the same sport name"
           },
           "response": []
         },
@@ -1543,6 +1664,33 @@
               ]
             },
             "description": "Delete a sport. Super Admin only. Requires sport:delete permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Sport Image",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/sports/:id/image",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "sports", ":id", "image"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{sportId}}",
+                  "description": "Sport ID (MongoDB ObjectId or custom_id)"
+                }
+              ]
+            },
+            "description": "Delete sport image/logo. Requires sport:update permission."
           },
           "response": []
         }
