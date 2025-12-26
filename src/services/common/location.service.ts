@@ -4,7 +4,7 @@ import { logger } from '../../utils/logger';
 
 export const getAllCountries = async (): Promise<Country[]> => {
   try {
-    const countries = await CountryModel.find({})
+    const countries = await CountryModel.find({ isDeleted: false })
       .select('name code iso2 iso3 phoneCode currency currencySymbol region subregion latitude longitude')
       .sort({ name: 1 })
       .lean();
@@ -19,6 +19,7 @@ export const getStatesByCountry = async (countryCode: string): Promise<State[]> 
   try {
     const states = await StateModel.find({
       $or: [{ countryCode: countryCode }, { countryId: countryCode }],
+      isDeleted: false,
     })
       .select('name countryId countryCode countryName stateCode latitude longitude')
       .sort({ name: 1 })
@@ -60,7 +61,8 @@ export const getCitiesByState = async (stateName: string, countryCode?: string):
     const query: any = { 
       stateName: { 
         $regex: new RegExp(`^${escapedStateName}$`, 'i') 
-      } 
+      },
+      isDeleted: false,
     };
     
     if (countryCode) {
@@ -75,7 +77,8 @@ export const getCitiesByState = async (stateName: string, countryCode?: string):
     // If no results with exact match, try case-insensitive partial match
     if (cities.length === 0) {
       const partialQuery: any = {
-        stateName: { $regex: new RegExp(escapedStateName, 'i') }
+        stateName: { $regex: new RegExp(escapedStateName, 'i') },
+        isDeleted: false,
       };
       if (countryCode) {
         partialQuery.countryCode = countryCode.trim();
@@ -129,21 +132,21 @@ export const getCitiesByStateId = async (stateId: string): Promise<CityResponse[
   try {
     const trimmedStateId = stateId.trim();
     
-    // First, try to find cities by stateId field directly
-    let cities = await CityModel.find({ stateId: trimmedStateId })
+    // First, try to find cities by stateId field directly (excluding soft-deleted)
+    let cities = await CityModel.find({ stateId: trimmedStateId, isDeleted: false })
       .select('name stateId stateName stateCode countryId countryCode countryName latitude longitude')
       .sort({ name: 1 })
       .lean();
     
     // If no results, try to find state by MongoDB _id, then get its stateId value
     if (cities.length === 0) {
-      const state = await StateModel.findById(trimmedStateId)
+      const state = await StateModel.findOne({ _id: trimmedStateId, isDeleted: false })
         .select('_id name')
         .lean();
       
       if (state) {
-        // Try to find cities by stateName if we found the state
-        cities = await CityModel.find({ stateName: state.name })
+        // Try to find cities by stateName if we found the state (excluding soft-deleted)
+        cities = await CityModel.find({ stateName: state.name, isDeleted: false })
           .select('name stateId stateName stateCode countryId countryCode countryName latitude longitude')
           .sort({ name: 1 })
           .lean();

@@ -48,7 +48,7 @@ export const getAllCountries = async (
   params: GetAdminCountriesParams = {}
 ): Promise<AdminPaginatedResult<Country>> => {
   try {
-    const query: any = {};
+    const query: any = { isDeleted: false };
 
     // Filter by region if provided
     if (params.region) {
@@ -113,9 +113,9 @@ export const getCountryById = async (id: string): Promise<Country | null> => {
   try {
     let query: any;
     if (Types.ObjectId.isValid(id) && id.length === 24) {
-      query = { _id: new Types.ObjectId(id) };
+      query = { _id: new Types.ObjectId(id), isDeleted: false };
     } else {
-      query = { $or: [{ code: id }, { iso2: id }, { iso3: id }] };
+      query = { $or: [{ code: id }, { iso2: id }, { iso3: id }], isDeleted: false };
     }
 
     const country = await CountryModel.findOne(query).lean();
@@ -131,13 +131,14 @@ export const getCountryById = async (id: string): Promise<Country | null> => {
  */
 export const createCountry = async (data: CreateCountryInput): Promise<Country> => {
   try {
-    // Check if country with same name or code already exists
+    // Check if country with same name or code already exists (excluding soft-deleted)
     const existingCountry = await CountryModel.findOne({
       $or: [
         { name: { $regex: new RegExp(`^${data.name.trim()}$`, 'i') } },
         ...(data.code ? [{ code: data.code.trim() }] : []),
         ...(data.iso2 ? [{ iso2: data.iso2.trim().toUpperCase() }] : []),
       ],
+      isDeleted: false,
     });
 
     if (existingCountry) {
@@ -176,9 +177,9 @@ export const updateCountry = async (id: string, data: UpdateCountryInput): Promi
   try {
     let query: any;
     if (Types.ObjectId.isValid(id) && id.length === 24) {
-      query = { _id: new Types.ObjectId(id) };
+      query = { _id: new Types.ObjectId(id), isDeleted: false };
     } else {
-      query = { $or: [{ code: id }, { iso2: id }, { iso3: id }] };
+      query = { $or: [{ code: id }, { iso2: id }, { iso3: id }], isDeleted: false };
     }
 
     const existingCountry = await CountryModel.findOne(query);
@@ -186,9 +187,9 @@ export const updateCountry = async (id: string, data: UpdateCountryInput): Promi
       throw new ApiError(404, 'Country not found');
     }
 
-    // Check for duplicates if name or code is being updated
+    // Check for duplicates if name or code is being updated (excluding soft-deleted)
     if (data.name || data.code || data.iso2) {
-      const duplicateQuery: any = { _id: { $ne: existingCountry._id } };
+      const duplicateQuery: any = { _id: { $ne: existingCountry._id }, isDeleted: false };
       const orConditions: any[] = [];
 
       if (data.name) {
@@ -237,15 +238,16 @@ export const updateCountry = async (id: string, data: UpdateCountryInput): Promi
 };
 
 /**
- * Delete country
+ * Delete country (soft delete with cascade)
+ * Soft deletes the country and all associated states and cities
  */
 export const deleteCountry = async (id: string): Promise<void> => {
   try {
     let query: any;
     if (Types.ObjectId.isValid(id) && id.length === 24) {
-      query = { _id: new Types.ObjectId(id) };
+      query = { _id: new Types.ObjectId(id), isDeleted: false };
     } else {
-      query = { $or: [{ code: id }, { iso2: id }, { iso3: id }] };
+      query = { $or: [{ code: id }, { iso2: id }, { iso3: id }], isDeleted: false };
     }
 
     const country = await CountryModel.findOne(query);
@@ -253,17 +255,50 @@ export const deleteCountry = async (id: string): Promise<void> => {
       throw new ApiError(404, 'Country not found');
     }
 
-    // Check if country has states
-    const stateCount = await StateModel.countDocuments({
-      $or: [{ countryId: country._id.toString() }, { countryCode: country.code || country.iso2 }],
+    const countryId = country._id.toString();
+    const countryCode = country.code || country.iso2;
+    const now = new Date();
+
+    // Soft delete all associated states (cascade)
+    const statesResult = await StateModel.updateMany(
+      {
+        $or: [{ countryId: countryId }, { countryCode: countryCode }],
+        isDeleted: false,
+      },
+      {
+        $set: {
+          isDeleted: true,
+          deletedAt: now,
+        },
+      }
+    );
+
+    // Soft delete all associated cities (cascade)
+    const citiesResult = await CityModel.updateMany(
+      {
+        $or: [{ countryId: countryId }, { countryCode: countryCode }],
+        isDeleted: false,
+      },
+      {
+        $set: {
+          isDeleted: true,
+          deletedAt: now,
+        },
+      }
+    );
+
+    // Soft delete the country
+    await CountryModel.updateOne(query, {
+      $set: {
+        isDeleted: true,
+        deletedAt: now,
+      },
     });
 
-    if (stateCount > 0) {
-      throw new ApiError(400, 'Cannot delete country that has associated states');
-    }
-
-    await CountryModel.deleteOne(query);
-    logger.info(`Country deleted: ${id}`);
+    logger.info(`Country soft deleted: ${id}`, {
+      statesDeleted: statesResult.modifiedCount,
+      citiesDeleted: citiesResult.modifiedCount,
+    });
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
@@ -285,7 +320,7 @@ export interface GetAdminStatesParams extends GetAdminLocationsParams {
  */
 export const getAllStates = async (params: GetAdminStatesParams = {}): Promise<AdminPaginatedResult<State>> => {
   try {
-    const query: any = {};
+    const query: any = { isDeleted: false };
 
     // Filter by country if provided
     if (params.countryId || params.countryCode) {
@@ -294,9 +329,10 @@ export const getAllStates = async (params: GetAdminStatesParams = {}): Promise<A
         if (Types.ObjectId.isValid(params.countryId)) {
           countryQuery.countryId = params.countryId;
         } else {
-          // Try to find country by code/iso2/iso3
+          // Try to find country by code/iso2/iso3 (excluding soft-deleted)
           const country = await CountryModel.findOne({
             $or: [{ code: params.countryId }, { iso2: params.countryId }, { iso3: params.countryId }],
+            isDeleted: false,
           });
           if (country) {
             countryQuery.countryId = country._id.toString();
@@ -361,9 +397,9 @@ export const getStateById = async (id: string): Promise<State | null> => {
   try {
     let query: any;
     if (Types.ObjectId.isValid(id) && id.length === 24) {
-      query = { _id: new Types.ObjectId(id) };
+      query = { _id: new Types.ObjectId(id), isDeleted: false };
     } else {
-      query = { stateCode: id };
+      query = { stateCode: id, isDeleted: false };
     }
 
     const state = await StateModel.findOne(query).lean();
@@ -379,19 +415,21 @@ export const getStateById = async (id: string): Promise<State | null> => {
  */
 export const createState = async (data: CreateStateInput): Promise<State> => {
   try {
-    // Validate country exists
+    // Validate country exists (excluding soft-deleted)
     let country: any = null;
     if (data.countryId) {
       if (Types.ObjectId.isValid(data.countryId)) {
-        country = await CountryModel.findById(data.countryId);
+        country = await CountryModel.findOne({ _id: data.countryId, isDeleted: false });
       } else {
         country = await CountryModel.findOne({
           $or: [{ code: data.countryId }, { iso2: data.countryId }, { iso3: data.countryId }],
+          isDeleted: false,
         });
       }
     } else if (data.countryCode) {
       country = await CountryModel.findOne({
         $or: [{ code: data.countryCode }, { iso2: data.countryCode }, { iso3: data.countryCode }],
+        isDeleted: false,
       });
     }
 
@@ -399,10 +437,11 @@ export const createState = async (data: CreateStateInput): Promise<State> => {
       throw new ApiError(400, 'Country not found');
     }
 
-    // Check if state with same name in same country already exists
+    // Check if state with same name in same country already exists (excluding soft-deleted)
     const existingState = await StateModel.findOne({
       name: { $regex: new RegExp(`^${data.name.trim()}$`, 'i') },
       $or: [{ countryId: country._id.toString() }, { countryCode: country.code || country.iso2 }],
+      isDeleted: false,
     });
 
     if (existingState) {
@@ -437,9 +476,9 @@ export const updateState = async (id: string, data: UpdateStateInput): Promise<S
   try {
     let query: any;
     if (Types.ObjectId.isValid(id) && id.length === 24) {
-      query = { _id: new Types.ObjectId(id) };
+      query = { _id: new Types.ObjectId(id), isDeleted: false };
     } else {
-      query = { stateCode: id };
+      query = { stateCode: id, isDeleted: false };
     }
 
     const existingState = await StateModel.findOne(query);
@@ -447,20 +486,22 @@ export const updateState = async (id: string, data: UpdateStateInput): Promise<S
       throw new ApiError(404, 'State not found');
     }
 
-    // Validate country if being updated
+    // Validate country if being updated (excluding soft-deleted)
     let country: any = null;
     if (data.countryId || data.countryCode) {
       if (data.countryId) {
         if (Types.ObjectId.isValid(data.countryId)) {
-          country = await CountryModel.findById(data.countryId);
+          country = await CountryModel.findOne({ _id: data.countryId, isDeleted: false });
         } else {
           country = await CountryModel.findOne({
             $or: [{ code: data.countryId }, { iso2: data.countryId }, { iso3: data.countryId }],
+            isDeleted: false,
           });
         }
       } else if (data.countryCode) {
         country = await CountryModel.findOne({
           $or: [{ code: data.countryCode }, { iso2: data.countryCode }, { iso3: data.countryCode }],
+          isDeleted: false,
         });
       }
 
@@ -468,18 +509,20 @@ export const updateState = async (id: string, data: UpdateStateInput): Promise<S
         throw new ApiError(400, 'Country not found');
       }
     } else {
-      // Use existing country
+      // Use existing country (excluding soft-deleted)
       country = await CountryModel.findOne({
         $or: [{ _id: existingState.countryId }, { code: existingState.countryCode }, { iso2: existingState.countryCode }],
+        isDeleted: false,
       });
     }
 
-    // Check for duplicates if name is being updated
+    // Check for duplicates if name is being updated (excluding soft-deleted)
     if (data.name) {
       const duplicateState = await StateModel.findOne({
         name: { $regex: new RegExp(`^${data.name.trim()}$`, 'i') },
         $or: [{ countryId: country._id.toString() }, { countryCode: country.code || country.iso2 }],
         _id: { $ne: existingState._id },
+        isDeleted: false,
       });
 
       if (duplicateState) {
@@ -512,15 +555,16 @@ export const updateState = async (id: string, data: UpdateStateInput): Promise<S
 };
 
 /**
- * Delete state
+ * Delete state (soft delete with cascade)
+ * Soft deletes the state and all associated cities
  */
 export const deleteState = async (id: string): Promise<void> => {
   try {
     let query: any;
     if (Types.ObjectId.isValid(id) && id.length === 24) {
-      query = { _id: new Types.ObjectId(id) };
+      query = { _id: new Types.ObjectId(id), isDeleted: false };
     } else {
-      query = { stateCode: id };
+      query = { stateCode: id, isDeleted: false };
     }
 
     const state = await StateModel.findOne(query);
@@ -528,17 +572,35 @@ export const deleteState = async (id: string): Promise<void> => {
       throw new ApiError(404, 'State not found');
     }
 
-    // Check if state has cities
-    const cityCount = await CityModel.countDocuments({
-      $or: [{ stateId: state._id.toString() }, { stateName: state.name }],
+    const stateId = state._id.toString();
+    const stateName = state.name;
+    const now = new Date();
+
+    // Soft delete all associated cities (cascade)
+    const citiesResult = await CityModel.updateMany(
+      {
+        $or: [{ stateId: stateId }, { stateName: stateName }],
+        isDeleted: false,
+      },
+      {
+        $set: {
+          isDeleted: true,
+          deletedAt: now,
+        },
+      }
+    );
+
+    // Soft delete the state
+    await StateModel.updateOne(query, {
+      $set: {
+        isDeleted: true,
+        deletedAt: now,
+      },
     });
 
-    if (cityCount > 0) {
-      throw new ApiError(400, 'Cannot delete state that has associated cities');
-    }
-
-    await StateModel.deleteOne(query);
-    logger.info(`State deleted: ${id}`);
+    logger.info(`State soft deleted: ${id}`, {
+      citiesDeleted: citiesResult.modifiedCount,
+    });
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
@@ -562,12 +624,12 @@ export interface GetAdminCitiesParams extends GetAdminLocationsParams {
  */
 export const getAllCities = async (params: GetAdminCitiesParams = {}): Promise<AdminPaginatedResult<City>> => {
   try {
-    const query: any = {};
+    const query: any = { isDeleted: false };
 
     // Filter by state if provided
     if (params.stateId) {
       if (Types.ObjectId.isValid(params.stateId)) {
-        const state = await StateModel.findById(params.stateId);
+        const state = await StateModel.findOne({ _id: params.stateId, isDeleted: false });
         if (state) {
           query.$or = [{ stateId: params.stateId }, { stateName: state.name }];
         } else {
@@ -587,7 +649,7 @@ export const getAllCities = async (params: GetAdminCitiesParams = {}): Promise<A
       const countryQuery: any = {};
       if (params.countryId) {
         if (Types.ObjectId.isValid(params.countryId)) {
-          const country = await CountryModel.findById(params.countryId);
+          const country = await CountryModel.findOne({ _id: params.countryId, isDeleted: false });
           if (country) {
             countryQuery.$or = [
               { countryId: params.countryId },
@@ -658,9 +720,9 @@ export const getCityById = async (id: string): Promise<City | null> => {
   try {
     let query: any;
     if (Types.ObjectId.isValid(id) && id.length === 24) {
-      query = { _id: new Types.ObjectId(id) };
+      query = { _id: new Types.ObjectId(id), isDeleted: false };
     } else {
-      query = { name: id };
+      query = { name: id, isDeleted: false };
     }
 
     const city = await CityModel.findOne(query).lean();
@@ -676,36 +738,38 @@ export const getCityById = async (id: string): Promise<City | null> => {
  */
 export const createCity = async (data: CreateCityInput): Promise<City> => {
   try {
-    // Validate state exists
+    // Validate state exists (excluding soft-deleted)
     let state: any = null;
     if (data.stateId) {
       if (Types.ObjectId.isValid(data.stateId)) {
-        state = await StateModel.findById(data.stateId);
+        state = await StateModel.findOne({ _id: data.stateId, isDeleted: false });
       } else {
-        state = await StateModel.findOne({ stateCode: data.stateId });
+        state = await StateModel.findOne({ stateCode: data.stateId, isDeleted: false });
       }
     } else if (data.stateName) {
-      state = await StateModel.findOne({ name: { $regex: new RegExp(`^${data.stateName.trim()}$`, 'i') } });
+      state = await StateModel.findOne({ name: { $regex: new RegExp(`^${data.stateName.trim()}$`, 'i') }, isDeleted: false });
     }
 
     if (!state) {
       throw new ApiError(400, 'State not found');
     }
 
-    // Get country info from state
+    // Get country info from state (excluding soft-deleted)
     let country: any = null;
     if (state.countryId) {
-      country = await CountryModel.findById(state.countryId);
+      country = await CountryModel.findOne({ _id: state.countryId, isDeleted: false });
     } else if (state.countryCode) {
       country = await CountryModel.findOne({
         $or: [{ code: state.countryCode }, { iso2: state.countryCode }, { iso3: state.countryCode }],
+        isDeleted: false,
       });
     }
 
-    // Check if city with same name in same state already exists
+    // Check if city with same name in same state already exists (excluding soft-deleted)
     const existingCity = await CityModel.findOne({
       name: { $regex: new RegExp(`^${data.name.trim()}$`, 'i') },
       $or: [{ stateId: state._id.toString() }, { stateName: state.name }],
+      isDeleted: false,
     });
 
     if (existingCity) {
@@ -742,9 +806,9 @@ export const updateCity = async (id: string, data: UpdateCityInput): Promise<Cit
   try {
     let query: any;
     if (Types.ObjectId.isValid(id) && id.length === 24) {
-      query = { _id: new Types.ObjectId(id) };
+      query = { _id: new Types.ObjectId(id), isDeleted: false };
     } else {
-      query = { name: id };
+      query = { name: id, isDeleted: false };
     }
 
     const existingCity = await CityModel.findOne(query);
@@ -752,28 +816,28 @@ export const updateCity = async (id: string, data: UpdateCityInput): Promise<Cit
       throw new ApiError(404, 'City not found');
     }
 
-    // Validate state if being updated
+    // Validate state if being updated (excluding soft-deleted)
     let state: any = null;
     if (data.stateId || data.stateName) {
       if (data.stateId) {
         if (Types.ObjectId.isValid(data.stateId)) {
-          state = await StateModel.findById(data.stateId);
+          state = await StateModel.findOne({ _id: data.stateId, isDeleted: false });
         } else {
-          state = await StateModel.findOne({ stateCode: data.stateId });
+          state = await StateModel.findOne({ stateCode: data.stateId, isDeleted: false });
         }
       } else if (data.stateName) {
-        state = await StateModel.findOne({ name: { $regex: new RegExp(`^${data.stateName.trim()}$`, 'i') } });
+        state = await StateModel.findOne({ name: { $regex: new RegExp(`^${data.stateName.trim()}$`, 'i') }, isDeleted: false });
       }
 
       if (!state) {
         throw new ApiError(400, 'State not found');
       }
     } else {
-      // Use existing state
+      // Use existing state (excluding soft-deleted)
       if (existingCity.stateId) {
-        state = await StateModel.findById(existingCity.stateId);
+        state = await StateModel.findOne({ _id: existingCity.stateId, isDeleted: false });
       } else if (existingCity.stateName) {
-        state = await StateModel.findOne({ name: { $regex: new RegExp(`^${existingCity.stateName}$`, 'i') } });
+        state = await StateModel.findOne({ name: { $regex: new RegExp(`^${existingCity.stateName}$`, 'i') }, isDeleted: false });
       }
     }
 
@@ -781,22 +845,24 @@ export const updateCity = async (id: string, data: UpdateCityInput): Promise<Cit
       throw new ApiError(400, 'State information not found');
     }
 
-    // Get country info from state
+    // Get country info from state (excluding soft-deleted)
     let country: any = null;
     if (state.countryId) {
-      country = await CountryModel.findById(state.countryId);
+      country = await CountryModel.findOne({ _id: state.countryId, isDeleted: false });
     } else if (state.countryCode) {
       country = await CountryModel.findOne({
         $or: [{ code: state.countryCode }, { iso2: state.countryCode }, { iso3: state.countryCode }],
+        isDeleted: false,
       });
     }
 
-    // Check for duplicates if name is being updated
+    // Check for duplicates if name is being updated (excluding soft-deleted)
     if (data.name) {
       const duplicateCity = await CityModel.findOne({
         name: { $regex: new RegExp(`^${data.name.trim()}$`, 'i') },
         $or: [{ stateId: state._id.toString() }, { stateName: state.name }],
         _id: { $ne: existingCity._id },
+        isDeleted: false,
       });
 
       if (duplicateCity) {
@@ -833,15 +899,15 @@ export const updateCity = async (id: string, data: UpdateCityInput): Promise<Cit
 };
 
 /**
- * Delete city
+ * Delete city (soft delete)
  */
 export const deleteCity = async (id: string): Promise<void> => {
   try {
     let query: any;
     if (Types.ObjectId.isValid(id) && id.length === 24) {
-      query = { _id: new Types.ObjectId(id) };
+      query = { _id: new Types.ObjectId(id), isDeleted: false };
     } else {
-      query = { name: id };
+      query = { name: id, isDeleted: false };
     }
 
     const city = await CityModel.findOne(query);
@@ -849,8 +915,15 @@ export const deleteCity = async (id: string): Promise<void> => {
       throw new ApiError(404, 'City not found');
     }
 
-    await CityModel.deleteOne(query);
-    logger.info(`City deleted: ${id}`);
+    // Soft delete the city
+    await CityModel.updateOne(query, {
+      $set: {
+        isDeleted: true,
+        deletedAt: new Date(),
+      },
+    });
+
+    logger.info(`City soft deleted: ${id}`);
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;

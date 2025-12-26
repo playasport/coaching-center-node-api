@@ -13,6 +13,8 @@ export interface Country {
   subregion?: string;
   latitude?: number;
   longitude?: number;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -26,6 +28,8 @@ export interface State {
   stateCode?: string;
   latitude?: number;
   longitude?: number;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -41,6 +45,8 @@ export interface City {
   countryName?: string;
   latitude?: number;
   longitude?: number;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -62,6 +68,8 @@ const countrySchema = new Schema<Country>(
     subregion: { type: String, trim: true },
     latitude: { type: Number },
     longitude: { type: Number },
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date, default: null, index: true },
   },
   {
     timestamps: true,
@@ -78,6 +86,8 @@ const stateSchema = new Schema<State>(
     stateCode: { type: String, trim: true },
     latitude: { type: Number },
     longitude: { type: Number },
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date, default: null, index: true },
   },
   {
     timestamps: true,
@@ -96,6 +106,8 @@ const citySchema = new Schema<City>(
     countryName: { type: String, trim: true },
     latitude: { type: Number },
     longitude: { type: Number },
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date, default: null, index: true },
   },
   {
     timestamps: true,
@@ -104,13 +116,14 @@ const citySchema = new Schema<City>(
 );
 
 // Add indexes for better query performance
-countrySchema.index({ name: 1 });
-countrySchema.index({ iso2: 1 });
-stateSchema.index({ countryId: 1, name: 1 });
-stateSchema.index({ countryCode: 1, name: 1 });
-citySchema.index({ stateId: 1, name: 1 });
-citySchema.index({ stateName: 1, name: 1 });
-citySchema.index({ countryCode: 1, name: 1 });
+countrySchema.index({ name: 1, isDeleted: 1 });
+countrySchema.index({ iso2: 1, isDeleted: 1 });
+stateSchema.index({ countryId: 1, name: 1, isDeleted: 1 });
+stateSchema.index({ countryCode: 1, name: 1, isDeleted: 1 });
+citySchema.index({ stateId: 1, name: 1, isDeleted: 1 });
+citySchema.index({ stateName: 1, name: 1, isDeleted: 1 });
+citySchema.index({ countryCode: 1, name: 1, isDeleted: 1 });
+citySchema.index({ countryId: 1, isDeleted: 1 });
 
 export const CountryModel = model<Country>('Country', countrySchema);
 export const StateModel = model<State>('State', stateSchema);
