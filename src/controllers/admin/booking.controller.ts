@@ -93,3 +93,49 @@ export const deleteBooking = async (req: Request, res: Response, next: NextFunct
     next(error);
   }
 };
+
+/**
+ * Get booking statistics for admin dashboard
+ */
+export const getBookingStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    const params = {
+      startDate: startDate as string,
+      endDate: endDate as string,
+    };
+
+    const stats = await adminBookingService.getBookingStats(params);
+
+    const response = new ApiResponse(200, { stats }, 'Booking statistics retrieved successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Download booking invoice as PDF
+ */
+export const downloadBookingInvoice = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    
+    const invoiceService = await import('../../services/admin/invoice.service');
+    const pdfBuffer = await invoiceService.generateBookingInvoice(id);
+
+    // Set response headers for PDF download
+    const bookingId = id;
+    const fileName = `invoice-${bookingId}-${Date.now()}.pdf`;
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Length', pdfBuffer.length.toString());
+
+    // Send PDF buffer
+    res.send(pdfBuffer);
+  } catch (error) {
+    next(error);
+  }
+};

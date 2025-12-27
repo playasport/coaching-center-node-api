@@ -351,6 +351,168 @@ router.get('/',
   adminPaymentController.getAllPayments
 );
 
+/**
+ * @swagger
+ * /admin/payments/{id}:
+ *   get:
+ *     summary: Get detailed payment information by ID
+ *     tags: [Admin Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Payment ID (transaction ID)
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved payment details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Payment retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     payment:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           example: "550e8400-e29b-41d4-a716-446655440000"
+ *                         booking:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             booking_id:
+ *                               type: string
+ *                             amount:
+ *                               type: number
+ *                             currency:
+ *                               type: string
+ *                             status:
+ *                               type: string
+ *                             participants:
+ *                               type: array
+ *                             batch:
+ *                               type: object
+ *                             center:
+ *                               type: object
+ *                             sport:
+ *                               type: object
+ *                         user:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             firstName:
+ *                               type: string
+ *                             lastName:
+ *                               type: string
+ *                             email:
+ *                               type: string
+ *                             mobile:
+ *                               type: string
+ *                             profileImage:
+ *                               type: string
+ *                         razorpay_order_id:
+ *                           type: string
+ *                         razorpay_payment_id:
+ *                           type: string
+ *                         razorpay_refund_id:
+ *                           type: string
+ *                           nullable: true
+ *                         type:
+ *                           type: string
+ *                           example: "payment"
+ *                         status:
+ *                           type: string
+ *                           enum: [pending, processing, success, failed, cancelled]
+ *                         source:
+ *                           type: string
+ *                           enum: [user_verification, webhook, manual]
+ *                         amount:
+ *                           type: number
+ *                         currency:
+ *                           type: string
+ *                         payment_method:
+ *                           type: string
+ *                           nullable: true
+ *                         failure_reason:
+ *                           type: string
+ *                           nullable: true
+ *                         metadata:
+ *                           type: object
+ *                           nullable: true
+ *                         processed_at:
+ *                           type: string
+ *                           format: date-time
+ *                           nullable: true
+ *                         created_at:
+ *                           type: string
+ *                           format: date-time
+ *                         updatedAt:
+ *                           type: string
+ *                           format: date-time
+ *                       example:
+ *                         id: "550e8400-e29b-41d4-a716-446655440000"
+ *                         booking:
+ *                           id: "507f1f77bcf86cd799439011"
+ *                           booking_id: "BK123456"
+ *                           amount: 5000
+ *                           currency: "INR"
+ *                           status: "confirmed"
+ *                         user:
+ *                           id: "507f1f77bcf86cd799439016"
+ *                           firstName: "John"
+ *                           lastName: "Doe"
+ *                           email: "john.doe@example.com"
+ *                           mobile: "+919876543210"
+ *                         razorpay_order_id: "order_MNOP1234567890"
+ *                         razorpay_payment_id: "pay_ABCD1234567890"
+ *                         razorpay_refund_id: null
+ *                         type: "payment"
+ *                         status: "success"
+ *                         source: "webhook"
+ *                         amount: 5000
+ *                         currency: "INR"
+ *                         payment_method: "card"
+ *                         failure_reason: null
+ *                         metadata: null
+ *                         processed_at: "2024-01-15T10:30:00.000Z"
+ *                         created_at: "2024-01-15T10:25:00.000Z"
+ *                         updatedAt: "2024-01-15T10:30:00.000Z"
+ *       404:
+ *         description: Payment not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Payment not found"
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ */
+router.get('/:id', 
+  requirePermission(Section.PAYMENT, Action.VIEW),
+  adminPaymentController.getPaymentById
+);
+
 router.patch('/:id', 
   requirePermission(Section.PAYMENT, Action.UPDATE),
   adminPaymentController.updatePaymentStatus

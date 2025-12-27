@@ -381,3 +381,51 @@ export const getPaymentStats = async (params?: {
   }
 };
 
+/**
+ * Get payment by ID for admin (only payment type transactions)
+ */
+export const getPaymentById = async (id: string): Promise<Transaction | null> => {
+  try {
+    const query = Types.ObjectId.isValid(id) ? { _id: id } : { id: id };
+    
+    // First check if transaction exists at all
+    const anyTransaction = await TransactionModel.findOne(query).lean();
+    
+    if (!anyTransaction) {
+      logger.warn(`Transaction not found with ID: ${id}`);
+      return null;
+    }
+    
+    // Check if it's a payment type
+    if (anyTransaction.type !== TransactionType.PAYMENT) {
+      logger.warn(`Transaction ${id} exists but is of type ${anyTransaction.type}, not payment`);
+      return null;
+    }
+    
+    // Get the payment transaction with full details
+    const payment = await TransactionModel.findOne({
+      ...query,
+      type: TransactionType.PAYMENT,
+    })
+      .select('-razorpay_signature') // Exclude razorpay_signature from response
+      .populate('user', 'id firstName lastName email mobile profileImage')
+      .populate({
+        path: 'booking',
+        select: 'id booking_id amount currency status payment participants batch center sport',
+        populate: [
+          { path: 'participants', select: 'id firstName lastName' },
+          { path: 'batch', select: 'id name' },
+          { path: 'center', select: 'id center_name' },
+          { path: 'sport', select: 'id name' },
+        ],
+        match: { is_deleted: false },
+      })
+      .lean();
+
+    return payment as Transaction | null;
+  } catch (error) {
+    logger.error('Admin failed to get payment by ID:', error);
+    throw new ApiError(500, t('errors.internalServerError'));
+  }
+};
+

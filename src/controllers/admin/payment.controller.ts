@@ -69,6 +69,25 @@ export const updatePaymentStatus = async (req: Request, res: Response, next: Nex
 };
 
 /**
+ * Get payment by ID for admin
+ */
+export const getPaymentById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const payment = await adminPaymentService.getPaymentById(id);
+
+    if (!payment) {
+      throw new ApiError(404, 'Payment not found');
+    }
+
+    const response = new ApiResponse(200, { payment }, 'Payment retrieved successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get payment statistics for admin dashboard
  */
 export const getPaymentStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

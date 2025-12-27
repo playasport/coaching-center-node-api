@@ -44,6 +44,15 @@ export interface AdminPaginatedBookingsResult {
   };
 }
 
+export interface BookingStats {
+  total: number;
+  byStatus: Record<string, number>;
+  byPaymentStatus: Record<string, number>;
+  totalAmount: number;
+  amountByPaymentStatus: Record<string, number>;
+  byPaymentMethod: Record<string, number>;
+}
+
 /**
  * Get all bookings for admin with filters and pagination
  */
@@ -247,5 +256,127 @@ export const deleteBooking = async (id: string): Promise<void> => {
     if (error instanceof ApiError) throw error;
     logger.error('Admin failed to delete booking:', error);
     throw new ApiError(500, 'Failed to delete booking');
+  }
+};
+
+/**
+ * Get booking statistics for admin dashboard
+ */
+export const getBookingStats = async (params?: {
+  startDate?: string;
+  endDate?: string;
+}): Promise<BookingStats> => {
+  try {
+    const dateQuery: any = {
+      is_deleted: false,
+    };
+    
+    if (params?.startDate || params?.endDate) {
+      dateQuery.createdAt = {};
+      if (params.startDate) {
+        dateQuery.createdAt.$gte = new Date(params.startDate);
+      }
+      if (params.endDate) {
+        const endDate = new Date(params.endDate);
+        endDate.setHours(23, 59, 59, 999);
+        dateQuery.createdAt.$lte = endDate;
+      }
+    }
+
+    // Get total count
+    const total = await BookingModel.countDocuments(dateQuery);
+
+    // Get counts by booking status
+    const statusCounts = await BookingModel.aggregate([
+      { $match: dateQuery },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const byStatus: Record<string, number> = {};
+    statusCounts.forEach((item: any) => {
+      byStatus[item._id] = item.count;
+    });
+
+    // Get counts by payment status
+    const paymentStatusCounts = await BookingModel.aggregate([
+      { $match: dateQuery },
+      {
+        $group: {
+          _id: '$payment.status',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const byPaymentStatus: Record<string, number> = {};
+    paymentStatusCounts.forEach((item: any) => {
+      byPaymentStatus[item._id] = item.count;
+    });
+
+    // Get amount statistics
+    const totalAmountResult = await BookingModel.aggregate([
+      { $match: dateQuery },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: '$amount' },
+        },
+      },
+    ]);
+    const totalAmount = totalAmountResult[0]?.totalAmount || 0;
+
+    // Get amount by payment status
+    const amountByPaymentStatusResult = await BookingModel.aggregate([
+      { $match: dateQuery },
+      {
+        $group: {
+          _id: '$payment.status',
+          totalAmount: { $sum: '$amount' },
+        },
+      },
+    ]);
+
+    const amountByPaymentStatus: Record<string, number> = {};
+    amountByPaymentStatusResult.forEach((item: any) => {
+      amountByPaymentStatus[item._id] = item.totalAmount;
+    });
+
+    // Get payment method statistics
+    const paymentMethodStats = await BookingModel.aggregate([
+      { 
+        $match: {
+          ...dateQuery,
+          'payment.payment_method': { $ne: null },
+        },
+      },
+      {
+        $group: {
+          _id: '$payment.payment_method',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const byPaymentMethod: Record<string, number> = {};
+    paymentMethodStats.forEach((item: any) => {
+      byPaymentMethod[item._id] = item.count;
+    });
+
+    return {
+      total,
+      byStatus,
+      byPaymentStatus,
+      totalAmount,
+      amountByPaymentStatus,
+      byPaymentMethod,
+    };
+  } catch (error) {
+    logger.error('Admin failed to get booking stats:', error);
+    throw new ApiError(500, t('errors.internalServerError'));
   }
 };
