@@ -3,6 +3,7 @@ import { validationMessages } from '../utils/validationMessages';
 import { UserModel } from '../models/user.model';
 import { RoleModel } from '../models/role.model';
 import { Gender } from '../enums/gender.enum';
+import { Types } from 'mongoose';
 
 const passwordComplexitySchema = z
   .string({ message: validationMessages.password.required() })
@@ -66,9 +67,56 @@ export const createAdminUserSchema = z.object({
       .array(z.string())
       .min(1, 'At least one role is required')
       .refine(
-        async (roleNames) => {
-          const roles = await RoleModel.find({ name: { $in: roleNames } });
-          return roles.length === roleNames.length;
+        async (roleInputs) => {
+          // Check for super_admin by name
+          if (roleInputs.includes('super_admin')) {
+            return false;
+          }
+          // Check if any ObjectId corresponds to super_admin role
+          const objectIds = roleInputs.filter((input) => Types.ObjectId.isValid(input));
+          if (objectIds.length > 0) {
+            const superAdminRole = await RoleModel.findOne({ name: 'super_admin' });
+            if (superAdminRole && objectIds.some((id) => id === superAdminRole._id.toString())) {
+              return false;
+            }
+          }
+          return true;
+        },
+        { message: 'Cannot assign super_admin role' }
+      )
+      .refine(
+        async (roleInputs) => {
+          // Separate role names and ObjectIds
+          const roleNames: string[] = [];
+          const roleIds: Types.ObjectId[] = [];
+          
+          for (const input of roleInputs) {
+            if (Types.ObjectId.isValid(input)) {
+              roleIds.push(new Types.ObjectId(input));
+            } else {
+              roleNames.push(input);
+            }
+          }
+          
+          // Query roles by name and/or _id
+          const queryConditions: any[] = [];
+          if (roleNames.length > 0) {
+            queryConditions.push({ name: { $in: roleNames } });
+          }
+          if (roleIds.length > 0) {
+            queryConditions.push({ _id: { $in: roleIds } });
+          }
+          
+          if (queryConditions.length === 0) {
+            return false;
+          }
+          
+          const roles = await RoleModel.find({
+            $or: queryConditions
+          });
+          
+          // Verify all inputs were found
+          return roles.length === roleInputs.length;
         },
         { message: 'One or more roles are invalid' }
       ),
@@ -82,9 +130,16 @@ export type CreateAdminUserInput = z.infer<typeof createAdminUserSchema>['body']
 
 /**
  * Schema for updating a user via admin panel
+ * Note: email and password can only be updated by super_admin (checked in controller)
  */
 export const updateAdminUserSchema = z.object({
   body: z.object({
+    email: z
+      .string({ message: validationMessages.email.required() })
+      .min(1, validationMessages.email.required())
+      .email(validationMessages.email.invalid())
+      .optional(),
+    password: passwordComplexitySchema.optional(),
     firstName: z
       .string()
       .min(1, 'First name is required')
@@ -103,9 +158,56 @@ export const updateAdminUserSchema = z.object({
       .array(z.string())
       .min(1, 'At least one role is required')
       .refine(
-        async (roleNames) => {
-          const roles = await RoleModel.find({ name: { $in: roleNames } });
-          return roles.length === roleNames.length;
+        async (roleInputs) => {
+          // Check for super_admin by name
+          if (roleInputs.includes('super_admin')) {
+            return false;
+          }
+          // Check if any ObjectId corresponds to super_admin role
+          const objectIds = roleInputs.filter((input) => Types.ObjectId.isValid(input));
+          if (objectIds.length > 0) {
+            const superAdminRole = await RoleModel.findOne({ name: 'super_admin' });
+            if (superAdminRole && objectIds.some((id) => id === superAdminRole._id.toString())) {
+              return false;
+            }
+          }
+          return true;
+        },
+        { message: 'Cannot assign super_admin role' }
+      )
+      .refine(
+        async (roleInputs) => {
+          // Separate role names and ObjectIds
+          const roleNames: string[] = [];
+          const roleIds: Types.ObjectId[] = [];
+          
+          for (const input of roleInputs) {
+            if (Types.ObjectId.isValid(input)) {
+              roleIds.push(new Types.ObjectId(input));
+            } else {
+              roleNames.push(input);
+            }
+          }
+          
+          // Query roles by name and/or _id
+          const queryConditions: any[] = [];
+          if (roleNames.length > 0) {
+            queryConditions.push({ name: { $in: roleNames } });
+          }
+          if (roleIds.length > 0) {
+            queryConditions.push({ _id: { $in: roleIds } });
+          }
+          
+          if (queryConditions.length === 0) {
+            return false;
+          }
+          
+          const roles = await RoleModel.find({
+            $or: queryConditions
+          });
+          
+          // Verify all inputs were found
+          return roles.length === roleInputs.length;
         },
         { message: 'One or more roles are invalid' }
       )

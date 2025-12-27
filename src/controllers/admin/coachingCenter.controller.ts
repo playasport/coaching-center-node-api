@@ -93,7 +93,10 @@ export const createCoachingCenterByAdmin = async (req: Request, res: Response, n
   try {
     const { bank_information, ...data } = req.body;
     
-    const coachingCenter = await adminCoachingCenterService.createCoachingCenterByAdmin(data);
+    // Get admin user ID from request (if authenticated)
+    const adminUserId = req.user?.id;
+    
+    const coachingCenter = await adminCoachingCenterService.createCoachingCenterByAdmin(data, adminUserId);
 
     const response = new ApiResponse(201, { coachingCenter }, t('coachingCenter.create.success'));
     res.status(201).json(response);

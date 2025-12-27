@@ -73,7 +73,8 @@ export interface BankInformation {
 // Main Coaching Center interface
 export interface CoachingCenter {
   id: string;
-  user: Types.ObjectId; // Reference to User model (_id)
+  user: Types.ObjectId; // Reference to User model (_id) - the academy owner
+  addedBy?: Types.ObjectId | null; // Reference to User model (_id) - the admin user who created this (only set when created via admin route)
   center_name: string;
   mobile_number: string;
   email: string;
@@ -316,6 +317,12 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
       ref: 'User',
       index: true,
     },
+    addedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+      index: true,
+    },
     center_name: {
       type: String,
       required: true,
@@ -443,6 +450,7 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
 
 // Indexes
 coachingCenterSchema.index({ user: 1 });
+coachingCenterSchema.index({ addedBy: 1 });
 coachingCenterSchema.index({ center_name: 1 });
 coachingCenterSchema.index({ email: 1 });
 coachingCenterSchema.index({ mobile_number: 1 });

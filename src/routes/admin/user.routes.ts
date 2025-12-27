@@ -18,7 +18,7 @@ router.use(authenticate, requireAdmin);
  * /admin/users:
  *   post:
  *     summary: Create user (admin)
- *     description: Create a new user with specified roles and password. Requires user:create permission.
+ *     description: Create a new user with specified roles and password. Requires user:create permission. Note: "super_admin" role cannot be assigned through this endpoint.
  *     tags: [Admin Users]
  *     security:
  *       - bearerAuth: []
@@ -109,7 +109,25 @@ router.post(
  * /admin/users:
  *   get:
  *     summary: Get all users (admin)
- *     description: Retrieve paginated list of all users with role information. Requires user:view permission.
+ *     description: |
+ *       Retrieve paginated list of all users with role information. Supports filtering and searching.
+ *       
+ *       **Available Filters:**
+ *       - `search`: Search by first name, last name, email, or mobile number
+ *       - `userType`: Filter by user type (student, guardian, or other)
+ *       - `isActive`: Filter by active status (true/false)
+ *       - `role`: Filter by role name (e.g., "user", "admin", "super_admin")
+ *       
+ *       **Filter Examples:**
+ *       - Get all students: `?userType=student`
+ *       - Get all guardians: `?userType=guardian`
+ *       - Get other users (null/undefined userType): `?userType=other`
+ *       - Search users: `?search=john`
+ *       - Active users only: `?isActive=true`
+ *       - Filter by role: `?role=user`
+ *       - Combine filters: `?userType=student&isActive=true&search=john&role=user`
+ *       
+ *       Requires user:view permission.
  *     tags: [Admin Users]
  *     security:
  *       - bearerAuth: []
@@ -129,6 +147,27 @@ router.post(
  *           maximum: 100
  *           default: 10
  *         description: Number of records per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by first name, last name, email, or mobile number
+ *       - in: query
+ *         name: userType
+ *         schema:
+ *           type: string
+ *           enum: [student, guardian, other]
+ *         description: Filter by user type (student, guardian, or other for null/undefined userType)
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *         description: Filter by active status (true/false)
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *         description: Filter by role name (e.g., "user", "admin", "super_admin")
  *     responses:
  *       200:
  *         description: Users retrieved successfully
@@ -149,7 +188,58 @@ router.post(
  *                     users:
  *                       type: array
  *                       items:
- *                         $ref: '#/components/schemas/User'
+ *                         allOf:
+ *                           - $ref: '#/components/schemas/User'
+ *                           - type: object
+ *                             properties:
+ *                               participantCount:
+ *                                 type: integer
+ *                                 description: Number of participants associated with this user
+ *                                 example: 2
+ *                               bookingCount:
+ *                                 type: integer
+ *                                 description: Number of bookings made by this user
+ *                                 example: 5
+ *                     stats:
+ *                       type: object
+ *                       description: Overall statistics for users, participants, and bookings
+ *                       properties:
+ *                         totalUsers:
+ *                           type: integer
+ *                           description: Total number of users
+ *                           example: 1000
+ *                         totalParticipants:
+ *                           type: integer
+ *                           description: Total number of participants (students)
+ *                           example: 500
+ *                         activeBookings:
+ *                           type: integer
+ *                           description: Total number of active bookings
+ *                           example: 250
+ *                         userDetailsCount:
+ *                           type: object
+ *                           description: Count of users with various details
+ *                           properties:
+ *                             usersWithBookings:
+ *                               type: integer
+ *                               description: Number of users who have bookings
+ *                               example: 200
+ *                             usersWithParticipants:
+ *                               type: integer
+ *                               description: Number of users who have participants
+ *                               example: 300
+ *                             usersWithEnrolledBatches:
+ *                               type: integer
+ *                               description: Number of users who have enrolled batches (bookings)
+ *                               example: 200
+ *                             usersWithEnrolledBatchSports:
+ *                               type: integer
+ *                               description: Number of users who have enrolled in batch sports
+ *                               example: 180
+ *                             usersWithBookingsAndParticipants:
+ *                               type: integer
+ *                               description: Number of users who have both bookings and participants
+ *                               example: 150
  *                     pagination:
  *                       $ref: '#/components/schemas/Pagination'
  *             example:
@@ -169,8 +259,20 @@ router.post(
  *                         description: "Regular user"
  *                     userType: "student"
  *                     isActive: true
+ *                     participantCount: 2
+ *                     bookingCount: 5
  *                     createdAt: "2024-01-01T00:00:00.000Z"
  *                     updatedAt: "2024-01-01T00:00:00.000Z"
+ *                 stats:
+ *                   totalUsers: 1000
+ *                   totalParticipants: 500
+ *                   activeBookings: 250
+ *                   userDetailsCount:
+ *                     usersWithBookings: 200
+ *                     usersWithParticipants: 300
+ *                     usersWithEnrolledBatches: 200
+ *                     usersWithEnrolledBatchSports: 180
+ *                     usersWithBookingsAndParticipants: 150
  *                 pagination:
  *                   page: 1
  *                   limit: 10
@@ -269,7 +371,7 @@ router.get('/:id', requirePermission(Section.USER, Action.VIEW), userController.
  * /admin/users/{id}:
  *   patch:
  *     summary: Update user (admin)
- *     description: Update a user. Requires user:update permission. All fields are optional. Roles can be updated by providing an array of role names.
+ *     description: Update a user. Requires user:update permission. All fields are optional. Roles can be updated by providing an array of role names. Note: "super_admin" role cannot be assigned through this endpoint. Email and password can only be updated by super_admin.
  *     tags: [Admin Users]
  *     security:
  *       - bearerAuth: []

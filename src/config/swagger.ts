@@ -6502,7 +6502,7 @@ const options: swaggerJsdoc.Options = {
               },
               minItems: 1,
               example: ['user'],
-              description: 'Array of role names (e.g., ["user", "admin"])',
+              description: 'Array of role names (e.g., ["user", "admin"]). Note: "super_admin" role cannot be assigned through this endpoint.',
             },
             userType: {
               type: 'string',
@@ -6551,8 +6551,21 @@ const options: swaggerJsdoc.Options = {
         },
         UpdateAdminUserRequest: {
           type: 'object',
-          description: 'All fields are optional. Roles can be updated by providing an array of role names.',
+          description: 'All fields are optional. Roles can be updated by providing an array of role names. Note: email and password can only be updated by super_admin.',
           properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'updated@example.com',
+              description: 'User email address (super_admin only)',
+            },
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 8,
+              example: 'NewSecurePass@123',
+              description: 'Password must contain at least 8 characters, one uppercase, one lowercase, one number, and one special character (super_admin only)',
+            },
             firstName: {
               type: 'string',
               minLength: 1,
@@ -6590,7 +6603,7 @@ const options: swaggerJsdoc.Options = {
               },
               minItems: 1,
               example: ['user', 'admin'],
-              description: 'Array of role names to assign to user',
+              description: 'Array of role names to assign to user. Note: "super_admin" role cannot be assigned through this endpoint.',
             },
             userType: {
               type: 'string',

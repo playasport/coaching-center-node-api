@@ -148,9 +148,12 @@ export const getCoachingCentersByUserId = async (
 
 /**
  * Create coaching center by admin on behalf of a user
+ * @param data - Coaching center data
+ * @param adminUserId - ID of the admin user creating this center (optional)
  */
 export const createCoachingCenterByAdmin = async (
-  data: AdminCoachingCenterCreateInput
+  data: AdminCoachingCenterCreateInput,
+  adminUserId?: string
 ): Promise<CoachingCenter> => {
   try {
     // 1. Handle Academy User creation/lookup
@@ -196,11 +199,21 @@ export const createCoachingCenterByAdmin = async (
     // 3. Resolve facilities
     const facilityIds = data.facility ? await commonService.resolveFacilities(data.facility) : [];
 
-    // 4. Prepare data
+    // 4. Get admin user ObjectId if provided (for addedBy field)
+    let addedByObjectId: Types.ObjectId | null = null;
+    if (adminUserId) {
+      const adminUserObjectId = await getUserObjectId(adminUserId);
+      if (adminUserObjectId) {
+        addedByObjectId = adminUserObjectId;
+      }
+    }
+
+    // 5. Prepare data
     const sanitizedData = { ...data };
     const coachingCenterData: any = {
       ...sanitizedData,
       user: userObjectId,
+      addedBy: addedByObjectId,
       sports: sportIds,
       facility: facilityIds,
       sport_details: (sanitizedData.sport_details || []).map(sd => ({
@@ -212,11 +225,11 @@ export const createCoachingCenterByAdmin = async (
     delete coachingCenterData.academy_owner;
     delete coachingCenterData.description;
 
-    // 5. Save
+    // 6. Save
     const coachingCenter = new CoachingCenterModel(coachingCenterData);
     await coachingCenter.save();
 
-    // 6. Handle media move if published
+    // 7. Handle media move if published
     if (data.status === 'published') {
       await commonService.moveMediaFilesToPermanent(coachingCenter.toObject());
       await commonService.enqueueThumbnailGenerationForVideos(coachingCenter.toObject());
