@@ -1512,6 +1512,91 @@
             "description": "Delete a coaching center. Requires coaching_center:delete permission."
           },
           "response": []
+        },
+        {
+          "name": "Set Banner Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sportId\": \"693a9e96b4d798f46c93863a\",\n  \"imageUniqueId\": \"temp-1766995041861-0.5991171012451707\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/coaching-centers/:id/banner-image",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "coaching-centers", ":id", "banner-image"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{coachingCenterId}}",
+                  "description": "Coaching Center ID"
+                }
+              ]
+            },
+            "description": "Set an image as banner for the coaching center. Only one image can be banner at a time. If another image is already set as banner, it will be automatically unset. Requires coaching_center:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Video Thumbnail",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "sportId",
+                  "value": "693a9e96b4d798f46c93863a",
+                  "type": "text",
+                  "description": "Sport ID to which the video belongs"
+                },
+                {
+                  "key": "videoUniqueId",
+                  "value": "1766995051707-0.5786953663983029",
+                  "type": "text",
+                  "description": "Unique ID of the video"
+                },
+                {
+                  "key": "thumbnail",
+                  "type": "file",
+                  "src": [],
+                  "description": "Thumbnail image file (JPEG, PNG, WebP) - max 5MB"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/coaching-centers/:id/video-thumbnail",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "coaching-centers", ":id", "video-thumbnail"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{coachingCenterId}}",
+                  "description": "Coaching Center ID"
+                }
+              ]
+            },
+            "description": "Upload and set a thumbnail image file for a video in the coaching center. The thumbnail image file will be uploaded to S3 and automatically compressed. Requires sportId, videoUniqueId, and thumbnail image file. Requires coaching_center:update permission."
+          },
+          "response": []
         }
       ]
     },

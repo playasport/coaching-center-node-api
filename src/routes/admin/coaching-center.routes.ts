@@ -8,6 +8,7 @@ import { requirePermission } from '../../middleware/permission.middleware';
 import { Section } from '../../enums/section.enum';
 import { Action } from '../../enums/section.enum';
 import coachingCenterMediaRoutes from './coachingCenterMedia.routes';
+import { uploadThumbnail } from '../../middleware/coachingCenterUpload.middleware';
 
 const router = Router();
 
@@ -823,6 +824,145 @@ router.delete(
   '/:id/media',
   requirePermission(Section.COACHING_CENTER, Action.DELETE),
   coachingCenterController.removeMedia
+);
+
+/**
+ * @swagger
+ * /admin/coaching-centers/{id}/banner-image:
+ *   post:
+ *     summary: Set image as banner for coaching center (admin)
+ *     tags: [Admin Coaching Centers]
+ *     description: |
+ *       Set an image as banner for the coaching center. Only one image can be banner at a time.
+ *       If another image is already set as banner, it will be automatically unset.
+ *       Requires sportId and imageUniqueId to identify the specific image.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Coaching center ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [sportId, imageUniqueId]
+ *             properties:
+ *               sportId:
+ *                 type: string
+ *                 description: Sport ID to which the image belongs
+ *                 example: "693a9e96b4d798f46c93863a"
+ *               imageUniqueId:
+ *                 type: string
+ *                 description: Unique ID of the image to set as banner
+ *                 example: "temp-1766995041861-0.5991171012451707"
+ *     responses:
+ *       200:
+ *         description: Banner image set successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Banner image set successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     coachingCenter:
+ *                       $ref: '#/components/schemas/CoachingCenter'
+ *       400:
+ *         description: Bad request - Missing required fields
+ *       404:
+ *         description: Coaching center, sport detail, or image not found
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ */
+router.post(
+  '/:id/banner-image',
+  requirePermission(Section.COACHING_CENTER, Action.UPDATE),
+  coachingCenterController.setBannerImage
+);
+
+/**
+ * @swagger
+ * /admin/coaching-centers/{id}/video-thumbnail:
+ *   post:
+ *     summary: Upload video thumbnail for coaching center (admin)
+ *     tags: [Admin Coaching Centers]
+ *     description: |
+ *       Upload and set a thumbnail image file for a video in the coaching center.
+ *       The thumbnail image file will be uploaded to S3 and automatically compressed.
+ *       Requires sportId, videoUniqueId, and thumbnail image file.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Coaching center ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [sportId, videoUniqueId, thumbnail]
+ *             properties:
+ *               sportId:
+ *                 type: string
+ *                 description: Sport ID to which the video belongs
+ *                 example: "693a9e96b4d798f46c93863a"
+ *               videoUniqueId:
+ *                 type: string
+ *                 description: Unique ID of the video
+ *                 example: "temp-1766995051707-0.5786953663983029"
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
+ *                 description: Thumbnail image file (JPEG, PNG, WebP) - max 5MB. Image will be automatically compressed.
+ *     responses:
+ *       200:
+ *         description: Video thumbnail uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Video thumbnail uploaded successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     coachingCenter:
+ *                       $ref: '#/components/schemas/CoachingCenter'
+ *       400:
+ *         description: Bad request - Missing required fields or invalid file
+ *       404:
+ *         description: Coaching center, sport detail, or video not found
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ */
+router.post(
+  '/:id/video-thumbnail',
+  requirePermission(Section.COACHING_CENTER, Action.UPDATE),
+  uploadThumbnail,
+  coachingCenterController.uploadVideoThumbnail
 );
 
 export default router;

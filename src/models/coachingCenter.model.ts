@@ -10,6 +10,7 @@ export interface MediaItem {
   url: string;
   is_active: boolean;
   is_deleted: boolean;
+  is_banner?: boolean; // Mark if this image is used as banner for the center
   deletedAt?: Date | null; // Track when media was soft deleted
 }
 
@@ -119,6 +120,10 @@ const mediaItemSchema = new Schema<MediaItem>(
       default: true,
     },
     is_deleted: {
+      type: Boolean,
+      default: false,
+    },
+    is_banner: {
       type: Boolean,
       default: false,
     },

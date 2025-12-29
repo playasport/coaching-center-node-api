@@ -16,6 +16,59 @@ const getQueryById = (id: string) => {
 };
 
 /**
+ * Filter out deleted media items
+ */
+const filterDeletedMedia = (items: any[]): any[] => {
+  if (!items || !Array.isArray(items)) return items;
+  return items.filter(item => !item.is_deleted);
+};
+
+/**
+ * Sort images so banner images appear first (after filtering deleted)
+ */
+const sortImagesWithBannerFirst = (images: any[]): any[] => {
+  if (!images || !Array.isArray(images)) return images;
+  // First filter out deleted images, then sort
+  const activeImages = filterDeletedMedia(images);
+  return activeImages.sort((a, b) => {
+    // Banner images first (is_banner: true comes before false)
+    if (a.is_banner && !b.is_banner) return -1;
+    if (!a.is_banner && b.is_banner) return 1;
+    return 0; // Keep original order for non-banner images
+  });
+};
+
+/**
+ * Sort sport_details images so banner images appear first and filter deleted media
+ */
+const sortSportDetailsImages = (sportDetails: any[]): any[] => {
+  if (!sportDetails || !Array.isArray(sportDetails)) return sportDetails;
+  return sportDetails.map((sportDetail) => {
+    const filteredDetail: any = { ...sportDetail };
+    
+    // Filter and sort images
+    if (sportDetail.images && Array.isArray(sportDetail.images)) {
+      filteredDetail.images = sortImagesWithBannerFirst(sportDetail.images);
+    }
+    
+    // Filter deleted videos
+    if (sportDetail.videos && Array.isArray(sportDetail.videos)) {
+      filteredDetail.videos = filterDeletedMedia(sportDetail.videos);
+    }
+    
+    return filteredDetail;
+  });
+};
+
+/**
+ * Filter deleted documents from coaching center
+ */
+const filterDeletedDocuments = (documents: any[]): any[] => {
+  if (!documents || !Array.isArray(documents)) return documents;
+  return filterDeletedMedia(documents);
+};
+
+/**
  * Get coaching center by ID (supports both MongoDB ObjectId and custom UUID id)
  */
 export const getCoachingCenterById = async (id: string): Promise<CoachingCenter | null> => {
@@ -30,6 +83,18 @@ export const getCoachingCenterById = async (id: string): Promise<CoachingCenter 
         match: { isDeleted: false },
       })
       .lean();
+
+    if (coachingCenter) {
+      // Filter deleted documents
+      if (coachingCenter.documents && Array.isArray(coachingCenter.documents)) {
+        (coachingCenter as any).documents = filterDeletedDocuments(coachingCenter.documents);
+      }
+      
+      // Sort images so banner images appear first and filter deleted media
+      if (coachingCenter.sport_details) {
+        (coachingCenter as any).sport_details = sortSportDetailsImages(coachingCenter.sport_details);
+      }
+    }
 
     return coachingCenter;
   } catch (error) {
@@ -94,6 +159,19 @@ export const toggleCoachingCenterStatus = async (id: string): Promise<CoachingCe
       .lean();
 
     if (!updatedCenter) throw new ApiError(404, t('coachingCenter.notFound'));
+
+    // Filter deleted documents and sort images so banner images appear first
+    if (updatedCenter) {
+      // Filter deleted documents
+      if (updatedCenter.documents && Array.isArray(updatedCenter.documents)) {
+        (updatedCenter as any).documents = filterDeletedDocuments(updatedCenter.documents);
+      }
+      
+      // Sort images so banner images appear first and filter deleted media
+      if (updatedCenter.sport_details) {
+        (updatedCenter as any).sport_details = sortSportDetailsImages(updatedCenter.sport_details);
+      }
+    }
 
     logger.info('Coaching center status toggled', { id, newStatus: newActiveStatus });
     return updatedCenter;
@@ -476,8 +554,9 @@ export const removeMediaFromCoachingCenter = async (
   sportId?: string // Required for image/video (sport-specific media)
 ): Promise<void> => {
   try {
-    const coachingCenter = await CoachingCenterModel.findById(coachingCenterId);
-    if (!coachingCenter) {
+    const query = getQueryById(coachingCenterId);
+    const coachingCenter = await CoachingCenterModel.findOne(query);
+    if (!coachingCenter || coachingCenter.is_deleted) {
       throw new ApiError(404, t('coachingCenter.notFound'));
     }
 
@@ -585,6 +664,159 @@ export const removeMediaFromCoachingCenter = async (
     }
     logger.error('Failed to remove media from coaching center:', error);
     throw new ApiError(500, t('coachingCenter.media.removeFailed'));
+  }
+};
+
+/**
+ * Set an image as banner for coaching center
+ * Only one image can be banner at a time - unsets all other banner flags
+ */
+export const setBannerImage = async (
+  coachingCenterId: string,
+  sportId: string,
+  imageUniqueId: string
+): Promise<CoachingCenter> => {
+  try {
+    const query = getQueryById(coachingCenterId);
+    const coachingCenter = await CoachingCenterModel.findOne(query);
+    
+    if (!coachingCenter || coachingCenter.is_deleted) {
+      throw new ApiError(404, t('coachingCenter.notFound'));
+    }
+
+    // Find sport detail by sport_id
+    const sportDetailIndex = coachingCenter.sport_details?.findIndex(
+      (detail) => detail.sport_id.toString() === sportId
+    );
+
+    if (sportDetailIndex === -1 || sportDetailIndex === undefined) {
+      throw new ApiError(404, t('coachingCenter.media.sportDetailNotFound'));
+    }
+
+    const sportDetail = coachingCenter.sport_details[sportDetailIndex];
+    
+    // Find the image
+    const imageIndex = sportDetail.images?.findIndex(
+      (img) => img.unique_id === imageUniqueId && !img.is_deleted
+    );
+
+    if (imageIndex === -1 || imageIndex === undefined) {
+      throw new ApiError(404, t('coachingCenter.media.notFound'));
+    }
+
+    // Unset all other banner flags across all sport_details
+    if (coachingCenter.sport_details) {
+      let hasChanges = false;
+      coachingCenter.sport_details.forEach((sd, sdIdx) => {
+        if (sd.images) {
+          sd.images.forEach((img, imgIdx) => {
+            if (img.is_banner && !(sdIdx === sportDetailIndex && imgIdx === imageIndex)) {
+              img.is_banner = false;
+              hasChanges = true;
+            }
+          });
+        }
+      });
+      if (hasChanges) {
+        (coachingCenter as any).markModified('sport_details');
+      }
+    }
+
+    // Set the selected image as banner
+    sportDetail.images[imageIndex].is_banner = true;
+    (coachingCenter as any).markModified('sport_details');
+    
+    await (coachingCenter as any).save({ validateBeforeSave: false });
+
+    logger.info('Banner image set for coaching center', {
+      coachingCenterId: coachingCenterId.toString(),
+      sportId,
+      imageUniqueId,
+    });
+
+    return await getCoachingCenterById(coachingCenterId) as CoachingCenter;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Failed to set banner image', { error, coachingCenterId, sportId, imageUniqueId });
+    throw new ApiError(500, t('coachingCenter.media.setBannerFailed'));
+  }
+};
+
+/**
+ * Upload thumbnail file to S3
+ */
+export const uploadThumbnailFile = async (file: Express.Multer.File): Promise<string> => {
+  try {
+    const thumbnailUrl = await mediaService.uploadMediaFile({
+      file,
+      mediaType: 'image', // Thumbnails are images
+    });
+    return thumbnailUrl;
+  } catch (error) {
+    logger.error('Failed to upload thumbnail file', { error });
+    throw new ApiError(500, 'Failed to upload thumbnail file');
+  }
+};
+
+/**
+ * Upload and set video thumbnail
+ */
+export const uploadVideoThumbnail = async (
+  coachingCenterId: string,
+  sportId: string,
+  videoUniqueId: string,
+  thumbnailUrl: string
+): Promise<CoachingCenter> => {
+  try {
+    const query = getQueryById(coachingCenterId);
+    const coachingCenter = await CoachingCenterModel.findOne(query);
+    
+    if (!coachingCenter || coachingCenter.is_deleted) {
+      throw new ApiError(404, t('coachingCenter.notFound'));
+    }
+
+    // Find sport detail by sport_id
+    const sportDetailIndex = coachingCenter.sport_details?.findIndex(
+      (detail) => detail.sport_id.toString() === sportId
+    );
+
+    if (sportDetailIndex === -1 || sportDetailIndex === undefined) {
+      throw new ApiError(404, t('coachingCenter.media.sportDetailNotFound'));
+    }
+
+    const sportDetail = coachingCenter.sport_details[sportDetailIndex];
+    
+    // Find the video
+    const videoIndex = sportDetail.videos?.findIndex(
+      (vid) => vid.unique_id === videoUniqueId && !vid.is_deleted
+    );
+
+    if (videoIndex === -1 || videoIndex === undefined) {
+      throw new ApiError(404, t('coachingCenter.media.notFound'));
+    }
+
+    // Update thumbnail URL
+    sportDetail.videos[videoIndex].thumbnail = thumbnailUrl;
+    (coachingCenter as any).markModified(`sport_details.${sportDetailIndex}.videos`);
+    
+    await (coachingCenter as any).save({ validateBeforeSave: false });
+
+    logger.info('Video thumbnail uploaded for coaching center', {
+      coachingCenterId: coachingCenterId.toString(),
+      sportId,
+      videoUniqueId,
+      thumbnailUrl,
+    });
+
+    return await getCoachingCenterById(coachingCenterId) as CoachingCenter;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Failed to upload video thumbnail', { error, coachingCenterId, sportId, videoUniqueId });
+    throw new ApiError(500, t('coachingCenter.media.uploadThumbnailFailed'));
   }
 };
 

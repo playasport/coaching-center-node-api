@@ -259,17 +259,54 @@ export const generateVideoThumbnail = async (videoUrl: string): Promise<string> 
 
     const client = getS3Client();
 
-    const videoKey = extractS3Key(videoUrl);
+    let videoKey = extractS3Key(videoUrl);
     logger.debug('Extracted S3 key from URL', { videoUrl, videoKey });
     
-    // Download video from S3
-    const getObjectCommand = new GetObjectCommand({
-      Bucket: config.aws.s3Bucket,
-      Key: videoKey,
-    });
+    // Try to download video from S3
+    let videoObject;
+    let actualVideoKey = videoKey;
+    
+    try {
+      const getObjectCommand = new GetObjectCommand({
+        Bucket: config.aws.s3Bucket,
+        Key: videoKey,
+      });
 
-    logger.debug('Downloading video from S3', { bucket: config.aws.s3Bucket, key: videoKey });
-    const videoObject = await client.send(getObjectCommand);
+      logger.debug('Downloading video from S3', { bucket: config.aws.s3Bucket, key: videoKey });
+      videoObject = await client.send(getObjectCommand);
+    } catch (error: any) {
+      // If file not found and it's in temp folder, try permanent location
+      if ((error.message?.includes('NoSuchKey') || error.name === 'NoSuchKey') && videoKey.startsWith('temp/')) {
+        const permanentKey = videoKey.replace('temp/', '');
+        logger.info('Video not found in temp location, trying permanent location', {
+          tempKey: videoKey,
+          permanentKey,
+        });
+        
+        try {
+          const getObjectCommand = new GetObjectCommand({
+            Bucket: config.aws.s3Bucket,
+            Key: permanentKey,
+          });
+          
+          logger.debug('Downloading video from permanent S3 location', { bucket: config.aws.s3Bucket, key: permanentKey });
+          videoObject = await client.send(getObjectCommand);
+          actualVideoKey = permanentKey;
+          logger.info('Video found in permanent location', { permanentKey });
+        } catch (permanentError) {
+          // If permanent location also fails, throw original error
+          logger.error('Video not found in either temp or permanent location', {
+            tempKey: videoKey,
+            permanentKey,
+            error: permanentError instanceof Error ? permanentError.message : permanentError,
+          });
+          throw error; // Throw original error
+        }
+      } else {
+        // Re-throw if it's not a NoSuchKey error or not in temp folder
+        throw error;
+      }
+    }
     
     if (!videoObject.Body) {
       throw new ApiError(500, 'Failed to download video from S3: Response body is empty');
@@ -289,10 +326,10 @@ export const generateVideoThumbnail = async (videoUrl: string): Promise<string> 
       throw new ApiError(500, 'Downloaded video buffer is empty');
     }
 
-    logger.info('Video downloaded from S3', { videoKey, size: videoBuffer.length });
+    logger.info('Video downloaded from S3', { videoKey: actualVideoKey, size: videoBuffer.length });
 
     // Generate thumbnail from buffer
-    const thumbnailBuffer = await generateThumbnailFromBuffer(videoBuffer, videoKey);
+    const thumbnailBuffer = await generateThumbnailFromBuffer(videoBuffer, actualVideoKey);
 
     // Generate thumbnail key: /images/coachingCentres/{uniqueId}.jpg
     const uniqueId = uuidv4();

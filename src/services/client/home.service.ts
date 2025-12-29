@@ -205,12 +205,18 @@ export const getNearbyAcademies = async (
 
     // Map to AcademyListItem format
     return limitedAcademies.map((academy: any) => {
-      // Get first active image from sport_details
+      // Get first active image from sport_details, prioritizing banner images
       let image: string | null = null;
       if (academy.sport_details && Array.isArray(academy.sport_details)) {
         for (const sportDetail of academy.sport_details) {
           if (sportDetail.images && Array.isArray(sportDetail.images)) {
-            const activeImage = sportDetail.images.find(
+            // Sort images: banner first, then others
+            const sortedImages = [...sportDetail.images].sort((a, b) => {
+              if (a.is_banner && !b.is_banner) return -1;
+              if (!a.is_banner && b.is_banner) return 1;
+              return 0;
+            });
+            const activeImage = sortedImages.find(
               (img: any) => img.is_active && !img.is_deleted
             );
             if (activeImage) {

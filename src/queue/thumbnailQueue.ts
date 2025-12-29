@@ -70,8 +70,38 @@ export const thumbnailWorker = new Worker<ThumbnailJobData>(
     });
 
     try {
-      // Generate thumbnail
-      const thumbnailUrl = await generateVideoThumbnail(videoUrl);
+      // Fetch current video URL from database (in case file was moved from temp to permanent)
+      let currentVideoUrl = videoUrl;
+      try {
+        const query = getQueryById(coachingCenterId);
+        const coachingCenter = await CoachingCenterModel.findOne(query).lean();
+        
+        if (coachingCenter && coachingCenter.sport_details && sportDetailIndex !== undefined) {
+          const sportDetail = coachingCenter.sport_details[sportDetailIndex];
+          if (sportDetail && sportDetail.videos && videoIndex !== undefined) {
+            const video = sportDetail.videos[videoIndex];
+            if (video && video.unique_id === videoUniqueId && video.url) {
+              currentVideoUrl = video.url;
+              if (currentVideoUrl !== videoUrl) {
+                logger.info('Video URL updated from database (file was moved)', {
+                  jobId: job.id,
+                  oldUrl: videoUrl,
+                  newUrl: currentVideoUrl,
+                });
+              }
+            }
+          }
+        }
+      } catch (fetchError) {
+        logger.warn('Failed to fetch current video URL from database, using job URL', {
+          jobId: job.id,
+          error: fetchError instanceof Error ? fetchError.message : fetchError,
+        });
+        // Continue with original videoUrl if fetch fails
+      }
+
+      // Generate thumbnail using current URL from database
+      const thumbnailUrl = await generateVideoThumbnail(currentVideoUrl);
 
       logger.info('Thumbnail generated successfully', {
         jobId: job.id,

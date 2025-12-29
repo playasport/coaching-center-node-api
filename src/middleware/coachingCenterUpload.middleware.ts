@@ -131,3 +131,56 @@ export const uploadMedia = (
     next();
   });
 };
+
+// Single image upload middleware for video thumbnail
+export const uploadThumbnail = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  const multerUpload = multer({
+    storage,
+    fileFilter: (req, file, cb) => {
+      if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(
+          new ApiError(
+            400,
+            'Thumbnail must be an image file (JPEG, PNG, WebP)'
+          ) as any
+        );
+      }
+    },
+    limits: {
+      fileSize: config.media.maxImageSize,
+    },
+  }).single('thumbnail');
+
+  multerUpload(req, res, (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          const maxSizeMB = config.media.maxImageSize / (1024 * 1024);
+          return next(new ApiError(400, `Thumbnail file size exceeds ${maxSizeMB}MB limit`));
+        }
+        return next(new ApiError(400, err.message));
+      }
+      return next(err);
+    }
+
+    // Validate file if present
+    if (req.file) {
+      const file = req.file;
+      if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+        return next(new ApiError(400, 'Thumbnail must be an image file (JPEG, PNG, WebP)'));
+      }
+      if (file.size > config.media.maxImageSize) {
+        const maxSizeMB = config.media.maxImageSize / (1024 * 1024);
+        return next(new ApiError(400, `Thumbnail file size exceeds ${maxSizeMB}MB limit`));
+      }
+    }
+
+    next();
+  });
+};

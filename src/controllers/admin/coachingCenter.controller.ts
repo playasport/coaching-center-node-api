@@ -208,3 +208,53 @@ export const getCoachingCenterStats = async (req: Request, res: Response, next: 
     next(error);
   }
 };
+
+/**
+ * Set image as banner for coaching center
+ */
+export const setBannerImage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { sportId, imageUniqueId } = req.body;
+
+    if (!sportId || !imageUniqueId) {
+      throw new ApiError(400, 'sportId and imageUniqueId are required');
+    }
+
+    const coachingCenter = await commonService.setBannerImage(id, sportId, imageUniqueId);
+
+    const response = new ApiResponse(200, { coachingCenter }, 'Banner image set successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Upload video thumbnail
+ */
+export const uploadVideoThumbnail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { sportId, videoUniqueId } = req.body;
+    const thumbnailFile = req.file;
+
+    if (!sportId || !videoUniqueId) {
+      throw new ApiError(400, 'sportId and videoUniqueId are required');
+    }
+
+    if (!thumbnailFile) {
+      throw new ApiError(400, 'Thumbnail image file is required');
+    }
+
+    // Upload thumbnail file to S3
+    const thumbnailUrl = await commonService.uploadThumbnailFile(thumbnailFile);
+
+    const coachingCenter = await commonService.uploadVideoThumbnail(id, sportId, videoUniqueId, thumbnailUrl);
+
+    const response = new ApiResponse(200, { coachingCenter }, 'Video thumbnail uploaded successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};

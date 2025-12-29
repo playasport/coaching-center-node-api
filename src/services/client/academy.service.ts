@@ -375,6 +375,35 @@ export const getAcademyById = async (
       return null;
     }
 
+    // Filter deleted media and sort images so banner images appear first
+    if (coachingCenter.sport_details && Array.isArray(coachingCenter.sport_details)) {
+      coachingCenter.sport_details = coachingCenter.sport_details.map((sportDetail: any) => {
+        const filteredDetail: any = { ...sportDetail };
+        
+        // Filter and sort images (banner first)
+        if (sportDetail.images && Array.isArray(sportDetail.images)) {
+          const activeImages = sportDetail.images.filter((img: any) => !img.is_deleted);
+          filteredDetail.images = activeImages.sort((a: any, b: any) => {
+            if (a.is_banner && !b.is_banner) return -1;
+            if (!a.is_banner && b.is_banner) return 1;
+            return 0;
+          });
+        }
+        
+        // Filter deleted videos
+        if (sportDetail.videos && Array.isArray(sportDetail.videos)) {
+          filteredDetail.videos = sportDetail.videos.filter((vid: any) => !vid.is_deleted);
+        }
+        
+        return filteredDetail;
+      });
+    }
+    
+    // Filter deleted documents
+    if (coachingCenter.documents && Array.isArray(coachingCenter.documents)) {
+      coachingCenter.documents = coachingCenter.documents.filter((doc: any) => !doc.is_deleted);
+    }
+
     // Get batches for this coaching center
     const batches = await BatchModel.find({
       center: coachingCenter._id,
@@ -470,12 +499,18 @@ export const getAcademiesByCity = async (
 
     return {
       data: academies.map((academy: any) => {
-        // Get first active image from sport_details
+        // Get first active image from sport_details, prioritizing banner images
         let image: string | null = null;
         if (academy.sport_details && Array.isArray(academy.sport_details)) {
           for (const sportDetail of academy.sport_details) {
             if (sportDetail.images && Array.isArray(sportDetail.images)) {
-              const activeImage = sportDetail.images.find(
+              // Sort images: banner first, then others
+              const sortedImages = [...sportDetail.images].sort((a, b) => {
+                if (a.is_banner && !b.is_banner) return -1;
+                if (!a.is_banner && b.is_banner) return 1;
+                return 0;
+              });
+              const activeImage = sortedImages.find(
                 (img: any) => img.is_active && !img.is_deleted && img.url
               );
               if (activeImage) {
@@ -615,12 +650,18 @@ export const getAcademiesBySport = async (
 
     return {
       data: paginatedAcademies.map((academy: any) => {
-        // Get first active image from sport_details
+        // Get first active image from sport_details, prioritizing banner images
         let image: string | null = null;
         if (academy.sport_details && Array.isArray(academy.sport_details)) {
           for (const sportDetail of academy.sport_details) {
             if (sportDetail.images && Array.isArray(sportDetail.images)) {
-              const activeImage = sportDetail.images.find(
+              // Sort images: banner first, then others
+              const sortedImages = [...sportDetail.images].sort((a, b) => {
+                if (a.is_banner && !b.is_banner) return -1;
+                if (!a.is_banner && b.is_banner) return 1;
+                return 0;
+              });
+              const activeImage = sortedImages.find(
                 (img: any) => img.is_active && !img.is_deleted
               );
               if (activeImage) {

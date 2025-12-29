@@ -102,8 +102,32 @@ export const getCoachingCentersByUser = async (
 
     const totalPages = Math.ceil(total / pageSize);
 
+    // Filter deleted media from each coaching center
+    const filteredCenters = coachingCenters.map((center: any) => {
+      // Filter deleted documents
+      if (center.documents && Array.isArray(center.documents)) {
+        center.documents = center.documents.filter((doc: any) => !doc.is_deleted);
+      }
+      
+      // Filter deleted images and videos from sport_details
+      if (center.sport_details && Array.isArray(center.sport_details)) {
+        center.sport_details = center.sport_details.map((sportDetail: any) => {
+          const filteredDetail: any = { ...sportDetail };
+          if (sportDetail.images && Array.isArray(sportDetail.images)) {
+            filteredDetail.images = sportDetail.images.filter((img: any) => !img.is_deleted);
+          }
+          if (sportDetail.videos && Array.isArray(sportDetail.videos)) {
+            filteredDetail.videos = sportDetail.videos.filter((vid: any) => !vid.is_deleted);
+          }
+          return filteredDetail;
+        });
+      }
+      
+      return center;
+    });
+
     return {
-      data: coachingCenters as CoachingCenter[],
+      data: filteredCenters as CoachingCenter[],
       pagination: {
         page: pageNumber,
         limit: pageSize,
@@ -300,9 +324,35 @@ export const updateCoachingCenter = async (
       { new: true, runValidators: true }
     ).lean();
 
-    if (data.status === 'published' && existingCenter.status !== 'published') {
-      await commonService.moveMediaFilesToPermanent(updatedCenter as CoachingCenter);
-      await commonService.enqueueThumbnailGenerationForVideos(updatedCenter as CoachingCenter);
+    // Handle media file movement and thumbnail generation
+    // If status changed to published OR center is already published (checking for new temp files)
+    const isNowPublished = data.status === 'published' && existingCenter.status !== 'published';
+    const wasAlreadyPublished = existingCenter.status === 'published';
+    
+    if (isNowPublished || wasAlreadyPublished) {
+      // Move temp files to permanent (handles both new status and new media in existing published center)
+      try {
+        await commonService.moveMediaFilesToPermanent(updatedCenter as CoachingCenter);
+      } catch (mediaError) {
+        logger.error('Failed to move media files during update:', { 
+          error: mediaError instanceof Error ? mediaError.message : mediaError,
+          stack: mediaError instanceof Error ? mediaError.stack : undefined,
+          coachingCenterId: id
+        });
+        // Do not re-throw, allow update to succeed even if media movement fails
+      }
+      
+      // Generate thumbnails for videos without thumbnails
+      try {
+        await commonService.enqueueThumbnailGenerationForVideos(updatedCenter as CoachingCenter);
+      } catch (thumbnailError) {
+        logger.error('Failed to enqueue thumbnail generation during update:', { 
+          error: thumbnailError instanceof Error ? thumbnailError.message : thumbnailError,
+          stack: thumbnailError instanceof Error ? thumbnailError.stack : undefined,
+          coachingCenterId: id
+        });
+        // Do not re-throw, allow update to succeed even if thumbnail generation fails
+      }
     }
 
     return await commonService.getCoachingCenterById(id);
