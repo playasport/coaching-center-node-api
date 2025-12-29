@@ -22,6 +22,55 @@ export interface AdminPaginatedResult<T> {
   };
 }
 
+export interface CoachingCenterListItem {
+  id: string;
+  center_name: string;
+  email: string;
+  mobile_number: string;
+  logo: string | null;
+  status: string;
+  is_active: boolean;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    mobile: string;
+  };
+  sports: Array<{
+    id: string;
+    name: string;
+  }>;
+  location: {
+    latitude: number;
+    longitude: number;
+    address: {
+      line1: string | null;
+      line2: string;
+      city: string;
+      state: string;
+      country: string | null;
+      pincode: string;
+    };
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CoachingCenterStats {
+  total: number;
+  byStatus: Record<string, number>;
+  byActiveStatus: {
+    active: number;
+    inactive: number;
+  };
+  bySport: Record<string, number>;
+  byCity: Record<string, number>;
+  byState: Record<string, number>;
+  allowingDisabled: number;
+  onlyForDisabled: number;
+}
+
 /**
  * Get all coaching centers for admin view with filters
  */
@@ -37,7 +86,7 @@ export const getAllCoachingCenters = async (
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   } = {}
-): Promise<AdminPaginatedResult<CoachingCenter>> => {
+): Promise<AdminPaginatedResult<CoachingCenterListItem>> => {
   try {
     const skip = (page - 1) * limit;
     const query: any = { is_deleted: false };
@@ -78,8 +127,9 @@ export const getAllCoachingCenters = async (
 
     const [coachingCenters, total] = await Promise.all([
       CoachingCenterModel.find(query)
-        .populate('user', 'firstName lastName email mobile')
-        .populate('sports', 'name')
+        .select('id center_name email mobile_number logo status is_active user sports location createdAt updatedAt')
+        .populate('user', 'id firstName lastName email mobile')
+        .populate('sports', 'id name')
         .sort(sort)
         .skip(skip)
         .limit(limit)
@@ -87,8 +137,61 @@ export const getAllCoachingCenters = async (
       CoachingCenterModel.countDocuments(query),
     ]);
 
+    // Transform to simplified list format
+    const transformedCenters: CoachingCenterListItem[] = coachingCenters.map((center: any) => ({
+      id: center.id,
+      center_name: center.center_name,
+      email: center.email,
+      mobile_number: center.mobile_number,
+      logo: center.logo || null,
+      status: center.status,
+      is_active: center.is_active,
+      user: center.user ? {
+        id: center.user.id || center.user._id?.toString() || '',
+        firstName: center.user.firstName || '',
+        lastName: center.user.lastName || '',
+        email: center.user.email || '',
+        mobile: center.user.mobile || '',
+      } : {
+        id: '',
+        firstName: '',
+        lastName: '',
+        email: '',
+        mobile: '',
+      },
+      sports: (center.sports || []).map((sport: any) => ({
+        id: sport.id || sport._id?.toString() || '',
+        name: sport.name || '',
+      })),
+      location: center.location ? {
+        latitude: center.location.latitude,
+        longitude: center.location.longitude,
+        address: {
+          line1: center.location.address?.line1 || null,
+          line2: center.location.address?.line2 || '',
+          city: center.location.address?.city || '',
+          state: center.location.address?.state || '',
+          country: center.location.address?.country || null,
+          pincode: center.location.address?.pincode || '',
+        },
+      } : {
+        latitude: 0,
+        longitude: 0,
+        address: {
+          line1: null,
+          line2: '',
+          city: '',
+          state: '',
+          country: null,
+          pincode: '',
+        },
+      },
+      createdAt: center.createdAt,
+      updatedAt: center.updatedAt,
+    }));
+
     return {
-      coachingCenters: coachingCenters as CoachingCenter[],
+      coachingCenters: transformedCenters,
       pagination: {
         page,
         limit,
@@ -231,8 +334,20 @@ export const createCoachingCenterByAdmin = async (
 
     // 7. Handle media move if published
     if (data.status === 'published') {
-      await commonService.moveMediaFilesToPermanent(coachingCenter.toObject());
-      await commonService.enqueueThumbnailGenerationForVideos(coachingCenter.toObject());
+      try {
+        // Convert to plain object for media processing
+        const coachingCenterObj = coachingCenter.toObject({ flattenObjectIds: false });
+        await commonService.moveMediaFilesToPermanent(coachingCenterObj as CoachingCenter);
+        await commonService.enqueueThumbnailGenerationForVideos(coachingCenterObj as CoachingCenter);
+      } catch (mediaError) {
+        logger.error('Failed to move media files during creation:', {
+          error: mediaError instanceof Error ? mediaError.message : mediaError,
+          stack: mediaError instanceof Error ? mediaError.stack : undefined,
+          coachingCenterId: coachingCenter._id.toString()
+        });
+        // Don't fail the entire creation if media move fails, but log it
+        // The media files can be moved later
+      }
     }
 
     return await commonService.getCoachingCenterById(coachingCenter._id.toString()) as CoachingCenter;
@@ -305,5 +420,213 @@ export const updateCoachingCenterByAdmin = async (
     if (error instanceof ApiError) throw error;
     logger.error('Admin failed to update coaching center:', error);
     throw new ApiError(500, t('coachingCenter.update.failed'));
+  }
+};
+
+/**
+ * Get coaching center statistics for admin dashboard
+ */
+export const getCoachingCenterStats = async (params?: {
+  startDate?: string;
+  endDate?: string;
+  userId?: string;
+  status?: string;
+  isActive?: boolean;
+  sportId?: string;
+  search?: string;
+}): Promise<CoachingCenterStats> => {
+  try {
+    const dateQuery: any = {
+      is_deleted: false,
+    };
+    
+    // Apply date filters
+    if (params?.startDate || params?.endDate) {
+      dateQuery.createdAt = {};
+      if (params.startDate) {
+        dateQuery.createdAt.$gte = new Date(params.startDate);
+      }
+      if (params.endDate) {
+        const endDate = new Date(params.endDate);
+        endDate.setHours(23, 59, 59, 999);
+        dateQuery.createdAt.$lte = endDate;
+      }
+    }
+
+    // Apply userId filter
+    if (params?.userId) {
+      const userObjectId = await getUserObjectId(params.userId);
+      if (userObjectId) {
+        dateQuery.user = userObjectId;
+      }
+    }
+
+    // Apply status filter
+    if (params?.status) {
+      dateQuery.status = params.status;
+    }
+
+    // Apply isActive filter
+    if (params?.isActive !== undefined) {
+      dateQuery.is_active = params.isActive;
+    }
+
+    // Apply sportId filter
+    if (params?.sportId) {
+      dateQuery.sports = new Types.ObjectId(params.sportId);
+    }
+
+    // Apply search filter
+    if (params?.search) {
+      const searchRegex = new RegExp(params.search, 'i');
+      dateQuery.$or = [
+        { center_name: searchRegex },
+        { mobile_number: searchRegex },
+        { email: searchRegex }
+      ];
+    }
+
+    // Get total count
+    const total = await CoachingCenterModel.countDocuments(dateQuery);
+
+    // Get counts by status
+    const statusCounts = await CoachingCenterModel.aggregate([
+      { $match: dateQuery },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const byStatus: Record<string, number> = {};
+    statusCounts.forEach((item: any) => {
+      byStatus[item._id] = item.count;
+    });
+
+    // Get counts by active status
+    const activeCounts = await CoachingCenterModel.aggregate([
+      { $match: dateQuery },
+      {
+        $group: {
+          _id: '$is_active',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const byActiveStatus = {
+      active: activeCounts.find((item: any) => item._id === true)?.count || 0,
+      inactive: activeCounts.find((item: any) => item._id === false)?.count || 0,
+    };
+
+    // Get counts by sport (unwind sports array)
+    const sportCounts = await CoachingCenterModel.aggregate([
+      { $match: dateQuery },
+      { $unwind: '$sports' },
+      {
+        $group: {
+          _id: '$sports',
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: 'sports',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'sport',
+        },
+      },
+      { $unwind: '$sport' },
+      {
+        $project: {
+          sportName: '$sport.name',
+          count: 1,
+        },
+      },
+    ]);
+
+    const bySport: Record<string, number> = {};
+    sportCounts.forEach((item: any) => {
+      bySport[item.sportName] = item.count;
+    });
+
+    // Get counts by city
+    const cityCounts = await CoachingCenterModel.aggregate([
+      { $match: dateQuery },
+      {
+        $group: {
+          _id: '$location.address.city',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const byCity: Record<string, number> = {};
+    cityCounts.forEach((item: any) => {
+      if (item._id) {
+        byCity[item._id] = item.count;
+      }
+    });
+
+    // Get counts by state
+    const stateCounts = await CoachingCenterModel.aggregate([
+      { $match: dateQuery },
+      {
+        $group: {
+          _id: '$location.address.state',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const byState: Record<string, number> = {};
+    stateCounts.forEach((item: any) => {
+      if (item._id) {
+        byState[item._id] = item.count;
+      }
+    });
+
+    // Get centers allowing disabled participants
+    const disabledCounts = await CoachingCenterModel.aggregate([
+      { $match: dateQuery },
+      {
+        $group: {
+          _id: '$allowed_disabled',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const allowingDisabled = disabledCounts.find((item: any) => item._id === true)?.count || 0;
+
+    // Get centers only for disabled
+    const onlyDisabledCounts = await CoachingCenterModel.aggregate([
+      { $match: dateQuery },
+      {
+        $group: {
+          _id: '$is_only_for_disabled',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const onlyForDisabled = onlyDisabledCounts.find((item: any) => item._id === true)?.count || 0;
+
+    return {
+      total,
+      byStatus,
+      byActiveStatus,
+      bySport,
+      byCity,
+      byState,
+      allowingDisabled,
+      onlyForDisabled,
+    };
+  } catch (error) {
+    logger.error('Admin failed to get coaching center stats:', error);
+    throw new ApiError(500, t('errors.internalServerError'));
   }
 };

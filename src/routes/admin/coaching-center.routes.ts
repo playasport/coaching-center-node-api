@@ -19,6 +19,155 @@ router.use(authenticate, requireAdmin);
 
 /**
  * @swagger
+ * /admin/coaching-centers/stats:
+ *   get:
+ *     summary: Get coaching center statistics for admin dashboard
+ *     description: Retrieve comprehensive statistics about coaching centers including counts by status, sport, location, and more. Requires coaching_center:view permission.
+ *     tags: [Admin Coaching Centers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter statistics from this date (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter statistics until this date (YYYY-MM-DD)
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Filter by Academy owner ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [draft, published]
+ *         description: Filter by center status
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter by active status
+ *       - in: query
+ *         name: sportId
+ *         schema:
+ *           type: string
+ *         description: Filter by sport ID
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by center name, email, or mobile number
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved coaching center statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Coaching center statistics retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     stats:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                           example: 250
+ *                         byStatus:
+ *                           type: object
+ *                           additionalProperties:
+ *                             type: number
+ *                           example:
+ *                             draft: 50
+ *                             published: 200
+ *                         byActiveStatus:
+ *                           type: object
+ *                           properties:
+ *                             active:
+ *                               type: number
+ *                               example: 220
+ *                             inactive:
+ *                               type: number
+ *                               example: 30
+ *                         bySport:
+ *                           type: object
+ *                           additionalProperties:
+ *                             type: number
+ *                           example:
+ *                             Cricket: 80
+ *                             Football: 60
+ *                             Basketball: 40
+ *                             Tennis: 30
+ *                             Swimming: 40
+ *                         byCity:
+ *                           type: object
+ *                           additionalProperties:
+ *                             type: number
+ *                           example:
+ *                             "New Delhi": 50
+ *                             "Mumbai": 45
+ *                             "Bangalore": 40
+ *                             "Chennai": 35
+ *                         byState:
+ *                           type: object
+ *                           additionalProperties:
+ *                             type: number
+ *                           example:
+ *                             "Delhi": 50
+ *                             "Maharashtra": 45
+ *                             "Karnataka": 40
+ *                             "Tamil Nadu": 35
+ *                         allowingDisabled:
+ *                           type: number
+ *                           example: 150
+ *                         onlyForDisabled:
+ *                           type: number
+ *                           example: 10
+ *                       example:
+ *                         total: 250
+ *                         byStatus:
+ *                           draft: 50
+ *                           published: 200
+ *                         byActiveStatus:
+ *                           active: 220
+ *                           inactive: 30
+ *                         bySport:
+ *                           Cricket: 80
+ *                           Football: 60
+ *                           Basketball: 40
+ *                           Tennis: 30
+ *                           Swimming: 40
+ *                         byCity:
+ *                           "New Delhi": 50
+ *                           "Mumbai": 45
+ *                           "Bangalore": 40
+ *                           "Chennai": 35
+ *                         byState:
+ *                           "Delhi": 50
+ *                           "Maharashtra": 45
+ *                           "Karnataka": 40
+ *                           "Tamil Nadu": 35
+ *                         allowingDisabled: 150
+ *                         onlyForDisabled: 10
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ * 
  * /admin/coaching-centers:
  *   get:
  *     summary: Get all coaching centers (admin)
@@ -117,13 +266,34 @@ router.use(authenticate, requireAdmin);
  *                     logo: "https://example.com/logo.png"
  *                     status: "published"
  *                     is_active: true
+ *                     user:
+ *                       id: "user-123"
+ *                       firstName: "John"
+ *                       lastName: "Doe"
+ *                       email: "john@example.com"
+ *                       mobile: "+919876543210"
+ *                     sports:
+ *                       - id: "sport-123"
+ *                         name: "Cricket"
+ *                       - id: "sport-456"
+ *                         name: "Football"
+ *                     location:
+ *                       latitude: 28.6139
+ *                       longitude: 77.209
+ *                       address:
+ *                         line1: "123 Sports Complex"
+ *                         line2: "Near Metro Station"
+ *                         city: "New Delhi"
+ *                         state: "Delhi"
+ *                         country: "India"
+ *                         pincode: "110001"
+ *                     createdAt: "2024-01-15T10:00:00.000Z"
+ *                     updatedAt: "2024-01-15T10:00:00.000Z"
  *                 pagination:
  *                   total: 150
  *                   page: 1
  *                   limit: 10
  *                   totalPages: 15
- *                   hasNextPage: true
- *                   hasPrevPage: false
  *       403:
  *         description: Forbidden - Insufficient permissions
  *         content:
@@ -134,6 +304,12 @@ router.use(authenticate, requireAdmin);
  *               success: false
  *               message: "Forbidden - Insufficient permissions"
  */
+router.get(
+  '/stats',
+  requirePermission(Section.COACHING_CENTER, Action.VIEW),
+  coachingCenterController.getCoachingCenterStats
+);
+
 router.get(
   '/',
   requirePermission(Section.COACHING_CENTER, Action.VIEW),

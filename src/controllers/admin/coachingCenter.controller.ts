@@ -182,3 +182,29 @@ export const removeMedia = async (req: Request, res: Response, next: NextFunctio
     next(error);
   }
 };
+
+/**
+ * Get coaching center statistics for admin dashboard
+ */
+export const getCoachingCenterStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { startDate, endDate, userId, status, isActive, sportId, search } = req.query;
+
+    const params = {
+      startDate: startDate as string,
+      endDate: endDate as string,
+      userId: userId as string,
+      status: status as string,
+      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      sportId: sportId as string,
+      search: search as string,
+    };
+
+    const stats = await adminCoachingCenterService.getCoachingCenterStats(params);
+
+    const response = new ApiResponse(200, { stats }, 'Coaching center statistics retrieved successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};

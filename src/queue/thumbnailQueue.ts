@@ -1,9 +1,15 @@
 import { Queue, Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
+import { Types } from 'mongoose';
 import { config } from '../config/env';
 import { logger } from '../utils/logger';
 import { generateVideoThumbnail } from '../services/common/videoThumbnail.service';
 import { CoachingCenterModel } from '../models/coachingCenter.model';
+
+// Helper to get query by ID (supports both MongoDB ObjectId and custom UUID id)
+const getQueryById = (id: string) => {
+  return Types.ObjectId.isValid(id) ? { _id: id } : { id: id };
+};
 
 // Redis connection for BullMQ
 const connection = new Redis({
@@ -80,8 +86,10 @@ export const thumbnailWorker = new Worker<ThumbnailJobData>(
       if (sportDetailIndex !== undefined && videoIndex !== undefined) {
         // Use array positional update with indices
         try {
-          const result = await CoachingCenterModel.findByIdAndUpdate(
-            coachingCenterId,
+          // Use getQueryById helper to handle both ObjectId and UUID string
+          const query = getQueryById(coachingCenterId);
+          const result = await CoachingCenterModel.findOneAndUpdate(
+            query,
             {
               $set: {
                 [`sport_details.${sportDetailIndex}.videos.${videoIndex}.thumbnail`]: thumbnailUrl,
@@ -140,7 +148,9 @@ export const thumbnailWorker = new Worker<ThumbnailJobData>(
       if (!updateSuccess) {
         try {
           // Fetch the document as a Mongoose document (not lean) to enable direct updates
-          const coachingCenter = await CoachingCenterModel.findById(coachingCenterId);
+          // Use getQueryById helper to handle both ObjectId and UUID string
+          const query = getQueryById(coachingCenterId);
+          const coachingCenter = await CoachingCenterModel.findOne(query);
           
           if (!coachingCenter) {
             logger.warn('Coaching center not found for thumbnail update', {
@@ -175,7 +185,8 @@ export const thumbnailWorker = new Worker<ThumbnailJobData>(
                       await coachingCenter.save({ validateBeforeSave: false });
                       
                       // Verify the update by refetching
-                      const updatedDoc = await CoachingCenterModel.findById(coachingCenterId).lean();
+                      const query = getQueryById(coachingCenterId);
+                      const updatedDoc = await CoachingCenterModel.findOne(query).lean();
                       const updatedVideo = updatedDoc?.sport_details?.[i]?.videos?.[j];
                       
                       if (updatedVideo && updatedVideo.thumbnail === thumbnailUrl) {

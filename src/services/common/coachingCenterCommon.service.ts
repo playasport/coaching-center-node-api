@@ -139,7 +139,17 @@ export const moveMediaFilesToPermanent = async (coachingCenter: CoachingCenter):
   try {
     const fileUrls: string[] = [];
     const coachingCenterId = (coachingCenter as any)._id || (coachingCenter as any).id;
-    if (!coachingCenterId) throw new Error('Coaching center ID required');
+    if (!coachingCenterId) {
+      logger.error('Coaching center ID required for moving media files');
+      throw new Error('Coaching center ID required');
+    }
+
+    logger.info('Starting media file move to permanent location', { 
+      coachingCenterId: coachingCenterId.toString(),
+      hasLogo: !!coachingCenter.logo,
+      sportDetailsCount: coachingCenter.sport_details?.length || 0,
+      documentsCount: coachingCenter.documents?.length || 0
+    });
 
     if (coachingCenter.logo) fileUrls.push(coachingCenter.logo);
     
@@ -153,36 +163,259 @@ export const moveMediaFilesToPermanent = async (coachingCenter: CoachingCenter):
 
     coachingCenter.documents?.forEach(doc => { if (doc.url && !doc.is_deleted) fileUrls.push(doc.url); });
 
-    if (fileUrls.length === 0) return;
+    if (fileUrls.length === 0) {
+      logger.info('No media files to move', { coachingCenterId: coachingCenterId.toString() });
+      return;
+    }
+
+    logger.info('Moving files to permanent location', { 
+      coachingCenterId: coachingCenterId.toString(),
+      fileCount: fileUrls.length,
+      files: fileUrls
+    });
 
     const permanentUrls = await mediaService.moveFilesToPermanent(fileUrls);
     const urlMap = new Map<string, string>();
-    fileUrls.forEach((temp, i) => { if (permanentUrls[i]) urlMap.set(temp, permanentUrls[i]); });
+    fileUrls.forEach((temp, i) => { 
+      if (permanentUrls[i] && permanentUrls[i] !== temp) {
+        urlMap.set(temp, permanentUrls[i]);
+        logger.info('File moved successfully', { temp, permanent: permanentUrls[i] });
+      }
+    });
+
+    logger.info('File move results', { 
+      coachingCenterId: coachingCenterId.toString(),
+      totalFiles: fileUrls.length,
+      movedFiles: urlMap.size,
+      urlMap: Object.fromEntries(urlMap)
+    });
 
     const updateQuery: any = {};
-    if (coachingCenter.logo && urlMap.has(coachingCenter.logo)) updateQuery.logo = urlMap.get(coachingCenter.logo);
+    let hasUpdates = false;
+    
+    // Update logo if it was moved
+    if (coachingCenter.logo) {
+      logger.info('Checking logo URL', { logo: coachingCenter.logo, urlMapHasLogo: urlMap.has(coachingCenter.logo) });
+      if (urlMap.has(coachingCenter.logo)) {
+        const newLogoUrl = urlMap.get(coachingCenter.logo);
+        // Only update if URL actually changed (not a blob URL or already permanent)
+        if (newLogoUrl && newLogoUrl !== coachingCenter.logo && !newLogoUrl.startsWith('blob:')) {
+          updateQuery.logo = newLogoUrl;
+          hasUpdates = true;
+          logger.info('Logo URL updated', { old: coachingCenter.logo, new: newLogoUrl });
+        }
+      } else {
+        logger.warn('Logo URL not found in urlMap', { logo: coachingCenter.logo, urlMapKeys: Array.from(urlMap.keys()) });
+      }
+    }
 
+    // Update sport_details with new URLs and regenerate unique_ids
     if (coachingCenter.sport_details) {
-      updateQuery.sport_details = coachingCenter.sport_details.map(sd => ({
-        ...sd,
-        images: sd.images?.map(img => urlMap.has(img.url) ? { ...img, url: urlMap.get(img.url) } : img),
-        videos: sd.videos?.map(vid => ({
-          ...vid,
-          url: urlMap.has(vid.url) ? urlMap.get(vid.url) : vid.url,
-          thumbnail: vid.thumbnail && urlMap.has(vid.thumbnail) ? urlMap.get(vid.thumbnail) : vid.thumbnail
-        }))
-      }));
+      let sportDetailsHasUpdates = false;
+      const updatedSportDetails = coachingCenter.sport_details.map((sd, sdIndex) => {
+        // Handle sport_id - extract the actual ID value
+        let sportId: Types.ObjectId | string;
+        
+        if (sd.sport_id instanceof Types.ObjectId) {
+          sportId = sd.sport_id;
+        } else if (typeof sd.sport_id === 'string') {
+          // If it's a string, convert to ObjectId for MongoDB
+          if (Types.ObjectId.isValid(sd.sport_id)) {
+            sportId = new Types.ObjectId(sd.sport_id);
+          } else {
+            logger.error('Invalid sport_id string format', { sport_id: sd.sport_id, sportDetailIndex: sdIndex });
+            throw new Error(`Invalid sport_id format at index ${sdIndex}: ${sd.sport_id}`);
+          }
+        } else if (sd.sport_id && typeof sd.sport_id === 'object' && (sd.sport_id as any)._id) {
+          // If it's a populated object, extract the _id
+          const idValue = (sd.sport_id as any)._id;
+          sportId = idValue instanceof Types.ObjectId ? idValue : new Types.ObjectId(String(idValue));
+        } else {
+          logger.error('Unexpected sport_id format', { sport_id: sd.sport_id, sportDetailIndex: sdIndex, type: typeof sd.sport_id });
+          throw new Error(`Unexpected sport_id format at index ${sdIndex}`);
+        }
+        
+        return {
+          ...sd,
+          sport_id: sportId,
+          images: sd.images?.map((img, imgIndex) => {
+            logger.info('Checking image URL', { 
+              sportIndex: sdIndex, 
+              imageIndex: imgIndex,
+              imageUrl: img.url, 
+              urlMapHasUrl: urlMap.has(img.url),
+              urlMapKeys: Array.from(urlMap.keys()).slice(0, 3) // Log first 3 keys for debugging
+            });
+            
+            if (urlMap.has(img.url)) {
+              const newUrl = urlMap.get(img.url);
+              // Only update if URL actually changed (not a blob URL or already permanent)
+              if (newUrl && newUrl !== img.url && !newUrl.startsWith('blob:')) {
+                hasUpdates = true;
+                sportDetailsHasUpdates = true;
+                logger.info('Image URL updated', { 
+                  sportIndex: sdIndex, 
+                  imageIndex: imgIndex,
+                  old: img.url, 
+                  new: newUrl,
+                  uniqueId: img.unique_id
+                });
+                return { ...img, url: newUrl };
+              } else {
+                logger.warn('Image URL not updated - conditions not met', { 
+                  sportIndex: sdIndex, 
+                  imageIndex: imgIndex,
+                  old: img.url, 
+                  new: newUrl,
+                  isBlob: newUrl?.startsWith('blob:'),
+                  isSame: newUrl === img.url
+                });
+              }
+            } else {
+              logger.warn('Image URL not found in urlMap', { 
+                sportIndex: sdIndex, 
+                imageIndex: imgIndex,
+                imageUrl: img.url
+              });
+            }
+            
+            return img;
+          }),
+          videos: sd.videos?.map((vid, vidIndex) => {
+            const updates: any = { ...vid };
+            
+            logger.info('Checking video URL', { 
+              sportIndex: sdIndex, 
+              videoIndex: vidIndex,
+              videoUrl: vid.url, 
+              urlMapHasUrl: urlMap.has(vid.url)
+            });
+            
+            // Update video URL if moved
+            if (urlMap.has(vid.url)) {
+              const newUrl = urlMap.get(vid.url);
+              if (newUrl && newUrl !== vid.url && !newUrl.startsWith('blob:')) {
+                updates.url = newUrl;
+                hasUpdates = true;
+                sportDetailsHasUpdates = true;
+                logger.info('Video URL updated', { 
+                  sportIndex: sdIndex, 
+                  videoIndex: vidIndex,
+                  old: vid.url, 
+                  new: newUrl
+                });
+              } else {
+                logger.warn('Video URL not updated - conditions not met', { 
+                  sportIndex: sdIndex, 
+                  videoIndex: vidIndex,
+                  old: vid.url, 
+                  new: newUrl,
+                  isBlob: newUrl?.startsWith('blob:'),
+                  isSame: newUrl === vid.url
+                });
+              }
+            } else {
+              logger.warn('Video URL not found in urlMap', { 
+                sportIndex: sdIndex, 
+                videoIndex: vidIndex,
+                videoUrl: vid.url
+              });
+            }
+            
+            // Update thumbnail URL if moved
+            if (vid.thumbnail && urlMap.has(vid.thumbnail)) {
+              const newThumbnailUrl = urlMap.get(vid.thumbnail);
+              if (newThumbnailUrl && newThumbnailUrl !== vid.thumbnail && !newThumbnailUrl.startsWith('blob:')) {
+                updates.thumbnail = newThumbnailUrl;
+                hasUpdates = true;
+                sportDetailsHasUpdates = true;
+                logger.info('Video thumbnail URL updated', { 
+                  sportIndex: sdIndex, 
+                  videoIndex: vidIndex,
+                  old: vid.thumbnail, 
+                  new: newThumbnailUrl
+                });
+              }
+            }
+            
+            return updates;
+          })
+        };
+      });
+      
+      // Always set sport_details in updateQuery if there were any updates
+      if (sportDetailsHasUpdates) {
+        updateQuery.sport_details = updatedSportDetails;
+        logger.info('Sport details will be updated', { 
+          sportDetailsCount: updatedSportDetails.length,
+          sportDetailsHasUpdates
+        });
+      } else {
+        logger.info('Sport details unchanged, skipping update');
+      }
     }
 
+    // Update documents with new URLs and regenerate unique_ids
     if (coachingCenter.documents) {
-      updateQuery.documents = coachingCenter.documents.map(doc => 
-        urlMap.has(doc.url) ? { ...doc, url: urlMap.get(doc.url) } : doc
-      );
+      updateQuery.documents = coachingCenter.documents.map((doc, docIndex) => {
+        if (urlMap.has(doc.url)) {
+          const newUrl = urlMap.get(doc.url);
+          // Only update if URL changed and it's not a blob URL
+          if (newUrl && newUrl !== doc.url && !newUrl.startsWith('blob:')) {
+            hasUpdates = true;
+            logger.info('Document URL updated', { 
+              docIndex,
+              old: doc.url, 
+              new: newUrl,
+              uniqueId: doc.unique_id
+            });
+            return { ...doc, url: newUrl };
+          }
+        }
+        return doc;
+      });
     }
 
-    await CoachingCenterModel.findByIdAndUpdate(coachingCenterId, { $set: updateQuery });
+    if (!hasUpdates) {
+      logger.warn('No updates to apply after moving media files', { 
+        coachingCenterId: coachingCenterId.toString(),
+        urlMapSize: urlMap.size
+      });
+      return;
+    }
+
+    logger.info('Updating coaching center with moved media files', { 
+      coachingCenterId: coachingCenterId.toString(),
+      updateQuery: JSON.stringify(updateQuery)
+    });
+
+    // Use getQueryById helper to handle both ObjectId and UUID string
+    const query = getQueryById(coachingCenterId.toString());
+    const result = await CoachingCenterModel.findOneAndUpdate(
+      query, 
+      { $set: updateQuery },
+      { new: true }
+    );
+
+    if (!result) {
+      logger.error('Failed to update coaching center - document not found', { 
+        coachingCenterId: coachingCenterId.toString()
+      });
+      throw new Error(`Coaching center with ID ${coachingCenterId} not found`);
+    }
+
+    logger.info('Successfully moved media files to permanent location', { 
+      coachingCenterId: coachingCenterId.toString(),
+      updatedFields: Object.keys(updateQuery)
+    });
   } catch (error) {
-    logger.error('Failed to move media to permanent', { error });
+    logger.error('Failed to move media to permanent', { 
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      coachingCenterId: (coachingCenter as any)?._id || (coachingCenter as any)?.id
+    });
+    // Re-throw the error so the caller knows it failed
+    throw error;
   }
 };
 

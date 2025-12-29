@@ -206,6 +206,12 @@ const extractS3Key = (fileUrl: string): string => {
  */
 export const moveFileToPermanent = async (tempFileUrl: string): Promise<string> => {
   try {
+    // Skip blob URLs and non-S3 URLs (return as-is)
+    if (!tempFileUrl || tempFileUrl.startsWith('blob:') || !tempFileUrl.includes('.amazonaws.com')) {
+      logger.info('Skipping non-S3 URL (blob URL or invalid format)', { tempFileUrl });
+      return tempFileUrl;
+    }
+
     if (!config.aws.s3Bucket) {
       throw new ApiError(500, 'S3 bucket name not configured');
     }
@@ -213,9 +219,16 @@ export const moveFileToPermanent = async (tempFileUrl: string): Promise<string> 
     logger.info('Attempting to move file to permanent location', { tempFileUrl });
 
     const client = getS3Client();
-    const tempKey = extractS3Key(tempFileUrl);
+    let tempKey: string;
     
-    logger.info('Extracted S3 key', { tempFileUrl, tempKey });
+    try {
+      tempKey = extractS3Key(tempFileUrl);
+      logger.info('Extracted S3 key', { tempFileUrl, tempKey });
+    } catch (error) {
+      // If we can't extract S3 key, it's not a valid S3 URL, return as-is
+      logger.warn('Could not extract S3 key from URL, returning as-is', { tempFileUrl, error });
+      return tempFileUrl;
+    }
     
     // Check if file is in temp folder
     if (!tempKey.startsWith('temp/')) {
@@ -267,19 +280,32 @@ export const moveFileToPermanent = async (tempFileUrl: string): Promise<string> 
       error: error instanceof Error ? error.message : error,
       stack: error instanceof Error ? error.stack : undefined,
     });
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError(500, `Failed to move file to permanent location: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    // Return original URL if move fails (don't throw to allow other files to be processed)
+    logger.warn('Returning original URL due to error', { tempFileUrl });
+    return tempFileUrl;
   }
 };
 
 /**
  * Move multiple files from temp to permanent locations
+ * Uses Promise.allSettled to handle individual failures gracefully
  */
 export const moveFilesToPermanent = async (tempFileUrls: string[]): Promise<string[]> => {
   const movePromises = tempFileUrls.map((url) => moveFileToPermanent(url));
-  return Promise.all(movePromises);
+  const results = await Promise.allSettled(movePromises);
+  
+  return results.map((result, index) => {
+    if (result.status === 'fulfilled') {
+      return result.value;
+    } else {
+      logger.error('Failed to move file to permanent location', {
+        url: tempFileUrls[index],
+        error: result.reason,
+      });
+      // Return original URL if move fails
+      return tempFileUrls[index];
+    }
+  });
 };
 
 
