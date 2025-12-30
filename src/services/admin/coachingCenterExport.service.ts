@@ -42,9 +42,21 @@ interface ExportDataRow {
 /**
  * Get coaching centers data for export
  */
-const getCoachingCentersForExport = async (filters: ExportFilters = {}): Promise<any[]> => {
+const getCoachingCentersForExport = async (
+  filters: ExportFilters = {},
+  currentUserId?: string,
+  currentUserRole?: string
+): Promise<any[]> => {
   try {
     const query: any = { is_deleted: false };
+
+    // If user is an agent, only show centers added by them
+    if (currentUserRole === 'agent' && currentUserId) {
+      const currentUserObjectId = await getUserObjectId(currentUserId);
+      if (currentUserObjectId) {
+        query.addedBy = currentUserObjectId;
+      }
+    }
 
     // Apply filters
     if (filters.userId) {
@@ -60,6 +72,15 @@ const getCoachingCentersForExport = async (filters: ExportFilters = {}): Promise
 
     if (filters.isActive !== undefined) {
       query.is_active = filters.isActive;
+    }
+
+    if (filters.isApproved !== undefined) {
+      // Convert isApproved boolean to approval_status
+      query.approval_status = filters.isApproved ? 'approved' : { $in: ['rejected', 'pending_approval'] };
+    }
+
+    if (filters.approvalStatus) {
+      query.approval_status = filters.approvalStatus;
     }
 
     if (filters.sportId) {
@@ -160,9 +181,13 @@ const transformToExportData = (centers: any[]): ExportDataRow[] => {
 /**
  * Export coaching centers to Excel
  */
-export const exportToExcel = async (filters: ExportFilters = {}): Promise<Buffer> => {
+export const exportToExcel = async (
+  filters: ExportFilters = {},
+  currentUserId?: string,
+  currentUserRole?: string
+): Promise<Buffer> => {
   try {
-    const centers = await getCoachingCentersForExport(filters);
+    const centers = await getCoachingCentersForExport(filters, currentUserId, currentUserRole);
     const exportData = transformToExportData(centers);
 
     const workbook = new ExcelJS.Workbook();
@@ -274,10 +299,14 @@ const drawTableCell = (
 /**
  * Export coaching centers to PDF
  */
-export const exportToPDF = async (filters: ExportFilters = {}): Promise<Buffer> => {
+export const exportToPDF = async (
+  filters: ExportFilters = {},
+  currentUserId?: string,
+  currentUserRole?: string
+): Promise<Buffer> => {
   return new Promise(async (resolve, reject) => {
     try {
-      const centers = await getCoachingCentersForExport(filters);
+      const centers = await getCoachingCentersForExport(filters, currentUserId, currentUserRole);
       const exportData = transformToExportData(centers);
 
       const doc = new PDFDocument({ 
@@ -427,9 +456,13 @@ export const exportToPDF = async (filters: ExportFilters = {}): Promise<Buffer> 
 /**
  * Export coaching centers to CSV
  */
-export const exportToCSV = async (filters: ExportFilters = {}): Promise<string> => {
+export const exportToCSV = async (
+  filters: ExportFilters = {},
+  currentUserId?: string,
+  currentUserRole?: string
+): Promise<string> => {
   try {
-    const centers = await getCoachingCentersForExport(filters);
+    const centers = await getCoachingCentersForExport(filters, currentUserId, currentUserRole);
     const exportData = transformToExportData(centers);
 
     const tempFilePath = join(tmpdir(), `coaching-centers-${Date.now()}.csv`);

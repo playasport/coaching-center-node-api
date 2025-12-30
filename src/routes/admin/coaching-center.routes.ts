@@ -58,6 +58,12 @@ router.use(authenticate, requireAdmin);
  *           enum: ["true", "false"]
  *         description: Filter by active status
  *       - in: query
+ *         name: approvalStatus
+ *         schema:
+ *           type: string
+ *           enum: [approved, rejected, pending_approval]
+ *         description: Filter by approval status - 'approved' for approved academies, 'rejected' for rejected academies, 'pending_approval' for pending approval
+ *       - in: query
  *         name: sportId
  *         schema:
  *           type: string
@@ -106,6 +112,18 @@ router.use(authenticate, requireAdmin);
  *                             inactive:
  *                               type: number
  *                               example: 30
+ *                         byApprovalStatus:
+ *                           type: object
+ *                           properties:
+ *                             approved:
+ *                               type: number
+ *                               example: 200
+ *                             rejected:
+ *                               type: number
+ *                               example: 10
+ *                             pending_approval:
+ *                               type: number
+ *                               example: 40
  *                         bySport:
  *                           type: object
  *                           additionalProperties:
@@ -148,6 +166,10 @@ router.use(authenticate, requireAdmin);
  *                         byActiveStatus:
  *                           active: 220
  *                           inactive: 30
+ *                         byApprovalStatus:
+ *                           approved: 200
+ *                           rejected: 10
+ *                           pending_approval: 40
  *                         bySport:
  *                           Cricket: 80
  *                           Football: 60
@@ -209,6 +231,12 @@ router.use(authenticate, requireAdmin);
  *           type: string
  *           enum: ["true", "false"]
  *         description: Filter by active status
+ *       - in: query
+ *         name: approvalStatus
+ *         schema:
+ *           type: string
+ *           enum: [approved, rejected, pending_approval]
+ *         description: Filter by approval status - 'approved' for approved academies, 'rejected' for rejected academies, 'pending_approval' for pending approval
  *       - in: query
  *         name: sportId
  *         schema:
@@ -1312,6 +1340,72 @@ router.get(
       return coachingCenterController.exportToCSV(req, res, next);
     }
   }
+);
+
+/**
+ * @swagger
+ * /admin/coaching-centers/{id}/approval:
+ *   patch:
+ *     summary: Approve or reject coaching center
+ *     description: Approve or reject a coaching center. Only super_admin and admin can perform this action. When rejecting, a reject reason can be provided. Requires coaching_center:update permission.
+ *     tags: [Admin Coaching Centers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Coaching center ID (UUID or MongoDB ObjectId)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - isApproved
+ *             properties:
+ *               isApproved:
+ *                 type: boolean
+ *                 description: true to approve, false to reject
+ *                 example: true
+ *               rejectReason:
+ *                 type: string
+ *                 maxLength: 500
+ *                 description: Reason for rejection (required when isApproved is false)
+ *                 example: "Incomplete documentation"
+ *     responses:
+ *       200:
+ *         description: Approval status updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Academy approved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     coachingCenter:
+ *                       $ref: '#/components/schemas/CoachingCenter'
+ *       400:
+ *         description: Bad request (invalid isApproved value or missing reject reason)
+ *       403:
+ *         description: Forbidden - Only super admin and admin can approve/reject
+ *       404:
+ *         description: Coaching center not found
+ */
+router.patch(
+  '/:id/approval',
+  requirePermission(Section.COACHING_CENTER, Action.UPDATE),
+  coachingCenterController.updateApprovalStatus
 );
 
 export default router;

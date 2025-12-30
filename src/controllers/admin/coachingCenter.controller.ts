@@ -13,7 +13,7 @@ export const getAllCoachingCenters = async (req: Request, res: Response, next: N
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const { userId, status, search, sportId, isActive, sortBy, sortOrder } = req.query;
+    const { userId, status, search, sportId, isActive, approvalStatus, sortBy, sortOrder } = req.query;
 
     const filters = {
       userId: userId as string,
@@ -21,11 +21,21 @@ export const getAllCoachingCenters = async (req: Request, res: Response, next: N
       search: search as string,
       sportId: sportId as string,
       isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      approvalStatus: approvalStatus as 'approved' | 'rejected' | 'pending_approval' | undefined,
       sortBy: sortBy as string,
       sortOrder: sortOrder as 'asc' | 'desc',
     };
 
-    const result = await adminCoachingCenterService.getAllCoachingCenters(page, limit, filters);
+    const currentUserId = req.user?.id;
+    const currentUserRole = req.user?.role;
+
+    const result = await adminCoachingCenterService.getAllCoachingCenters(
+      page,
+      limit,
+      filters,
+      currentUserId,
+      currentUserRole
+    );
 
     const response = new ApiResponse(
       200,
@@ -67,12 +77,17 @@ export const getCoachingCentersByUserId = async (req: Request, res: Response, ne
     const limit = parseInt(req.query.limit as string) || 10;
     const { sortBy, sortOrder } = req.query;
 
+    const currentUserId = req.user?.id;
+    const currentUserRole = req.user?.role;
+
     const result = await adminCoachingCenterService.getCoachingCentersByUserId(
       userId, 
       page, 
       limit, 
       sortBy as string, 
-      sortOrder as 'asc' | 'desc'
+      sortOrder as 'asc' | 'desc',
+      currentUserId,
+      currentUserRole
     );
 
     const response = new ApiResponse(
@@ -189,7 +204,7 @@ export const removeMedia = async (req: Request, res: Response, next: NextFunctio
  */
 export const getCoachingCenterStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { startDate, endDate, userId, status, isActive, sportId, search } = req.query;
+    const { startDate, endDate, userId, status, isActive, isApproved, approvalStatus, sportId, search } = req.query;
 
     const params = {
       startDate: startDate as string,
@@ -197,11 +212,16 @@ export const getCoachingCenterStats = async (req: Request, res: Response, next: 
       userId: userId as string,
       status: status as string,
       isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      isApproved: isApproved === 'true' ? true : isApproved === 'false' ? false : undefined,
+      approvalStatus: approvalStatus as 'approved' | 'rejected' | 'pending_approval' | undefined,
       sportId: sportId as string,
       search: search as string,
     };
 
-    const stats = await adminCoachingCenterService.getCoachingCenterStats(params);
+    const currentUserId = req.user?.id;
+    const currentUserRole = req.user?.role;
+
+    const stats = await adminCoachingCenterService.getCoachingCenterStats(params, currentUserId, currentUserRole);
 
     const response = new ApiResponse(200, { stats }, 'Coaching center statistics retrieved successfully');
     res.json(response);
@@ -265,7 +285,7 @@ export const uploadVideoThumbnail = async (req: Request, res: Response, next: Ne
  */
 export const exportToExcel = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { userId, status, search, sportId, isActive, startDate, endDate } = req.query;
+    const { userId, status, search, sportId, isActive, isApproved, startDate, endDate } = req.query;
 
     const filters = {
       userId: userId as string,
@@ -273,11 +293,15 @@ export const exportToExcel = async (req: Request, res: Response, next: NextFunct
       search: search as string,
       sportId: sportId as string,
       isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      isApproved: isApproved === 'true' ? true : isApproved === 'false' ? false : undefined,
       startDate: startDate as string,
       endDate: endDate as string,
     };
 
-    const buffer = await exportService.exportToExcel(filters);
+    const currentUserId = req.user?.id;
+    const currentUserRole = req.user?.role;
+
+    const buffer = await exportService.exportToExcel(filters, currentUserId, currentUserRole);
 
     const filename = `coaching-centers-${new Date().toISOString().split('T')[0]}.xlsx`;
 
@@ -294,7 +318,7 @@ export const exportToExcel = async (req: Request, res: Response, next: NextFunct
  */
 export const exportToPDF = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { userId, status, search, sportId, isActive, startDate, endDate } = req.query;
+    const { userId, status, search, sportId, isActive, isApproved, startDate, endDate } = req.query;
 
     const filters = {
       userId: userId as string,
@@ -302,11 +326,15 @@ export const exportToPDF = async (req: Request, res: Response, next: NextFunctio
       search: search as string,
       sportId: sportId as string,
       isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      isApproved: isApproved === 'true' ? true : isApproved === 'false' ? false : undefined,
       startDate: startDate as string,
       endDate: endDate as string,
     };
 
-    const buffer = await exportService.exportToPDF(filters);
+    const currentUserId = req.user?.id;
+    const currentUserRole = req.user?.role;
+
+    const buffer = await exportService.exportToPDF(filters, currentUserId, currentUserRole);
 
     const filename = `coaching-centers-${new Date().toISOString().split('T')[0]}.pdf`;
 
@@ -323,7 +351,7 @@ export const exportToPDF = async (req: Request, res: Response, next: NextFunctio
  */
 export const exportToCSV = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { userId, status, search, sportId, isActive, startDate, endDate } = req.query;
+    const { userId, status, search, sportId, isActive, isApproved, startDate, endDate } = req.query;
 
     const filters = {
       userId: userId as string,
@@ -331,17 +359,52 @@ export const exportToCSV = async (req: Request, res: Response, next: NextFunctio
       search: search as string,
       sportId: sportId as string,
       isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      isApproved: isApproved === 'true' ? true : isApproved === 'false' ? false : undefined,
       startDate: startDate as string,
       endDate: endDate as string,
     };
 
-    const csvContent = await exportService.exportToCSV(filters);
+    const currentUserId = req.user?.id;
+    const currentUserRole = req.user?.role;
+
+    const csvContent = await exportService.exportToCSV(filters, currentUserId, currentUserRole);
 
     const filename = `coaching-centers-${new Date().toISOString().split('T')[0]}.csv`;
 
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(csvContent);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Approve or reject coaching center
+ */
+export const updateApprovalStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { isApproved, rejectReason } = req.body;
+    const currentUserRole = req.user?.role;
+
+    if (typeof isApproved !== 'boolean') {
+      throw new ApiError(400, 'isApproved must be a boolean value');
+    }
+
+    const coachingCenter = await adminCoachingCenterService.updateApprovalStatus(
+      id,
+      isApproved,
+      rejectReason,
+      currentUserRole
+    );
+
+    const response = new ApiResponse(
+      200,
+      { coachingCenter },
+      isApproved ? 'Academy approved successfully' : 'Academy rejected successfully'
+    );
+    res.json(response);
   } catch (error) {
     next(error);
   }

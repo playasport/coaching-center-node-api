@@ -1206,6 +1206,12 @@
                   "description": "Filter by active status"
                 },
                 {
+                  "key": "approvalStatus",
+                  "value": "",
+                  "description": "Filter by approval status. Values: approved, rejected, pending_approval",
+                  "disabled": true
+                },
+                {
                   "key": "sportId",
                   "value": "",
                   "description": "Filter by sport ID",
@@ -1223,7 +1229,7 @@
                 }
               ]
             },
-            "description": "Get paginated list of all coaching centers with basic information (id, center_name, email, mobile_number, logo, status, is_active, user, sports names, location, timestamps). For complete details including sport_details, age, allowed genders, operational_timing, etc., use GET /admin/coaching-centers/:id. Requires coaching_center:view permission."
+            "description": "Get paginated list of all coaching centers with basic information (id, center_name, email, mobile_number, logo, status, is_active, approval_status, reject_reason, user, sports names, location, timestamps). For complete details including sport_details, age, allowed genders, operational_timing, etc., use GET /admin/coaching-centers/:id. Requires coaching_center:view permission.\n\n**Filtering by Approval Status:**\n- Use `approvalStatus` parameter: approved, rejected, pending_approval"
           },
           "response": [
             {
@@ -1267,7 +1273,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Coaching centers retrieved successfully\",\n  \"data\": {\n    \"coachingCenters\": [\n      {\n        \"id\": \"cc-123\",\n        \"center_name\": \"Elite Sports Academy\",\n        \"email\": \"elite@example.com\",\n        \"mobile_number\": \"9876543210\",\n        \"logo\": \"https://example.com/logo.png\",\n        \"status\": \"published\",\n        \"is_active\": true,\n        \"user\": {\n          \"id\": \"user-123\",\n          \"firstName\": \"John\",\n          \"lastName\": \"Doe\",\n          \"email\": \"john@example.com\",\n          \"mobile\": \"+919876543210\"\n        },\n        \"sports\": [\n          {\n            \"id\": \"sport-123\",\n            \"name\": \"Cricket\"\n          },\n          {\n            \"id\": \"sport-456\",\n            \"name\": \"Football\"\n          }\n        ],\n        \"location\": {\n          \"latitude\": 28.6139,\n          \"longitude\": 77.209,\n          \"address\": {\n            \"line1\": \"123 Sports Complex\",\n            \"line2\": \"Near Metro Station\",\n            \"city\": \"New Delhi\",\n            \"state\": \"Delhi\",\n            \"country\": \"India\",\n            \"pincode\": \"110001\"\n          }\n        },\n        \"createdAt\": \"2024-01-15T10:00:00.000Z\",\n        \"updatedAt\": \"2024-01-15T10:00:00.000Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 10,\n      \"total\": 150,\n      \"totalPages\": 15\n    }\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Coaching centers retrieved successfully\",\n  \"data\": {\n    \"coachingCenters\": [\n      {\n        \"id\": \"cc-123\",\n        \"center_name\": \"Elite Sports Academy\",\n        \"email\": \"elite@example.com\",\n        \"mobile_number\": \"9876543210\",\n        \"logo\": \"https://example.com/logo.png\",\n        \"status\": \"published\",\n        \"is_active\": true,\n        \"approval_status\": \"approved\",\n        \"reject_reason\": null,\n        \"user\": {\n          \"id\": \"user-123\",\n          \"firstName\": \"John\",\n          \"lastName\": \"Doe\",\n          \"email\": \"john@example.com\",\n          \"mobile\": \"+919876543210\"\n        },\n        \"sports\": [\n          {\n            \"id\": \"sport-123\",\n            \"name\": \"Cricket\"\n          },\n          {\n            \"id\": \"sport-456\",\n            \"name\": \"Football\"\n          }\n        ],\n        \"location\": {\n          \"latitude\": 28.6139,\n          \"longitude\": 77.209,\n          \"address\": {\n            \"line1\": \"123 Sports Complex\",\n            \"line2\": \"Near Metro Station\",\n            \"city\": \"New Delhi\",\n            \"state\": \"Delhi\",\n            \"country\": \"India\",\n            \"pincode\": \"110001\"\n          }\n        },\n        \"createdAt\": \"2024-01-15T10:00:00.000Z\",\n        \"updatedAt\": \"2024-01-15T10:00:00.000Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 10,\n      \"total\": 150,\n      \"totalPages\": 15\n    }\n  }\n}"
             }
           ]
         },
@@ -1298,10 +1304,46 @@
                   "value": "",
                   "disabled": true,
                   "description": "Filter statistics until date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "userId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by Academy owner ID"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by center status (draft, published)"
+                },
+                {
+                  "key": "isActive",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by active status (true, false)"
+                },
+                {
+                  "key": "approvalStatus",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by approval status. Values: approved, rejected, pending_approval"
+                },
+                {
+                  "key": "sportId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by sport ID"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Search by center name, email, or mobile number"
                 }
               ]
             },
-            "description": "Get coaching center statistics for admin dashboard. Supports the same filters as GET /admin/coaching-centers (userId, status, isActive, sportId, search, startDate, endDate) except pagination. Returns counts by status, active status, sport, location (city/state), and disability access. Requires coaching_center:view permission."
+            "description": "Get coaching center statistics for admin dashboard. Supports the same filters as GET /admin/coaching-centers (userId, status, isActive, approvalStatus, sportId, search, startDate, endDate) except pagination. Returns counts by status, active status, sport, location (city/state), and disability access. Requires coaching_center:view permission.\n\n**Filtering by Approval Status:**\n- Use `approvalStatus` parameter: approved, rejected, pending_approval"
           },
           "response": [
             {
@@ -1595,6 +1637,41 @@
               ]
             },
             "description": "Upload and set a thumbnail image file for a video in the coaching center. The thumbnail image file will be uploaded to S3 and automatically compressed. Requires sportId, videoUniqueId, and thumbnail image file. Requires coaching_center:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Approve or Reject Coaching Center",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isApproved\": true,\n  \"rejectReason\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/coaching-centers/:id/approval",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "coaching-centers", ":id", "approval"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{coachingCenterId}}",
+                  "description": "Coaching Center ID"
+                }
+              ]
+            },
+            "description": "Approve or reject a coaching center. Only super_admin and admin can perform this action. When rejecting, provide a rejectReason. When approving, rejectReason is optional and will be cleared. Requires coaching_center:update permission.\n\n**Request Body:**\n- isApproved (boolean, required): true to approve, false to reject\n- rejectReason (string, optional): Reason for rejection (max 500 characters). Required when isApproved is false.\n\n**Note:** When an agent creates an academy, it is automatically set to is_approved=false and requires approval from super_admin or admin."
           },
           "response": []
         },

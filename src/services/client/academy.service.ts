@@ -171,10 +171,11 @@ export const getAllAcademies = async (
     const pageSize = Math.min(config.pagination.maxLimit, Math.max(1, Math.floor(limit)));
     const skip = (pageNumber - 1) * pageSize;
 
-    // Build base query - only published and active academies
+    // Build base query - only published, active, and approved academies
     const query: any = {
       status: CoachingCenterStatus.PUBLISHED,
       is_active: true,
+      approval_status: 'approved', // Only show approved academies to users
       is_deleted: false,
     };
 
@@ -330,6 +331,7 @@ export const getAcademyById = async (
       id: id,
       status: CoachingCenterStatus.PUBLISHED,
       is_active: true,
+      approval_status: 'approved', // Only show approved academies to users
       is_deleted: false,
     })
       .populate('sports', 'custom_id name logo is_popular')
@@ -343,6 +345,7 @@ export const getAcademyById = async (
         _id: new Types.ObjectId(id),
         status: CoachingCenterStatus.PUBLISHED,
         is_active: true,
+        approval_status: 'approved', // Only show approved academies to users
         is_deleted: false,
       })
         .populate('sports', 'custom_id name logo is_popular')
@@ -362,6 +365,7 @@ export const getAcademyById = async (
           user: user._id,
           status: CoachingCenterStatus.PUBLISHED,
           is_active: true,
+          approval_status: 'approved', // Only show approved academies to users
           is_deleted: false,
         })
           .populate('sports', 'custom_id name logo is_popular')
@@ -479,6 +483,7 @@ export const getAcademiesByCity = async (
     const query: any = {
       status: CoachingCenterStatus.PUBLISHED,
       is_active: true,
+      approval_status: 'approved', // Only show approved academies to users
       is_deleted: false,
       'location.address.city': { $regex: new RegExp(`^${cityName}$`, 'i') },
     };
@@ -587,6 +592,7 @@ export const getAcademiesBySport = async (
     const query: any = {
       status: CoachingCenterStatus.PUBLISHED,
       is_active: true,
+      approval_status: 'approved', // Only show approved academies to users
       is_deleted: false,
       sports: sport._id,
     };

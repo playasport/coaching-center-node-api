@@ -3359,6 +3359,20 @@ const options: swaggerJsdoc.Options = {
             is_active: {
               type: 'boolean',
             },
+            approval_status: {
+              type: 'string',
+              enum: ['approved', 'rejected', 'pending_approval'],
+              default: 'approved',
+              example: 'approved',
+              description: 'Approval status of the coaching center',
+            },
+            reject_reason: {
+              type: 'string',
+              nullable: true,
+              maxLength: 500,
+              example: null,
+              description: 'Reason for rejection (only present if approval_status is rejected)',
+            },
             is_deleted: {
               type: 'boolean',
             },

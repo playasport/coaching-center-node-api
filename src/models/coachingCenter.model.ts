@@ -95,6 +95,8 @@ export interface CoachingCenter {
   is_only_for_disabled: boolean;
   experience: number; // Number of years of experience
   is_active: boolean;
+  approval_status: 'approved' | 'rejected' | 'pending_approval';
+  reject_reason?: string | null;
   is_deleted: boolean;
   deletedAt?: Date | null;
   createdAt: Date;
@@ -422,6 +424,17 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
       type: Boolean,
       default: true,
       index: true,
+    },
+    approval_status: {
+      type: String,
+      enum: ['approved', 'rejected', 'pending_approval'],
+      default: 'approved',
+      index: true,
+    },
+    reject_reason: {
+      type: String,
+      default: null,
+      maxlength: 500,
     },
     is_deleted: {
       type: Boolean,

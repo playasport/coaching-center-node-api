@@ -11,6 +11,8 @@ import { UserModel } from '../../models/user.model';
 import { RoleModel, DefaultRoles } from '../../models/role.model';
 import { hashPassword } from '../../utils/password';
 import { v4 as uuidv4 } from 'uuid';
+import { DefaultRoles as DefaultRolesEnum } from '../../enums/defaultRoles.enum';
+import { AdminApproveStatus } from '../../enums/adminApprove.enum';
 
 export interface AdminPaginatedResult<T> {
   coachingCenters: T[];
@@ -30,6 +32,8 @@ export interface CoachingCenterListItem {
   logo: string | null;
   status: string;
   is_active: boolean;
+  approval_status: 'approved' | 'rejected' | 'pending_approval';
+  reject_reason?: string | null;
   user: {
     id: string;
     firstName: string;
@@ -64,6 +68,11 @@ export interface CoachingCenterStats {
     active: number;
     inactive: number;
   };
+  byApprovalStatus: {
+    approved: number;
+    rejected: number;
+    pending_approval: number;
+  };
   bySport: Record<string, number>;
   byCity: Record<string, number>;
   byState: Record<string, number>;
@@ -83,13 +92,25 @@ export const getAllCoachingCenters = async (
     search?: string;
     sportId?: string;
     isActive?: boolean;
+    isApproved?: boolean;
+    approvalStatus?: 'approved' | 'rejected' | 'pending_approval'; // Direct approval status filter
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
-  } = {}
+  } = {},
+  currentUserId?: string,
+  currentUserRole?: string
 ): Promise<AdminPaginatedResult<CoachingCenterListItem>> => {
   try {
     const skip = (page - 1) * limit;
     const query: any = { is_deleted: false };
+
+    // If user is an agent, only show centers added by them
+    if (currentUserRole === DefaultRolesEnum.AGENT && currentUserId) {
+      const currentUserObjectId = await getUserObjectId(currentUserId);
+      if (currentUserObjectId) {
+        query.addedBy = currentUserObjectId;
+      }
+    }
 
     // Apply filters
     if (filters.userId) {
@@ -105,6 +126,14 @@ export const getAllCoachingCenters = async (
 
     if (filters.isActive !== undefined) {
       query.is_active = filters.isActive;
+    }
+
+    // Filter by approval status using the enum field
+    if (filters.approvalStatus) {
+      query.approval_status = filters.approvalStatus;
+    } else if (filters.isApproved !== undefined) {
+      // Backward compatibility: convert isApproved boolean to approval_status
+      query.approval_status = filters.isApproved ? AdminApproveStatus.APPROVE : { $in: [AdminApproveStatus.REJECT, AdminApproveStatus.PENDING_APPROVAL] };
     }
 
     if (filters.sportId) {
@@ -127,7 +156,7 @@ export const getAllCoachingCenters = async (
 
     const [coachingCenters, total] = await Promise.all([
       CoachingCenterModel.find(query)
-        .select('id center_name email mobile_number logo status is_active user sports location createdAt updatedAt')
+        .select('id center_name email mobile_number logo status is_active approval_status reject_reason user sports location createdAt updatedAt')
         .populate('user', 'id firstName lastName email mobile')
         .populate('sports', 'id name')
         .sort(sort)
@@ -146,6 +175,8 @@ export const getAllCoachingCenters = async (
       logo: center.logo || null,
       status: center.status,
       is_active: center.is_active,
+      approval_status: center.approval_status || 'approved',
+      reject_reason: center.reject_reason || null,
       user: center.user ? {
         id: center.user.id || center.user._id?.toString() || '',
         firstName: center.user.firstName || '',
@@ -213,7 +244,9 @@ export const getCoachingCentersByUserId = async (
   page: number = 1,
   limit: number = 10,
   sortBy: string = 'createdAt',
-  sortOrder: 'asc' | 'desc' = 'desc'
+  sortOrder: 'asc' | 'desc' = 'desc',
+  currentUserId?: string,
+  currentUserRole?: string
 ): Promise<AdminPaginatedResult<CoachingCenter>> => {
   try {
     const userObjectId = await getUserObjectId(userId);
@@ -222,8 +255,18 @@ export const getCoachingCentersByUserId = async (
     const skip = (page - 1) * limit;
     const sort: any = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
 
+    const query: any = { user: userObjectId, is_deleted: false };
+
+    // If current user is an agent, only show centers added by them
+    if (currentUserRole === DefaultRolesEnum.AGENT && currentUserId) {
+      const currentUserObjectId = await getUserObjectId(currentUserId);
+      if (currentUserObjectId) {
+        query.addedBy = currentUserObjectId;
+      }
+    }
+
     const [coachingCenters, total] = await Promise.all([
-      CoachingCenterModel.find({ user: userObjectId, is_deleted: false })
+      CoachingCenterModel.find(query)
         .populate('user', 'firstName lastName email mobile')
         .populate('sports', 'name')
         .sort(sort)
@@ -349,12 +392,27 @@ export const createCoachingCenterByAdmin = async (
     // 3. Resolve facilities
     const facilityIds = data.facility ? await commonService.resolveFacilities(data.facility) : [];
 
-    // 4. Get admin user ObjectId if provided (for addedBy field)
+    // 4. Get admin user ObjectId if provided (for addedBy field) and check if agent
     let addedByObjectId: Types.ObjectId | null = null;
+    let approvalStatus: 'approved' | 'rejected' | 'pending_approval' = AdminApproveStatus.APPROVE;
     if (adminUserId) {
       const adminUserObjectId = await getUserObjectId(adminUserId);
       if (adminUserObjectId) {
         addedByObjectId = adminUserObjectId;
+        
+        // Check if admin user is an agent - if so, set approval_status to pending_approval
+        const adminUser = await UserModel.findOne({ _id: adminUserObjectId })
+          .select('roles')
+          .populate('roles', 'name')
+          .lean();
+        
+        if (adminUser && adminUser.roles) {
+          const userRoles = adminUser.roles as any[];
+          const isAgent = userRoles.some((r: any) => r?.name === DefaultRolesEnum.AGENT);
+          if (isAgent) {
+            approvalStatus = AdminApproveStatus.PENDING_APPROVAL; // Agent-created academies need approval
+          }
+        }
       }
     }
 
@@ -364,6 +422,7 @@ export const createCoachingCenterByAdmin = async (
       ...sanitizedData,
       user: userObjectId,
       addedBy: addedByObjectId,
+      approval_status: approvalStatus,
       sports: sportIds,
       facility: facilityIds,
       sport_details: (sanitizedData.sport_details || []).map(sd => ({
@@ -500,19 +559,33 @@ export const updateCoachingCenterByAdmin = async (
 /**
  * Get coaching center statistics for admin dashboard
  */
-export const getCoachingCenterStats = async (params?: {
-  startDate?: string;
-  endDate?: string;
-  userId?: string;
-  status?: string;
-  isActive?: boolean;
-  sportId?: string;
-  search?: string;
-}): Promise<CoachingCenterStats> => {
+export const getCoachingCenterStats = async (
+  params?: {
+    startDate?: string;
+    endDate?: string;
+    userId?: string;
+    status?: string;
+    isActive?: boolean;
+    isApproved?: boolean;
+    approvalStatus?: 'approved' | 'rejected' | 'pending_approval';
+    sportId?: string;
+    search?: string;
+  },
+  currentUserId?: string,
+  currentUserRole?: string
+): Promise<CoachingCenterStats> => {
   try {
     const dateQuery: any = {
       is_deleted: false,
     };
+    
+    // If user is an agent, only show centers added by them
+    if (currentUserRole === DefaultRolesEnum.AGENT && currentUserId) {
+      const currentUserObjectId = await getUserObjectId(currentUserId);
+      if (currentUserObjectId) {
+        dateQuery.addedBy = currentUserObjectId;
+      }
+    }
     
     // Apply date filters
     if (params?.startDate || params?.endDate) {
@@ -543,6 +616,14 @@ export const getCoachingCenterStats = async (params?: {
     // Apply isActive filter
     if (params?.isActive !== undefined) {
       dateQuery.is_active = params.isActive;
+    }
+
+    // Apply approval status filter
+    if (params?.approvalStatus) {
+      dateQuery.approval_status = params.approvalStatus;
+    } else if (params?.isApproved !== undefined) {
+      // Backward compatibility: convert isApproved boolean to approval_status
+      dateQuery.approval_status = params.isApproved ? AdminApproveStatus.APPROVE : { $in: [AdminApproveStatus.REJECT, AdminApproveStatus.PENDING_APPROVAL] };
     }
 
     // Apply sportId filter
@@ -593,6 +674,23 @@ export const getCoachingCenterStats = async (params?: {
     const byActiveStatus = {
       active: activeCounts.find((item: any) => item._id === true)?.count || 0,
       inactive: activeCounts.find((item: any) => item._id === false)?.count || 0,
+    };
+
+    // Get counts by approval status
+    const approvalStatusCounts = await CoachingCenterModel.aggregate([
+      { $match: dateQuery },
+      {
+        $group: {
+          _id: '$approval_status',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const byApprovalStatus = {
+      approved: approvalStatusCounts.find((item: any) => item._id === AdminApproveStatus.APPROVE)?.count || 0,
+      rejected: approvalStatusCounts.find((item: any) => item._id === AdminApproveStatus.REJECT)?.count || 0,
+      pending_approval: approvalStatusCounts.find((item: any) => item._id === AdminApproveStatus.PENDING_APPROVAL)?.count || 0,
     };
 
     // Get counts by sport (unwind sports array)
@@ -693,6 +791,7 @@ export const getCoachingCenterStats = async (params?: {
       total,
       byStatus,
       byActiveStatus,
+      byApprovalStatus,
       bySport,
       byCity,
       byState,
@@ -702,5 +801,65 @@ export const getCoachingCenterStats = async (params?: {
   } catch (error) {
     logger.error('Admin failed to get coaching center stats:', error);
     throw new ApiError(500, t('errors.internalServerError'));
+  }
+};
+
+/**
+ * Approve or reject coaching center
+ * Only super_admin and admin can approve/reject
+ */
+export const updateApprovalStatus = async (
+  id: string,
+  isApproved: boolean,
+  rejectReason?: string,
+  currentUserRole?: string
+): Promise<CoachingCenter | null> => {
+  try {
+    // Only super_admin and admin can approve/reject
+    if (currentUserRole !== DefaultRolesEnum.SUPER_ADMIN && currentUserRole !== DefaultRolesEnum.ADMIN) {
+      throw new ApiError(403, 'Only super admin and admin can approve or reject academies');
+    }
+
+    const query = Types.ObjectId.isValid(id) ? { _id: id } : { id: id };
+    const existingCenter = await CoachingCenterModel.findOne(query);
+    
+    if (!existingCenter || existingCenter.is_deleted) {
+      throw new ApiError(404, t('coachingCenter.notFound'));
+    }
+
+    const updateData: any = {
+      approval_status: isApproved ? AdminApproveStatus.APPROVE : AdminApproveStatus.REJECT,
+    };
+
+    // If rejecting, store reject reason; if approving, clear reject reason
+    if (isApproved) {
+      updateData.reject_reason = null;
+    } else {
+      if (rejectReason) {
+        updateData.reject_reason = rejectReason;
+      }
+    }
+
+    const updatedCenter = await CoachingCenterModel.findOneAndUpdate(
+      query,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).lean();
+
+    if (!updatedCenter) {
+      throw new ApiError(404, t('coachingCenter.notFound'));
+    }
+
+    logger.info('Coaching center approval status updated', {
+      id,
+      isApproved,
+      rejectReason: rejectReason || null,
+    });
+
+    return await commonService.getCoachingCenterById(id);
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    logger.error('Failed to update approval status:', error);
+    throw new ApiError(500, 'Failed to update approval status');
   }
 };
