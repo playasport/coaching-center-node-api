@@ -7,7 +7,7 @@ import { t } from '../../utils/i18n';
 import { getUserObjectId } from '../../utils/userCache';
 import { config } from '../../config/env';
 import * as batchService from '../academy/batch.service';
-import type { BatchUpdateInput } from '../../validations/batch.validation';
+import type { BatchCreateInput, BatchUpdateInput } from '../../validations/batch.validation';
 
 /**
  * Helper to get center ObjectId from either custom ID (UUID) or MongoDB ObjectId
@@ -54,6 +54,160 @@ export interface GetAdminBatchesFilters {
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
+
+/**
+ * Round a number to 2 decimal places to avoid floating-point precision issues
+ */
+const roundToTwoDecimals = (value: number | null | undefined): number | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  return parseFloat(value.toFixed(2));
+};
+
+/**
+ * Recursively round all numeric values in an object to 2 decimal places
+ */
+const roundNumericValues = (obj: any): any => {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  
+  if (typeof obj === 'number') {
+    return roundToTwoDecimals(obj);
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => roundNumericValues(item));
+  }
+  
+  if (typeof obj === 'object') {
+    const rounded: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        rounded[key] = roundNumericValues(obj[key]);
+      }
+    }
+    return rounded;
+  }
+  
+  return obj;
+};
+
+/**
+ * Create batch (admin - can create for any center)
+ */
+export const createBatchByAdmin = async (data: BatchCreateInput): Promise<Batch> => {
+  try {
+    const { SportModel } = await import('../../models/sport.model');
+    const { EmployeeModel } = await import('../../models/employee.model');
+
+    // Validate center exists - support both custom ID and ObjectId
+    const centerObjectId = await getCenterObjectId(data.centerId);
+    if (!centerObjectId) {
+      throw new ApiError(404, t('batch.centerNotFound'));
+    }
+
+    // Get center to extract userId
+    const center = await CoachingCenterModel.findById(centerObjectId);
+    if (!center || center.is_deleted) {
+      throw new ApiError(404, t('batch.centerNotFound'));
+    }
+
+    // Get userId from center (admin can create for any center)
+    const userObjectId = center.user as Types.ObjectId;
+    if (!userObjectId) {
+      throw new ApiError(400, t('batch.userNotFound'));
+    }
+
+    // Validate sport exists
+    if (!Types.ObjectId.isValid(data.sportId)) {
+      throw new ApiError(400, t('validation.batch.sportId.invalid'));
+    }
+    const sport = await SportModel.findById(data.sportId);
+    if (!sport || !sport.is_active) {
+      throw new ApiError(404, t('batch.sportNotFound'));
+    }
+
+    // Validate coach exists if provided
+    if (data.coach) {
+      if (!Types.ObjectId.isValid(data.coach)) {
+        throw new ApiError(400, t('validation.batch.coach.invalid'));
+      }
+      const coach = await EmployeeModel.findById(data.coach);
+      if (!coach || coach.is_deleted) {
+        throw new ApiError(404, t('batch.coachNotFound'));
+      }
+      // Verify coach belongs to the same center
+      if (coach.center && coach.center.toString() !== centerObjectId.toString()) {
+        throw new ApiError(400, t('batch.coachNotInCenter'));
+      }
+    }
+
+    // Prepare batch data
+    const batchData: any = {
+      user: userObjectId,
+      name: data.name,
+      sport: new Types.ObjectId(data.sportId),
+      center: centerObjectId,
+      coach: data.coach ? new Types.ObjectId(data.coach) : null,
+      scheduled: {
+        start_date: data.scheduled.start_date,
+        start_time: data.scheduled.start_time,
+        end_time: data.scheduled.end_time,
+        training_days: data.scheduled.training_days,
+      },
+      duration: {
+        count: data.duration.count,
+        type: data.duration.type,
+      },
+      capacity: {
+        min: data.capacity.min,
+        max: data.capacity.max || null,
+      },
+      age: {
+        min: data.age.min,
+        max: data.age.max,
+      },
+      admission_fee: roundToTwoDecimals(data.admission_fee),
+      fee_structure: data.fee_structure
+        ? {
+            ...data.fee_structure,
+            admission_fee: roundToTwoDecimals(data.fee_structure.admission_fee),
+            fee_configuration: roundNumericValues(data.fee_structure.fee_configuration),
+          }
+        : null,
+      status: data.status || 'draft',
+      is_active: true,
+      is_deleted: false,
+    };
+
+    // Create batch
+    const batch = new BatchModel(batchData);
+    await batch.save();
+
+    logger.info(`Admin created batch: ${batch._id} (${batch.name}) for center: ${centerObjectId}`);
+
+    // Return populated batch
+    const populatedBatch = await BatchModel.findById(batch._id)
+      .populate('user', 'id firstName lastName email')
+      .populate('sport', 'custom_id name logo')
+      .populate('center', 'center_name email mobile_number')
+      .populate('coach', 'fullName mobileNo email')
+      .lean();
+
+    return populatedBatch || batch;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Admin failed to create batch:', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    throw new ApiError(500, t('batch.create.failed'));
+  }
+};
 
 /**
  * Get all batches for admin view with filters

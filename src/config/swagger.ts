@@ -7118,6 +7118,10 @@ const options: swaggerJsdoc.Options = {
         description: 'Admin panel batch management endpoints with permission-based access',
       },
       {
+        name: 'Admin Fee Type Configuration',
+        description: 'Admin panel fee type configuration endpoints for dynamic form generation',
+      },
+      {
         name: 'Admin Sports',
         description: 'Admin panel sport management endpoints (Super Admin only for create/update/delete)',
       },
@@ -7227,6 +7231,7 @@ const options: swaggerJsdoc.Options = {
           'Admin Users',
           'Admin Roles',
           'Admin Batches',
+          'Admin Fee Type Configuration',
           'Admin Bookings',
           'Admin Transactions',
           'Admin Payments',

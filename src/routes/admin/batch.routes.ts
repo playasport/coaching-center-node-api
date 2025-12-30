@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import * as batchController from '../../controllers/admin/batch.controller';
 import { validate } from '../../middleware/validation.middleware';
-import { batchUpdateSchema } from '../../validations/batch.validation';
+import { batchCreateSchema, batchUpdateSchema } from '../../validations/batch.validation';
 import { authenticate } from '../../middleware/auth.middleware';
 import { requireAdmin } from '../../middleware/admin.middleware';
 import { requirePermission } from '../../middleware/permission.middleware';
@@ -12,6 +12,222 @@ const router = Router();
 
 // All routes require admin authentication
 router.use(authenticate, requireAdmin);
+
+/**
+ * @swagger
+ * /admin/batches:
+ *   post:
+ *     summary: Create a new batch (admin)
+ *     description: Create a new batch for any coaching center. The userId is automatically extracted from the center. Requires batch:create permission.
+ *     tags: [Admin Batches]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - sportId
+ *               - centerId
+ *               - scheduled
+ *               - duration
+ *               - capacity
+ *               - age
+ *               - fee_structure
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "Morning Batch"
+ *               sportId:
+ *                 type: string
+ *                 description: Sport ObjectId
+ *                 example: "507f1f77bcf86cd799439011"
+ *               centerId:
+ *                 type: string
+ *                 description: Coaching Center ObjectId or custom ID (UUID). The userId will be automatically extracted from the center.
+ *                 example: "507f1f77bcf86cd799439011"
+ *               coach:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Employee ObjectId (optional)
+ *                 example: "507f1f77bcf86cd799439012"
+ *               scheduled:
+ *                 type: object
+ *                 required:
+ *                   - start_date
+ *                   - start_time
+ *                   - end_time
+ *                   - training_days
+ *                 properties:
+ *                   start_date:
+ *                     type: string
+ *                     format: date
+ *                     example: "2024-12-01"
+ *                   start_time:
+ *                     type: string
+ *                     pattern: "^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
+ *                     example: "09:00"
+ *                   end_time:
+ *                     type: string
+ *                     pattern: "^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
+ *                     example: "11:00"
+ *                   training_days:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+ *                     minItems: 1
+ *                     example: ["monday", "wednesday", "friday"]
+ *               duration:
+ *                 type: object
+ *                 required:
+ *                   - count
+ *                   - type
+ *                 properties:
+ *                   count:
+ *                     type: number
+ *                     minimum: 1
+ *                     example: 3
+ *                   type:
+ *                     type: string
+ *                     enum: [day, month, week, year]
+ *                     example: "month"
+ *               capacity:
+ *                 type: object
+ *                 required:
+ *                   - min
+ *                 properties:
+ *                   min:
+ *                     type: number
+ *                     minimum: 1
+ *                     example: 10
+ *                   max:
+ *                     type: number
+ *                     minimum: 1
+ *                     nullable: true
+ *                     example: 30
+ *               age:
+ *                 type: object
+ *                 required:
+ *                   - min
+ *                   - max
+ *                 properties:
+ *                   min:
+ *                     type: number
+ *                     minimum: 3
+ *                     maximum: 18
+ *                     example: 8
+ *                   max:
+ *                     type: number
+ *                     minimum: 3
+ *                     maximum: 18
+ *                     example: 12
+ *               admission_fee:
+ *                 type: number
+ *                 minimum: 0
+ *                 nullable: true
+ *                 example: 5000
+ *               fee_structure:
+ *                 type: object
+ *                 required:
+ *                   - fee_type
+ *                   - fee_configuration
+ *                 properties:
+ *                   fee_type:
+ *                     type: string
+ *                     enum: [monthly, daily, weekly, hourly, per_batch, per_session, age_based, coach_license_based, player_level_based, seasonal, package_based, group_discount, advance_booking, weekend_pricing, peak_hours, membership_based, custom]
+ *                     example: "monthly"
+ *                     description: Fee type (see /academy/fee-type-config endpoint for available types)
+ *                   fee_configuration:
+ *                     type: object
+ *                     additionalProperties: true
+ *                     description: Dynamic configuration object based on fee_type (see /academy/fee-type-config/:feeType endpoint for form structure)
+ *                     example:
+ *                       base_price: 2000
+ *                       classes_per_week_options:
+ *                         - days_per_week: 2
+ *                           price: 1500
+ *                         - days_per_week: 3
+ *                           price: 2000
+ *                   admission_fee:
+ *                     type: number
+ *                     minimum: 0
+ *                     nullable: true
+ *                     example: 5000
+ *               status:
+ *                 type: string
+ *                 enum: [published, draft, inactive]
+ *                 default: draft
+ *                 example: "draft"
+ *           examples:
+ *             completeBatch:
+ *               summary: Complete batch creation
+ *               value:
+ *                 name: "Morning Cricket Batch"
+ *                 sportId: "507f1f77bcf86cd799439011"
+ *                 centerId: "507f1f77bcf86cd799439011"
+ *                 coach: "507f1f77bcf86cd799439012"
+ *                 scheduled:
+ *                   start_date: "2024-12-01"
+ *                   start_time: "09:00"
+ *                   end_time: "11:00"
+ *                   training_days: ["monday", "wednesday", "friday"]
+ *                 duration:
+ *                   count: 3
+ *                   type: "month"
+ *                 capacity:
+ *                   min: 10
+ *                   max: 30
+ *                 age:
+ *                   min: 8
+ *                   max: 12
+ *                 admission_fee: 5000
+ *                 fee_structure:
+ *                   fee_type: "monthly"
+ *                   fee_configuration:
+ *                     base_price: 2000
+ *                     classes_per_week_options:
+ *                       - days_per_week: 2
+ *                         price: 1500
+ *                       - days_per_week: 3
+ *                         price: 2000
+ *                   admission_fee: 5000
+ *                 status: "draft"
+ *     responses:
+ *       201:
+ *         description: Batch created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Batch created successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     batch:
+ *                       $ref: '#/components/schemas/Batch'
+ *       400:
+ *         description: Validation error or invalid data
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       404:
+ *         description: Sport, center, or coach not found
+ */
+router.post(
+  '/',
+  requirePermission(Section.BATCH, Action.CREATE),
+  validate(batchCreateSchema),
+  batchController.createBatch
+);
 
 /**
  * @swagger

@@ -2926,6 +2926,153 @@
             "description": "Soft delete a batch. Requires batch:delete permission."
           },
           "response": []
+        },
+        {
+          "name": "Create Batch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Morning Cricket Batch\",\n  \"sportId\": \"507f1f77bcf86cd799439011\",\n  \"centerId\": \"507f1f77bcf86cd799439011\",\n  \"coach\": \"507f1f77bcf86cd799439012\",\n  \"scheduled\": {\n    \"start_date\": \"2024-12-01\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": {\n    \"count\": 3,\n    \"type\": \"month\"\n  },\n  \"capacity\": {\n    \"min\": 10,\n    \"max\": 30\n  },\n  \"age\": {\n    \"min\": 8,\n    \"max\": 12\n  },\n  \"admission_fee\": 5000,\n  \"fee_structure\": {\n    \"fee_type\": \"monthly\",\n    \"fee_configuration\": {\n      \"base_price\": 2000,\n      \"classes_per_week_options\": [\n        {\n          \"days_per_week\": 2,\n          \"price\": 1500\n        },\n        {\n          \"days_per_week\": 3,\n          \"price\": 2000\n        }\n      ]\n    },\n    \"admission_fee\": 5000\n  },\n  \"status\": \"draft\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/batches",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "batches"]
+            },
+            "description": "Create a new batch for any coaching center. The userId is automatically extracted from the centerId. Requires batch:create permission."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Fee Type Configuration",
+      "description": "Fee type configuration endpoints for dynamic form generation. These endpoints help in building fee structure forms for batch creation.",
+      "item": [
+        {
+          "name": "Get All Fee Types",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/fee-type-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "fee-type-config"]
+            },
+            "description": "Retrieve all available fee types with their labels and descriptions. Requires batch:view permission."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/fee-type-config",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "fee-type-config"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Fee types retrieved successfully\",\n  \"data\": {\n    \"feeTypes\": [\n      {\n        \"value\": \"monthly\",\n        \"label\": \"Monthly Fee\",\n        \"description\": \"Fee charged on a monthly basis\"\n      },\n      {\n        \"value\": \"daily\",\n        \"label\": \"Daily Fee\",\n        \"description\": \"Fee charged per day\"\n      },\n      {\n        \"value\": \"weekly\",\n        \"label\": \"Weekly Fee\",\n        \"description\": \"Fee charged on a weekly basis\"\n      },\n      {\n        \"value\": \"hourly\",\n        \"label\": \"Hourly Fee\",\n        \"description\": \"Fee charged per hour\"\n      },\n      {\n        \"value\": \"per_batch\",\n        \"label\": \"Per Batch Fee\",\n        \"description\": \"Fee charged per batch\"\n      },\n      {\n        \"value\": \"per_session\",\n        \"label\": \"Per Session Fee\",\n        \"description\": \"Fee charged per session\"\n      },\n      {\n        \"value\": \"age_based\",\n        \"label\": \"Age-Based Fee\",\n        \"description\": \"Fee varies based on age group\"\n      },\n      {\n        \"value\": \"custom\",\n        \"label\": \"Custom Fee\",\n        \"description\": \"Custom fee structure\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Fee Type Form Structure",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/fee-type-config/:feeType",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "fee-type-config", ":feeType"],
+              "variable": [
+                {
+                  "key": "feeType",
+                  "value": "monthly",
+                  "description": "Fee type (monthly, daily, weekly, hourly, per_batch, per_session, age_based, coach_license_based, player_level_based, seasonal, package_based, group_discount, advance_booking, weekend_pricing, peak_hours, membership_based, custom)"
+                }
+              ]
+            },
+            "description": "Retrieve the form structure (fields) required for a specific fee type. This helps in building dynamic forms for fee configuration. Requires batch:view permission."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/fee-type-config/monthly",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "fee-type-config", "monthly"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Fee type form structure retrieved successfully\",\n  \"data\": {\n    \"config\": {\n      \"id\": \"507f1f77bcf86cd799439011\",\n      \"fee_type\": \"monthly\",\n      \"label\": \"Monthly Fee\",\n      \"description\": \"Fee charged on a monthly basis\",\n      \"formFields\": [\n        {\n          \"name\": \"base_price\",\n          \"label\": \"Base Price\",\n          \"type\": \"number\",\n          \"required\": true,\n          \"placeholder\": \"Enter base price\",\n          \"min\": 0,\n          \"step\": 0.01,\n          \"description\": \"Base monthly fee amount\"\n        },\n        {\n          \"name\": \"classes_per_week_options\",\n          \"label\": \"Classes Per Week Options\",\n          \"type\": \"array\",\n          \"required\": false,\n          \"description\": \"Different pricing options based on classes per week\",\n          \"fields\": [\n            {\n              \"name\": \"days_per_week\",\n              \"label\": \"Days Per Week\",\n              \"type\": \"number\",\n              \"required\": true,\n              \"min\": 1,\n              \"max\": 7\n            },\n            {\n              \"name\": \"price\",\n              \"label\": \"Price\",\n              \"type\": \"number\",\n              \"required\": true,\n              \"min\": 0,\n              \"step\": 0.01\n            }\n          ]\n        },\n        {\n          \"name\": \"admission_fee\",\n          \"label\": \"Admission Fee\",\n          \"type\": \"number\",\n          \"required\": false,\n          \"placeholder\": \"Enter admission fee (optional)\",\n          \"min\": 0,\n          \"step\": 0.01,\n          \"description\": \"One-time admission fee\"\n        }\n      ]\n    }\n  }\n}"
+            }
+          ]
         }
       ]
     },

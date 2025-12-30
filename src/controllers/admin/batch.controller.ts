@@ -3,7 +3,28 @@ import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
 import * as adminBatchService from '../../services/admin/adminBatch.service';
-import type { BatchUpdateInput } from '../../validations/batch.validation';
+import type { BatchCreateInput, BatchUpdateInput } from '../../validations/batch.validation';
+
+/**
+ * Create batch (admin)
+ */
+export const createBatch = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = req.body as BatchCreateInput;
+
+    // centerId is required for admin batch creation
+    if (!data.centerId) {
+      throw new ApiError(400, t('validation.batch.centerId.required'));
+    }
+
+    const batch = await adminBatchService.createBatchByAdmin(data);
+
+    const response = new ApiResponse(201, { batch }, t('batch.create.success'));
+    res.status(201).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
 
 /**
  * Get all batches (admin view)
