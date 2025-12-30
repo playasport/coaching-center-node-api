@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import * as coachingCenterController from '../../controllers/admin/coachingCenter.controller';
 import { validate } from '../../middleware/validation.middleware';
 import { adminCoachingCenterCreateSchema, adminCoachingCenterUpdateSchema } from '../../validations/coachingCenter.validation';
@@ -332,52 +332,101 @@ router.get(
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/AdminCoachingCenterCreateRequest'
-   *           example:
-   *             academy_owner:
-   *               firstName: "John"
-   *               lastName: "Doe"
-   *               email: "john.academy@example.com"
-   *               mobile: "9876543210"
-   *             center_name: "Elite Sports Academy"
-   *             mobile_number: "9876543210"
-   *             email: "info@elitesportsacademy.com"
-   *             logo: "https://bucket.s3.region.amazonaws.com/logos/elite-academy.png"
-   *             documents:
-   *               - unique_id: "h8l9i1jk-02l4-1i53-i75h-70m60h154h1i"
-   *                 url: "https://bucket.s3.region.amazonaws.com/documents/coachingCentres/certificate.pdf"
-   *             sports: ["507f1f77bcf86cd799439011"]
-   *             sport_details:
-   *               - sport_id: "507f1f77bcf86cd799439011"
-   *                 description: "Professional cricket coaching with international level facilities. Our coaches have played at state and national levels."
-   *                 images:
-   *                   - unique_id: "aeddb4dc-35e7-4b86-b08a-03f93a487a4b"
-   *                     url: "https://bucket.s3.region.amazonaws.com/images/coachingCentres/cricket1.jpg"
-   *                 videos:
-   *                   - unique_id: "c3g4d6ef-57g9-6d08-d20c-25h15c609c6d"
-   *                     url: "https://bucket.s3.region.amazonaws.com/videos/coachingCentres/cricket-training.mp4"
-   *                     thumbnail: "https://bucket.s3.region.amazonaws.com/videos/coachingCentres/cricket-training_thumb.jpg"
-   *             age:
-   *               min: 5
-   *               max: 18
-   *             location:
-   *               latitude: 28.6139
-   *               longitude: 77.209
-   *               address:
-   *                 line1: "123 Sports Complex"
-   *                 line2: "Near Metro Station"
-   *                 city: "New Delhi"
-   *                 state: "Delhi"
-   *                 country: "India"
-   *                 pincode: "110001"
-   *             operational_timing:
-   *               operating_days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
-   *               opening_time: "09:00"
-   *               closing_time: "18:00"
-   *             allowed_genders: ["male", "female"]
-   *             allowed_disabled: false
-   *             is_only_for_disabled: false
-   *             experience: 5
-   *             status: "published"
+   *           examples:
+   *             withOwnerId:
+   *               summary: Using existing owner_id
+   *               description: Use an existing user ID as the academy owner
+   *               value:
+   *                 owner_id: "f316a86c-2909-4d32-8983-eb225c715bcb"
+   *                 center_name: "Elite Sports Academy"
+   *                 mobile_number: "9876543210"
+   *                 email: "info@elitesportsacademy.com"
+   *                 logo: "https://bucket.s3.region.amazonaws.com/logos/elite-academy.png"
+   *                 documents:
+   *                   - unique_id: "h8l9i1jk-02l4-1i53-i75h-70m60h154h1i"
+   *                     url: "https://bucket.s3.region.amazonaws.com/documents/coachingCentres/certificate.pdf"
+   *                 sports: ["507f1f77bcf86cd799439011"]
+   *                 sport_details:
+   *                   - sport_id: "507f1f77bcf86cd799439011"
+   *                     description: "Professional cricket coaching with international level facilities. Our coaches have played at state and national levels."
+   *                     images:
+   *                       - unique_id: "aeddb4dc-35e7-4b86-b08a-03f93a487a4b"
+   *                         url: "https://bucket.s3.region.amazonaws.com/images/coachingCentres/cricket1.jpg"
+   *                     videos:
+   *                       - unique_id: "c3g4d6ef-57g9-6d08-d20c-25h15c609c6d"
+   *                         url: "https://bucket.s3.region.amazonaws.com/videos/coachingCentres/cricket-training.mp4"
+   *                         thumbnail: "https://bucket.s3.region.amazonaws.com/videos/coachingCentres/cricket-training_thumb.jpg"
+   *                 age:
+   *                   min: 5
+   *                   max: 18
+   *                 location:
+   *                   latitude: 28.6139
+   *                   longitude: 77.209
+   *                   address:
+   *                     line1: "123 Sports Complex"
+   *                     line2: "Near Metro Station"
+   *                     city: "New Delhi"
+   *                     state: "Delhi"
+   *                     country: "India"
+   *                     pincode: "110001"
+   *                 operational_timing:
+   *                   operating_days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+   *                   opening_time: "09:00"
+   *                   closing_time: "18:00"
+   *                 allowed_genders: ["male", "female"]
+   *                 allowed_disabled: false
+   *                 is_only_for_disabled: false
+   *                 experience: 5
+   *                 status: "published"
+   *             withAcademyOwner:
+   *               summary: Creating new academy owner
+   *               description: Provide academy_owner details to create a new user if doesn't exist
+   *               value:
+   *                 academy_owner:
+   *                   firstName: "John"
+   *                   lastName: "Doe"
+   *                   email: "john.academy@example.com"
+   *                   mobile: "9876543210"
+   *                 center_name: "Elite Sports Academy"
+   *                 mobile_number: "9876543210"
+   *                 email: "info@elitesportsacademy.com"
+   *                 logo: "https://bucket.s3.region.amazonaws.com/logos/elite-academy.png"
+   *                 documents:
+   *                   - unique_id: "h8l9i1jk-02l4-1i53-i75h-70m60h154h1i"
+   *                     url: "https://bucket.s3.region.amazonaws.com/documents/coachingCentres/certificate.pdf"
+   *                 sports: ["507f1f77bcf86cd799439011"]
+   *                 sport_details:
+   *                   - sport_id: "507f1f77bcf86cd799439011"
+   *                     description: "Professional cricket coaching with international level facilities. Our coaches have played at state and national levels."
+   *                     images:
+   *                       - unique_id: "aeddb4dc-35e7-4b86-b08a-03f93a487a4b"
+   *                         url: "https://bucket.s3.region.amazonaws.com/images/coachingCentres/cricket1.jpg"
+   *                     videos:
+   *                       - unique_id: "c3g4d6ef-57g9-6d08-d20c-25h15c609c6d"
+   *                         url: "https://bucket.s3.region.amazonaws.com/videos/coachingCentres/cricket-training.mp4"
+   *                         thumbnail: "https://bucket.s3.region.amazonaws.com/videos/coachingCentres/cricket-training_thumb.jpg"
+   *                 age:
+   *                   min: 5
+   *                   max: 18
+   *                 location:
+   *                   latitude: 28.6139
+   *                   longitude: 77.209
+   *                   address:
+   *                     line1: "123 Sports Complex"
+   *                     line2: "Near Metro Station"
+   *                     city: "New Delhi"
+   *                     state: "Delhi"
+   *                     country: "India"
+   *                     pincode: "110001"
+   *                 operational_timing:
+   *                   operating_days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+   *                   opening_time: "09:00"
+   *                   closing_time: "18:00"
+   *                 allowed_genders: ["male", "female"]
+   *                 allowed_disabled: false
+   *                 is_only_for_disabled: false
+   *                 experience: 5
+   *                 status: "published"
  *     responses:
  *       201:
  *         description: Coaching center created successfully
@@ -963,6 +1012,306 @@ router.post(
   requirePermission(Section.COACHING_CENTER, Action.UPDATE),
   uploadThumbnail,
   coachingCenterController.uploadVideoThumbnail
+);
+
+/**
+ * @swagger
+ * /admin/coaching-centers/export/excel:
+ *   get:
+ *     summary: Export coaching centers to Excel
+ *     description: Export coaching centers data to Excel format with date-wise filtering. Requires coaching_center:view permission.
+ *     tags: [Admin Coaching Centers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Filter by Academy owner ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [draft, published]
+ *         description: Filter by center status
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter by active status
+ *       - in: query
+ *         name: sportId
+ *         schema:
+ *           type: string
+ *         description: Filter by sport ID
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by center name, email, or mobile number
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by start date (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by end date (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Excel file downloaded successfully
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ */
+router.get(
+  '/export/excel',
+  requirePermission(Section.COACHING_CENTER, Action.VIEW),
+  coachingCenterController.exportToExcel
+);
+
+/**
+ * @swagger
+ * /admin/coaching-centers/export/pdf:
+ *   get:
+ *     summary: Export coaching centers to PDF
+ *     description: Export coaching centers data to PDF format with date-wise filtering. Requires coaching_center:view permission.
+ *     tags: [Admin Coaching Centers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Filter by Academy owner ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [draft, published]
+ *         description: Filter by center status
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter by active status
+ *       - in: query
+ *         name: sportId
+ *         schema:
+ *           type: string
+ *         description: Filter by sport ID
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by center name, email, or mobile number
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by start date (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by end date (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: PDF file downloaded successfully
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ */
+router.get(
+  '/export/pdf',
+  requirePermission(Section.COACHING_CENTER, Action.VIEW),
+  coachingCenterController.exportToPDF
+);
+
+/**
+ * @swagger
+ * /admin/coaching-centers/export/csv:
+ *   get:
+ *     summary: Export coaching centers to CSV
+ *     description: Export coaching centers data to CSV format with date-wise filtering. Requires coaching_center:view permission.
+ *     tags: [Admin Coaching Centers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Filter by Academy owner ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [draft, published]
+ *         description: Filter by center status
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter by active status
+ *       - in: query
+ *         name: sportId
+ *         schema:
+ *           type: string
+ *         description: Filter by sport ID
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by center name, email, or mobile number
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by start date (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by end date (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: CSV file downloaded successfully
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ */
+router.get(
+  '/export/csv',
+  requirePermission(Section.COACHING_CENTER, Action.VIEW),
+  coachingCenterController.exportToCSV
+);
+
+/**
+ * @swagger
+ * /admin/coaching-centers/export/academies:
+ *   get:
+ *     summary: Export all academies (published and active coaching centers)
+ *     description: Convenience endpoint to export all published and active coaching centers (academies) in Excel, PDF, or CSV format. Requires coaching_center:view permission.
+ *     tags: [Admin Coaching Centers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: format
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [excel, pdf, csv]
+ *         description: Export format (excel, pdf, or csv)
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by start date (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by end date (YYYY-MM-DD)
+ *       - in: query
+ *         name: sportId
+ *         schema:
+ *           type: string
+ *         description: Filter by sport ID
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by center name, email, or mobile number
+ *     responses:
+ *       200:
+ *         description: File downloaded successfully
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *             description: Excel file (when format=excel)
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *             description: PDF file (when format=pdf)
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *             description: CSV file (when format=csv)
+ *       400:
+ *         description: Invalid format parameter
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               success: false
+ *               message: "Format parameter is required and must be one of: excel, pdf, csv"
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get(
+  '/export/academies',
+  requirePermission(Section.COACHING_CENTER, Action.VIEW),
+  (req: Request, res: Response, next: NextFunction) => {
+    // Set default filters for academies (published and active)
+    req.query.status = 'published';
+    req.query.isActive = 'true';
+    
+    const format = req.query.format as string;
+    
+    if (!format || !['excel', 'pdf', 'csv'].includes(format)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Format parameter is required and must be one of: excel, pdf, csv'
+      });
+    }
+    
+    // Route to appropriate export handler
+    if (format === 'excel') {
+      return coachingCenterController.exportToExcel(req, res, next);
+    } else if (format === 'pdf') {
+      return coachingCenterController.exportToPDF(req, res, next);
+    } else {
+      return coachingCenterController.exportToCSV(req, res, next);
+    }
+  }
 );
 
 export default router;

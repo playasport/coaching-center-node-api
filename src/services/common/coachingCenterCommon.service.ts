@@ -314,7 +314,7 @@ export const moveMediaFilesToPermanent = async (coachingCenter: CoachingCenter):
         }
         
         return {
-          ...sd,
+        ...sd,
           sport_id: sportId,
           images: sd.images?.map((img, imgIndex) => {
             logger.info('Checking image URL', { 

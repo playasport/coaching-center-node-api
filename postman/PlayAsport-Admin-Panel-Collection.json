@@ -1431,7 +1431,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["admin", "coaching-centers"]
             },
-            "description": "Create a new coaching center by providing academy owner details. A new user with 'academy' role will be created if email/mobile doesn't exist. Center will be directly published. Requires coaching_center:create permission."
+            "description": "Create a new coaching center. You can either:\n1. Provide owner_id: Use an existing user ID (UUID) as the academy owner. The user must exist and not be deleted.\n2. Provide academy_owner: Provide owner details (firstName, lastName, email, mobile). A new user with 'academy' role will be created if email/mobile doesn't exist.\n\nEither owner_id or academy_owner must be provided. Center will be directly published. Requires coaching_center:create permission."
           },
           "event": [
             {
@@ -1595,6 +1595,254 @@
               ]
             },
             "description": "Upload and set a thumbnail image file for a video in the coaching center. The thumbnail image file will be uploaded to S3 and automatically compressed. Requires sportId, videoUniqueId, and thumbnail image file. Requires coaching_center:update permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Export to Excel",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/coaching-centers/export/excel?startDate=2024-01-01&endDate=2024-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "coaching-centers", "export", "excel"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "",
+                  "description": "Filter by Academy owner ID",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "published",
+                  "description": "Filter by center status (draft, published)",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "Filter by active status",
+                  "disabled": true
+                },
+                {
+                  "key": "sportId",
+                  "value": "",
+                  "description": "Filter by sport ID",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by center name, email, or mobile number",
+                  "disabled": true
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01",
+                  "description": "Filter by start date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "description": "Filter by end date (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Export coaching centers to Excel format with date-wise filtering. Supports all filters: userId, status, isActive, sportId, search, startDate, endDate. Requires coaching_center:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Export to PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/coaching-centers/export/pdf?startDate=2024-01-01&endDate=2024-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "coaching-centers", "export", "pdf"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "",
+                  "description": "Filter by Academy owner ID",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "published",
+                  "description": "Filter by center status (draft, published)",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "Filter by active status",
+                  "disabled": true
+                },
+                {
+                  "key": "sportId",
+                  "value": "",
+                  "description": "Filter by sport ID",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by center name, email, or mobile number",
+                  "disabled": true
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01",
+                  "description": "Filter by start date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "description": "Filter by end date (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Export coaching centers to PDF format with date-wise filtering. Supports all filters: userId, status, isActive, sportId, search, startDate, endDate. Requires coaching_center:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Export to CSV",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/coaching-centers/export/csv?startDate=2024-01-01&endDate=2024-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "coaching-centers", "export", "csv"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "",
+                  "description": "Filter by Academy owner ID",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "published",
+                  "description": "Filter by center status (draft, published)",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "Filter by active status",
+                  "disabled": true
+                },
+                {
+                  "key": "sportId",
+                  "value": "",
+                  "description": "Filter by sport ID",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by center name, email, or mobile number",
+                  "disabled": true
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01",
+                  "description": "Filter by start date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "description": "Filter by end date (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Export coaching centers to CSV format with date-wise filtering. Supports all filters: userId, status, isActive, sportId, search, startDate, endDate. Requires coaching_center:view permission."
+          },
+          "response": []
+        },
+        {
+          "name": "Export All Academies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/coaching-centers/export/academies?format=excel&startDate=2024-01-01&endDate=2024-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "coaching-centers", "export", "academies"],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "excel",
+                  "description": "Export format (excel, pdf, or csv)",
+                  "options": [
+                    {
+                      "value": "excel"
+                    },
+                    {
+                      "value": "pdf"
+                    },
+                    {
+                      "value": "csv"
+                    }
+                  ]
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01",
+                  "description": "Filter by start date (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "description": "Filter by end date (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "sportId",
+                  "value": "",
+                  "description": "Filter by sport ID",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by center name, email, or mobile number",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Convenience endpoint to export all published and active coaching centers (academies). Automatically filters for status=published and isActive=true. Supports Excel, PDF, and CSV formats. Additional filters: startDate, endDate, sportId, search. Requires coaching_center:view permission."
           },
           "response": []
         }

@@ -1,0 +1,372 @@
+openapi: 3.0.3
+info:
+  title: Coaching Centers Export API
+  description: |
+    API endpoints for exporting coaching centers data in Excel, PDF, and CSV formats.
+    All endpoints require authentication with `coaching_center:view` permission.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@playasport.in
+
+servers:
+  - url: http://localhost:3001/api/v1
+    description: Local development server
+  - url: https://api.playasport.in/api/v1
+    description: Production server
+
+tags:
+  - name: Export
+    description: Coaching centers export operations
+
+paths:
+  /admin/coaching-centers/export/excel:
+    get:
+      summary: Export coaching centers to Excel
+      description: |
+        Export coaching centers data to Excel format (.xlsx) with date-wise filtering.
+        Supports filtering by userId, status, isActive, sportId, search, and date range.
+      tags:
+        - Export
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+          description: Filter by Academy owner ID (UUID)
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, published]
+          description: Filter by center status
+        - name: isActive
+          in: query
+          schema:
+            type: string
+            enum: ["true", "false"]
+          description: Filter by active status
+        - name: sportId
+          in: query
+          schema:
+            type: string
+          description: Filter by sport ID
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by center name, email, or mobile number
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+          description: Filter by start date (YYYY-MM-DD)
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+          description: Filter by end date (YYYY-MM-DD)
+      responses:
+        '200':
+          description: Excel file downloaded successfully
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+              example: "Binary Excel file content"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/coaching-centers/export/pdf:
+    get:
+      summary: Export coaching centers to PDF
+      description: |
+        Export coaching centers data to PDF format with date-wise filtering.
+        Supports filtering by userId, status, isActive, sportId, search, and date range.
+      tags:
+        - Export
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+          description: Filter by Academy owner ID (UUID)
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, published]
+          description: Filter by center status
+        - name: isActive
+          in: query
+          schema:
+            type: string
+            enum: ["true", "false"]
+          description: Filter by active status
+        - name: sportId
+          in: query
+          schema:
+            type: string
+          description: Filter by sport ID
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by center name, email, or mobile number
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+          description: Filter by start date (YYYY-MM-DD)
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+          description: Filter by end date (YYYY-MM-DD)
+      responses:
+        '200':
+          description: PDF file downloaded successfully
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+              example: "Binary PDF file content"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/coaching-centers/export/csv:
+    get:
+      summary: Export coaching centers to CSV
+      description: |
+        Export coaching centers data to CSV format with date-wise filtering.
+        Supports filtering by userId, status, isActive, sportId, search, and date range.
+      tags:
+        - Export
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+          description: Filter by Academy owner ID (UUID)
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, published]
+          description: Filter by center status
+        - name: isActive
+          in: query
+          schema:
+            type: string
+            enum: ["true", "false"]
+          description: Filter by active status
+        - name: sportId
+          in: query
+          schema:
+            type: string
+          description: Filter by sport ID
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by center name, email, or mobile number
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+          description: Filter by start date (YYYY-MM-DD)
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+          description: Filter by end date (YYYY-MM-DD)
+      responses:
+        '200':
+          description: CSV file downloaded successfully
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+              example: "CSV file content"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/coaching-centers/export/academies:
+    get:
+      summary: Export all academies (published and active coaching centers)
+      description: |
+        Convenience endpoint to export all published and active coaching centers (academies).
+        Automatically filters for `status=published` and `isActive=true`.
+        Supports Excel, PDF, and CSV formats.
+      tags:
+        - Export
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: format
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [excel, pdf, csv]
+          description: Export format (excel, pdf, or csv)
+          example: excel
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+          description: Filter by start date (YYYY-MM-DD)
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+          description: Filter by end date (YYYY-MM-DD)
+        - name: sportId
+          in: query
+          schema:
+            type: string
+          description: Filter by sport ID
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by center name, email, or mobile number
+      responses:
+        '200':
+          description: File downloaded successfully
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+              description: Excel file (when format=excel)
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+              description: PDF file (when format=pdf)
+            text/csv:
+              schema:
+                type: string
+                format: binary
+              description: CSV file (when format=csv)
+        '400':
+          description: Invalid format parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: "Format parameter is required and must be one of: excel, pdf, csv"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication endpoint
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Error message description"
+      required:
+        - success
+        - message
+
+security:
+  - bearerAuth: []
+

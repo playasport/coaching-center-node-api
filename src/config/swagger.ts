@@ -2054,9 +2054,13 @@ const options: swaggerJsdoc.Options = {
             'allowed_disabled',
             'is_only_for_disabled',
             'experience',
-            'academy_owner',
           ],
           properties: {
+            owner_id: {
+              type: 'string',
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+              description: 'Existing user ID (UUID) to use as academy owner. If provided, academy_owner details are not needed. Either owner_id or academy_owner must be provided.',
+            },
             academy_owner: {
               type: 'object',
               required: ['firstName', 'email', 'mobile'],
@@ -2066,7 +2070,7 @@ const options: swaggerJsdoc.Options = {
                 email: { type: 'string', format: 'email', example: 'academy@example.com' },
                 mobile: { type: 'string', example: '9876543210' },
               },
-              description: 'Academy owner details. A new user with role "academy" will be created if email/mobile doesn\'t exist.',
+              description: 'Academy owner details. A new user with role "academy" will be created if email/mobile doesn\'t exist. Required if owner_id is not provided. Either owner_id or academy_owner must be provided.',
             },
             center_name: {
               type: 'string',

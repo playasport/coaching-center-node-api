@@ -235,12 +235,16 @@ export const adminCoachingCenterCreateSchema = z.object({
   body: z.object({
     ...coachingCenterBaseSchema,
     status: z.literal('published').default('published'),
+    owner_id: z.string().optional(),
     academy_owner: z.object({
       firstName: z.string({ message: 'First name is required' }).min(1),
       lastName: z.string().optional(),
       email: z.string({ message: 'Email is required' }).email('Invalid email address'),
       mobile: z.string({ message: 'Mobile number is required' }).regex(/^[6-9]\d{9}$/, 'Invalid mobile number'),
-    }),
+    }).optional(),
+  }).refine((data) => data.owner_id || data.academy_owner, {
+    message: 'Either owner_id or academy_owner must be provided',
+    path: ['owner_id'],
   })
 });
 

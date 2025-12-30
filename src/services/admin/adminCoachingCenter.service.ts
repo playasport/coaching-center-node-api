@@ -284,37 +284,60 @@ export const createCoachingCenterByAdmin = async (
 ): Promise<CoachingCenter> => {
   try {
     // 1. Handle Academy User creation/lookup
-    const { academy_owner } = data;
-    const academyRole = await RoleModel.findOne({ name: DefaultRoles.ACADEMY });
-    if (!academyRole) throw new ApiError(500, 'Academy role not found in system');
+    let userObjectId: Types.ObjectId;
 
-    // Check if user already exists with this email or mobile
-    let user = await UserModel.findOne({
-      $or: [
-        { email: academy_owner.email.toLowerCase() },
-        { mobile: academy_owner.mobile }
-      ],
-      isDeleted: false
-    });
+    if (data.owner_id) {
+      // If owner_id is provided, use it directly
+      const ownerObjectId = await getUserObjectId(data.owner_id);
+      if (!ownerObjectId) {
+        throw new ApiError(404, 'Academy owner user not found');
+      }
 
-    if (!user) {
-      // Create new Academy user if not exists
-      const defaultPassword = 'Academy@123'; // Default password for admin-created academy
-      const hashedPassword = await hashPassword(defaultPassword);
-      user = await UserModel.create({
-        id: uuidv4(),
-        email: academy_owner.email.toLowerCase(),
-        mobile: academy_owner.mobile,
-        firstName: academy_owner.firstName,
-        lastName: academy_owner.lastName ?? null,
-        password: hashedPassword,
-        roles: [academyRole._id],
-        isActive: true,
-        isDeleted: false,
+      // Verify the user exists and is not deleted
+      const ownerUser = await UserModel.findOne({ _id: ownerObjectId, isDeleted: false });
+      if (!ownerUser) {
+        throw new ApiError(404, 'Academy owner user not found or has been deleted');
+      }
+
+      userObjectId = ownerObjectId;
+    } else {
+      // Use academy_owner details to create or find user
+      const { academy_owner } = data;
+      if (!academy_owner) {
+        throw new ApiError(400, 'Either owner_id or academy_owner must be provided');
+      }
+
+      const academyRole = await RoleModel.findOne({ name: DefaultRoles.ACADEMY });
+      if (!academyRole) throw new ApiError(500, 'Academy role not found in system');
+
+      // Check if user already exists with this email or mobile
+      let user = await UserModel.findOne({
+        $or: [
+          { email: academy_owner.email.toLowerCase() },
+          { mobile: academy_owner.mobile }
+        ],
+        isDeleted: false
       });
-    }
 
-    const userObjectId = user._id;
+      if (!user) {
+        // Create new Academy user if not exists
+        const defaultPassword = 'Academy@123'; // Default password for admin-created academy
+        const hashedPassword = await hashPassword(defaultPassword);
+        user = await UserModel.create({
+          id: uuidv4(),
+          email: academy_owner.email.toLowerCase(),
+          mobile: academy_owner.mobile,
+          firstName: academy_owner.firstName,
+          lastName: academy_owner.lastName ?? null,
+          password: hashedPassword,
+          roles: [academyRole._id],
+          isActive: true,
+          isDeleted: false,
+        });
+      }
+
+      userObjectId = user._id;
+    }
 
     // 2. Validate sports
     const sportIds = data.sports ? data.sports.map(id => new Types.ObjectId(id)) : [];
@@ -348,8 +371,9 @@ export const createCoachingCenterByAdmin = async (
         sport_id: new Types.ObjectId(sd.sport_id)
       }))
     };
-    // Remove academy_owner from coachingCenterData as it's not a field in the model
+    // Remove academy_owner and owner_id from coachingCenterData as they're not fields in the model
     delete coachingCenterData.academy_owner;
+    delete coachingCenterData.owner_id;
     delete coachingCenterData.description;
 
     // 6. Save

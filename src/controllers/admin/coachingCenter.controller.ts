@@ -4,6 +4,7 @@ import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
 import * as adminCoachingCenterService from '../../services/admin/adminCoachingCenter.service';
 import * as commonService from '../../services/common/coachingCenterCommon.service';
+import * as exportService from '../../services/admin/coachingCenterExport.service';
 
 /**
  * Get all coaching centers (admin view)
@@ -254,6 +255,93 @@ export const uploadVideoThumbnail = async (req: Request, res: Response, next: Ne
 
     const response = new ApiResponse(200, { coachingCenter }, 'Video thumbnail uploaded successfully');
     res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Export coaching centers to Excel
+ */
+export const exportToExcel = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { userId, status, search, sportId, isActive, startDate, endDate } = req.query;
+
+    const filters = {
+      userId: userId as string,
+      status: status as string,
+      search: search as string,
+      sportId: sportId as string,
+      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      startDate: startDate as string,
+      endDate: endDate as string,
+    };
+
+    const buffer = await exportService.exportToExcel(filters);
+
+    const filename = `coaching-centers-${new Date().toISOString().split('T')[0]}.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Export coaching centers to PDF
+ */
+export const exportToPDF = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { userId, status, search, sportId, isActive, startDate, endDate } = req.query;
+
+    const filters = {
+      userId: userId as string,
+      status: status as string,
+      search: search as string,
+      sportId: sportId as string,
+      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      startDate: startDate as string,
+      endDate: endDate as string,
+    };
+
+    const buffer = await exportService.exportToPDF(filters);
+
+    const filename = `coaching-centers-${new Date().toISOString().split('T')[0]}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Export coaching centers to CSV
+ */
+export const exportToCSV = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { userId, status, search, sportId, isActive, startDate, endDate } = req.query;
+
+    const filters = {
+      userId: userId as string,
+      status: status as string,
+      search: search as string,
+      sportId: sportId as string,
+      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      startDate: startDate as string,
+      endDate: endDate as string,
+    };
+
+    const csvContent = await exportService.exportToCSV(filters);
+
+    const filename = `coaching-centers-${new Date().toISOString().split('T')[0]}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csvContent);
   } catch (error) {
     next(error);
   }
