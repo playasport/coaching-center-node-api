@@ -22,6 +22,7 @@
       "rejected": "Your account has been rejected by the admin.",
       "invalidRole": "You do not have access to this resource.",
       "mobileNotFound": "No user found with the provided mobile number.",
+      "otpNotFoundOrExpired": "OTP has expired. Please request a new one.",
       "otpSent": "One-time password has been generated and sent.",
       "otpUsed": "The OTP has already been used.",
       "otpExpired": "The OTP has expired. Please request a new one.",

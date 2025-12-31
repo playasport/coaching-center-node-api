@@ -893,7 +893,7 @@ export const verifyAcademyOtp = async (data: {
           ? t('auth.profile.mobileVerificationFailed')
           : mode === 'forgot_password'
           ? t('auth.password.resetOtpInvalid')
-          : t('auth.login.mobileNotFound'),
+          : t('auth.login.otpNotFoundOrExpired'),
       consumed: t('auth.login.otpUsed'),
       expired: t('auth.login.otpExpired'),
       invalid: t('auth.login.invalidOtp'),
@@ -1888,7 +1888,7 @@ export const verifyUserOtp = async (data: {
           ? t('auth.profile.mobileVerificationFailed')
           : mode === 'forgot_password'
           ? t('auth.password.resetOtpInvalid')
-          : t('auth.login.mobileNotFound'),
+          : t('auth.login.otpNotFoundOrExpired'),
       consumed: t('auth.login.otpUsed'),
       expired: t('auth.login.otpExpired'),
       invalid: t('auth.login.invalidOtp'),
