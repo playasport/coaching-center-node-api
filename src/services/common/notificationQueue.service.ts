@@ -16,6 +16,7 @@ import { sendTemplatedEmail } from './email.service';
 import { sendWhatsApp } from '../../utils/whatsapp';
 import { sendPushNotification, sendMulticastPushNotification } from '../../utils/fcm';
 import { deviceTokenService } from './deviceToken.service';
+import { getSmsEnabled, getEmailConfig, getSmsCredentials, getConfigWithPriority } from './settings.service';
 
 class PriorityQueue<T extends Notification> {
   private queues: Record<NotificationPriority, T[]> = {
@@ -54,21 +55,45 @@ let isProcessing = false;
 const MAX_RETRIES = 3;
 const DEFAULT_MAX_RETRIES = 3;
 
-// Channel enablement checks
-const isChannelEnabled = (channel: NotificationChannel): boolean => {
-  if (!config.notification.enabled) {
+// Channel enablement checks (checks settings first, then env fallback)
+const isChannelEnabled = async (channel: NotificationChannel): Promise<boolean> => {
+  // Check global notification enabled from settings first, then env
+  const notificationEnabled = await getConfigWithPriority<boolean>(
+    'notifications.enabled',
+    config.notification.enabled
+  ) ?? config.notification.enabled;
+  
+  if (!notificationEnabled) {
     return false;
   }
 
   switch (channel) {
-    case 'sms':
-      return config.sms.enabled;
-    case 'email':
-      return config.email.enabled;
-    case 'whatsapp':
-      return config.notification.whatsapp.enabled && config.sms.enabled && !!config.twilio.accountSid; // WhatsApp uses Twilio
-    case 'push':
-      return config.notification.push.enabled; // Check push notification config
+    case 'sms': {
+      return await getSmsEnabled();
+    }
+    case 'email': {
+      const emailConfig = await getEmailConfig();
+      return emailConfig.enabled;
+    }
+    case 'whatsapp': {
+      const whatsappEnabled = await getConfigWithPriority<boolean>(
+        'notifications.whatsapp.enabled',
+        config.notification.whatsapp.enabled
+      ) ?? config.notification.whatsapp.enabled;
+      
+      const smsEnabled = await getSmsEnabled();
+      const credentials = await getSmsCredentials();
+      
+      // WhatsApp uses Twilio/SMS provider, so need SMS enabled and credentials
+      return whatsappEnabled && smsEnabled && !!credentials.accountSid;
+    }
+    case 'push': {
+      const pushEnabled = await getConfigWithPriority<boolean>(
+        'notifications.push.enabled',
+        config.notification.push.enabled
+      ) ?? config.notification.push.enabled;
+      return pushEnabled;
+    }
     default:
       return false;
   }
@@ -76,7 +101,7 @@ const isChannelEnabled = (channel: NotificationChannel): boolean => {
 
 // Process SMS notification
 const processSms = async (notification: SmsNotification): Promise<NotificationResult> => {
-  if (!isChannelEnabled('sms')) {
+  if (!(await isChannelEnabled('sms'))) {
     logger.info('SMS channel disabled. Notification skipped.', {
       to: notification.to,
       priority: notification.priority,
@@ -100,11 +125,16 @@ const processSms = async (notification: SmsNotification): Promise<NotificationRe
     };
   }
 
+  // Get from phone number from settings first, then env
+  const credentials = await getSmsCredentials();
+  const fromPhone = credentials.fromPhone || config.twilio.fromPhone;
+
   try {
-    // Get from phone number from settings first, then env
-    const { getSmsCredentials } = await import('./settings.service');
-    const credentials = await getSmsCredentials();
-    const fromPhone = credentials.fromPhone || config.twilio.fromPhone;
+    logger.info('Attempting to send SMS', {
+      from: fromPhone,
+      to: notification.to,
+      hasFromPhone: !!fromPhone,
+    });
 
     const message = await client.messages.create({
       body: notification.body,
@@ -124,14 +154,27 @@ const processSms = async (notification: SmsNotification): Promise<NotificationRe
       messageId: message.sid,
     };
   } catch (error: any) {
+    // Extract detailed error information from Twilio error
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorCode = error?.code || error?.status || 'unknown';
+    const errorDetails = error?.moreInfo || error?.details || {};
+    const twilioMessage = error?.message || errorMessage;
+    
     logger.error('SMS delivery failed', {
       error: errorMessage,
+      errorCode,
+      twilioMessage,
+      errorDetails,
       to: notification.to,
+      from: fromPhone || 'unknown',
       priority: notification.priority,
     });
 
-    const retryable = !errorMessage.includes('invalid') && !errorMessage.includes('unsubscribed');
+    // "Authenticate" errors are usually credential issues and should not be retried
+    const retryable = !errorMessage.includes('invalid') && 
+                     !errorMessage.includes('unsubscribed') && 
+                     !errorMessage.includes('Authenticate') &&
+                     errorCode !== 20003; // Twilio error code for authentication failure
 
     return {
       success: false,
@@ -144,7 +187,7 @@ const processSms = async (notification: SmsNotification): Promise<NotificationRe
 
 // Process Email notification
 const processEmail = async (notification: EmailNotification): Promise<NotificationResult> => {
-  if (!isChannelEnabled('email')) {
+  if (!(await isChannelEnabled('email'))) {
     logger.info('Email channel disabled. Notification skipped.', {
       to: notification.to,
       priority: notification.priority,
@@ -196,7 +239,7 @@ const processEmail = async (notification: EmailNotification): Promise<Notificati
 
 // Process WhatsApp notification
 const processWhatsApp = async (notification: WhatsAppNotification): Promise<NotificationResult> => {
-  if (!isChannelEnabled('whatsapp')) {
+  if (!(await isChannelEnabled('whatsapp'))) {
     logger.info('WhatsApp channel disabled. Notification skipped.', {
       to: notification.to,
       priority: notification.priority,

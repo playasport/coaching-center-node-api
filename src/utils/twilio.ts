@@ -1,5 +1,6 @@
 import twilio, { Twilio } from 'twilio';
 import { config } from '../config/env';
+import { logger } from './logger';
 
 let client: Twilio | null = null;
 let clientInitializationPromise: Promise<Twilio | null> | null = null;
@@ -25,18 +26,52 @@ export const getTwilioClient = async (): Promise<Twilio | null> => {
       const credentials = await getSmsCredentials();
 
       if (!credentials.accountSid || !credentials.authToken || !credentials.fromPhone) {
-        return null;
+        logger.warn('Twilio credentials missing from settings, checking env fallback', {
+          hasAccountSid: !!credentials.accountSid,
+          hasAuthToken: !!credentials.authToken,
+          hasFromPhone: !!credentials.fromPhone,
+        });
+        
+        // Fallback to env if settings credentials are missing
+        if (!config.twilio.accountSid || !config.twilio.authToken || !config.twilio.fromPhone) {
+          logger.error('Twilio credentials missing from both settings and environment variables');
+          return null;
+        }
+
+        // Trim credentials to remove any whitespace
+        const accountSid = config.twilio.accountSid.trim();
+        const authToken = config.twilio.authToken.trim();
+        
+        client = twilio(accountSid, authToken);
+        logger.info('Twilio client initialized with environment credentials');
+        return client;
       }
 
-      client = twilio(credentials.accountSid, credentials.authToken);
+      // Trim credentials to remove any whitespace
+      const accountSid = credentials.accountSid.trim();
+      const authToken = credentials.authToken.trim();
+      
+      client = twilio(accountSid, authToken);
+      logger.info('Twilio client initialized with settings credentials', {
+        accountSidLength: accountSid.length,
+        authTokenLength: authToken.length,
+      });
       return client;
     } catch (error) {
+      logger.error('Failed to initialize Twilio client from settings, trying env fallback', error);
+      
       // Fallback to env if settings fail
       if (!config.twilio.accountSid || !config.twilio.authToken || !config.twilio.fromPhone) {
+        logger.error('Twilio credentials missing from environment variables');
         return null;
       }
 
-      client = twilio(config.twilio.accountSid, config.twilio.authToken);
+      // Trim credentials to remove any whitespace
+      const accountSid = config.twilio.accountSid.trim();
+      const authToken = config.twilio.authToken.trim();
+      
+      client = twilio(accountSid, authToken);
+      logger.info('Twilio client initialized with environment credentials (after settings error)');
       return client;
     } finally {
       clientInitializationPromise = null;

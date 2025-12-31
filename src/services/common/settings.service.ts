@@ -4,6 +4,8 @@ import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
 import { encryptObjectFields, decryptObjectFields } from '../../utils/encryption';
 import { config } from '../../config/env';
+import { resetTwilioClient } from '../../utils/twilio';
+import { resetEmailTransporter } from './email.service';
 
 /**
  * List of sensitive fields that should be encrypted/decrypted
@@ -258,6 +260,22 @@ export const updateSettings = async (
 
     if (!updatedSettings) {
       throw new ApiError(500, 'Failed to update settings');
+    }
+
+    // Reset cached clients if notification credentials were updated
+    const hasSmsSettings = dataToMerge.notifications?.sms !== undefined;
+    const hasEmailSettings = dataToMerge.notifications?.email !== undefined;
+    
+    if (hasSmsSettings) {
+      // Reset Twilio client so it reinitializes with new credentials
+      resetTwilioClient();
+      logger.info('Twilio client reset due to SMS settings update');
+    }
+    
+    if (hasEmailSettings) {
+      // Reset email transporter so it reinitializes with new credentials
+      resetEmailTransporter();
+      logger.info('Email transporter reset due to email settings update');
     }
 
     // Return decrypted settings if sensitive data was included
