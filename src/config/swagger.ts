@@ -6761,14 +6761,25 @@ const options: swaggerJsdoc.Options = {
             },
             recipientType: {
               type: 'string',
-              enum: ['user', 'academy'],
+              enum: ['user', 'academy', 'role'],
               example: 'user',
-              description: 'Type of recipient',
+              description: 'Type of recipient. "role" for role-based notifications',
             },
             recipientId: {
               type: 'string',
+              nullable: true,
               example: '507f1f77bcf86cd799439011',
-              description: 'Recipient ObjectId (User or Academy owner)',
+              description: 'Recipient ObjectId (User or Academy owner). Null when recipientType is "role"',
+            },
+            roles: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['super_admin', 'admin', 'user', 'academy', 'employee', 'agent'],
+              },
+              nullable: true,
+              example: ['admin', 'super_admin'],
+              description: 'Array of role names (for role-based notifications). Null when recipientType is "user" or "academy"',
             },
             title: {
               type: 'string',
@@ -6900,18 +6911,27 @@ const options: swaggerJsdoc.Options = {
         },
         SendNotificationRequest: {
           type: 'object',
-          required: ['recipientType', 'recipientId', 'title', 'body'],
+          required: ['recipientType', 'title', 'body'],
           properties: {
             recipientType: {
               type: 'string',
-              enum: ['user', 'academy'],
+              enum: ['user', 'academy', 'role'],
               example: 'user',
-              description: 'Type of recipient',
+              description: 'Type of recipient. Use "role" for role-based notifications (admin, super_admin, etc.)',
             },
             recipientId: {
               type: 'string',
               example: 'user-uuid-here',
-              description: 'User ID or Academy ID (custom string ID)',
+              description: 'User ID or Academy ID (custom string ID). Required when recipientType is "user" or "academy", not required for "role"',
+            },
+            roles: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['super_admin', 'admin', 'user', 'academy', 'employee', 'agent'],
+              },
+              example: ['admin', 'super_admin'],
+              description: 'Array of role names. Required when recipientType is "role". Supports single or multiple roles.',
             },
             title: {
               type: 'string',
@@ -6972,18 +6992,27 @@ const options: swaggerJsdoc.Options = {
         },
         TestNotificationRequest: {
           type: 'object',
-          required: ['recipientType', 'recipientId'],
+          required: ['recipientType'],
           properties: {
             recipientType: {
               type: 'string',
-              enum: ['user', 'academy'],
+              enum: ['user', 'academy', 'role'],
               example: 'user',
-              description: 'Type of recipient',
+              description: 'Type of recipient. Use "role" for role-based notifications',
             },
             recipientId: {
               type: 'string',
               example: 'user-uuid-here',
-              description: 'User ID or Academy ID (custom string ID)',
+              description: 'User ID or Academy ID (custom string ID). Required when recipientType is "user" or "academy", not required for "role"',
+            },
+            roles: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['super_admin', 'admin', 'user', 'academy', 'employee', 'agent'],
+              },
+              example: ['admin', 'super_admin'],
+              description: 'Array of role names. Required when recipientType is "role"',
             },
             channels: {
               type: 'array',

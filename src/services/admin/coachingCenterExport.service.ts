@@ -7,8 +7,6 @@ import PDFDocument from 'pdfkit';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { createObjectCsvWriter } from 'csv-writer';
-import * as commonService from '../common/coachingCenterCommon.service';
-
 export interface ExportFilters {
   userId?: string;
   status?: string;
@@ -17,6 +15,8 @@ export interface ExportFilters {
   isActive?: boolean;
   startDate?: string;
   endDate?: string;
+  isApproved?: boolean; // Backward compatibility
+  approvalStatus?: 'approved' | 'rejected' | 'pending_approval';
 }
 
 interface ExportDataRow {
@@ -240,7 +240,7 @@ export const exportToExcel = async (
  * Helper function to draw table cell with border
  */
 const drawTableCell = (
-  doc: PDFDocument,
+  doc: InstanceType<typeof PDFDocument>,
   text: string,
   x: number,
   y: number,
@@ -372,7 +372,6 @@ export const exportToPDF = async (
 
       let currentY = startY;
       let currentPage = 1;
-      const maxRowsPerPage = Math.floor((pageHeight - startY - 50) / rowHeight);
 
       // Function to draw header row
       const drawHeader = (y: number) => {
@@ -417,7 +416,7 @@ export const exportToPDF = async (
       currentY += headerHeight;
 
       // Draw data rows
-      exportData.forEach((row, index) => {
+      exportData.forEach((row) => {
         // Check if we need a new page
         if (currentY + rowHeight > pageHeight - 50) {
           doc.addPage();

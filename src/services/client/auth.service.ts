@@ -276,6 +276,33 @@ export const registerAcademyUser = async (data: AcademyRegisterInput): Promise<R
     }
   }
 
+  // Create notification for admin and super_admin when academy registers
+  try {
+    const { createAndSendNotification } = await import('../common/notification.service');
+    const fullName = lastName ? `${firstName} ${lastName}` : firstName;
+    
+    await createAndSendNotification({
+      recipientType: 'role',
+      roles: [DefaultRoles.ADMIN, DefaultRoles.SUPER_ADMIN],
+      title: 'New Academy Registration',
+      body: `${fullName} (${email}) has registered as an academy.`,
+      channels: ['push'],
+      priority: 'medium',
+      data: {
+        type: 'academy_registration',
+        userId: user.id,
+        email: email,
+      },
+      metadata: {
+        source: 'academy_registration',
+        registrationDate: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to create academy registration notification', { error });
+    // Don't throw error - notification failure shouldn't break registration
+  }
+
   return {
     user,
     accessToken,
@@ -1215,6 +1242,36 @@ export const registerUser = async (data: UserRegisterInput): Promise<RegisterRes
       );
     } catch (error) {
       logger.error('Failed to queue user registration admin email', { error });
+    }
+  }
+
+  // Create notification for admin and super_admin when new user registers
+  if (!existingUser) {
+    try {
+      const { createAndSendNotification } = await import('../common/notification.service');
+      const fullName = lastName ? `${firstName} ${lastName}` : firstName;
+      
+      await createAndSendNotification({
+        recipientType: 'role',
+        roles: [DefaultRoles.ADMIN, DefaultRoles.SUPER_ADMIN],
+        title: 'New User Registration',
+        body: `${fullName} (${email}) has registered as a ${type || 'user'}.`,
+        channels: ['push'],
+        priority: 'medium',
+        data: {
+          type: 'user_registration',
+          userId: user.id,
+          email: email,
+          userType: type || 'user',
+        },
+        metadata: {
+          source: 'user_registration',
+          registrationDate: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      logger.error('Failed to create user registration notification', { error });
+      // Don't throw error - notification failure shouldn't break registration
     }
   }
 

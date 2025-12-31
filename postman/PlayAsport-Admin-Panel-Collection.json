@@ -4934,14 +4934,19 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"recipientType\": \"user\",\n  \"recipientId\": \"{{userId}}\",\n  \"title\": \"New Booking Confirmed\",\n  \"body\": \"Your booking for Cricket Batch has been confirmed.\",\n  \"channels\": [\"push\", \"email\"],\n  \"priority\": \"medium\",\n  \"data\": {\n    \"bookingId\": \"BK-2024-0001\",\n    \"type\": \"booking\",\n    \"batchId\": \"batch-uuid-123\",\n    \"amount\": 5000\n  },\n  \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/notifications/image.png\"\n}"
+              "raw": "{\n  \"recipientType\": \"user\",\n  \"recipientId\": \"{{userId}}\",\n  \"title\": \"New Booking Confirmed\",\n  \"body\": \"Your booking for Cricket Batch has been confirmed.\",\n  \"channels\": [\"push\", \"email\"],\n  \"priority\": \"medium\",\n  \"data\": {\n    \"bookingId\": \"BK-2024-0001\",\n    \"type\": \"booking\",\n    \"batchId\": \"batch-uuid-123\",\n    \"amount\": 5000\n  },\n  \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/notifications/image.png\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/admin/notifications/send",
               "host": ["{{baseUrl}}"],
               "path": ["admin", "notifications", "send"]
             },
-            "description": "Send a notification to a user or academy through multiple channels (SMS, Email, WhatsApp, Push). Requires notification:create permission."
+            "description": "Send a notification to a user, academy, or role(s) through multiple channels (SMS, Email, WhatsApp, Push). For role-based notifications, set recipientType to 'role' and provide roles array. Requires notification:create permission."
           },
           "response": []
         },
@@ -4973,6 +4978,193 @@
             "description": "Send a test notification to verify notification channels are working. Requires notification:create permission."
           },
           "response": []
+        },
+        {
+          "name": "Get My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/notifications/my?page=1&limit=10&isRead=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "notifications", "my"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page",
+                  "disabled": true
+                },
+                {
+                  "key": "isRead",
+                  "value": "false",
+                  "description": "Filter by read status (true/false)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get paginated list of notifications for the authenticated admin user. Notifications are filtered based on the admin's roles. Requires admin authentication."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/notifications/my?page=1&limit=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "notifications", "my"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Notifications retrieved successfully\",\n  \"data\": {\n    \"notifications\": [\n      {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"recipientType\": \"role\",\n        \"roles\": [\"admin\", \"super_admin\"],\n        \"title\": \"New User Registration\",\n        \"body\": \"John Doe (john@example.com) has registered as a student.\",\n        \"channels\": [\"push\"],\n        \"priority\": \"medium\",\n        \"data\": {\n          \"type\": \"user_registration\",\n          \"userId\": \"user-id-123\",\n          \"email\": \"john@example.com\",\n          \"userType\": \"student\"\n        },\n        \"imageUrl\": null,\n        \"isRead\": false,\n        \"readAt\": null,\n        \"sent\": true,\n        \"sentAt\": \"2024-01-15T10:30:00.000Z\",\n        \"error\": null,\n        \"metadata\": {\n          \"source\": \"user_registration\",\n          \"registrationDate\": \"2024-01-15T10:30:00.000Z\"\n        },\n        \"createdAt\": \"2024-01-15T10:30:00.000Z\",\n        \"updatedAt\": \"2024-01-15T10:30:00.000Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 10,\n      \"total\": 25,\n      \"totalPages\": 3,\n      \"hasNextPage\": true,\n      \"hasPrevPage\": false\n    },\n    \"unreadCount\": 15\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/notifications/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "notifications", "unread-count"]
+            },
+            "description": "Get count of unread notifications for the authenticated admin user. Notifications are filtered based on the admin's roles. Requires admin authentication."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/notifications/unread-count",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "notifications", "unread-count"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Unread count retrieved successfully\",\n  \"data\": {\n    \"count\": 5\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/notifications/:id/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "notifications", ":id", "read"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{notificationId}}",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Mark a specific notification as read for the authenticated admin user. Requires admin authentication."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminAccessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/notifications/550e8400-e29b-41d4-a716-446655440000/read",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "notifications", "550e8400-e29b-41d4-a716-446655440000", "read"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Notification marked as read successfully\",\n  \"data\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"recipientType\": \"role\",\n    \"roles\": [\"admin\", \"super_admin\"],\n    \"title\": \"New User Registration\",\n    \"body\": \"John Doe (john@example.com) has registered as a student.\",\n    \"channels\": [\"push\"],\n    \"priority\": \"medium\",\n    \"isRead\": true,\n    \"readAt\": \"2024-01-15T10:35:00.000Z\",\n    \"createdAt\": \"2024-01-15T10:30:00.000Z\",\n    \"updatedAt\": \"2024-01-15T10:35:00.000Z\"\n  }\n}"
+            }
+          ]
         }
       ]
     },

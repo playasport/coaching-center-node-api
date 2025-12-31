@@ -12,7 +12,8 @@ import { queueMultiChannel } from './notificationQueue.service';
 
 export interface CreateNotificationInput {
   recipientType: NotificationRecipientType;
-  recipientId: string; // User ID or Academy ID (custom string ID)
+  recipientId?: string; // User ID or Academy ID (custom string ID) - optional when recipientType is 'role'
+  roles?: string[]; // Array of role names (for role-based notifications) - required when recipientType is 'role'
   title: string;
   body: string;
   channels?: NotificationChannel[];
@@ -95,21 +96,35 @@ export const createAndSendNotification = async (
   input: CreateNotificationInput
 ): Promise<Notification> => {
   try {
-    // Get recipient ObjectId
-    const recipientObjectId = await getRecipientObjectId(input.recipientType, input.recipientId);
-    if (!recipientObjectId) {
-      throw new ApiError(404, t('notification.recipientNotFound'));
+    // Validate input based on recipientType
+    if (input.recipientType === 'role') {
+      if (!input.roles || input.roles.length === 0) {
+        throw new ApiError(400, 'Roles are required when recipientType is "role"');
+      }
+    } else {
+      if (!input.recipientId) {
+        throw new ApiError(400, 'RecipientId is required when recipientType is not "role"');
+      }
     }
 
-    // recipientTypeRef is always 'User' since we store the user ObjectId
-    // (for academy, we store the academy owner's user ObjectId)
-    const recipientTypeRef = 'User';
+    let recipientObjectId: Types.ObjectId | null = null;
+    let recipientTypeRef: string | undefined = undefined;
+
+    // Get recipient ObjectId only if not role-based
+    if (input.recipientType !== 'role') {
+      recipientObjectId = await getRecipientObjectId(input.recipientType, input.recipientId!);
+      if (!recipientObjectId) {
+        throw new ApiError(404, t('notification.recipientNotFound'));
+      }
+
+      // recipientTypeRef is always 'User' since we store the user ObjectId
+      // (for academy, we store the academy owner's user ObjectId)
+      recipientTypeRef = 'User';
+    }
 
     // Create notification in database
-    const notification = new NotificationModel({
+    const notificationData: any = {
       recipientType: input.recipientType,
-      recipientId: recipientObjectId,
-      recipientTypeRef,
       title: input.title,
       body: input.body,
       channels: input.channels || ['push'],
@@ -119,12 +134,30 @@ export const createAndSendNotification = async (
       metadata: input.metadata || null,
       isRead: false,
       sent: false,
-    });
+    };
 
+    if (input.recipientType === 'role') {
+      notificationData.roles = input.roles;
+    } else {
+      notificationData.recipientId = recipientObjectId;
+      notificationData.recipientTypeRef = recipientTypeRef;
+    }
+
+    const notification = new NotificationModel(notificationData);
     await notification.save();
 
-    // Get user details for sending
-    const userDetails = await getUserDetails(recipientObjectId);
+    // For role-based notifications, we don't send immediately to specific users
+    // Instead, users will fetch notifications based on their roles
+    if (input.recipientType === 'role') {
+      // Mark as sent (it's available for users with matching roles to fetch)
+      notification.sent = true;
+      notification.sentAt = new Date();
+      await notification.save();
+      return notification.toObject();
+    }
+
+    // Get user details for sending (only for user/academy notifications)
+    const userDetails = await getUserDetails(recipientObjectId!);
     if (!userDetails) {
       notification.error = 'User details not found';
       await notification.save();
@@ -133,7 +166,7 @@ export const createAndSendNotification = async (
 
     // Send notifications through specified channels
     const channels = input.channels || ['push'];
-    const notificationData: any = {
+    const channelData: any = {
       push: {
         userId: userDetails.userId,
         title: input.title,
@@ -147,7 +180,7 @@ export const createAndSendNotification = async (
 
     // Add SMS if mobile is available
     if (channels.includes('sms') && userDetails.mobile) {
-      notificationData.sms = {
+      channelData.sms = {
         to: userDetails.mobile,
         body: input.body,
       };
@@ -155,7 +188,7 @@ export const createAndSendNotification = async (
 
     // Add Email if email is available
     if (channels.includes('email') && userDetails.email) {
-      notificationData.email = {
+      channelData.email = {
         to: userDetails.email,
         subject: input.title,
         html: `<p>${input.body}</p>`,
@@ -165,7 +198,7 @@ export const createAndSendNotification = async (
 
     // Add WhatsApp if mobile is available
     if (channels.includes('whatsapp') && userDetails.mobile) {
-      notificationData.whatsapp = {
+      channelData.whatsapp = {
         to: userDetails.mobile,
         body: input.body,
       };
@@ -175,7 +208,7 @@ export const createAndSendNotification = async (
     try {
       queueMultiChannel(
         channels,
-        notificationData,
+        channelData,
         input.priority || 'medium',
         {
           notificationId: notification.id,
@@ -445,6 +478,140 @@ export const getUnreadCount = async (
   } catch (error) {
     logger.error('Failed to get unread count:', error);
     return 0;
+  }
+};
+
+/**
+ * Get notifications by user roles (for role-based notifications)
+ */
+export const getNotificationsByRoles = async (
+  userRoles: string[], // Array of role names
+  page: number = 1,
+  limit: number = 10,
+  isRead?: boolean
+): Promise<PaginatedNotificationsResult> => {
+  try {
+    const pageNumber = Math.max(1, Math.floor(page));
+    const pageSize = Math.min(config.pagination.maxLimit, Math.max(1, Math.floor(limit)));
+    const skip = (pageNumber - 1) * pageSize;
+
+    if (!userRoles || userRoles.length === 0) {
+      return {
+        notifications: [],
+        pagination: {
+          page: pageNumber,
+          limit: pageSize,
+          total: 0,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+        unreadCount: 0,
+      };
+    }
+
+    // Build query for role-based notifications
+    const query: any = {
+      recipientType: 'role',
+      roles: { $in: userRoles }, // Match if any of the user's roles are in the notification's roles array
+    };
+
+    if (isRead !== undefined) {
+      query.isRead = isRead;
+    }
+
+    // Get total count and unread count
+    const [total, unreadCount, notifications] = await Promise.all([
+      NotificationModel.countDocuments(query),
+      NotificationModel.countDocuments({
+        ...query,
+        isRead: false,
+      }),
+      NotificationModel.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(pageSize)
+        .lean(),
+    ]);
+
+    const totalPages = Math.ceil(total / pageSize);
+
+    return {
+      notifications: notifications as Notification[],
+      pagination: {
+        page: pageNumber,
+        limit: pageSize,
+        total,
+        totalPages,
+        hasNextPage: pageNumber < totalPages,
+        hasPrevPage: pageNumber > 1,
+      },
+      unreadCount,
+    };
+  } catch (error) {
+    logger.error('Failed to get notifications by roles:', error);
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(500, t('notification.list.failed'));
+  }
+};
+
+/**
+ * Get unread count by user roles
+ */
+export const getUnreadCountByRoles = async (userRoles: string[]): Promise<number> => {
+  try {
+    if (!userRoles || userRoles.length === 0) {
+      return 0;
+    }
+
+    return await NotificationModel.countDocuments({
+      recipientType: 'role',
+      roles: { $in: userRoles },
+      isRead: false,
+    });
+  } catch (error) {
+    logger.error('Failed to get unread count by roles:', error);
+    return 0;
+  }
+};
+
+/**
+ * Mark notification as read by notification ID and user roles
+ */
+export const markAsReadByRoles = async (
+  notificationId: string,
+  userRoles: string[]
+): Promise<Notification> => {
+  try {
+    if (!userRoles || userRoles.length === 0) {
+      throw new ApiError(404, t('notification.notFound'));
+    }
+
+    const notification = await NotificationModel.findOne({
+      id: notificationId,
+      recipientType: 'role',
+      roles: { $in: userRoles }, // Ensure the notification is for one of the user's roles
+    });
+
+    if (!notification) {
+      throw new ApiError(404, t('notification.notFound'));
+    }
+
+    if (!notification.isRead) {
+      notification.isRead = true;
+      notification.readAt = new Date();
+      await notification.save();
+    }
+
+    return notification.toObject();
+  } catch (error) {
+    logger.error('Failed to mark notification as read by roles:', error);
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(500, t('notification.markRead.failed'));
   }
 };
 

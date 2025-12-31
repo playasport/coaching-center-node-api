@@ -2,13 +2,14 @@ import { Schema, model, HydratedDocument, Types } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 import { NotificationChannel, NotificationPriority } from '../types/notification.types';
 
-export type NotificationRecipientType = 'user' | 'academy';
+export type NotificationRecipientType = 'user' | 'academy' | 'role';
 
 export interface Notification {
   id: string;
   recipientType: NotificationRecipientType;
-  recipientId: Types.ObjectId; // Reference to User or CoachingCenter
+  recipientId?: Types.ObjectId; // Reference to User or CoachingCenter (optional when recipientType is 'role')
   recipientTypeRef?: string; // Internal field for mongoose refPath
+  roles?: string[]; // Array of role names (for role-based notifications) - supports single or multiple roles
   title: string;
   body: string;
   channels: NotificationChannel[]; // Array of channels to send through
@@ -38,22 +39,33 @@ const notificationSchema = new Schema<Notification>(
     },
     recipientType: {
       type: String,
-      enum: ['user', 'academy'],
+      enum: ['user', 'academy', 'role'],
       required: true,
       index: true,
     },
     recipientId: {
       type: Schema.Types.ObjectId,
-      required: true,
+      required: function(this: Notification) {
+        return this.recipientType !== 'role';
+      },
       refPath: 'recipientTypeRef',
       index: true,
+      default: null,
     },
     recipientTypeRef: {
       type: String,
       enum: ['User', 'CoachingCenter'],
       required: function(this: Notification) {
-        return this.recipientType === 'user' ? 'User' : 'CoachingCenter';
+        return this.recipientType === 'user' ? 'User' : this.recipientType === 'academy' ? 'CoachingCenter' : false;
       },
+    },
+    roles: {
+      type: [String],
+      required: function(this: Notification) {
+        return this.recipientType === 'role';
+      },
+      index: true,
+      default: null,
     },
     title: {
       type: String,
@@ -139,6 +151,8 @@ const notificationSchema = new Schema<Notification>(
 notificationSchema.index({ recipientType: 1, recipientId: 1, isRead: 1 });
 notificationSchema.index({ recipientType: 1, recipientId: 1, createdAt: -1 });
 notificationSchema.index({ recipientType: 1, recipientId: 1, sent: 1 });
+notificationSchema.index({ recipientType: 1, roles: 1, isRead: 1 }); // For role-based notifications
+notificationSchema.index({ recipientType: 1, roles: 1, createdAt: -1 }); // For role-based notifications
 notificationSchema.index({ createdAt: -1 });
 
 export const NotificationModel = model<Notification>('Notification', notificationSchema);

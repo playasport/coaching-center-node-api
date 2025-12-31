@@ -140,7 +140,7 @@ export const uploadThumbnail = (
 ): void => {
   const multerUpload = multer({
     storage,
-    fileFilter: (req, file, cb) => {
+    fileFilter: (_req, file, cb) => {
       if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
         cb(null, true);
       } else {

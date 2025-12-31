@@ -4,6 +4,8 @@ import { validate } from '../../middleware/validation.middleware';
 import {
   sendNotificationSchema,
   testNotificationSchema,
+  listNotificationsSchema,
+  markAsReadSchema,
 } from '../../validations/notification.validation';
 import { authenticate } from '../../middleware/auth.middleware';
 import { requireAdmin } from '../../middleware/admin.middleware';
@@ -272,6 +274,160 @@ router.get(
   '/',
   requirePermission(Section.NOTIFICATION, Action.VIEW),
   notificationController.getAllNotifications
+);
+
+/**
+ * @swagger
+ * /admin/notifications/my:
+ *   get:
+ *     summary: Get admin's own notifications
+ *     tags: [Admin Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     description: Get paginated list of notifications for the authenticated admin user. Requires admin authentication.
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of records per page
+ *       - in: query
+ *         name: isRead
+ *         schema:
+ *           type: boolean
+ *         description: Filter by read status (true/false)
+ *     responses:
+ *       200:
+ *         description: Notifications retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Notifications retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     notifications:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Notification'
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *                         hasNextPage:
+ *                           type: boolean
+ *                         hasPrevPage:
+ *                           type: boolean
+ *                     unreadCount:
+ *                       type: integer
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  '/my',
+  validate(listNotificationsSchema),
+  notificationController.getMyNotifications
+);
+
+/**
+ * @swagger
+ * /admin/notifications/unread-count:
+ *   get:
+ *     summary: Get unread notification count for admin
+ *     tags: [Admin Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     description: Get count of unread notifications for the authenticated admin user. Requires admin authentication.
+ *     responses:
+ *       200:
+ *         description: Unread count retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Unread count retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     count:
+ *                       type: integer
+ *                       example: 5
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/unread-count', notificationController.getUnreadCount);
+
+/**
+ * @swagger
+ * /admin/notifications/{id}/read:
+ *   patch:
+ *     summary: Mark notification as read (admin)
+ *     tags: [Admin Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     description: Mark a specific notification as read for the authenticated admin user. Requires admin authentication.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Notification ID
+ *     responses:
+ *       200:
+ *         description: Notification marked as read
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Notification marked as read successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/Notification'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Notification not found
+ */
+router.patch(
+  '/:id/read',
+  validate(markAsReadSchema),
+  notificationController.markAsRead
 );
 
 export default router;

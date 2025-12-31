@@ -6,6 +6,7 @@ import * as adminNotificationService from '../../services/admin/notification.ser
 import { SendNotificationInput, TestNotificationInput } from '../../validations/notification.validation';
 import { NotificationChannel } from '../../types/notification.types';
 import { t } from '../../utils/i18n';
+import { UserModel } from '../../models/user.model';
 
 /**
  * Send notification from admin panel
@@ -126,6 +127,164 @@ export const getAllNotifications = async (
     const result = await adminNotificationService.getAllNotifications(params);
 
     const response = new ApiResponse(200, result, 'Notifications retrieved successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get admin's own notifications (by roles)
+ */
+export const getMyNotifications = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    // Get user's roles from database
+    const user = await UserModel.findOne({ id: req.user.id })
+      .select('roles')
+      .populate('roles', 'name')
+      .lean();
+
+    if (!user) {
+      throw new ApiError(404, t('user.notFound'));
+    }
+
+    // Extract role names from populated roles
+    const userRoles = (user.roles || []) as any[];
+    const roleNames = userRoles
+      .map((r: any) => r?.name)
+      .filter((name: string | undefined): name is string => !!name);
+
+    if (roleNames.length === 0) {
+      // If user has no roles, return empty result
+      const response = new ApiResponse(
+        200,
+        {
+          notifications: [],
+          pagination: {
+            page: 1,
+            limit: 10,
+            total: 0,
+            totalPages: 0,
+            hasNextPage: false,
+            hasPrevPage: false,
+          },
+          unreadCount: 0,
+        },
+        t('notification.list.success')
+      );
+      res.json(response);
+      return;
+    }
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const isRead = req.query.isRead === 'true' ? true : req.query.isRead === 'false' ? false : undefined;
+
+    // Get notifications by user's roles
+    const result = await notificationService.getNotificationsByRoles(
+      roleNames,
+      page,
+      limit,
+      isRead
+    );
+
+    const response = new ApiResponse(200, result, t('notification.list.success'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get unread count for admin (by roles)
+ */
+export const getUnreadCount = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    // Get user's roles from database
+    const user = await UserModel.findOne({ id: req.user.id })
+      .select('roles')
+      .populate('roles', 'name')
+      .lean();
+
+    if (!user) {
+      throw new ApiError(404, t('user.notFound'));
+    }
+
+    // Extract role names from populated roles
+    const userRoles = (user.roles || []) as any[];
+    const roleNames = userRoles
+      .map((r: any) => r?.name)
+      .filter((name: string | undefined): name is string => !!name);
+
+    if (roleNames.length === 0) {
+      const response = new ApiResponse(200, { count: 0 }, t('notification.unreadCount.success'));
+      res.json(response);
+      return;
+    }
+
+    const count = await notificationService.getUnreadCountByRoles(roleNames);
+
+    const response = new ApiResponse(200, { count }, t('notification.unreadCount.success'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Mark notification as read (admin - by roles)
+ */
+export const markAsRead = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    // Get user's roles from database
+    const user = await UserModel.findOne({ id: req.user.id })
+      .select('roles')
+      .populate('roles', 'name')
+      .lean();
+
+    if (!user) {
+      throw new ApiError(404, t('user.notFound'));
+    }
+
+    // Extract role names from populated roles
+    const userRoles = (user.roles || []) as any[];
+    const roleNames = userRoles
+      .map((r: any) => r?.name)
+      .filter((name: string | undefined): name is string => !!name);
+
+    if (roleNames.length === 0) {
+      throw new ApiError(404, t('notification.notFound'));
+    }
+
+    const { id } = req.params;
+
+    const notification = await notificationService.markAsReadByRoles(id, roleNames);
+
+    const response = new ApiResponse(200, notification, t('notification.markRead.success'));
     res.json(response);
   } catch (error) {
     next(error);
