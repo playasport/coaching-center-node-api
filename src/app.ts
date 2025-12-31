@@ -6,6 +6,7 @@ import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import { localeMiddleware } from './middleware/locale.middleware';
 import { swaggerSpec } from './config/swagger';
 import { generateSwaggerHtml } from './utils/swaggerHtmlTemplate';
+import { config } from './config/env';
 
 const app: Application = express();
 
@@ -35,12 +36,14 @@ app.use(express.urlencoded({ extended: true }));
 // Locale middleware (should be early in the middleware chain)
 app.use(localeMiddleware);
 
-// Swagger Documentation - Using custom HTML template with CDN assets for production compatibility
-app.get('/api-docs', (_req: Request, res: Response) => {
-  const html = generateSwaggerHtml(swaggerSpec);
-  res.setHeader('Content-Type', 'text/html');
-  res.send(html);
-});
+// Swagger Documentation - Only available in non-production environments
+if (config.nodeEnv !== 'production') {
+  app.get('/api-docs', (_req: Request, res: Response) => {
+    const html = generateSwaggerHtml(swaggerSpec);
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  });
+}
 
 // Serve Admin Panel Demo (if exists)
 app.get('/admin-panel', (_req: Request, res: Response) => {
