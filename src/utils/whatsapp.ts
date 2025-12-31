@@ -1,6 +1,7 @@
 import { getTwilioClient } from './twilio';
 import { config } from '../config/env';
 import { logger } from './logger';
+import { getSmsCredentials } from '../services/common/settings.service';
 
 export interface SendWhatsAppOptions {
   to: string;
@@ -10,17 +11,21 @@ export interface SendWhatsAppOptions {
 export const sendWhatsApp = async (
   options: SendWhatsAppOptions
 ): Promise<{ success: boolean; messageId?: string; error?: string; retryable?: boolean }> => {
-  const client = getTwilioClient();
+  const client = await getTwilioClient();
 
   if (!client) {
     logger.info('WhatsApp mocked send', options);
     return { success: false, error: 'Twilio client not available' };
   }
 
+  // Get from phone number from settings first, then env
+  const credentials = await getSmsCredentials();
+  const fromPhone = credentials.fromPhone || config.twilio.fromPhone;
+
   // Twilio WhatsApp uses 'whatsapp:' prefix for phone numbers
-  const fromNumber = config.twilio.fromPhone?.startsWith('whatsapp:')
-    ? config.twilio.fromPhone
-    : `whatsapp:${config.twilio.fromPhone}`;
+  const fromNumber = fromPhone?.startsWith('whatsapp:')
+    ? fromPhone
+    : `whatsapp:${fromPhone}`;
 
   const toNumber = options.to.startsWith('whatsapp:') ? options.to : `whatsapp:${options.to}`;
 

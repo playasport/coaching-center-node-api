@@ -27,22 +27,51 @@ export enum PaymentGatewayType {
 export class PaymentService {
   private gateway: IPaymentGateway | null = null;
   private gatewayType: PaymentGatewayType;
+  private initializationPromise: Promise<void> | null = null;
 
   constructor(gatewayType: PaymentGatewayType = PaymentGatewayType.RAZORPAY) {
     this.gatewayType = gatewayType;
-    this.initializeGateway();
+  }
+
+  /**
+   * Ensure gateway is initialized before use
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (this.gateway) {
+      return; // Already initialized
+    }
+
+    if (this.initializationPromise) {
+      return this.initializationPromise; // Initialization in progress
+    }
+
+    this.initializationPromise = this.initializeGateway();
+    try {
+      await this.initializationPromise;
+    } catch (error) {
+      this.initializationPromise = null; // Reset on error to allow retry
+      throw error;
+    }
   }
 
   /**
    * Initialize the payment gateway based on type
    */
-  private initializeGateway(): void {
+  private async initializeGateway(): Promise<void> {
     switch (this.gatewayType) {
       case PaymentGatewayType.RAZORPAY:
+        // Get credentials from settings first, then fallback to env
+        const { getPaymentCredentials } = await import('../settings.service');
+        const credentials = await getPaymentCredentials();
+        
+        if (!credentials.keyId || !credentials.keySecret) {
+          throw new Error('Payment gateway credentials not configured');
+        }
+        
         this.gateway = new RazorpayGateway();
         this.gateway.initialize({
-          keyId: config.razorpay.keyId,
-          keySecret: config.razorpay.keySecret,
+          keyId: credentials.keyId,
+          keySecret: credentials.keySecret,
         });
         break;
 
@@ -80,6 +109,9 @@ export class PaymentService {
    * Create a payment order
    */
   async createOrder(orderData: CreateOrderData): Promise<PaymentOrderResponse> {
+    // Ensure gateway is initialized
+    await this.ensureInitialized();
+
     // Check if payment is enabled
     const isEnabled = await this.isPaymentEnabled();
     if (!isEnabled) {
@@ -96,11 +128,13 @@ export class PaymentService {
   /**
    * Verify payment signature
    */
-  verifyPaymentSignature(
+  async verifyPaymentSignature(
     orderId: string,
     paymentId: string,
     signature: string
-  ): boolean {
+  ): Promise<boolean> {
+    await this.ensureInitialized();
+
     if (!this.gateway) {
       throw new Error('Payment gateway not initialized');
     }
@@ -112,6 +146,8 @@ export class PaymentService {
    * Fetch payment details
    */
   async fetchPayment(paymentId: string): Promise<PaymentDetails> {
+    await this.ensureInitialized();
+
     if (!this.gateway) {
       throw new Error('Payment gateway not initialized');
     }
@@ -122,7 +158,9 @@ export class PaymentService {
   /**
    * Verify webhook signature
    */
-  verifyWebhookSignature(payload: string, signature: string): boolean {
+  async verifyWebhookSignature(payload: string, signature: string): Promise<boolean> {
+    await this.ensureInitialized();
+
     if (!this.gateway) {
       throw new Error('Payment gateway not initialized');
     }

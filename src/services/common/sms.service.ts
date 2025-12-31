@@ -1,6 +1,7 @@
 import { config } from '../../config/env';
 import { getTwilioClient } from '../../utils/twilio';
 import { logger } from '../../utils/logger';
+import { getSmsEnabled, getSmsCredentials } from './settings.service';
 
 export type SmsPriority = 'high' | 'medium' | 'low';
 
@@ -40,14 +41,21 @@ class PriorityQueue {
 const smsQueue = new PriorityQueue();
 let isProcessing = false;
 
-const isSmsEnabled = (): boolean => config.sms.enabled;
+const isSmsEnabled = async (): Promise<boolean> => {
+  try {
+    return await getSmsEnabled();
+  } catch (error) {
+    logger.error('Failed to check SMS enabled status, using env fallback', error);
+    return config.sms.enabled;
+  }
+};
 
 const processQueue = async () => {
   if (isProcessing) {
     return;
   }
 
-  if (!isSmsEnabled()) {
+  if (!(await isSmsEnabled())) {
     logger.info('SMS service disabled. Clearing queue.');
     while (!smsQueue.isEmpty()) {
       smsQueue.dequeue();
@@ -63,16 +71,20 @@ const processQueue = async () => {
       continue;
     }
 
-    const client = getTwilioClient();
+    const client = await getTwilioClient();
     if (!client) {
       logger.info('SMS mocked send', message);
       continue;
     }
 
     try {
+      // Get from phone number from settings first, then env
+      const credentials = await getSmsCredentials();
+      const fromPhone = credentials.fromPhone || config.twilio.fromPhone;
+
       await client.messages.create({
         body: message.body,
-        from: config.twilio.fromPhone,
+        from: fromPhone,
         to: message.to,
       });
       logger.info('SMS sent successfully', {
@@ -104,13 +116,13 @@ export const queueSms = (
   processQueue().catch((error) => logger.error('SMS queue processing error', error));
 };
 
-export const sendSms = (
+export const sendSms = async (
   to: string,
   body: string,
   priority: SmsPriority = 'medium',
   metadata?: Record<string, unknown>
 ) => {
-  if (!isSmsEnabled()) {
+  if (!(await isSmsEnabled())) {
     logger.info('SMS service disabled. Message skipped.', { to, body, priority });
     return;
   }
@@ -118,12 +130,12 @@ export const sendSms = (
 };
 
 export const sendOtpSms = async (mobile: string, otp: string): Promise<string> => {
-  if (!isSmsEnabled()) {
+  if (!(await isSmsEnabled())) {
     logger.info('SMS OTP not sent. Service disabled.', { mobile });
     return 'SMS delivery disabled. OTP not sent.';
   }
 
-  sendSms(
+  await sendSms(
     mobile,
     `Your PlayAsport Academy OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Team Thank You.`,
     'high',
@@ -147,10 +159,10 @@ interface BookingConfirmationSmsData {
   currency: string;
 }
 
-export const sendBookingConfirmationUserSms = (
+export const sendBookingConfirmationUserSms = async (
   mobile: string,
   data: BookingConfirmationSmsData
-): void => {
+): Promise<void> => {
   if (!mobile) {
     logger.warn('User mobile number not available for SMS', { bookingId: data.bookingId });
     return;
@@ -159,17 +171,17 @@ export const sendBookingConfirmationUserSms = (
   const userName = data.userName || 'User';
   const message = `Dear ${userName}, your booking ${data.bookingId} for ${data.batchName} (${data.sportName}) at ${data.centerName} has been confirmed. Participants: ${data.participants}. Start Date: ${data.startDate}, Time: ${data.startTime}-${data.endTime}. Amount Paid: ${data.currency} ${data.amount.toFixed(2)}. Thank you for choosing PlayAsport!`;
 
-  sendSms(mobile, message, 'high', {
+  await sendSms(mobile, message, 'high', {
     type: 'booking_confirmation',
     bookingId: data.bookingId,
     recipient: 'user',
   });
 };
 
-export const sendBookingConfirmationCenterSms = (
+export const sendBookingConfirmationCenterSms = async (
   mobile: string,
   data: BookingConfirmationSmsData
-): void => {
+): Promise<void> => {
   if (!mobile) {
     logger.warn('Coaching center mobile number not available for SMS', {
       bookingId: data.bookingId,
@@ -179,7 +191,7 @@ export const sendBookingConfirmationCenterSms = (
 
   const message = `New booking ${data.bookingId} received for ${data.batchName} (${data.sportName}). Customer: ${data.userName || 'N/A'}. Participants: ${data.participants}. Start Date: ${data.startDate}, Time: ${data.startTime}-${data.endTime}. Amount: ${data.currency} ${data.amount.toFixed(2)}. - PlayAsport`;
 
-  sendSms(mobile, message, 'high', {
+  await sendSms(mobile, message, 'high', {
     type: 'booking_confirmation',
     bookingId: data.bookingId,
     recipient: 'coaching_center',

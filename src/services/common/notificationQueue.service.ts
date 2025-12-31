@@ -89,7 +89,7 @@ const processSms = async (notification: SmsNotification): Promise<NotificationRe
     };
   }
 
-  const client = getTwilioClient();
+  const client = await getTwilioClient();
   if (!client) {
     logger.info('SMS mocked send', notification);
     return {
@@ -101,9 +101,14 @@ const processSms = async (notification: SmsNotification): Promise<NotificationRe
   }
 
   try {
+    // Get from phone number from settings first, then env
+    const { getSmsCredentials } = await import('./settings.service');
+    const credentials = await getSmsCredentials();
+    const fromPhone = credentials.fromPhone || config.twilio.fromPhone;
+
     const message = await client.messages.create({
       body: notification.body,
-      from: config.twilio.fromPhone,
+      from: fromPhone,
       to: notification.to,
     });
 

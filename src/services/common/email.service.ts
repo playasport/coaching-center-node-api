@@ -3,8 +3,10 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { config } from '../../config/env';
 import { logger } from '../../utils/logger';
+import { getEmailConfig } from './settings.service';
 
 let transporter: Transporter | null = null;
+let transporterInitializationPromise: Promise<Transporter | null> | null = null;
 const templateCache = new Map<string, string>();
 
 const TEMPLATE_DIRECTORIES = [
@@ -14,26 +16,78 @@ const TEMPLATE_DIRECTORIES = [
   path.resolve(__dirname, '..', 'email', 'templates'),
 ];
 
-const getTransporter = (): Transporter | null => {
-  if (!config.email.enabled) {
-    return null;
-  }
-
+const getTransporter = async (): Promise<Transporter | null> => {
+  // If transporter already exists, return it
   if (transporter) {
     return transporter;
   }
 
-  transporter = nodemailer.createTransport({
-    host: config.email.host,
-    port: config.email.port,
-    secure: config.email.secure,
-    auth: {
-      user: config.email.username,
-      pass: config.email.password,
-    },
-  });
+  // If initialization is in progress, wait for it
+  if (transporterInitializationPromise) {
+    return transporterInitializationPromise;
+  }
 
-  return transporter;
+  // Initialize transporter with settings priority
+  transporterInitializationPromise = (async (): Promise<Transporter | null> => {
+    try {
+      const emailConfig = await getEmailConfig();
+
+      if (!emailConfig.enabled) {
+        return null;
+      }
+
+      if (!emailConfig.host || !emailConfig.username || !emailConfig.password) {
+        return null;
+      }
+
+      transporter = nodemailer.createTransport({
+        host: emailConfig.host,
+        port: emailConfig.port,
+        secure: emailConfig.secure,
+        auth: {
+          user: emailConfig.username,
+          pass: emailConfig.password,
+        },
+      });
+
+      return transporter;
+    } catch (error) {
+      logger.error('Failed to initialize email transporter with settings, using env fallback', error);
+      
+      // Fallback to env
+      if (!config.email.enabled) {
+        return null;
+      }
+
+      if (!config.email.host || !config.email.username || !config.email.password) {
+        return null;
+      }
+
+      transporter = nodemailer.createTransport({
+        host: config.email.host,
+        port: config.email.port,
+        secure: config.email.secure,
+        auth: {
+          user: config.email.username,
+          pass: config.email.password,
+        },
+      });
+
+      return transporter;
+    } finally {
+      transporterInitializationPromise = null;
+    }
+  })();
+
+  return transporterInitializationPromise;
+};
+
+/**
+ * Reset email transporter (useful when credentials are updated)
+ */
+export const resetEmailTransporter = (): void => {
+  transporter = null;
+  transporterInitializationPromise = null;
 };
 
 const resolveTemplatePath = async (templateName: string): Promise<string | null> => {
@@ -100,12 +154,15 @@ export const sendTemplatedEmail = async ({
     throw new Error('Email template or HTML content must be provided.');
   }
 
-  if (!config.email.enabled) {
+  // Get email config with settings priority
+  const emailConfig = await getEmailConfig();
+  
+  if (!emailConfig.enabled) {
     logger.info('Email service disabled. Message skipped.', { to, subject });
     return 'Email delivery disabled';
   }
 
-  const mailer = getTransporter();
+  const mailer = await getTransporter();
 
   if (!mailer) {
     logger.info('Email mocked send', { to, subject, html: finalHtml, text });
@@ -113,7 +170,7 @@ export const sendTemplatedEmail = async ({
   }
 
   await mailer.sendMail({
-    from: config.email.from || config.email.username,
+    from: emailConfig.from || emailConfig.username,
     to,
     subject,
     html: finalHtml,

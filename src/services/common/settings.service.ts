@@ -311,4 +311,132 @@ export const getSettingValue = async <T = any>(path: string): Promise<T | null> 
   }
 };
 
+/**
+ * Get config value with settings priority (Settings first, then ENV fallback)
+ * This is the main function to use in services
+ */
+export const getConfigWithPriority = async <T = any>(
+  settingsPath: string,
+  envValue: T | null | undefined
+): Promise<T | null> => {
+  try {
+    // Try to get from settings first
+    const settingsValue = await getSettingValue<T>(settingsPath);
+    
+    // If settings has a value (not null/undefined), use it
+    if (settingsValue !== null && settingsValue !== undefined) {
+      // For strings, also check if not empty
+      if (typeof settingsValue === 'string' && settingsValue.trim() !== '') {
+        return settingsValue;
+      }
+      // For non-strings, return the value
+      if (typeof settingsValue !== 'string') {
+        return settingsValue;
+      }
+    }
+    
+    // Fallback to env value
+    return envValue ?? null;
+  } catch (error) {
+    logger.error(`Failed to get config with priority for path: ${settingsPath}`, error);
+    // On error, fallback to env
+    return envValue ?? null;
+  }
+};
+
+/**
+ * Get Payment Gateway credentials with settings priority
+ */
+export const getPaymentCredentials = async (): Promise<{
+  keyId: string;
+  keySecret: string;
+}> => {
+  const keyId = await getConfigWithPriority<string>('payment.razorpay.key_id', config.razorpay.keyId);
+  const keySecret = await getConfigWithPriority<string>('payment.razorpay.key_secret', config.razorpay.keySecret);
+  
+  return {
+    keyId: keyId || '',
+    keySecret: keySecret || '',
+  };
+};
+
+/**
+ * Get SMS/Twilio credentials with settings priority
+ */
+export const getSmsCredentials = async (): Promise<{
+  accountSid: string;
+  authToken: string;
+  fromPhone: string;
+}> => {
+  // For Twilio, check both sms and whatsapp settings (they use same provider)
+  const accountSid = await getConfigWithPriority<string>(
+    'notifications.sms.api_key', 
+    config.twilio.accountSid
+  ) || await getConfigWithPriority<string>(
+    'notifications.whatsapp.account_sid',
+    config.twilio.accountSid
+  );
+  
+  const authToken = await getConfigWithPriority<string>(
+    'notifications.sms.api_secret',
+    config.twilio.authToken
+  ) || await getConfigWithPriority<string>(
+    'notifications.whatsapp.auth_token',
+    config.twilio.authToken
+  );
+  
+  const fromPhone = await getConfigWithPriority<string>(
+    'notifications.sms.from_number',
+    config.twilio.fromPhone
+  ) || await getConfigWithPriority<string>(
+    'notifications.whatsapp.from_number',
+    config.twilio.fromPhone
+  );
+  
+  return {
+    accountSid: accountSid || '',
+    authToken: authToken || '',
+    fromPhone: fromPhone || '',
+  };
+};
+
+/**
+ * Get Email credentials with settings priority
+ */
+export const getEmailConfig = async (): Promise<{
+  enabled: boolean;
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  from: string;
+  secure: boolean;
+}> => {
+  const enabled = (await getConfigWithPriority<boolean>('notifications.email.enabled', config.email.enabled)) ?? config.email.enabled;
+  const host = (await getConfigWithPriority<string>('notifications.email.host', config.email.host)) || config.email.host;
+  const port = (await getConfigWithPriority<number>('notifications.email.port', config.email.port)) ?? config.email.port;
+  const username = (await getConfigWithPriority<string>('notifications.email.username', config.email.username)) || config.email.username || '';
+  const password = (await getConfigWithPriority<string>('notifications.email.password', config.email.password)) || config.email.password || '';
+  const from = (await getConfigWithPriority<string>('notifications.email.from', config.email.from)) || config.email.from || '';
+  const secure = (await getConfigWithPriority<boolean>('notifications.email.secure', config.email.secure)) ?? config.email.secure;
+  
+  return {
+    enabled,
+    host,
+    port,
+    username,
+    password,
+    from,
+    secure,
+  };
+};
+
+/**
+ * Get SMS enabled status with settings priority
+ */
+export const getSmsEnabled = async (): Promise<boolean> => {
+  const enabled = await getConfigWithPriority<boolean>('notifications.sms.enabled', config.sms.enabled);
+  return enabled ?? config.sms.enabled;
+};
+
 

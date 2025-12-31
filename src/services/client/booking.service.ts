@@ -677,7 +677,7 @@ export const verifyPayment = async (
     }
 
     // Verify payment signature using payment service
-    const isValidSignature = paymentService.verifyPaymentSignature(
+    const isValidSignature = await paymentService.verifyPaymentSignature(
       data.razorpay_order_id,
       data.razorpay_payment_id,
       data.razorpay_signature

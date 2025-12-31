@@ -27,11 +27,11 @@ export const rawBodyMiddleware = (req: Request, _res: Response, next: NextFuncti
 /**
  * Verify Razorpay webhook signature
  */
-export const verifyWebhookSignature = (
+export const verifyWebhookSignature = async (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
+): Promise<void> => {
   try {
     const razorpaySignature = req.headers['x-razorpay-signature'] as string;
     const rawBody = (req as any).rawBody || JSON.stringify(req.body);
@@ -46,7 +46,7 @@ export const verifyWebhookSignature = (
     }
 
     // Verify webhook signature using payment service
-    const isValidSignature = paymentService.verifyWebhookSignature(rawBody, razorpaySignature);
+    const isValidSignature = await paymentService.verifyWebhookSignature(rawBody, razorpaySignature);
 
     if (!isValidSignature) {
       logger.warn('Invalid webhook signature', {
