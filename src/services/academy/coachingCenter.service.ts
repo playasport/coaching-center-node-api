@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import { CoachingCenterModel, CoachingCenter } from '../../models/coachingCenter.model';
 import { SportModel } from '../../models/sport.model';
+import { UserModel } from '../../models/user.model';
 import { logger } from '../../utils/logger';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
@@ -8,6 +9,8 @@ import type { CoachingCenterCreateInput, CoachingCenterUpdateInput } from '../..
 import { config } from '../../config/env';
 import { getUserObjectId } from '../../utils/userCache';
 import * as commonService from '../common/coachingCenterCommon.service';
+import { DefaultRoles } from '../../models/role.model';
+import { AdminApproveStatus } from '../../enums/adminApprove.enum';
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -41,12 +44,13 @@ export const createCoachingCenter = async (
   // Resolve facilities
   const facilityIds = data.facility ? await commonService.resolveFacilities(data.facility) : [];
 
-  // Prepare data
+  // Prepare data - set approval_status to pending_approval by default for academy-created centers
   const coachingCenterData: any = {
     ...data,
     user: userObjectId,
     sports: sportIds,
     facility: facilityIds,
+    approval_status: AdminApproveStatus.PENDING_APPROVAL, // Academy-created centers need approval
     sport_details: data.sport_details?.map(sd => ({
       ...sd,
       sport_id: new Types.ObjectId(sd.sport_id)
@@ -62,6 +66,54 @@ export const createCoachingCenter = async (
   if (data.status === 'published') {
     await commonService.moveMediaFilesToPermanent(coachingCenter.toObject());
     await commonService.enqueueThumbnailGenerationForVideos(coachingCenter.toObject());
+  }
+
+  // Send notifications to admin and super_admin when coaching center is published
+  try {
+    const { createAndSendNotification } = await import('../common/notification.service');
+    const centerName = coachingCenter.center_name || 'Unnamed Academy';
+    const creationDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    // Get user info for notifications
+    const user = await UserModel.findOne({ _id: userObjectId })
+      .select('firstName lastName email')
+      .lean();
+    
+    const ownerName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'Unknown';
+
+    // Send notification when coaching center is published
+
+      await createAndSendNotification({
+        recipientType: 'role',
+        roles: [DefaultRoles.ADMIN, DefaultRoles.SUPER_ADMIN],
+        title: 'New Academy Published',
+        body: `A new academy "${centerName}" has been published by ${ownerName} and requires approval.`,
+        channels: ['push'],
+        priority: 'medium',
+        data: {
+          type: 'coaching_center_published',
+          coachingCenterId: coachingCenter.id,
+          centerName: centerName,
+          ownerId: userId,
+          ownerName: ownerName,
+          approvalStatus: AdminApproveStatus.PENDING_APPROVAL,
+          creationDate,
+        },
+        metadata: {
+          source: 'academy_coaching_center_published',
+          requiresApproval: true,
+        },
+      });
+
+  } catch (notificationError) {
+    logger.error('Failed to create admin notification for coaching center', { notificationError });
+    // Don't throw error - notification failure shouldn't break creation
   }
 
   return await commonService.getCoachingCenterById(coachingCenter._id.toString()) as CoachingCenter;

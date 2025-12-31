@@ -188,12 +188,13 @@ export const getMyNotifications = async (
     const limit = parseInt(req.query.limit as string) || 10;
     const isRead = req.query.isRead === 'true' ? true : req.query.isRead === 'false' ? false : undefined;
 
-    // Get notifications by user's roles
+    // Get notifications by user's roles (and user-based notifications)
     const result = await notificationService.getNotificationsByRoles(
       roleNames,
       page,
       limit,
-      isRead
+      isRead,
+      req.user.id
     );
 
     const response = new ApiResponse(200, result, t('notification.list.success'));
@@ -238,7 +239,7 @@ export const getUnreadCount = async (
       return;
     }
 
-    const count = await notificationService.getUnreadCountByRoles(roleNames);
+    const count = await notificationService.getUnreadCountByRoles(roleNames, req.user.id);
 
     const response = new ApiResponse(200, { count }, t('notification.unreadCount.success'));
     res.json(response);
@@ -282,7 +283,7 @@ export const markAsRead = async (
 
     const { id } = req.params;
 
-    const notification = await notificationService.markAsReadByRoles(id, roleNames);
+    const notification = await notificationService.markAsReadByRoles(id, roleNames, req.user.id);
 
     const response = new ApiResponse(200, notification, t('notification.markRead.success'));
     res.json(response);

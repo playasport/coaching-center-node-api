@@ -482,52 +482,67 @@ export const getUnreadCount = async (
 };
 
 /**
- * Get notifications by user roles (for role-based notifications)
+ * Get notifications by user roles (for role-based notifications) and optionally user-based notifications
  */
 export const getNotificationsByRoles = async (
   userRoles: string[], // Array of role names
   page: number = 1,
   limit: number = 10,
-  isRead?: boolean
+  isRead?: boolean,
+  userId?: string // Optional user ID to also include user-based notifications
 ): Promise<PaginatedNotificationsResult> => {
   try {
     const pageNumber = Math.max(1, Math.floor(page));
     const pageSize = Math.min(config.pagination.maxLimit, Math.max(1, Math.floor(limit)));
     const skip = (pageNumber - 1) * pageSize;
 
-    if (!userRoles || userRoles.length === 0) {
-      return {
-        notifications: [],
-        pagination: {
-          page: pageNumber,
-          limit: pageSize,
-          total: 0,
-          totalPages: 0,
-          hasNextPage: false,
-          hasPrevPage: false,
-        },
-        unreadCount: 0,
-      };
-    }
-
     // Build query for role-based notifications
-    const query: any = {
+    const roleQuery: any = {
       recipientType: 'role',
-      roles: { $in: userRoles }, // Match if any of the user's roles are in the notification's roles array
+      roles: { $in: userRoles || [] }, // Match if any of the user's roles are in the notification's roles array
     };
 
+    // Build query for user-based notifications (if userId provided)
+    let userQuery: any = null;
+    if (userId) {
+      const recipientObjectId = await getRecipientObjectId('user', userId);
+      if (recipientObjectId) {
+        userQuery = {
+          recipientType: 'user',
+          recipientId: recipientObjectId,
+        };
+      }
+    }
+
+    // Combine queries using $or if both exist, otherwise use the single query
+    const baseQuery: any = userQuery
+      ? { $or: [roleQuery, userQuery] }
+      : roleQuery;
+
     if (isRead !== undefined) {
-      query.isRead = isRead;
+      if (baseQuery.$or) {
+        // Apply isRead filter to both parts of the $or query
+        baseQuery.$or = baseQuery.$or.map((q: any) => ({ ...q, isRead }));
+      } else {
+        baseQuery.isRead = isRead;
+      }
+    }
+
+    // Build unread query (always filter for unread notifications)
+    let unreadQuery: any;
+    if (baseQuery.$or) {
+      unreadQuery = {
+        $or: baseQuery.$or.map((q: any) => ({ ...q, isRead: false })),
+      };
+    } else {
+      unreadQuery = { ...baseQuery, isRead: false };
     }
 
     // Get total count and unread count
     const [total, unreadCount, notifications] = await Promise.all([
-      NotificationModel.countDocuments(query),
-      NotificationModel.countDocuments({
-        ...query,
-        isRead: false,
-      }),
-      NotificationModel.find(query)
+      NotificationModel.countDocuments(baseQuery),
+      NotificationModel.countDocuments(unreadQuery),
+      NotificationModel.find(baseQuery)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(pageSize)
@@ -558,19 +573,39 @@ export const getNotificationsByRoles = async (
 };
 
 /**
- * Get unread count by user roles
+ * Get unread count by user roles and optionally user-based notifications
  */
-export const getUnreadCountByRoles = async (userRoles: string[]): Promise<number> => {
+export const getUnreadCountByRoles = async (
+  userRoles: string[],
+  userId?: string // Optional user ID to also include user-based notifications
+): Promise<number> => {
   try {
-    if (!userRoles || userRoles.length === 0) {
-      return 0;
+    // Build query for role-based notifications
+    const roleQuery: any = {
+      recipientType: 'role',
+      roles: { $in: userRoles || [] },
+      isRead: false,
+    };
+
+    // Build query for user-based notifications (if userId provided)
+    let userQuery: any = null;
+    if (userId) {
+      const recipientObjectId = await getRecipientObjectId('user', userId);
+      if (recipientObjectId) {
+        userQuery = {
+          recipientType: 'user',
+          recipientId: recipientObjectId,
+          isRead: false,
+        };
+      }
     }
 
-    return await NotificationModel.countDocuments({
-      recipientType: 'role',
-      roles: { $in: userRoles },
-      isRead: false,
-    });
+    // Combine queries using $or if both exist, otherwise use the single query
+    const query = userQuery
+      ? { $or: [roleQuery, userQuery] }
+      : roleQuery;
+
+    return await NotificationModel.countDocuments(query);
   } catch (error) {
     logger.error('Failed to get unread count by roles:', error);
     return 0;
@@ -578,27 +613,90 @@ export const getUnreadCountByRoles = async (userRoles: string[]): Promise<number
 };
 
 /**
- * Mark notification as read by notification ID and user roles
+ * Mark notification as read by notification ID and user roles (or user ID for user-based notifications)
  */
 export const markAsReadByRoles = async (
   notificationId: string,
-  userRoles: string[]
+  userRoles: string[],
+  userId?: string
 ): Promise<Notification> => {
   try {
-    if (!userRoles || userRoles.length === 0) {
-      throw new ApiError(404, t('notification.notFound'));
-    }
-
-    const notification = await NotificationModel.findOne({
+    // First, find the notification by ID (try both id field and _id)
+    let notification = await NotificationModel.findOne({
       id: notificationId,
-      recipientType: 'role',
-      roles: { $in: userRoles }, // Ensure the notification is for one of the user's roles
     });
 
+    // If not found by id field, try by _id (MongoDB ObjectId)
+    if (!notification && Types.ObjectId.isValid(notificationId)) {
+      try {
+        notification = await NotificationModel.findById(new Types.ObjectId(notificationId));
+      } catch (error) {
+        // Invalid ObjectId format, continue
+        logger.debug('Notification ID is not a valid ObjectId', { notificationId });
+      }
+    }
+
     if (!notification) {
+      logger.warn('Notification not found', {
+        notificationId,
+        userRoles,
+        userId,
+        triedById: true,
+        triedByObjectId: Types.ObjectId.isValid(notificationId),
+      });
       throw new ApiError(404, t('notification.notFound'));
     }
 
+    // Check if it's a role-based notification
+    if (notification.recipientType === 'role') {
+      if (!userRoles || userRoles.length === 0) {
+        logger.warn('User has no roles to match notification', {
+          notificationId,
+          notificationRoles: notification.roles,
+        });
+        throw new ApiError(404, t('notification.notFound'));
+      }
+
+      // Verify the notification is for one of the user's roles
+      const hasMatchingRole = notification.roles?.some(role => userRoles.includes(role));
+      if (!hasMatchingRole) {
+        logger.warn('User roles do not match notification roles', {
+          notificationId,
+          userRoles,
+          notificationRoles: notification.roles,
+        });
+        throw new ApiError(404, t('notification.notFound'));
+      }
+    } else if (notification.recipientType === 'user') {
+      // For user-based notifications, verify it's for this user
+      if (!userId) {
+        logger.warn('User ID not provided for user-based notification', {
+          notificationId,
+          recipientId: notification.recipientId,
+        });
+        throw new ApiError(404, t('notification.notFound'));
+      }
+
+      const recipientObjectId = await getRecipientObjectId('user', userId);
+      if (!recipientObjectId || !notification.recipientId?.equals(recipientObjectId)) {
+        logger.warn('User ID does not match notification recipient', {
+          notificationId,
+          userId,
+          recipientObjectId,
+          notificationRecipientId: notification.recipientId,
+        });
+        throw new ApiError(404, t('notification.notFound'));
+      }
+    } else {
+      // Academy or other recipient types not supported for admin
+      logger.warn('Notification recipient type not supported for admin', {
+        notificationId,
+        recipientType: notification.recipientType,
+      });
+      throw new ApiError(404, t('notification.notFound'));
+    }
+
+    // Mark as read if not already read
     if (!notification.isRead) {
       notification.isRead = true;
       notification.readAt = new Date();

@@ -6,7 +6,7 @@ The Academy Approval Workflow is a system that ensures quality control for coach
 
 ## Key Features
 
-1. **Automatic Approval Status**: When an agent creates an academy, `approval_status` is automatically set to `'pending_approval'`
+1. **Automatic Approval Status**: When an agent creates an academy, `approval_status` is automatically set to `'approval'`
 2. **Approval/Rejection**: Only super_admin and admin roles can approve or reject academies
 3. **Reject Reason**: When rejecting an academy, a reason can be provided and stored
 4. **User Visibility**: Only approved academies (`approval_status: 'approved'`) are visible to end users

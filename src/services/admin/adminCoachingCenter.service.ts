@@ -457,6 +457,57 @@ export const createCoachingCenterByAdmin = async (
       }
     }
 
+    // 8. Send notification to admin and super_admin if created by an agent
+    if (adminUserId && addedByObjectId) {
+      try {
+        const adminUser = await UserModel.findOne({ _id: addedByObjectId })
+          .select('roles')
+          .populate('roles', 'name')
+          .lean();
+        
+        if (adminUser && adminUser.roles) {
+          const userRoles = adminUser.roles as any[];
+          const isAgent = userRoles.some((r: any) => r?.name === DefaultRolesEnum.AGENT);
+          
+          if (isAgent) {
+            const { createAndSendNotification } = await import('../common/notification.service');
+            const centerName = coachingCenter.center_name || 'Unnamed Academy';
+            const creationDate = new Date().toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+
+            await createAndSendNotification({
+              recipientType: 'role',
+              roles: [DefaultRoles.ADMIN, DefaultRoles.SUPER_ADMIN],
+              title: 'New Academy Created by Agent',
+              body: `A new academy "${centerName}" has been created by an agent and requires approval.`,
+              channels: ['push'],
+              priority: 'medium',
+              data: {
+                type: 'coaching_center_created_by_agent',
+                coachingCenterId: coachingCenter.id,
+                centerName: centerName,
+                agentId: adminUserId,
+                approvalStatus: approvalStatus,
+                creationDate,
+              },
+              metadata: {
+                source: 'admin_coaching_center_creation',
+                requiresApproval: true,
+              },
+            });
+          }
+        }
+      } catch (notificationError) {
+        logger.error('Failed to create admin notification for agent-created coaching center', { notificationError });
+        // Don't throw error - notification failure shouldn't break creation
+      }
+    }
+
     return await commonService.getCoachingCenterById(coachingCenter._id.toString()) as CoachingCenter;
   } catch (error) {
     if (error instanceof ApiError) throw error;
@@ -844,7 +895,9 @@ export const updateApprovalStatus = async (
       query,
       { $set: updateData },
       { new: true, runValidators: true }
-    ).lean();
+    )
+      .populate('user', 'id firstName lastName email')
+      .lean();
 
     if (!updatedCenter) {
       throw new ApiError(404, t('coachingCenter.notFound'));
@@ -855,6 +908,46 @@ export const updateApprovalStatus = async (
       isApproved,
       rejectReason: rejectReason || null,
     });
+
+    // Send notification to academy owner about approval status change
+    try {
+      const { createAndSendNotification } = await import('../common/notification.service');
+      const centerName = (updatedCenter as any).center_name || 'Your Academy';
+      const centerId = (updatedCenter as any).id || id; // Use coaching center ID for academy recipient type
+      
+      if (centerId) {
+        const title = isApproved 
+          ? 'Academy Approved' 
+          : 'Academy Rejected';
+        const body = isApproved
+          ? `Congratulations! Your academy "${centerName}" has been approved and is now live on PlayAsport.`
+          : `Your academy "${centerName}" has been rejected.${rejectReason ? ` Reason: ${rejectReason}` : ''}`;
+
+        await createAndSendNotification({
+          recipientType: 'academy',
+          recipientId: centerId,
+          title,
+          body,
+          channels: ['push'],
+          priority: isApproved ? 'medium' : 'high',
+          data: {
+            type: 'coaching_center_approval_status_changed',
+            coachingCenterId: id,
+            centerName,
+            approvalStatus: isApproved ? AdminApproveStatus.APPROVE : AdminApproveStatus.REJECT,
+            rejectReason: rejectReason || null,
+            isApproved,
+          },
+          metadata: {
+            source: 'admin_approval_status_update',
+            changedAt: new Date().toISOString(),
+          },
+        });
+      }
+    } catch (notificationError) {
+      logger.error('Failed to create notification for approval status change', { notificationError });
+      // Don't throw error - notification failure shouldn't break the approval process
+    }
 
     return await commonService.getCoachingCenterById(id);
   } catch (error) {
