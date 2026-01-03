@@ -1408,4 +1408,172 @@ router.patch(
   coachingCenterController.updateApprovalStatus
 );
 
+/**
+ * @swagger
+ * /admin/coaching-centers/{id}/employees:
+ *   get:
+ *     summary: Get employees (coaches) by coaching center ID
+ *     description: Retrieve a paginated list of employees (coaches) associated with a specific coaching center. Supports filtering by role name and searching by name, email, or mobile number. Requires coaching_center:view permission.
+ *     tags: [Admin Coaching Centers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Coaching center ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: roleName
+ *         schema:
+ *           type: string
+ *         description: Filter employees by role name (e.g., "coach", "trainer", "manager")
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search employees by full name, email, or mobile number
+ *     responses:
+ *       200:
+ *         description: Employees retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Employees retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     employees:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                           fullName:
+ *                             type: string
+ *                             example: John Doe
+ *                           mobileNo:
+ *                             type: string
+ *                             example: "9876543210"
+ *                           email:
+ *                             type: string
+ *                             nullable: true
+ *                             example: john@example.com
+ *                           experience:
+ *                             type: number
+ *                             nullable: true
+ *                             example: 5
+ *                           workingHours:
+ *                             type: string
+ *                             example: "9:00 AM - 6:00 PM"
+ *                           extraHours:
+ *                             type: string
+ *                             nullable: true
+ *                           salary:
+ *                             type: number
+ *                             nullable: true
+ *                           is_active:
+ *                             type: boolean
+ *                           userId:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                               firstName:
+ *                                 type: string
+ *                               lastName:
+ *                                 type: string
+ *                               email:
+ *                                 type: string
+ *                               mobile:
+ *                                 type: string
+ *                           role:
+ *                             type: object
+ *                             properties:
+ *                               _id:
+ *                                 type: string
+ *                               name:
+ *                                 type: string
+ *                               description:
+ *                                 type: string
+ *                           sport:
+ *                             type: object
+ *                             nullable: true
+ *                             properties:
+ *                               custom_id:
+ *                                 type: string
+ *                               name:
+ *                                 type: string
+ *                               logo:
+ *                                 type: string
+ *                           center:
+ *                             type: object
+ *                             properties:
+ *                               _id:
+ *                                 type: string
+ *                               center_name:
+ *                                 type: string
+ *                               email:
+ *                                 type: string
+ *                               mobile_number:
+ *                                 type: string
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 10
+ *                         total:
+ *                           type: integer
+ *                           example: 25
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 3
+ *       400:
+ *         description: Invalid coaching center ID
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       404:
+ *         description: Coaching center not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get(
+  '/:id/employees',
+  requirePermission(Section.COACHING_CENTER, Action.VIEW),
+  coachingCenterController.getEmployeesByCoachingCenterId
+);
+
 export default router;

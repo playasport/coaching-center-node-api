@@ -13,6 +13,8 @@ import { hashPassword } from '../../utils/password';
 import { v4 as uuidv4 } from 'uuid';
 import { DefaultRoles as DefaultRolesEnum } from '../../enums/defaultRoles.enum';
 import { AdminApproveStatus } from '../../enums/adminApprove.enum';
+import { EmployeeModel } from '../../models/employee.model';
+import { config } from '../../config/env';
 
 export interface AdminPaginatedResult<T> {
   coachingCenters: T[];
@@ -25,6 +27,7 @@ export interface AdminPaginatedResult<T> {
 }
 
 export interface CoachingCenterListItem {
+  _id: string;
   id: string;
   center_name: string;
   email: string;
@@ -156,7 +159,7 @@ export const getAllCoachingCenters = async (
 
     const [coachingCenters, total] = await Promise.all([
       CoachingCenterModel.find(query)
-        .select('id center_name email mobile_number logo status is_active approval_status reject_reason user sports location createdAt updatedAt')
+        .select('_id id center_name email mobile_number logo status is_active approval_status reject_reason user sports location createdAt updatedAt')
         .populate('user', 'id firstName lastName email mobile')
         .populate('sports', 'id name')
         .sort(sort)
@@ -168,6 +171,7 @@ export const getAllCoachingCenters = async (
 
     // Transform to simplified list format
     const transformedCenters: CoachingCenterListItem[] = coachingCenters.map((center: any) => ({
+      _id: center._id?.toString() || '',
       id: center.id,
       center_name: center.center_name,
       email: center.email,
@@ -954,5 +958,122 @@ export const updateApprovalStatus = async (
     if (error instanceof ApiError) throw error;
     logger.error('Failed to update approval status:', error);
     throw new ApiError(500, 'Failed to update approval status');
+  }
+};
+
+/**
+ * Get employees (coaches) by coaching center ID
+ */
+export const getEmployeesByCoachingCenterId = async (
+  coachingCenterId: string,
+  page: number = 1,
+  limit: number = config.pagination.defaultLimit,
+  roleName?: string,
+  search?: string
+): Promise<AdminPaginatedResult<any>> => {
+  try {
+    // Validate pagination parameters
+    const pageNumber = Math.max(1, Math.floor(page));
+    const pageSize = Math.min(
+      config.pagination.maxLimit,
+      Math.max(1, Math.floor(limit))
+    );
+
+    // Calculate skip
+    const skip = (pageNumber - 1) * pageSize;
+
+    // Get coaching center by ID (supports both MongoDB ObjectId and custom UUID id)
+    let centerObjectId: Types.ObjectId | null = null;
+    
+    if (Types.ObjectId.isValid(coachingCenterId) && coachingCenterId.length === 24) {
+      // Try to find by MongoDB ObjectId
+      const center = await CoachingCenterModel.findById(coachingCenterId).select('_id').lean();
+      if (center) {
+        centerObjectId = center._id as Types.ObjectId;
+      }
+    }
+    
+    // If not found by ObjectId, try to find by custom UUID id
+    if (!centerObjectId) {
+      const center = await CoachingCenterModel.findOne({ id: coachingCenterId, is_deleted: false })
+        .select('_id')
+        .lean();
+      if (center) {
+        centerObjectId = center._id as Types.ObjectId;
+      }
+    }
+
+    // Verify coaching center exists
+    if (!centerObjectId) {
+      throw new ApiError(404, 'Coaching center not found');
+    }
+
+    // Build query - get non-deleted employees for this center
+    const query: any = {
+      center: centerObjectId,
+      is_deleted: false,
+    };
+
+    // Filter by role name if provided
+    if (roleName) {
+      const role = await RoleModel.findOne({ name: roleName.trim() });
+      if (!role) {
+        throw new ApiError(404, `Role with name '${roleName}' not found`);
+      }
+      query.role = role._id;
+    }
+
+    // Add search filter if provided
+    if (search) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      query.$or = [
+        { fullName: searchRegex },
+        { email: searchRegex },
+        { mobileNo: searchRegex },
+      ];
+    }
+
+    // Get total count
+    const total = await EmployeeModel.countDocuments(query);
+
+    // Get paginated results with populated fields
+    const employees = await EmployeeModel.find(query)
+      .populate('userId', 'id firstName lastName email mobile')
+      .populate('role', 'name description')
+      .populate('sport', 'custom_id name logo')
+      .populate('center', 'center_name email mobile_number')
+      .sort({ createdAt: -1 }) // Sort by newest first
+      .skip(skip)
+      .limit(pageSize)
+      .lean();
+
+    // Calculate total pages
+    const totalPages = Math.ceil(total / pageSize);
+
+    logger.info('Employees fetched by coaching center', {
+      coachingCenterId,
+      roleName,
+      search,
+      page: pageNumber,
+      limit: pageSize,
+      total,
+      totalPages,
+    });
+
+    return {
+      coachingCenters: employees, // Reusing the interface structure
+      pagination: {
+        page: pageNumber,
+        limit: pageSize,
+        total,
+        totalPages,
+      },
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Failed to fetch employees by coaching center:', error);
+    throw new ApiError(500, 'Failed to fetch employees');
   }
 };

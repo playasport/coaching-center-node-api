@@ -261,7 +261,7 @@
         "maxGreaterThanMin": "Maximum age must be greater than or equal to minimum age"
       },
       "status": {
-        "invalid": "Status must be one of: published, draft, inactive"
+        "invalid": "Status must be one of: published, draft"
       }
     },
     "feeStructure": {

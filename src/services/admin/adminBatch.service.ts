@@ -57,12 +57,14 @@ export interface GetAdminBatchesFilters {
 
 /**
  * Round a number to 2 decimal places to avoid floating-point precision issues
+ * Uses Math.round for more accurate rounding than parseFloat(toFixed())
  */
 const roundToTwoDecimals = (value: number | null | undefined): number | null => {
   if (value === null || value === undefined) {
     return null;
   }
-  return parseFloat(value.toFixed(2));
+  // Use Math.round for more precise rounding (handles 500.0 correctly)
+  return Math.round(value * 100) / 100;
 };
 
 /**
@@ -108,25 +110,29 @@ export const createBatchByAdmin = async (data: BatchCreateInput): Promise<Batch>
       throw new ApiError(404, t('batch.centerNotFound'));
     }
 
-    // Get center to extract userId
+    // Get center to extract userId and validate sport availability
     const center = await CoachingCenterModel.findById(centerObjectId);
     if (!center || center.is_deleted) {
       throw new ApiError(404, t('batch.centerNotFound'));
     }
 
-    // Get userId from center (admin can create for any center)
-    const userObjectId = center.user as Types.ObjectId;
-    if (!userObjectId) {
-      throw new ApiError(400, t('batch.userNotFound'));
-    }
-
-    // Validate sport exists
+    // Validate sport exists and is available for this center
     if (!Types.ObjectId.isValid(data.sportId)) {
       throw new ApiError(400, t('validation.batch.sportId.invalid'));
     }
     const sport = await SportModel.findById(data.sportId);
     if (!sport || !sport.is_active) {
       throw new ApiError(404, t('batch.sportNotFound'));
+    }
+    // Check if sport is available for this center
+    if (!center.sports || !center.sports.some((s: Types.ObjectId) => s.toString() === data.sportId)) {
+      throw new ApiError(400, 'Sport is not available for the selected center');
+    }
+
+    // Get userId from center (admin can create for any center)
+    const userObjectId = center.user as Types.ObjectId;
+    if (!userObjectId) {
+      throw new ApiError(400, t('batch.userNotFound'));
     }
 
     // Validate coach exists if provided
@@ -144,19 +150,42 @@ export const createBatchByAdmin = async (data: BatchCreateInput): Promise<Batch>
       }
     }
 
+    // Validate age range respects center's age range if available
+    if (center.age) {
+      if (data.age.min < center.age.min || data.age.max > center.age.max) {
+        throw new ApiError(400, 'Age range must respect the center\'s age range');
+      }
+    }
+
+    // Prepare scheduled data
+    const scheduledData: any = {
+      start_date: data.scheduled.start_date,
+      end_date: data.scheduled.end_date || null,
+      training_days: data.scheduled.training_days,
+    };
+
+    // Handle timing - either common timing or individual timing
+    if (data.scheduled.individual_timings && data.scheduled.individual_timings.length > 0) {
+      scheduledData.individual_timings = data.scheduled.individual_timings;
+      scheduledData.start_time = null;
+      scheduledData.end_time = null;
+    } else if (data.scheduled.start_time && data.scheduled.end_time) {
+      scheduledData.start_time = data.scheduled.start_time;
+      scheduledData.end_time = data.scheduled.end_time;
+      scheduledData.individual_timings = null;
+    }
+
     // Prepare batch data
     const batchData: any = {
       user: userObjectId,
       name: data.name,
+      description: data.description || null,
       sport: new Types.ObjectId(data.sportId),
       center: centerObjectId,
       coach: data.coach ? new Types.ObjectId(data.coach) : null,
-      scheduled: {
-        start_date: data.scheduled.start_date,
-        start_time: data.scheduled.start_time,
-        end_time: data.scheduled.end_time,
-        training_days: data.scheduled.training_days,
-      },
+      gender: data.gender,
+      certificate_issued: data.certificate_issued,
+      scheduled: scheduledData,
       duration: {
         count: data.duration.count,
         type: data.duration.type,
@@ -170,15 +199,10 @@ export const createBatchByAdmin = async (data: BatchCreateInput): Promise<Batch>
         max: data.age.max,
       },
       admission_fee: roundToTwoDecimals(data.admission_fee),
-      fee_structure: data.fee_structure
-        ? {
-            ...data.fee_structure,
-            admission_fee: roundToTwoDecimals(data.fee_structure.admission_fee),
-            fee_configuration: roundNumericValues(data.fee_structure.fee_configuration),
-          }
-        : null,
+      base_price: roundToTwoDecimals(data.base_price),
+      discounted_price: roundToTwoDecimals(data.discounted_price),
       status: data.status || 'draft',
-      is_active: true,
+      is_active: (data.status || 'draft') === 'published', // Set is_active based on status: draft = false, published = true
       is_deleted: false,
     };
 
@@ -467,6 +491,22 @@ export const updateBatchByAdmin = async (id: string, data: BatchUpdateInput): Pr
       throw new ApiError(404, t('batch.notFound'));
     }
 
+    // Validation: If batch is active (is_active = true), details cannot be updated
+    // Exception: If updating status from "published" to "draft", is_active will be set to false automatically
+    if (existingBatch.is_active === true) {
+      const updateFields = Object.keys(data);
+      const hasOnlyIsActive = updateFields.length === 1 && updateFields[0] === 'is_active';
+      const isSettingInactive = hasOnlyIsActive && data.is_active === false;
+      const isChangingToDraft = data.status === 'draft' && existingBatch.status === 'published';
+
+      // Allow if: 1) Only setting is_active to false, or 2) Changing status from published to draft (which sets is_active to false)
+      if (!isSettingInactive && !isChangingToDraft) {
+        throw new ApiError(400, 'Cannot update batch details while batch is active. Please deactivate the batch first by setting is_active to false or changing status to draft.');
+      }
+    }
+
+    // Note: Status can be changed from "published" to "draft" - this will automatically set is_active to false
+
     // Admin can update any batch, so we don't check ownership
     // But we still validate related entities if they're being updated
     const { SportModel } = await import('../../models/sport.model');
@@ -518,6 +558,7 @@ export const updateBatchByAdmin = async (id: string, data: BatchUpdateInput): Pr
     // Prepare update data
     const updateData: any = {};
     if (data.name !== undefined) updateData.name = data.name;
+    if (data.description !== undefined) updateData.description = data.description;
     if (data.sportId !== undefined) updateData.sport = new Types.ObjectId(data.sportId);
     if (data.centerId !== undefined) {
       const centerObjectId = await getCenterObjectId(data.centerId);
@@ -527,13 +568,25 @@ export const updateBatchByAdmin = async (id: string, data: BatchUpdateInput): Pr
       updateData.center = centerObjectId;
     }
     if (data.coach !== undefined) updateData.coach = data.coach ? new Types.ObjectId(data.coach) : null;
+    if (data.gender !== undefined) updateData.gender = data.gender;
+    if (data.certificate_issued !== undefined) updateData.certificate_issued = data.certificate_issued;
     if (data.scheduled !== undefined) {
-      updateData.scheduled = {
+      const scheduledData: any = {
         start_date: data.scheduled.start_date,
-        start_time: data.scheduled.start_time,
-        end_time: data.scheduled.end_time,
+        end_date: data.scheduled.end_date || null,
         training_days: data.scheduled.training_days,
       };
+      // Handle timing - either common timing or individual timing
+      if (data.scheduled.individual_timings && data.scheduled.individual_timings.length > 0) {
+        scheduledData.individual_timings = data.scheduled.individual_timings;
+        scheduledData.start_time = null;
+        scheduledData.end_time = null;
+      } else if (data.scheduled.start_time && data.scheduled.end_time) {
+        scheduledData.start_time = data.scheduled.start_time;
+        scheduledData.end_time = data.scheduled.end_time;
+        scheduledData.individual_timings = null;
+      }
+      updateData.scheduled = scheduledData;
     }
     if (data.duration !== undefined) {
       updateData.duration = {
@@ -554,37 +607,22 @@ export const updateBatchByAdmin = async (id: string, data: BatchUpdateInput): Pr
       };
     }
     if (data.admission_fee !== undefined) {
-      const roundToTwoDecimals = (value: number | null | undefined): number | null => {
-        if (value === null || value === undefined) return null;
-        return parseFloat(value.toFixed(2));
-      };
       updateData.admission_fee = roundToTwoDecimals(data.admission_fee);
     }
-    if (data.fee_structure !== undefined) {
-      const roundNumericValues = (obj: any): any => {
-        if (obj === null || obj === undefined) return obj;
-        if (typeof obj === 'number') return parseFloat(obj.toFixed(2));
-        if (Array.isArray(obj)) return obj.map(item => roundNumericValues(item));
-        if (typeof obj === 'object') {
-          const rounded: any = {};
-          for (const key in obj) {
-            if (Object.prototype.hasOwnProperty.call(obj, key)) {
-              rounded[key] = roundNumericValues(obj[key]);
-            }
-          }
-          return rounded;
-        }
-        return obj;
-      };
-      updateData.fee_structure = data.fee_structure
-        ? {
-            ...data.fee_structure,
-            admission_fee: data.fee_structure.admission_fee ? parseFloat(data.fee_structure.admission_fee.toFixed(2)) : null,
-            fee_configuration: roundNumericValues(data.fee_structure.fee_configuration),
-          }
-        : null;
+    if (data.base_price !== undefined) {
+      updateData.base_price = roundToTwoDecimals(data.base_price);
     }
-    if (data.status !== undefined) updateData.status = data.status;
+    if (data.discounted_price !== undefined) {
+      updateData.discounted_price = roundToTwoDecimals(data.discounted_price);
+    }
+    if (data.status !== undefined) {
+      updateData.status = data.status;
+      // Automatically set is_active based on status: draft = false, published = true
+      updateData.is_active = data.status === 'published';
+    } else if (data.is_active !== undefined) {
+      // Only allow manual is_active update if status is not being updated
+      updateData.is_active = data.is_active;
+    }
 
     // Update batch
     const batch = await BatchModel.findByIdAndUpdate(id, { $set: updateData }, { new: true, runValidators: true })

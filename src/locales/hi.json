@@ -462,7 +462,7 @@
         "maxGreaterThanMin": "अधिकतम आयु न्यूनतम आयु से अधिक या बराबर होनी चाहिए"
       },
       "status": {
-        "invalid": "स्थिति निम्न में से एक होनी चाहिए: published, draft, inactive"
+        "invalid": "स्थिति निम्न में से एक होनी चाहिए: published, draft"
       },
       "feeStructure": {
         "batchId": {

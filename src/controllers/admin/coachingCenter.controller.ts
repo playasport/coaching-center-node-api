@@ -409,3 +409,36 @@ export const updateApprovalStatus = async (req: Request, res: Response, next: Ne
     next(error);
   }
 };
+
+/**
+ * Get employees (coaches) by coaching center ID
+ */
+export const getEmployeesByCoachingCenterId = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params; // coaching center ID
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const roleName = req.query.roleName as string | undefined;
+    const search = req.query.search as string | undefined;
+
+    const result = await adminCoachingCenterService.getEmployeesByCoachingCenterId(
+      id,
+      page,
+      limit,
+      roleName,
+      search
+    );
+
+    const response = new ApiResponse(
+      200,
+      {
+        employees: result.coachingCenters, // Rename for clarity
+        pagination: result.pagination,
+      },
+      'Employees retrieved successfully'
+    );
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};

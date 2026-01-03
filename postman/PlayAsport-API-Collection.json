@@ -2129,7 +2129,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Morning Batch\",\n  \"sport\": \"507f1f77bcf86cd799439011\",\n  \"center\": \"507f1f77bcf86cd799439012\",\n  \"scheduled\": {\n    \"start_date\": \"2024-01-01\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": {\n    \"count\": 3,\n    \"type\": \"months\"\n  },\n  \"capacity\": {\n    \"min\": 10,\n    \"max\": 30\n  },\n  \"age\": {\n    \"min\": 8,\n    \"max\": 16\n  }\n}",
+                  "raw": "{\n  \"name\": \"Morning Cricket Batch\",\n  \"description\": \"Early morning cricket training session for beginners\",\n  \"sportId\": \"{{sportId}}\",\n  \"centerId\": \"{{coachingCenterId}}\",\n  \"coach\": \"507f1f77bcf86cd799439012\",\n  \"gender\": [\"male\", \"female\"],\n  \"certificate_issued\": true,\n  \"scheduled\": {\n    \"start_date\": \"2024-12-01\",\n    \"end_date\": \"2024-12-31\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": {\n    \"count\": 3,\n    \"type\": \"month\"\n  },\n  \"capacity\": {\n    \"min\": 10,\n    \"max\": 30\n  },\n  \"age\": {\n    \"min\": 8,\n    \"max\": 12\n  },\n  \"admission_fee\": 500,\n  \"base_price\": 5000,\n  \"discounted_price\": 4500,\n  \"status\": \"draft\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -2141,7 +2141,7 @@
                   "host": ["{{baseUrl}}"],
                   "path": ["academy", "batch"]
                 },
-                "description": "Create a new batch. Requires ACADEMY role."
+                "description": "Create a new batch. **Important:** Fee configurations have been removed. Use `base_price` and `discounted_price` instead. Requires ACADEMY role.\n\n**Example - Common timing:**\n```json\n{\n  \"name\": \"Morning Cricket Batch\",\n  \"description\": \"Early morning cricket training\",\n  \"sportId\": \"507f1f77bcf86cd799439011\",\n  \"centerId\": \"507f1f77bcf86cd799439011\",\n  \"gender\": [\"male\", \"female\"],\n  \"certificate_issued\": true,\n  \"scheduled\": {\n    \"start_date\": \"2024-12-01\",\n    \"end_date\": \"2024-12-31\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": { \"count\": 3, \"type\": \"month\" },\n  \"capacity\": { \"min\": 10, \"max\": 30 },\n  \"age\": { \"min\": 8, \"max\": 12 },\n  \"base_price\": 5000,\n  \"discounted_price\": 4500\n}\n```\n\n**Example - Individual timing:**\n```json\n{\n  \"scheduled\": {\n    \"start_date\": \"2024-12-01\",\n    \"individual_timings\": [\n      { \"day\": \"monday\", \"start_time\": \"09:00\", \"end_time\": \"11:00\" },\n      { \"day\": \"wednesday\", \"start_time\": \"14:00\", \"end_time\": \"16:00\" }\n    ],\n    \"training_days\": [\"monday\", \"wednesday\"]\n  }\n}\n```"
               },
               "response": []
             },
@@ -2242,7 +2242,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Updated Batch Name\"\n}",
+                  "raw": "{\n  \"name\": \"Updated Batch Name\",\n  \"base_price\": 5500,\n  \"discounted_price\": 5000\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -2261,12 +2261,12 @@
                     }
                   ]
                 },
-                "description": "Update batch. Requires ACADEMY role."
+                "description": "Update batch details. All fields are optional. **Important:** If batch is active (is_active = true), details cannot be updated. You must first set is_active to false, then update other details. **Status restriction:** If current status is \"published\", it cannot be changed to \"draft\". Fee configurations have been removed - use base_price and discounted_price instead. Requires ACADEMY role.\n\n**Example - Simple update:**\n```json\n{\n  \"name\": \"Updated Batch Name\",\n  \"base_price\": 5500,\n  \"discounted_price\": 5000\n}\n```\n\n**Example - Update with individual timing:**\n```json\n{\n  \"scheduled\": {\n    \"start_date\": \"2024-12-01\",\n    \"individual_timings\": [\n      { \"day\": \"monday\", \"start_time\": \"09:00\", \"end_time\": \"11:00\" },\n      { \"day\": \"wednesday\", \"start_time\": \"14:00\", \"end_time\": \"16:00\" }\n    ],\n    \"training_days\": [\"monday\", \"wednesday\"]\n  }\n}\n```"
               },
               "response": []
             },
             {
-              "name": "Update Batch Status",
+              "name": "Toggle Batch Status",
               "request": {
                 "method": "PATCH",
                 "header": [
@@ -2274,26 +2274,12 @@
                     "key": "Authorization",
                     "value": "Bearer {{accessToken}}",
                     "type": "text"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
                   }
                 ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"status\": \"active\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
                 "url": {
-                  "raw": "{{baseUrl}}/academy/batch/:id/status",
+                  "raw": "{{baseUrl}}/academy/batch/:id/toggle-status",
                   "host": ["{{baseUrl}}"],
-                  "path": ["academy", "batch", ":id", "status"],
+                  "path": ["academy", "batch", ":id", "toggle-status"],
                   "variable": [
                     {
                       "key": "id",
@@ -2302,7 +2288,7 @@
                     }
                   ]
                 },
-                "description": "Update batch status. Requires ACADEMY role."
+                "description": "Toggle batch active/inactive status (is_active field). This endpoint toggles the is_active field (if true, becomes false and vice versa). Requires ACADEMY role."
               },
               "response": []
             },
@@ -2335,59 +2321,6 @@
             }
           ],
           "description": "Batch management endpoints"
-        },
-        {
-          "name": "Fee Type Config",
-          "item": [
-            {
-              "name": "Get All Fee Type Configs",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/academy/fee-type-config",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["academy", "fee-type-config"]
-                },
-                "description": "Get all fee type configurations. Requires ACADEMY role."
-              },
-              "response": []
-            },
-            {
-              "name": "Get Fee Type Config by ID",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/academy/fee-type-config/:id",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["academy", "fee-type-config", ":id"],
-                  "variable": [
-                    {
-                      "key": "id",
-                      "value": "507f1f77bcf86cd799439011",
-                      "description": "Fee Type Config ID"
-                    }
-                  ]
-                },
-                "description": "Get fee type configuration by ID. Requires ACADEMY role."
-              },
-              "response": []
-            }
-          ],
-          "description": "Fee type configuration endpoints"
         },
         {
           "name": "Academy Booking",
