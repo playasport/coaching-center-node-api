@@ -21,16 +21,16 @@ const mobileNumberSchema = z
 
 const addressInputSchema = z.object({
   line1: z.string().max(255).optional().nullable(),
-  line2: z.string().min(1).max(255).optional().nullable(),
+  line2: z.string().min(1).max(255),
   area: z.string().max(255).optional().nullable(),
-  city: z.string().min(1).optional().nullable(),
-  state: z.string().min(1).optional().nullable(),
-  country: z.string().min(1).optional().nullable(),
+  city: z.string().min(1).max(255),
+  state: z.string().min(1).max(255),
+  country: z.string().min(1).max(255).optional().nullable().transform((val) => val || 'India'),
   pincode: z
     .string()
     .regex(/^\d{6}$/, validationMessages.address.pincodeInvalid())
-    .optional()
-    .nullable(),
+    .min(6)
+    .max(6),
 });
 
 /**

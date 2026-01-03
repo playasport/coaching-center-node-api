@@ -61,7 +61,7 @@ Role management APIs have been created for the admin panel, allowing Super Admin
   }
   ```
 - **Restrictions:**
-  - Role name must be lowercase with underscores only
+  - Role name must be lowercase with numbers and underscores only (e.g., "test_56", "new_role_123")
   - Cannot create default system roles
   - Role name must be unique
 
@@ -96,7 +96,7 @@ Role management APIs have been created for the admin panel, allowing Super Admin
 - Default role names cannot be changed (only description and visibility)
 
 ### 2. Validation
-- Role name format: lowercase with underscores only
+- Role name format: lowercase with numbers and underscores only (e.g., "test_56", "new_role_123")
 - Role name uniqueness check
 - `visibleToRoles` validation (must be valid role names)
 - User assignment check before deletion

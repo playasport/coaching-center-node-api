@@ -177,7 +177,24 @@ export const deviceTokenService = {
    * Deactivate all device tokens for a user (logout from all devices)
    */
   async deactivateAllDeviceTokens(userId: string | Types.ObjectId): Promise<void> {
-    const userIdObj = typeof userId === 'string' ? new Types.ObjectId(userId) : userId;
+    let userIdObj: Types.ObjectId;
+    
+    if (userId instanceof Types.ObjectId) {
+      userIdObj = userId;
+    } else if (Types.ObjectId.isValid(userId) && userId.length === 24) {
+      // Valid MongoDB ObjectId string
+      userIdObj = new Types.ObjectId(userId);
+    } else {
+      // UUID string - need to look up user's ObjectId
+      const { getUserObjectId } = await import('../../utils/userCache');
+      const objectId = await getUserObjectId(userId);
+      if (!objectId) {
+        logger.warn('User not found for deactivateAllDeviceTokens', { userId });
+        return; // User not found, nothing to deactivate
+      }
+      userIdObj = objectId;
+    }
+    
     await DeviceTokenModel.updateMany(
       { userId: userIdObj, isActive: true },
       { 

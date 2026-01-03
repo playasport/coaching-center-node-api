@@ -20,17 +20,18 @@ import type { CreateAdminUserInput, UpdateAdminUserInput } from '../../validatio
  */
 /**
  * Check if address object has all required fields for Mongoose schema
- * Required fields: line1, city, state, country, pincode
+ * Required fields: line2, city, state, country, pincode
+ * Note: line1 is optional (can be null)
  */
 const isAddressComplete = (address: any): boolean => {
   if (!address || typeof address !== 'object') {
     return false;
   }
   return !!(
-    address.line1 &&
+    address.line2 &&
     address.city &&
     address.state &&
-    address.country &&
+    (address.country || 'India') && // Default to India if not provided
     address.pincode
   );
 };
@@ -99,8 +100,17 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     const userId = uuidv4();
 
     // Validate address: if address is provided but incomplete, set to null
-    // Mongoose schema requires line1, city, state, country, pincode
-    const address = data.address && isAddressComplete(data.address) ? data.address : null;
+    // Mongoose schema requires line2, city, state, country, pincode
+    // Note: line1 is optional (can be null)
+    // Default country to "India" if not provided
+    let address = null;
+    if (data.address && isAddressComplete(data.address)) {
+      address = {
+        line1: data.address.line1 ?? null,
+        ...data.address,
+        country: data.address.country || 'India',
+      };
+    }
 
     // Create user
     const user = await UserModel.create({
@@ -732,9 +742,58 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
       updateData.isActive = data.isActive;
     }
     if (data.address !== undefined) {
-      // Validate address: if address is provided but incomplete, set to null
-      // Mongoose schema requires line1, city, state, country, pincode
-      updateData.address = data.address && isAddressComplete(data.address) ? data.address : null;
+      // Handle address update - support partial updates
+      if (data.address === null) {
+        // Explicitly set to null if null is provided
+        updateData.address = null;
+      } else if (data.address && typeof data.address === 'object') {
+        // For partial updates, merge with existing address if user exists
+        let mergedAddress: any;
+        const addressData = data.address as Record<string, any>;
+        
+        if (existingUser.address) {
+          // Merge with existing address - convert to plain object if needed
+          const existingAddress = existingUser.address as any;
+          const existingAddressObj = existingAddress.toObject ? 
+            existingAddress.toObject() : 
+            (typeof existingAddress === 'object' ? { ...existingAddress } : existingAddress);
+          mergedAddress = { ...existingAddressObj };
+          
+          // Only update fields that are explicitly provided (not null/undefined)
+          Object.keys(addressData).forEach((key) => {
+            if (addressData[key] !== null && addressData[key] !== undefined) {
+              mergedAddress[key] = addressData[key];
+            }
+          });
+        } else {
+          // No existing address, use provided address as-is
+          mergedAddress = { ...addressData };
+        }
+        
+        // Set default country to "India" if not provided
+        if (!mergedAddress.country) {
+          mergedAddress.country = 'India';
+        }
+        
+        // Validate that required fields are present after merge
+        // Required: line2, city, state, country, pincode
+        // Note: line1 is optional (can be null)
+        if (mergedAddress.line2 && mergedAddress.city && 
+            mergedAddress.state && mergedAddress.country && 
+            mergedAddress.pincode) {
+          // Ensure line1 is set (can be null)
+          if (mergedAddress.line1 === undefined) {
+            mergedAddress.line1 = null;
+          }
+          updateData.address = mergedAddress;
+        } else {
+          // If required fields are missing, set to null
+          updateData.address = null;
+        }
+      } else {
+        // Invalid address format, set to null
+        updateData.address = null;
+      }
     }
 
     // Handle roles update if provided (support both role names and ObjectIds)

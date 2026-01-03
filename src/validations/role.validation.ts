@@ -11,7 +11,7 @@ export const createRoleSchema = z.object({
       .string({ message: 'Role name is required' })
       .min(1, 'Role name is required')
       .max(50, 'Role name is too long')
-      .regex(/^[a-z_]+$/, 'Role name must be lowercase with underscores only (e.g., "new_role")')
+      .regex(/^[a-z0-9_]+$/, 'Role name must be lowercase with numbers and underscores only (e.g., "new_role_123")')
       .refine(
         async (name) => {
           const existingRole = await RoleModel.findOne({ name });

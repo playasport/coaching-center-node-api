@@ -26,11 +26,25 @@ export const loginAdmin = async (req: Request, res: Response): Promise<void> => 
       .populate('roles', 'name')
       .lean();
 
-    if (!user) {
+    // Verify password first (before checking permissions to avoid revealing if email exists)
+    // This prevents information disclosure about whether an email is registered
+    let isPasswordValid = false;
+    if (user) {
+      isPasswordValid = await comparePassword(password, user.password);
+    }
+
+    // If user doesn't exist or password is invalid, throw generic error
+    // This ensures we don't reveal whether the email exists in the system
+    if (!user || !isPasswordValid) {
       throw new ApiError(401, t('auth.login.invalidCredentials'));
     }
 
-    // Check if user has admin role or admin panel permissions
+    // Check if user is active
+    if (!user.isActive) {
+      throw new ApiError(403, t('auth.account.inactive'));
+    }
+
+    // Check if user has admin role or admin panel permissions (only after password verification)
     const userRoles = user.roles as any[];
     const adminRoles = [DefaultRoles.SUPER_ADMIN, DefaultRoles.ADMIN, DefaultRoles.EMPLOYEE, DefaultRoles.AGENT];
     const hasAdminRole = userRoles.some((r: any) => adminRoles.includes(r?.name));
@@ -78,17 +92,6 @@ export const loginAdmin = async (req: Request, res: Response): Promise<void> => 
       }
     }
 
-    // Check if user is active
-    if (!user.isActive) {
-      throw new ApiError(403, t('auth.account.inactive'));
-    }
-
-    // Verify password
-    const isPasswordValid = await comparePassword(password, user.password);
-    if (!isPasswordValid) {
-      throw new ApiError(401, t('auth.login.invalidCredentials'));
-    }
-
     // Get role name (prefer super_admin > admin > employee > agent)
     let roleName = DefaultRoles.USER;
     if (userRoles.some((r: any) => r?.name === DefaultRoles.SUPER_ADMIN)) {
@@ -100,6 +103,10 @@ export const loginAdmin = async (req: Request, res: Response): Promise<void> => 
     } else if (userRoles.some((r: any) => r?.name === DefaultRoles.AGENT)) {
       roleName = DefaultRoles.AGENT;
     }
+
+    // Clear user-level blacklist if it exists (user is logging in again after logout all)
+    const { clearUserBlacklist } = await import('../../utils/tokenBlacklist');
+    await clearUserBlacklist(user.id);
 
     // Generate tokens
     const { accessToken, refreshToken } = generateTokenPair(
@@ -261,6 +268,13 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
       throw new ApiError(400, t('auth.token.noToken'));
     }
 
+    // Check if refresh token is blacklisted (including user-level blacklist from logout all)
+    const { isTokenBlacklisted } = await import('../../utils/tokenBlacklist');
+    const isBlacklisted = await isTokenBlacklisted(token);
+    if (isBlacklisted) {
+      throw new ApiError(401, t('auth.token.invalidToken'));
+    }
+
     // Verify refresh token and get user ID
     const { verifyRefreshToken } = await import('../../utils/jwt');
     let decoded;
@@ -393,7 +407,11 @@ export const logoutAll = async (req: Request, res: Response): Promise<void> => {
     if (error instanceof ApiError) {
       throw error;
     }
-    logger.error('Admin logout all error:', error);
+    logger.error('Admin logout all error:', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.user?.id,
+    });
     throw new ApiError(500, t('errors.internalServerError'));
   }
 };

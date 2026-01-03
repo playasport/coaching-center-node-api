@@ -6709,9 +6709,9 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               minLength: 1,
               maxLength: 50,
-              pattern: '^[a-z_]+$',
-              example: 'manager',
-              description: 'Role name must be lowercase with underscores only (e.g., "new_role"). Cannot be a default system role.',
+              pattern: '^[a-z0-9_]+$',
+              example: 'manager_123',
+              description: 'Role name must be lowercase with numbers and underscores only (e.g., "new_role_123"). Cannot be a default system role.',
             },
             description: {
               type: 'string',

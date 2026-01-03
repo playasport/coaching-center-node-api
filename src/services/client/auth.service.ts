@@ -7,7 +7,7 @@ import { OtpMode } from '../../enums/otpMode.enum';
 import { config } from '../../config/env';
 import { comparePassword } from '../../utils';
 import { generateTokenPair, verifyRefreshToken, generateTempRegistrationToken, verifyTempRegistrationToken } from '../../utils/jwt';
-import { blacklistToken, blacklistUserTokens } from '../../utils/tokenBlacklist';
+import { blacklistToken, blacklistUserTokens, clearUserBlacklist } from '../../utils/tokenBlacklist';
 import { queueSms, queueEmail } from '../common/notificationQueue.service';
 import { sendPasswordResetEmail } from '../common/email.service';
 import { otpService } from '../common/otp.service';
@@ -66,6 +66,9 @@ const generateTokensAndStoreDeviceToken = async (
     appVersion?: string;
   }
 ): Promise<{ accessToken: string; refreshToken: string }> => {
+  // Clear user-level blacklist if it exists (user is logging in again after logout all)
+  await clearUserBlacklist(user.id);
+  
   const deviceType = deviceData?.deviceType || 'web';
   
   // Generate tokens with device-specific expiry
@@ -966,6 +969,13 @@ export const refreshToken = async (token: string): Promise<RefreshTokenResult> =
     throw new ApiError(400, t('auth.token.noToken'));
   }
 
+  // Check if refresh token is blacklisted (including user-level blacklist)
+  const { isTokenBlacklisted } = await import('../../utils/tokenBlacklist');
+  const isBlacklisted = await isTokenBlacklisted(token);
+  if (isBlacklisted) {
+    throw new ApiError(401, t('auth.token.invalidToken'));
+  }
+
   // Verify refresh token
   let decoded;
   try {
@@ -1067,10 +1077,41 @@ export const logout = async (userId: string, accessToken?: string, refreshToken?
  * Logout from all devices - blacklist all user tokens and revoke all device refresh tokens
  */
 export const logoutAll = async (userId: string): Promise<void> => {
-  // Blacklist all tokens for this user
+  // Blacklist all tokens for this user (sets user-level blacklist flag)
   await blacklistUserTokens(userId);
   
-  // Revoke all device refresh tokens
+  // Get all active device tokens for this user to blacklist their refresh tokens
+  try {
+    const deviceTokens = await deviceTokenService.getUserDeviceTokens(userId);
+    
+    // Blacklist all refresh tokens from active devices
+    for (const deviceToken of deviceTokens) {
+      if (deviceToken.refreshToken) {
+        try {
+          await blacklistToken(deviceToken.refreshToken);
+          logger.debug('Refresh token blacklisted during logout all', {
+            userId,
+            deviceId: deviceToken.deviceId,
+          });
+        } catch (error) {
+          // Continue even if individual token blacklist fails
+          logger.warn('Failed to blacklist refresh token during logout all', {
+            userId,
+            deviceId: deviceToken.deviceId,
+            error: error instanceof Error ? error.message : error,
+          });
+        }
+      }
+    }
+  } catch (error) {
+    // Log but continue - device token lookup failure shouldn't break logout
+    logger.warn('Failed to get device tokens during logout all', {
+      userId,
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+  
+  // Revoke all device refresh tokens (deactivate devices and clear refresh tokens)
   await deviceTokenService.deactivateAllDeviceTokens(userId);
 };
 
