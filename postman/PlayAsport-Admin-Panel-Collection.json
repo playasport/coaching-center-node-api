@@ -2694,32 +2694,6 @@
             "description": "Update the status of a booking. Requires booking:update permission."
           },
           "response": []
-        },
-        {
-          "name": "Delete Booking",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminAccessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/admin/bookings/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "bookings", ":id"],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": "{{bookingId}}"
-                }
-              ]
-            },
-            "description": "Soft delete a booking. Requires booking:delete permission."
-          },
-          "response": []
         }
       ]
     },

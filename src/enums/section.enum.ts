@@ -5,7 +5,6 @@ export enum Section {
   BOOKING = 'booking',
   STUDENT = 'student',
   PARTICIPANT = 'participant',
-  FEE_TYPE_CONFIG = 'fee_type_config',
   SPORT = 'sport',
   FACILITY = 'facility',
   LOCATION = 'location',

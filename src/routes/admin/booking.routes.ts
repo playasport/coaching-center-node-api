@@ -265,20 +265,6 @@ router.use(requireAdmin);
  *     responses:
  *       200:
  *         description: Booking status updated successfully
- *   delete:
- *     summary: Delete booking (soft delete)
- *     tags: [Admin Bookings]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Booking deleted successfully
  */
 
 router.get('/stats', adminBookingController.getBookingStats);
@@ -286,6 +272,5 @@ router.get('/:id/invoice', adminBookingController.downloadBookingInvoice);
 router.get('/', adminBookingController.getAllBookings);
 router.get('/:id', adminBookingController.getBookingById);
 router.patch('/:id', adminBookingController.updateBookingStatus);
-router.delete('/:id', adminBookingController.deleteBooking);
 
 export default router;

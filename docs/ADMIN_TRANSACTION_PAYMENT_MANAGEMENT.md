@@ -490,7 +490,7 @@ GET /admin/payments/stats?startDate=2024-01-01&endDate=2024-01-31
 ### Booking Integration
 - Each transaction is linked to a booking via `booking` field
 - Transaction status updates can trigger booking status updates (via payment update endpoint)
-- Booking deletion (soft delete) doesn't delete transactions (for audit trail)
+- Transactions are preserved even if bookings are cancelled (for audit trail)
 
 ### User Integration
 - Transactions are linked to users via `user` field
