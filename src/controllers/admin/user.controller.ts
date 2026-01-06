@@ -43,14 +43,14 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     // Check if email already exists
     const existingUserByEmail = await UserModel.findOne({ email: data.email.toLowerCase(), isDeleted: false });
     if (existingUserByEmail) {
-      throw new ApiError(400, 'Email already exists');
+      throw new ApiError(400, t('admin.users.emailExists'));
     }
 
     // Check if mobile number already exists (only if mobile is provided)
     if (data.mobile) {
       const existingUserByMobile = await UserModel.findOne({ mobile: data.mobile, isDeleted: false });
       if (existingUserByMobile) {
-        throw new ApiError(400, 'Mobile number already exists');
+        throw new ApiError(400, t('admin.users.mobileExists'));
       }
     }
 
@@ -84,13 +84,13 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
       rolesQuery = { _id: { $in: roleIds } };
     } else {
       // No valid inputs (shouldn't happen after validation, but handle it)
-      throw new ApiError(400, 'Invalid roles format');
+      throw new ApiError(400, t('admin.users.invalidRolesFormat'));
     }
     
     const roles = await RoleModel.find(rolesQuery);
     
     if (roles.length !== data.roles.length) {
-      throw new ApiError(400, 'One or more roles are invalid');
+      throw new ApiError(400, t('admin.users.invalidRoles'));
     }
 
     // Hash password
@@ -137,7 +137,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
 
     if (!populatedUser) {
       logger.error('User created but not found after creation', { userId, user_id: user._id });
-      throw new ApiError(500, 'User was created but could not be retrieved');
+      throw new ApiError(500, t('admin.users.createFailed'));
     }
 
     logger.info(`Admin created user: ${userId} (${data.email})`);
@@ -697,7 +697,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     // Email and password can only be updated by super admin
     if (data.email !== undefined) {
       if (!currentUserIsSuperAdmin) {
-        throw new ApiError(403, 'Only super admin can update email');
+        throw new ApiError(403, t('admin.users.onlySuperAdminCanUpdateEmail'));
       }
       // Check if email already exists (excluding current user)
       const emailExists = await UserModel.findOne({
@@ -706,14 +706,14 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
         isDeleted: false,
       });
       if (emailExists) {
-        throw new ApiError(400, 'Email already exists');
+        throw new ApiError(400, t('admin.users.emailExists'));
       }
       updateData.email = data.email.toLowerCase();
     }
 
     if (data.password !== undefined) {
       if (!currentUserIsSuperAdmin) {
-        throw new ApiError(403, 'Only super admin can update password');
+        throw new ApiError(403, t('admin.users.onlySuperAdminCanUpdatePassword'));
       }
       // Hash the new password
       const hashedPassword = await hashPassword(data.password);
@@ -827,13 +827,13 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
         rolesQuery = { _id: { $in: roleIds } };
       } else {
         // No valid inputs (shouldn't happen after validation, but handle it)
-        throw new ApiError(400, 'Invalid roles format');
+        throw new ApiError(400, t('admin.users.invalidRolesFormat'));
       }
       
       const roles = await RoleModel.find(rolesQuery);
       
       if (roles.length !== data.roles.length) {
-        throw new ApiError(400, 'One or more roles are invalid');
+        throw new ApiError(400, t('admin.users.invalidRoles'));
       }
       updateData.roles = roles.map((role) => role._id);
     }

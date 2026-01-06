@@ -602,39 +602,5 @@
     "reset": {
       "success": "Settings reset successfully"
     }
-  },
-  "admin": {
-    "profile": {
-      "retrieved": "Admin profile retrieved successfully",
-      "updated": "Admin profile updated successfully"
-    },
-    "users": {
-      "created": "User created successfully",
-      "retrieved": "Users retrieved successfully",
-      "updated": "User updated successfully",
-      "deleted": "User deleted successfully"
-    },
-    "permissions": {
-      "retrieved": "Permissions retrieved successfully",
-      "notFound": "Permission not found",
-      "created": "Permission created successfully",
-      "updated": "Permission updated successfully",
-      "deleted": "Permission deleted successfully",
-      "bulkUpdated": "Permissions updated successfully in bulk"
-    },
-    "sections": {
-      "retrieved": "Available sections retrieved successfully"
-    },
-    "actions": {
-      "retrieved": "Available actions retrieved successfully"
-    },
-    "coachingCenters": {
-      "retrieved": "Coaching centers retrieved successfully",
-      "updated": "Coaching center status updated successfully",
-      "deleted": "Coaching center deleted successfully"
-    },
-    "dashboard": {
-      "statsRetrieved": "Dashboard statistics retrieved successfully"
-    }
   }
 }

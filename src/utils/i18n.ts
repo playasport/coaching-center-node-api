@@ -1,14 +1,23 @@
 import en from '../locales/en.json';
 import hi from '../locales/hi.json';
+import adminEn from '../locales/admin.en.json';
+import adminHi from '../locales/admin.hi.json';
 
 type Locale = 'en' | 'hi';
 type MessageKey = string;
 
 let currentLocale: Locale = 'en';
 
+// Merge admin locale files into main locale files
 const locales: Record<Locale, any> = {
-  en,
-  hi,
+  en: {
+    ...en,
+    admin: adminEn,
+  },
+  hi: {
+    ...hi,
+    admin: adminHi,
+  },
 };
 
 /**

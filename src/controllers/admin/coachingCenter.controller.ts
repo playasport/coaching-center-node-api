@@ -223,7 +223,7 @@ export const getCoachingCenterStats = async (req: Request, res: Response, next: 
 
     const stats = await adminCoachingCenterService.getCoachingCenterStats(params, currentUserId, currentUserRole);
 
-    const response = new ApiResponse(200, { stats }, 'Coaching center statistics retrieved successfully');
+    const response = new ApiResponse(200, { stats }, t('admin.coachingCenters.statsRetrieved'));
     res.json(response);
   } catch (error) {
     next(error);
@@ -239,12 +239,12 @@ export const setBannerImage = async (req: Request, res: Response, next: NextFunc
     const { sportId, imageUniqueId } = req.body;
 
     if (!sportId || !imageUniqueId) {
-      throw new ApiError(400, 'sportId and imageUniqueId are required');
+      throw new ApiError(400, t('admin.coachingCenters.sportIdAndImageUniqueIdRequired'));
     }
 
     const coachingCenter = await commonService.setBannerImage(id, sportId, imageUniqueId);
 
-    const response = new ApiResponse(200, { coachingCenter }, 'Banner image set successfully');
+    const response = new ApiResponse(200, { coachingCenter }, t('admin.coachingCenters.bannerImageSet'));
     res.json(response);
   } catch (error) {
     next(error);
@@ -261,11 +261,11 @@ export const uploadVideoThumbnail = async (req: Request, res: Response, next: Ne
     const thumbnailFile = req.file;
 
     if (!sportId || !videoUniqueId) {
-      throw new ApiError(400, 'sportId and videoUniqueId are required');
+      throw new ApiError(400, t('admin.coachingCenters.sportIdAndVideoUniqueIdRequired'));
     }
 
     if (!thumbnailFile) {
-      throw new ApiError(400, 'Thumbnail image file is required');
+      throw new ApiError(400, t('admin.coachingCenters.thumbnailFileRequired'));
     }
 
     // Upload thumbnail file to S3
@@ -273,7 +273,7 @@ export const uploadVideoThumbnail = async (req: Request, res: Response, next: Ne
 
     const coachingCenter = await commonService.uploadVideoThumbnail(id, sportId, videoUniqueId, thumbnailUrl);
 
-    const response = new ApiResponse(200, { coachingCenter }, 'Video thumbnail uploaded successfully');
+    const response = new ApiResponse(200, { coachingCenter }, t('admin.coachingCenters.videoThumbnailUploaded'));
     res.json(response);
   } catch (error) {
     next(error);
@@ -389,7 +389,7 @@ export const updateApprovalStatus = async (req: Request, res: Response, next: Ne
     const currentUserRole = req.user?.role;
 
     if (typeof isApproved !== 'boolean') {
-      throw new ApiError(400, 'isApproved must be a boolean value');
+      throw new ApiError(400, t('admin.coachingCenters.isApprovedRequired'));
     }
 
     const coachingCenter = await adminCoachingCenterService.updateApprovalStatus(
@@ -402,7 +402,7 @@ export const updateApprovalStatus = async (req: Request, res: Response, next: Ne
     const response = new ApiResponse(
       200,
       { coachingCenter },
-      isApproved ? 'Academy approved successfully' : 'Academy rejected successfully'
+      isApproved ? t('admin.coachingCenters.approved') : t('admin.coachingCenters.rejected')
     );
     res.json(response);
   } catch (error) {
@@ -435,7 +435,7 @@ export const getEmployeesByCoachingCenterId = async (req: Request, res: Response
         employees: result.coachingCenters, // Rename for clarity
         pagination: result.pagination,
       },
-      'Employees retrieved successfully'
+      t('admin.coachingCenters.employeesRetrieved')
     );
     res.json(response);
   } catch (error) {

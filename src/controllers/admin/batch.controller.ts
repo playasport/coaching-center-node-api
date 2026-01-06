@@ -14,12 +14,12 @@ export const createBatch = async (req: Request, res: Response, next: NextFunctio
 
     // centerId is required for admin batch creation
     if (!data.centerId) {
-      throw new ApiError(400, t('validation.batch.centerId.required'));
+      throw new ApiError(400, t('admin.batches.centerIdRequired'));
     }
 
     const batch = await adminBatchService.createBatchByAdmin(data);
 
-    const response = new ApiResponse(201, { batch }, t('batch.create.success'));
+    const response = new ApiResponse(201, { batch }, t('admin.batches.created'));
     res.status(201).json(response);
   } catch (error) {
     next(error);
@@ -48,7 +48,7 @@ export const getAllBatches = async (req: Request, res: Response, next: NextFunct
 
     const result = await adminBatchService.getAllBatches(page, limit, filters);
 
-    const response = new ApiResponse(200, result, t('batch.list.success'));
+    const response = new ApiResponse(200, result, t('admin.batches.listRetrieved'));
     res.json(response);
   } catch (error) {
     next(error);
@@ -64,10 +64,10 @@ export const getBatch = async (req: Request, res: Response, next: NextFunction):
     const batch = await adminBatchService.getBatchById(id);
 
     if (!batch) {
-      throw new ApiError(404, t('batch.notFound'));
+      throw new ApiError(404, t('admin.batches.notFound'));
     }
 
-    const response = new ApiResponse(200, { batch }, t('batch.get.success'));
+    const response = new ApiResponse(200, { batch }, t('admin.batches.retrieved'));
     res.json(response);
   } catch (error) {
     next(error);
@@ -92,7 +92,7 @@ export const getBatchesByUserId = async (req: Request, res: Response, next: Next
       sortOrder as 'asc' | 'desc'
     );
 
-    const response = new ApiResponse(200, result, t('batch.list.success'));
+    const response = new ApiResponse(200, result, t('admin.batches.listRetrieved'));
     res.json(response);
   } catch (error) {
     next(error);
@@ -117,7 +117,7 @@ export const getBatchesByCenterId = async (req: Request, res: Response, next: Ne
       sortOrder as 'asc' | 'desc'
     );
 
-    const response = new ApiResponse(200, result, t('batch.list.success'));
+    const response = new ApiResponse(200, result, t('admin.batches.listRetrieved'));
     res.json(response);
   } catch (error) {
     next(error);
@@ -135,10 +135,10 @@ export const updateBatch = async (req: Request, res: Response, next: NextFunctio
     const batch = await adminBatchService.updateBatchByAdmin(id, data);
 
     if (!batch) {
-      throw new ApiError(404, t('batch.notFound'));
+      throw new ApiError(404, t('admin.batches.notFound'));
     }
 
-    const response = new ApiResponse(200, { batch }, t('batch.update.success'));
+    const response = new ApiResponse(200, { batch }, t('admin.batches.updated'));
     res.json(response);
   } catch (error) {
     next(error);
@@ -153,7 +153,7 @@ export const deleteBatch = async (req: Request, res: Response, next: NextFunctio
     const { id } = req.params;
     await adminBatchService.deleteBatchByAdmin(id);
 
-    const response = new ApiResponse(200, null, t('batch.delete.success'));
+    const response = new ApiResponse(200, null, t('admin.batches.deleted'));
     res.json(response);
   } catch (error) {
     next(error);
@@ -168,8 +168,7 @@ export const toggleStatus = async (req: Request, res: Response, next: NextFuncti
     const { id } = req.params;
     const batch = await adminBatchService.toggleBatchStatusByAdmin(id);
 
-    const statusMessage = batch?.is_active ? t('batch.toggleStatus.active') : t('batch.toggleStatus.inactive');
-    const response = new ApiResponse(200, { batch }, statusMessage);
+    const response = new ApiResponse(200, { batch }, t('admin.batches.statusToggled'));
     res.json(response);
   } catch (error) {
     next(error);
