@@ -220,6 +220,37 @@
           "response": []
         },
         {
+          "name": "Update Admin Profile Image",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": [],
+                  "description": "Profile image file (JPEG, PNG, WebP). Max size as configured in maxProfileImageSize. Images are automatically compressed."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/auth/profile/image",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "auth", "profile", "image"]
+            },
+            "description": "Update admin user's profile image. The image will be automatically compressed, uploaded to S3, and the user's profileImage field will be updated. Old profile image will be deleted if it exists."
+          },
+          "response": []
+        },
+        {
           "name": "Change Admin Password",
           "request": {
             "method": "PATCH",

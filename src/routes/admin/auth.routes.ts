@@ -4,6 +4,7 @@ import { authenticate } from '../../middleware/auth.middleware';
 import { requireAdmin } from '../../middleware/admin.middleware';
 import { validate } from '../../middleware/validation.middleware';
 import { generalRateLimit } from '../../middleware/rateLimit.middleware';
+import { uploadImage } from '../../middleware/upload.middleware';
 import {
   adminLoginSchema,
   adminUpdateProfileSchema,
@@ -54,6 +55,7 @@ const router = Router();
  *                   email: "admin@playasport.in"
  *                   firstName: "Super"
  *                   lastName: "Admin"
+ *                   profileImage: "https://bucket.s3.region.amazonaws.com/users/user-id-image.jpg"
  *                   roles: ["super_admin"]
  *                 accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *                 refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -177,6 +179,105 @@ router.patch(
   requireAdmin,
   validate(adminUpdateProfileSchema),
   adminAuthController.updateAdminProfile
+);
+
+/**
+ * @swagger
+ * /admin/auth/profile/image:
+ *   patch:
+ *     summary: Update admin profile image
+ *     description: Update the authenticated admin user's profile image. Accepts image as binary file in multipart/form-data with field name 'image'
+ *     tags: [Admin Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - image
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Image file (JPEG, PNG, WebP). Max size as configured in maxProfileImageSize
+ *     responses:
+ *       200:
+ *         description: Profile image updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Profile image updated successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           example: "f316a86c-2909-4d32-8983-eb225c715bcb"
+ *                         email:
+ *                           type: string
+ *                           example: "admin@playasport.in"
+ *                         firstName:
+ *                           type: string
+ *                           example: "Super"
+ *                         lastName:
+ *                           type: string
+ *                           example: "Admin"
+ *                         profileImage:
+ *                           type: string
+ *                           format: uri
+ *                           example: "https://bucket.s3.region.amazonaws.com/users/user-id-image.jpg"
+ *                         roles:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                           example: ["super_admin"]
+ *       400:
+ *         description: Image file is required or invalid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               success: false
+ *               message: "Image file is required"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               success: false
+ *               message: "Unauthorized"
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               success: false
+ *               message: "User not found"
+ */
+router.patch(
+  '/profile/image',
+  authenticate,
+  requireAdmin,
+  uploadImage,
+  adminAuthController.updateAdminProfileImage
 );
 
 /**

@@ -6034,6 +6034,12 @@ const options: swaggerJsdoc.Options = {
                     email: { type: 'string', example: 'admin@example.com' },
                     firstName: { type: 'string', example: 'John' },
                     lastName: { type: 'string', example: 'Doe' },
+                    profileImage: {
+                      type: 'string',
+                      format: 'uri',
+                      nullable: true,
+                      example: 'https://bucket.s3.region.amazonaws.com/users/user-id-image.jpg',
+                    },
                     roles: {
                       type: 'array',
                       items: { type: 'string' },

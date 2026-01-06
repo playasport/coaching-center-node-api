@@ -53,6 +53,26 @@ const router = Router();
  *                     total: 800
  *                   participants:
  *                     total: 1200
+ *                   revenue:
+ *                     total: 2500000
+ *                     today: 50000
+ *                     thisWeek: 350000
+ *                     thisMonth: 1200000
+ *                   transactions:
+ *                     statusBreakdown:
+ *                       completed:
+ *                         count: 800
+ *                         totalAmount: 2400000
+ *                       pending:
+ *                         count: 50
+ *                         totalAmount: 75000
+ *                       failed:
+ *                         count: 50
+ *                         totalAmount: 25000
+ *                   newRegistrations:
+ *                     users: 150
+ *                     academies: 25
+ *                     period: "last_7_days"
  *       401:
  *         description: Unauthorized
  *         content:

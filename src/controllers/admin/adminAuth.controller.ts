@@ -126,6 +126,7 @@ export const loginAdmin = async (req: Request, res: Response): Promise<void> => 
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          profileImage: user.profileImage || null,
           roles: userRoles.map((r: any) => r?.name),
         },
         accessToken,
@@ -412,6 +413,103 @@ export const logoutAll = async (req: Request, res: Response): Promise<void> => {
       stack: error instanceof Error ? error.stack : undefined,
       userId: req.user?.id,
     });
+    throw new ApiError(500, t('errors.internalServerError'));
+  }
+};
+
+/**
+ * Update admin profile image
+ */
+export const updateAdminProfileImage = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    if (!req.file) {
+      throw new ApiError(400, t('validation.file.required'));
+    }
+
+    const user = await UserModel.findOne({ id: req.user.id, isDeleted: false }).lean();
+
+    if (!user) {
+      throw new ApiError(404, t('auth.user.notFound'));
+    }
+
+    // Import S3 utilities
+    const { uploadFileToS3, deleteFileFromS3 } = await import('../../services/common/s3.service');
+
+    try {
+      logger.info('Starting admin profile image upload', {
+        userId: user.id,
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+      });
+
+      // Delete old profile image if exists
+      if (user.profileImage) {
+        try {
+          await deleteFileFromS3(user.profileImage);
+          logger.info('Old admin profile image deleted', { oldImageUrl: user.profileImage });
+        } catch (deleteError) {
+          logger.warn('Failed to delete old admin profile image, continuing with upload', deleteError);
+          // Don't fail the upload if deletion fails
+        }
+      }
+
+      // Upload new image to S3
+      const imageUrl = await uploadFileToS3({
+        file: req.file,
+        folder: 'users',
+        userId: user.id,
+      });
+
+      // Update user profile image
+      const updatedUser = await UserModel.findOneAndUpdate(
+        { id: req.user.id },
+        { $set: { profileImage: imageUrl } },
+        { new: true, runValidators: true }
+      )
+        .select('-password')
+        .populate('roles', 'name description')
+        .lean();
+
+      if (!updatedUser) {
+        throw new ApiError(500, t('errors.internalServerError'));
+      }
+
+      logger.info('Admin profile image uploaded successfully', { imageUrl, userId: user.id });
+
+      const response = new ApiResponse(
+        200,
+        {
+          user: {
+            id: updatedUser.id,
+            email: updatedUser.email,
+            firstName: updatedUser.firstName,
+            lastName: updatedUser.lastName,
+            profileImage: updatedUser.profileImage,
+            roles: (updatedUser.roles as any[]).map((r: any) => r?.name),
+          },
+        },
+        t('admin.profile.imageUpdated')
+      );
+      res.json(response);
+    } catch (error: any) {
+      logger.error('Failed to upload admin profile image', {
+        error: error?.message || error,
+        stack: error?.stack,
+        userId: user.id,
+        fileName: req.file?.originalname,
+      });
+      throw new ApiError(500, error?.message || t('auth.profile.imageUploadFailed'));
+    }
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Update admin profile image error:', error);
     throw new ApiError(500, t('errors.internalServerError'));
   }
 };

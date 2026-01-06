@@ -85,6 +85,7 @@ Permissions are structured as:
 - `POST /admin/auth/login` - Admin login
 - `GET /admin/auth/profile` - Get admin profile
 - `PATCH /admin/auth/profile` - Update admin profile
+- `PATCH /admin/auth/profile/image` - Update admin profile image (multipart/form-data with field name 'image')
 - `PATCH /admin/auth/password` - Change password
 
 ### Permission Management (`/admin/permissions`)

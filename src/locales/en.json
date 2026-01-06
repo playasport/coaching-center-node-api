@@ -117,6 +117,7 @@
       "noChanges": "Please provide at least one field to update"
     },
     "file": {
+      "required": "Image file is required",
       "invalidType": "Invalid file type. Allowed types: {types}",
       "tooLarge": "File size exceeds the maximum limit of 5MB"
     },
@@ -601,6 +602,16 @@
     },
     "reset": {
       "success": "Settings reset successfully"
+    }
+  },
+  "admin": {
+    "profile": {
+      "retrieved": "Profile retrieved successfully",
+      "updated": "Profile updated successfully",
+      "imageUpdated": "Profile image updated successfully"
+    },
+    "dashboard": {
+      "statsRetrieved": "Statistics retrieved successfully"
     }
   }
 }
