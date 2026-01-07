@@ -351,11 +351,11 @@ export const sendBookingConfirmationAdminEmail = async (
   });
 };
 
-interface AccountCredentialsEmailData {
-  email: string;
-  password: string;
-  name: string;
-}
+// interface AccountCredentialsEmailData {
+//   email: string;
+//   password: string;
+//   name: string;
+// }
 
 /**
  * Send account credentials email to newly created users
