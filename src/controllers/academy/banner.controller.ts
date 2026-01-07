@@ -65,33 +65,39 @@ export const getCenterBanners = async (req: Request, res: Response, next: NextFu
       return;
     }
 
-    // Get banners for each center (banners with centerIds: null are shown to all)
-    // We'll get banners that match any of the user's centers or are general (null)
-    const allBanners: any[] = [];
+    // Get banners for each center and general banners in parallel
+    const bannerPromises: Promise<any[]>[] = [];
     
+    // Get banners for each center
     for (const centerId of centerIds) {
-      const banners = await bannerService.getActiveBannersByPosition(
+      bannerPromises.push(
+        bannerService.getActiveBannersByPosition(
+          bannerPosition,
+          {
+            centerId,
+            sportId: sportId as string,
+            limit: limit ? parseInt(limit as string) : undefined,
+            academyOnly: true, // Include academy-only banners
+          }
+        )
+      );
+    }
+
+    // Also get general banners (centerIds: null)
+    bannerPromises.push(
+      bannerService.getActiveBannersByPosition(
         bannerPosition,
         {
-          centerId,
           sportId: sportId as string,
           limit: limit ? parseInt(limit as string) : undefined,
           academyOnly: true, // Include academy-only banners
         }
-      );
-      allBanners.push(...banners);
-    }
-
-    // Also get general banners (centerIds: null)
-    const generalBanners = await bannerService.getActiveBannersByPosition(
-      bannerPosition,
-      {
-        sportId: sportId as string,
-        limit: limit ? parseInt(limit as string) : undefined,
-        academyOnly: true, // Include academy-only banners
-      }
+      )
     );
-    allBanners.push(...generalBanners);
+
+    // Execute all banner queries in parallel
+    const bannerResults = await Promise.all(bannerPromises);
+    const allBanners = bannerResults.flat();
 
     // Remove duplicates and sort by priority
     const uniqueBanners = Array.from(
@@ -119,16 +125,17 @@ export const getAllCenterBanners = async (req: Request, res: Response, next: Nex
       throw new ApiError(401, t('auth.authorization.unauthorized'));
     }
 
+    // Get user ObjectId once (cached lookup)
+    const userObjectId = await getUserObjectId(user.id);
+    if (!userObjectId) {
+      throw new ApiError(404, 'User not found');
+    }
+
     // Get center IDs from user's coaching centers
     let centerIds: string[] = [];
     
     if (queryCenterId) {
       // If specific center ID is provided, verify it belongs to user
-      const userObjectId = await getUserObjectId(user.id);
-      if (!userObjectId) {
-        throw new ApiError(404, 'User not found');
-      }
-
       const center = await CoachingCenterModel.findOne({
         id: queryCenterId as string,
         user: userObjectId,
@@ -142,11 +149,6 @@ export const getAllCenterBanners = async (req: Request, res: Response, next: Nex
       centerIds = [center.id as string];
     } else {
       // Get all center IDs owned by the user
-      const userObjectId = await getUserObjectId(user.id);
-      if (!userObjectId) {
-        throw new ApiError(404, 'User not found');
-      }
-
       const coachingCenters = await CoachingCenterModel.find({
         user: userObjectId,
         is_deleted: false,
@@ -162,34 +164,41 @@ export const getAllCenterBanners = async (req: Request, res: Response, next: Nex
       BannerPosition.HOMEPAGE_MIDDLE,
     ];
 
-    const allBanners: any[] = [];
-
+    // Build all banner queries in parallel (for all positions and centers)
+    const bannerPromises: Promise<any[]>[] = [];
+    
     for (const position of positions) {
       // Get banners for each center
       for (const centerId of centerIds) {
-        const banners = await bannerService.getActiveBannersByPosition(
+        bannerPromises.push(
+          bannerService.getActiveBannersByPosition(
+            position,
+            {
+              centerId,
+              sportId: sportId as string,
+              limit: limit ? parseInt(limit as string) : 5,
+              academyOnly: true, // Include academy-only banners
+            }
+          ).then(banners => banners.map(b => ({ ...b, position })))
+        );
+      }
+
+      // Also get general banners (centerIds: null)
+      bannerPromises.push(
+        bannerService.getActiveBannersByPosition(
           position,
           {
-            centerId,
             sportId: sportId as string,
             limit: limit ? parseInt(limit as string) : 5,
             academyOnly: true, // Include academy-only banners
           }
-        );
-        allBanners.push(...banners.map(b => ({ ...b, position })));
-      }
-
-      // Also get general banners (centerIds: null)
-      const generalBanners = await bannerService.getActiveBannersByPosition(
-        position,
-        {
-          sportId: sportId as string,
-          limit: limit ? parseInt(limit as string) : 5,
-          academyOnly: true, // Include academy-only banners
-        }
+        ).then(banners => banners.map(b => ({ ...b, position })))
       );
-      allBanners.push(...generalBanners.map(b => ({ ...b, position })));
     }
+
+    // Execute all banner queries in parallel
+    const bannerResults = await Promise.all(bannerPromises);
+    const allBanners = bannerResults.flat();
 
     // Remove duplicates and group by position
     const bannersByPosition = allBanners.reduce((acc, banner) => {

@@ -351,3 +351,34 @@ export const sendBookingConfirmationAdminEmail = async (
   });
 };
 
+interface AccountCredentialsEmailData {
+  email: string;
+  password: string;
+  name: string;
+}
+
+/**
+ * Send account credentials email to newly created users
+ */
+export const sendAccountCredentialsEmail = async (
+  email: string,
+  password: string,
+  name: string
+): Promise<string> => {
+  const subject = 'Welcome to PlayAsport - Your Account Credentials';
+  const text = `Welcome to PlayAsport! Your account has been created.\n\nEmail: ${email}\nPassword: ${password}\n\nPlease change your password after first login.`;
+
+  return sendTemplatedEmail({
+    to: email,
+    subject,
+    template: 'account-credentials.html',
+    text,
+    variables: {
+      name: name || 'User',
+      email,
+      password,
+      year: new Date().getFullYear(),
+    },
+  });
+};
+

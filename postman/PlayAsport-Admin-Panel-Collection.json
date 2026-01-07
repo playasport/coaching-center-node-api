@@ -824,14 +824,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"SecurePass@123\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"mobile\": \"9876543210\",\n  \"gender\": \"male\",\n  \"dob\": \"1990-01-01T00:00:00.000Z\",\n  \"roles\": [\"user\"],\n  \"userType\": \"student\",\n  \"isActive\": true\n}"
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"mobile\": \"9876543210\",\n  \"gender\": \"male\",\n  \"dob\": \"1990-01-01T00:00:00.000Z\",\n  \"roles\": [\"user\"],\n  \"userType\": \"student\",\n  \"isActive\": true\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/admin/users",
               "host": ["{{baseUrl}}"],
               "path": ["admin", "users"]
             },
-            "description": "Create a new user with specified roles and password. Requires user:create permission.\n\n**Required Fields:**\n- email: Valid email, must be unique\n- password: Min 8 chars, must contain uppercase, lowercase, number, special char\n- firstName: User's first name\n- roles: Array of role names (at least one)\n\n**Optional Fields:**\n- lastName, mobile, gender, dob, userType, isActive, address"
+            "description": "Create a new user with specified roles. A secure random password will be automatically generated and sent to the user's email address. Requires user:create permission.\n\n**Required Fields:**\n- email: Valid email, must be unique (password will be sent to this email)\n- firstName: User's first name\n- roles: Array of role names (at least one) - only \"user\" or \"academy\" roles allowed\n\n**Optional Fields:**\n- lastName, mobile, gender, dob, userType, isActive, address\n\n**Note:** The user will receive an email with their login credentials (email and temporary password) shortly after account creation."
           },
           "event": [
             {
@@ -937,6 +937,211 @@
               ]
             },
             "description": "Soft delete a user. Requires user:delete permission.\n\n**ID Format Support:**\n- UUID format: `550e8400-e29b-41d4-a716-446655440000`\n- MongoDB ObjectId format: `69428b55c8c9ac23116e89da` (24 hex characters)\n\nBoth formats are supported for backward compatibility."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Operational User Management",
+      "description": "Operational user management endpoints for managing users with any role except user, academy, or super_admin. Supports admin, employee, agent, and any custom roles created via role routes. Requires operational_user permissions.",
+      "item": [
+        {
+          "name": "Get All Operational Users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.users && response.data.users.length > 0) {",
+                  "        pm.collectionVariables.set('userId', response.data.users[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/operational-users?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "operational-users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by first name, last name, email, or mobile number",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "",
+                  "description": "Filter by active status (true/false)",
+                  "disabled": true
+                },
+                {
+                  "key": "role",
+                  "value": "",
+                  "description": "Filter by role name (any role except user, academy, super_admin)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Retrieve paginated list of operational users (users with roles other than user, academy, or super_admin). Supports filtering by search, isActive, and role. Requires operational_user:view permission.\n\n**Filters:**\n- `search`: Search by first name, last name, email, or mobile\n- `isActive`: Filter by active status (true/false)\n- `role`: Filter by role name (admin, employee, agent, or any custom role)\n\n**Examples:**\n- Get all admins: `?role=admin`\n- Get active employees: `?role=employee&isActive=true`\n- Search users: `?search=john`"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Operational User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"operational@example.com\",\n  \"firstName\": \"Operational\",\n  \"lastName\": \"User\",\n  \"mobile\": \"9876543210\",\n  \"gender\": \"male\",\n  \"dob\": \"1990-01-01T00:00:00.000Z\",\n  \"roles\": [\"admin\"],\n  \"isActive\": true,\n  \"address\": {\n    \"line1\": \"Street Address\",\n    \"line2\": \"Area\",\n    \"city\": \"City\",\n    \"state\": \"State\",\n    \"country\": \"India\",\n    \"pincode\": \"123456\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/operational-users",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "operational-users"]
+            },
+            "description": "Create a new operational user. A secure random password will be automatically generated and sent to the user's email address. Requires operational_user:create permission.\n\n**Required Fields:**\n- email: Valid email, must be unique (password will be sent to this email)\n- firstName: User's first name\n- roles: Array of role names (at least one) - any role except \"super_admin\", \"user\", or \"academy\"\n\n**Optional Fields:**\n- lastName, mobile, gender, dob, isActive, address\n\n**Allowed Roles:** Any role except `super_admin`, `user`, or `academy`. This includes:\n- `admin`\n- `employee`\n- `agent`\n- Any custom roles created via role routes\n\n**Note:** Operational users do not have a `userType` field (unlike regular users). The user will receive an email with their login credentials (email and temporary password) shortly after account creation."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.user) {",
+                  "        pm.collectionVariables.set('userId', response.data.user.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get Operational User by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/operational-users/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "operational-users", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{userId}}",
+                  "description": "User ID (supports UUID or MongoDB ObjectId format)"
+                }
+              ]
+            },
+            "description": "Retrieve a specific operational user by ID. Only returns users with roles other than user, academy, or super_admin. Requires operational_user:view permission.\n\n**ID Format Support:**\n- UUID format: `550e8400-e29b-41d4-a716-446655440000`\n- MongoDB ObjectId format: `69428b55c8c9ac23116e89da` (24 hex characters)\n\nBoth formats are supported for backward compatibility."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Operational User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Updated Name\",\n  \"lastName\": \"Updated Last\",\n  \"roles\": [\"employee\"],\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/operational-users/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "operational-users", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{userId}}",
+                  "description": "User ID"
+                }
+              ]
+            },
+            "description": "Update an operational user. Requires operational_user:update permission. All fields are optional.\n\n**Allowed Roles:** Any role except `super_admin`, `user`, or `academy`.\n\n**Restrictions:**\n- Email and password can only be updated by super_admin\n- Roles must be valid and not include user, academy, or super_admin\n\n**ID Format Support:**\n- UUID format: `550e8400-e29b-41d4-a716-446655440000`\n- MongoDB ObjectId format: `69428b55c8c9ac23116e89da` (24 hex characters)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Operational User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/operational-users/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "operational-users", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{userId}}",
+                  "description": "User ID"
+                }
+              ]
+            },
+            "description": "Soft delete an operational user. Requires operational_user:delete permission.\n\n**ID Format Support:**\n- UUID format: `550e8400-e29b-41d4-a716-446655440000`\n- MongoDB ObjectId format: `69428b55c8c9ac23116e89da` (24 hex characters)\n\nBoth formats are supported for backward compatibility."
           },
           "response": []
         }

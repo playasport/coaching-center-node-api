@@ -18,7 +18,7 @@ router.use(authenticate, requireAdmin);
  * /admin/users:
  *   post:
  *     summary: Create user (admin)
- *     description: Create a new user with specified roles and password. Requires user:create permission. Note: "super_admin" role cannot be assigned through this endpoint.
+ *     description: Create a new user with specified roles. A secure random password will be automatically generated and sent to the user's email. Requires user:create permission. Only "user" and "academy" roles can be assigned through this endpoint. Other roles (super_admin, admin, employee, agent) cannot be assigned.
  *     tags: [Admin Users]
  *     security:
  *       - bearerAuth: []
@@ -30,7 +30,6 @@ router.use(authenticate, requireAdmin);
  *             $ref: '#/components/schemas/CreateAdminUserRequest'
  *           example:
  *             email: "newuser@example.com"
- *             password: "SecurePass@123"
  *             firstName: "John"
  *             lastName: "Doe"
  *             mobile: "9876543210"
@@ -110,22 +109,23 @@ router.post(
  *   get:
  *     summary: Get all users (admin)
  *     description: |
- *       Retrieve paginated list of all users with role information. Supports filtering and searching.
+ *       Retrieve paginated list of users with "user" or "academy" roles only. Supports filtering and searching.
+ *       
+ *       **Note:** This endpoint only returns users with "user" or "academy" roles. Users with other roles (super_admin, admin, employee, agent) are excluded from results.
  *       
  *       **Available Filters:**
  *       - `search`: Search by first name, last name, email, or mobile number
- *       - `userType`: Filter by user type (student, guardian, or other)
+ *       - `userType`: Filter by user type (student, guardian, academy, or other)
  *       - `isActive`: Filter by active status (true/false)
- *       - `role`: Filter by role name (e.g., "user", "admin", "super_admin")
  *       
  *       **Filter Examples:**
  *       - Get all students: `?userType=student`
  *       - Get all guardians: `?userType=guardian`
+ *       - Get academy users: `?userType=academy`
  *       - Get other users (null/undefined userType): `?userType=other`
  *       - Search users: `?search=john`
  *       - Active users only: `?isActive=true`
- *       - Filter by role: `?role=user`
- *       - Combine filters: `?userType=student&isActive=true&search=john&role=user`
+ *       - Combine filters: `?userType=student&isActive=true&search=john`
  *       
  *       Requires user:view permission.
  *     tags: [Admin Users]
@@ -156,18 +156,13 @@ router.post(
  *         name: userType
  *         schema:
  *           type: string
- *           enum: [student, guardian, other]
- *         description: Filter by user type (student, guardian, or other for null/undefined userType)
+ *           enum: [student, guardian, academy, other]
+ *         description: Filter by user type (student, guardian, academy, or other for null/undefined userType)
  *       - in: query
  *         name: isActive
  *         schema:
  *           type: boolean
  *         description: Filter by active status (true/false)
- *       - in: query
- *         name: role
- *         schema:
- *           type: string
- *         description: Filter by role name (e.g., "user", "admin", "super_admin")
  *     responses:
  *       200:
  *         description: Users retrieved successfully
@@ -371,7 +366,7 @@ router.get('/:id', requirePermission(Section.USER, Action.VIEW), userController.
  * /admin/users/{id}:
  *   patch:
  *     summary: Update user (admin)
- *     description: Update a user. Requires user:update permission. All fields are optional. Roles can be updated by providing an array of role names. Note: "super_admin" role cannot be assigned through this endpoint. Email and password can only be updated by super_admin.
+ *     description: Update a user. Requires user:update permission. All fields are optional. Roles can be updated by providing an array of role names. Only "user" and "academy" roles can be assigned through this endpoint. Other roles (super_admin, admin, employee, agent) cannot be assigned. Email can only be updated by super_admin. Password field is not available in update - use password reset flow instead.
  *     tags: [Admin Users]
  *     security:
  *       - bearerAuth: []

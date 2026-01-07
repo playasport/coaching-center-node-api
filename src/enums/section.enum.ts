@@ -12,6 +12,7 @@ export enum Section {
   REEL = 'reel',
   ROLE = 'role',
   USER = 'user',
+  OPERATIONAL_USER = 'operational_user',
   ACADEMY_AUTH = 'academy_auth',
   USER_AUTH = 'user_auth',
   PERMISSION = 'permission',

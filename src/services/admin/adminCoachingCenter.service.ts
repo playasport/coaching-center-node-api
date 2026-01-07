@@ -696,18 +696,36 @@ export const getCoachingCenterStats = async (
       ];
     }
 
-    // Get total count
-    const total = await CoachingCenterModel.countDocuments(dateQuery);
-
-    // Get counts by status
-    const statusCounts = await CoachingCenterModel.aggregate([
-      { $match: dateQuery },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 },
+    // Get total count, status counts, active counts, and approval status counts in parallel
+    const [total, statusCounts, activeCounts, approvalStatusCounts] = await Promise.all([
+      CoachingCenterModel.countDocuments(dateQuery),
+      CoachingCenterModel.aggregate([
+        { $match: dateQuery },
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 },
+          },
         },
-      },
+      ]),
+      CoachingCenterModel.aggregate([
+        { $match: dateQuery },
+        {
+          $group: {
+            _id: '$is_active',
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+      CoachingCenterModel.aggregate([
+        { $match: dateQuery },
+        {
+          $group: {
+            _id: '$approval_status',
+            count: { $sum: 1 },
+          },
+        },
+      ]),
     ]);
 
     const byStatus: Record<string, number> = {};
@@ -715,32 +733,10 @@ export const getCoachingCenterStats = async (
       byStatus[item._id] = item.count;
     });
 
-    // Get counts by active status
-    const activeCounts = await CoachingCenterModel.aggregate([
-      { $match: dateQuery },
-      {
-        $group: {
-          _id: '$is_active',
-          count: { $sum: 1 },
-        },
-      },
-    ]);
-
     const byActiveStatus = {
       active: activeCounts.find((item: any) => item._id === true)?.count || 0,
       inactive: activeCounts.find((item: any) => item._id === false)?.count || 0,
     };
-
-    // Get counts by approval status
-    const approvalStatusCounts = await CoachingCenterModel.aggregate([
-      { $match: dateQuery },
-      {
-        $group: {
-          _id: '$approval_status',
-          count: { $sum: 1 },
-        },
-      },
-    ]);
 
     const byApprovalStatus = {
       approved: approvalStatusCounts.find((item: any) => item._id === AdminApproveStatus.APPROVE)?.count || 0,

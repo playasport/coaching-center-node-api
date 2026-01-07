@@ -34,15 +34,17 @@ export const createCoachingCenter = async (
   const userObjectId = await getUserObjectId(userId);
   if (!userObjectId) throw new ApiError(404, 'User not found');
 
-  // Validate sports
+  // Validate sports and resolve facilities in parallel
   const sportIds = data.sports ? data.sports.map((id) => new Types.ObjectId(id)) : [];
-  if (sportIds.length > 0) {
-    const sportsCount = await SportModel.countDocuments({ _id: { $in: sportIds } });
-    if (sportsCount !== (data.sports?.length || 0)) throw new ApiError(400, t('coachingCenter.sports.invalid'));
+  
+  const [sportsCount, facilityIds] = await Promise.all([
+    sportIds.length > 0 ? SportModel.countDocuments({ _id: { $in: sportIds } }) : Promise.resolve(0),
+    data.facility ? commonService.resolveFacilities(data.facility) : Promise.resolve([]),
+  ]);
+  
+  if (sportIds.length > 0 && sportsCount !== (data.sports?.length || 0)) {
+    throw new ApiError(400, t('coachingCenter.sports.invalid'));
   }
-
-  // Resolve facilities
-  const facilityIds = data.facility ? await commonService.resolveFacilities(data.facility) : [];
 
   // Prepare data - set approval_status to pending_approval by default for academy-created centers
   const coachingCenterData: any = {
@@ -136,9 +138,11 @@ export const getCoachingCentersByUser = async (
     if (!userObjectId) throw new ApiError(404, 'User not found');
 
     const query = { user: userObjectId, is_deleted: false };
-    const total = await CoachingCenterModel.countDocuments(query);
-
-    const coachingCenters = await CoachingCenterModel.find(query)
+    
+    // Execute count and find queries in parallel
+    const [total, coachingCenters] = await Promise.all([
+      CoachingCenterModel.countDocuments(query),
+      CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo is_popular')
       .populate('sport_details.sport_id', 'custom_id name logo is_popular')
       .populate('facility', 'custom_id name description icon')
@@ -150,7 +154,8 @@ export const getCoachingCentersByUser = async (
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(pageSize)
-      .lean();
+      .lean(),
+    ]);
 
     const totalPages = Math.ceil(total / pageSize);
 
@@ -338,15 +343,29 @@ export const updateCoachingCenter = async (
 
     const updates: any = {};
 
-    if (data.sports !== undefined) {
-      const sportIds = data.sports.map(sid => new Types.ObjectId(sid));
-      const count = await SportModel.countDocuments({ _id: { $in: sportIds } });
-      if (count !== data.sports.length) throw new ApiError(400, t('coachingCenter.sports.invalid'));
-      updates.sports = sportIds;
-    }
-
-    if (data.facility !== undefined) {
-      updates.facility = data.facility ? await commonService.resolveFacilities(data.facility) : [];
+    // Validate sports and resolve facilities in parallel if both are being updated
+    if (data.sports !== undefined || data.facility !== undefined) {
+      const sportIds = data.sports ? data.sports.map(sid => new Types.ObjectId(sid)) : null;
+      
+      const [sportsCount, facilityIds] = await Promise.all([
+        sportIds && sportIds.length > 0 
+          ? SportModel.countDocuments({ _id: { $in: sportIds } }) 
+          : Promise.resolve(0),
+        data.facility !== undefined 
+          ? (data.facility ? commonService.resolveFacilities(data.facility) : Promise.resolve([]))
+          : Promise.resolve(null),
+      ]);
+      
+      if (data.sports !== undefined) {
+        if (sportsCount !== data.sports.length) {
+          throw new ApiError(400, t('coachingCenter.sports.invalid'));
+        }
+        updates.sports = sportIds;
+      }
+      
+      if (data.facility !== undefined && facilityIds !== null) {
+        updates.facility = facilityIds;
+      }
     }
 
     if (data.status === 'published' && existingCenter.status !== 'published') {

@@ -106,10 +106,21 @@ Permissions are structured as:
 
 ### User Management (`/admin/users`)
 
-- `GET /admin/users` - Get all users (paginated)
+- `GET /admin/users` - Get all users (paginated) - Only shows users with "user" or "academy" roles
+- `POST /admin/users` - Create user - Only allows "user" or "academy" roles
 - `GET /admin/users/:id` - Get user by ID
 - `PATCH /admin/users/:id` - Update user
 - `DELETE /admin/users/:id` - Delete user (soft delete)
+
+### Operational User Management (`/admin/operational-users`)
+
+- `GET /admin/operational-users` - Get all operational users (paginated) - Shows users with any role except "user", "academy", or "super_admin"
+- `POST /admin/operational-users` - Create operational user - Allows any role except "super_admin", "user", or "academy"
+- `GET /admin/operational-users/:id` - Get operational user by ID
+- `PATCH /admin/operational-users/:id` - Update operational user
+- `DELETE /admin/operational-users/:id` - Delete operational user (soft delete)
+
+**Note:** Operational users support any role created via role routes (admin, employee, agent, or custom roles), except the three excluded roles mentioned above.
 
 ### Coaching Center Management (`/admin/coaching-centers`)
 
@@ -227,9 +238,22 @@ Permissions are structured as:
    ```
    GET /admin/users?page=1&limit=10
    ```
-   Requires `user:view` permission
+   Requires `user:view` permission. Only returns users with "user" or "academy" roles.
 
-2. **Update User:**
+2. **Create User:**
+   ```
+   POST /admin/users
+   Body: {
+     "email": "user@example.com",
+     "password": "SecurePass@123",
+     "firstName": "John",
+     "roles": ["user"],
+     "userType": "student"
+   }
+   ```
+   Requires `user:create` permission. Only allows "user" or "academy" roles.
+
+3. **Update User:**
    ```
    PATCH /admin/users/:id
    Body: {
@@ -239,7 +263,37 @@ Permissions are structured as:
    ```
    Requires `user:update` permission
 
-### 5. Coaching Center Management
+### 5. Operational User Management
+
+1. **Get All Operational Users:**
+   ```
+   GET /admin/operational-users?page=1&limit=10&role=admin
+   ```
+   Requires `operational_user:view` permission. Returns users with any role except "user", "academy", or "super_admin".
+
+2. **Create Operational User:**
+   ```
+   POST /admin/operational-users
+   Body: {
+     "email": "admin@example.com",
+     "password": "SecurePass@123",
+     "firstName": "Admin",
+     "roles": ["admin"]
+   }
+   ```
+   Requires `operational_user:create` permission. Supports any role except "super_admin", "user", or "academy".
+
+3. **Update Operational User:**
+   ```
+   PATCH /admin/operational-users/:id
+   Body: {
+     "firstName": "Updated Name",
+     "roles": ["employee"]
+   }
+   ```
+   Requires `operational_user:update` permission. Email and password can only be updated by super_admin.
+
+### 6. Coaching Center Management
 
 1. **Get All Coaching Centers:**
    ```

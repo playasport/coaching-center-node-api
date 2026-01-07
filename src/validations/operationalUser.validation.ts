@@ -26,9 +26,9 @@ const addressInputSchema = z.object({
 });
 
 /**
- * Schema for creating a user via admin panel
+ * Schema for creating an operational user (admin, employee, agent - not user/academy/super_admin)
  */
-export const createAdminUserSchema = z.object({
+export const createOperationalUserSchema = z.object({
   body: z.object({
     email: z
       .string({ message: validationMessages.email.required() })
@@ -88,29 +88,25 @@ export const createAdminUserSchema = z.object({
             $or: queryConditions
           });
           
-          // Check if all roles are either "user" or "academy"
-          const allowedRoles = ['user', 'academy'];
-          const disallowedRoles = ['super_admin', 'admin', 'employee', 'agent'];
+          // Check if all roles are NOT user, academy, or super_admin (any other role is allowed)
+          const disallowedRoles = ['super_admin', 'user', 'academy'];
           
           for (const role of roles) {
             if (disallowedRoles.includes(role.name)) {
-              return false;
-            }
-            if (!allowedRoles.includes(role.name)) {
               return false;
             }
           }
           
           // Also check by name directly if provided
           for (const roleName of roleNames) {
-            if (disallowedRoles.includes(roleName) || !allowedRoles.includes(roleName)) {
+            if (disallowedRoles.includes(roleName)) {
               return false;
             }
           }
           
           return true;
         },
-        { message: 'Only "user" and "academy" roles are allowed. Other roles (super_admin, admin, employee, agent) cannot be assigned through this endpoint.' }
+        { message: 'Roles "super_admin", "user", and "academy" cannot be assigned through this endpoint. All other roles are allowed.' }
       )
       .refine(
         async (roleInputs) => {
@@ -148,19 +144,18 @@ export const createAdminUserSchema = z.object({
         },
         { message: 'One or more roles are invalid' }
       ),
-    userType: z.enum(['student', 'guardian', 'academy']).optional().nullable(),
     isActive: z.boolean().default(true),
     address: addressInputSchema.optional().nullable(),
   }),
 });
 
-export type CreateAdminUserInput = z.infer<typeof createAdminUserSchema>['body'];
+export type CreateOperationalUserInput = z.infer<typeof createOperationalUserSchema>['body'];
 
 /**
- * Schema for updating a user via admin panel
+ * Schema for updating an operational user
  * Note: email and password can only be updated by super_admin (checked in controller)
  */
-export const updateAdminUserSchema = z.object({
+export const updateOperationalUserSchema = z.object({
   body: z.object({
     email: z
       .string({ message: validationMessages.email.required() })
@@ -215,29 +210,25 @@ export const updateAdminUserSchema = z.object({
             $or: queryConditions
           });
           
-          // Check if all roles are either "user" or "academy"
-          const allowedRoles = ['user', 'academy'];
-          const disallowedRoles = ['super_admin', 'admin', 'employee', 'agent'];
+          // Check if all roles are NOT user, academy, or super_admin (any other role is allowed)
+          const disallowedRoles = ['super_admin', 'user', 'academy'];
           
           for (const role of roles) {
             if (disallowedRoles.includes(role.name)) {
-              return false;
-            }
-            if (!allowedRoles.includes(role.name)) {
               return false;
             }
           }
           
           // Also check by name directly if provided
           for (const roleName of roleNames) {
-            if (disallowedRoles.includes(roleName) || !allowedRoles.includes(roleName)) {
+            if (disallowedRoles.includes(roleName)) {
               return false;
             }
           }
           
           return true;
         },
-        { message: 'Only "user" and "academy" roles are allowed. Other roles (super_admin, admin, employee, agent) cannot be assigned through this endpoint.' }
+        { message: 'Roles "super_admin", "user", and "academy" cannot be assigned through this endpoint. All other roles are allowed.' }
       )
       .refine(
         async (roleInputs) => {
@@ -276,10 +267,10 @@ export const updateAdminUserSchema = z.object({
         { message: 'One or more roles are invalid' }
       )
       .optional(),
-    userType: z.enum(['student', 'guardian', 'academy']).optional().nullable(),
     isActive: z.boolean().optional(),
     address: addressInputSchema.optional().nullable(),
   }),
 });
 
-export type UpdateAdminUserInput = z.infer<typeof updateAdminUserSchema>['body'];
+export type UpdateOperationalUserInput = z.infer<typeof updateOperationalUserSchema>['body'];
+

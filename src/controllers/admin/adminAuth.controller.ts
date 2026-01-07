@@ -447,23 +447,27 @@ export const updateAdminProfileImage = async (req: Request, res: Response): Prom
         mimeType: req.file.mimetype,
       });
 
-      // Delete old profile image if exists
-      if (user.profileImage) {
-        try {
-          await deleteFileFromS3(user.profileImage);
-          logger.info('Old admin profile image deleted', { oldImageUrl: user.profileImage });
-        } catch (deleteError) {
-          logger.warn('Failed to delete old admin profile image, continuing with upload', deleteError);
-          // Don't fail the upload if deletion fails
-        }
-      }
-
-      // Upload new image to S3
-      const imageUrl = await uploadFileToS3({
+      // Upload new image to S3 and delete old image in parallel
+      const imageUrlPromise = uploadFileToS3({
         file: req.file,
         folder: 'users',
         userId: user.id,
       });
+
+      // Delete old profile image in background (don't block upload)
+      if (user.profileImage) {
+        deleteFileFromS3(user.profileImage)
+          .then(() => {
+            logger.info('Old admin profile image deleted', { oldImageUrl: user.profileImage });
+          })
+          .catch((deleteError) => {
+            logger.warn('Failed to delete old admin profile image, continuing with upload', deleteError);
+            // Don't fail the upload if deletion fails
+          });
+      }
+
+      // Wait for upload to complete
+      const imageUrl = await imageUrlPromise;
 
       // Update user profile image
       const updatedUser = await UserModel.findOneAndUpdate(

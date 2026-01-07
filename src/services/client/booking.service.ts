@@ -1037,32 +1037,32 @@ export const getUserBookings = async (
     const limit = Math.min(100, Math.max(1, params.limit || 10));
     const skip = (page - 1) * limit;
 
-    // Get total count
-    const total = await BookingModel.countDocuments(query);
-
-    // Get bookings with populated data
-    const bookings = await BookingModel.find(query)
-      .populate('participants', 'id firstName lastName')
-      .populate('batch', 'id name scheduled duration')
-      .populate({
-        path: 'batch',
-        populate: {
-          path: 'sport',
-          select: 'id name',
-        },
-      })
-      .populate({
-        path: 'batch',
-        populate: {
-          path: 'center',
-          select: 'id center_name',
-        },
-      })
-      .select('booking_id id participants batch amount currency status payment.status payment.payment_method payment.razorpay_order_id createdAt updatedAt')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    // Get total count and bookings in parallel
+    const [total, bookings] = await Promise.all([
+      BookingModel.countDocuments(query),
+      BookingModel.find(query)
+        .populate('participants', 'id firstName lastName')
+        .populate('batch', 'id name scheduled duration')
+        .populate({
+          path: 'batch',
+          populate: {
+            path: 'sport',
+            select: 'id name',
+          },
+        })
+        .populate({
+          path: 'batch',
+          populate: {
+            path: 'center',
+            select: 'id center_name',
+          },
+        })
+        .select('booking_id id participants batch amount currency status payment.status payment.payment_method payment.razorpay_order_id createdAt updatedAt')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
 
     const totalPages = Math.ceil(total / limit);
 

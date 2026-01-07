@@ -6473,20 +6473,13 @@ const options: swaggerJsdoc.Options = {
         },
         CreateAdminUserRequest: {
           type: 'object',
-          required: ['email', 'password', 'firstName', 'roles'],
+          required: ['email', 'firstName', 'roles'],
           properties: {
             email: {
               type: 'string',
               format: 'email',
               example: 'newuser@example.com',
               description: 'User email address (must be unique)',
-            },
-            password: {
-              type: 'string',
-              format: 'password',
-              minLength: 8,
-              example: 'SecurePass@123',
-              description: 'Password must contain at least 8 characters, one uppercase, one lowercase, one number, and one special character',
             },
             firstName: {
               type: 'string',
@@ -6575,20 +6568,13 @@ const options: swaggerJsdoc.Options = {
         },
         UpdateAdminUserRequest: {
           type: 'object',
-          description: 'All fields are optional. Roles can be updated by providing an array of role names. Note: email and password can only be updated by super_admin.',
+          description: 'All fields are optional. Roles can be updated by providing an array of role names. Note: email can only be updated by super_admin. Password field is not available - use password reset flow instead.',
           properties: {
             email: {
               type: 'string',
               format: 'email',
               example: 'updated@example.com',
               description: 'User email address (super_admin only)',
-            },
-            password: {
-              type: 'string',
-              format: 'password',
-              minLength: 8,
-              example: 'NewSecurePass@123',
-              description: 'Password must contain at least 8 characters, one uppercase, one lowercase, one number, and one special character (super_admin only)',
             },
             firstName: {
               type: 'string',
@@ -7145,6 +7131,10 @@ const options: swaggerJsdoc.Options = {
         description: 'Admin panel user management endpoints with permission-based access',
       },
       {
+        name: 'Admin Operational Users',
+        description: 'Admin panel operational user management endpoints for managing users with admin, employee, or agent roles with permission-based access',
+      },
+      {
         name: 'Admin Roles',
         description: 'Admin panel role management endpoints (Super Admin only for create/update/delete)',
       },
@@ -7264,6 +7254,7 @@ const options: swaggerJsdoc.Options = {
           'Admin Dashboard',
           'Admin Coaching Centers',
           'Admin Users',
+          'Admin Operational Users',
           'Admin Roles',
           'Admin Batches',
           'Admin Fee Type Configuration',

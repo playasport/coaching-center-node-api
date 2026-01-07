@@ -53,13 +53,16 @@ export const getPermissions = async (req: Request, res: Response): Promise<void>
       query = { role: { $in: roleIds } };
     }
 
-    const total = await PermissionModel.countDocuments(query);
-    const permissions = await PermissionModel.find(query)
-      .populate('role', 'name description')
-      .sort({ role: 1, section: 1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    // Execute count and find queries in parallel
+    const [total, permissions] = await Promise.all([
+      PermissionModel.countDocuments(query),
+      PermissionModel.find(query)
+        .populate('role', 'name description')
+        .sort({ role: 1, section: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
 
     const totalPages = Math.ceil(total / limit);
 
@@ -125,28 +128,31 @@ export const createPermission = async (req: Request, res: Response): Promise<voi
   try {
     const data: CreatePermissionInput = req.body;
 
-    // Check if role exists
-    const role = await RoleModel.findById(data.role);
+    // Check if role exists and if permission already exists (parallel queries)
+    const [role, existing] = await Promise.all([
+      RoleModel.findById(data.role),
+      PermissionModel.findOne({
+        role: data.role,
+        section: data.section,
+      }),
+    ]);
+
     if (!role) {
       throw new ApiError(404, 'Role not found');
     }
-
-    // Check if permission already exists for this role and section
-    const existing = await PermissionModel.findOne({
-      role: data.role,
-      section: data.section,
-    });
 
     if (existing) {
       throw new ApiError(400, 'Permission already exists for this role and section');
     }
 
-    // Create permission
+    // Create permission and invalidate cache in parallel
     const permission = new PermissionModel(data);
     await permission.save();
 
-    // Invalidate cache
-    await invalidatePermissionCache(data.role);
+    // Invalidate cache in background (don't block response)
+    invalidatePermissionCache(data.role).catch((error) => {
+      logger.warn('Failed to invalidate permission cache', { roleId: data.role, error });
+    });
 
     const populated = await PermissionModel.findById(permission._id)
       .populate('role', 'name description')
@@ -180,12 +186,14 @@ export const updatePermission = async (req: Request, res: Response): Promise<voi
       throw new ApiError(404, t('admin.permissions.notFound'));
     }
 
-    // Update permission
+    // Update permission and invalidate cache in parallel
     Object.assign(permission, data);
     await permission.save();
 
-    // Invalidate cache
-    await invalidatePermissionCache(permission.role);
+    // Invalidate cache in background (don't block response)
+    invalidatePermissionCache(permission.role).catch((error) => {
+      logger.warn('Failed to invalidate permission cache', { roleId: permission.role, error });
+    });
 
     const populated = await PermissionModel.findById(permission._id)
       .populate('role', 'name description')
@@ -220,11 +228,13 @@ export const deletePermission = async (req: Request, res: Response): Promise<voi
 
     const roleId = permission.role;
 
-    // Delete permission
+    // Delete permission and invalidate cache in parallel
     await PermissionModel.findByIdAndDelete(id);
 
-    // Invalidate cache
-    await invalidatePermissionCache(roleId);
+    // Invalidate cache in background (don't block response)
+    invalidatePermissionCache(roleId).catch((error) => {
+      logger.warn('Failed to invalidate permission cache', { roleId, error });
+    });
 
     const response = new ApiResponse(200, null, t('admin.permissions.deleted'));
     res.json(response);
@@ -280,7 +290,7 @@ export const bulkUpdatePermissions = async (req: Request, res: Response): Promis
       throw new ApiError(404, 'Role not found');
     }
 
-    // Delete existing permissions for this role
+    // Delete existing permissions
     await PermissionModel.deleteMany({ role: data.role });
 
     // Create new permissions
@@ -293,12 +303,15 @@ export const bulkUpdatePermissions = async (req: Request, res: Response): Promis
       }))
     );
 
-    // Invalidate cache
-    await invalidatePermissionCache(data.role);
-
+    // Fetch populated permissions
     const populated = await PermissionModel.find({ role: data.role })
       .populate('role', 'name description')
       .lean();
+
+    // Invalidate cache in background (don't block response)
+    invalidatePermissionCache(data.role).catch((error) => {
+      logger.warn('Failed to invalidate permission cache', { roleId: data.role, error });
+    });
 
     const response = new ApiResponse(200, { permissions: populated }, t('admin.permissions.bulkUpdated'));
     res.json(response);

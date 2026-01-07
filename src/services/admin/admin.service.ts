@@ -37,9 +37,11 @@ export const getAllActions = (): Array<{ value: string; label: string }> => {
  */
 export const getDashboardStats = async () => {
   try {
-    // Get role IDs for user and academy roles
-    const userRole = await RoleModel.findOne({ name: DefaultRoles.USER }).lean();
-    const academyRole = await RoleModel.findOne({ name: DefaultRoles.ACADEMY }).lean();
+    // Get role IDs for user and academy roles (parallel queries)
+    const [userRole, academyRole] = await Promise.all([
+      RoleModel.findOne({ name: DefaultRoles.USER }).lean(),
+      RoleModel.findOne({ name: DefaultRoles.ACADEMY }).lean(),
+    ]);
     const userRoleId = userRole?._id ? new Types.ObjectId(userRole._id) : null;
     const academyRoleId = academyRole?._id ? new Types.ObjectId(academyRole._id) : null;
 

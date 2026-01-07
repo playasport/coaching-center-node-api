@@ -8,6 +8,8 @@ import { ParticipantModel } from '../../models/participant.model';
 import { BookingModel } from '../../models/booking.model';
 import { BatchModel } from '../../models/batch.model';
 import { hashPassword } from '../../utils/password';
+import { generateSecurePassword } from '../../utils/passwordGenerator';
+import { sendAccountCredentialsEmail } from '../../services/common/email.service';
 import { logger } from '../../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { Types } from 'mongoose';
@@ -40,18 +42,18 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
   const data: CreateAdminUserInput = req.body;
   try {
 
-    // Check if email already exists
-    const existingUserByEmail = await UserModel.findOne({ email: data.email.toLowerCase(), isDeleted: false });
+    // Check if email and mobile already exist (parallel queries)
+    const [existingUserByEmail, existingUserByMobile] = await Promise.all([
+      UserModel.findOne({ email: data.email.toLowerCase(), isDeleted: false }).lean(),
+      data.mobile ? UserModel.findOne({ mobile: data.mobile, isDeleted: false }).lean() : Promise.resolve(null),
+    ]);
+
     if (existingUserByEmail) {
       throw new ApiError(400, t('admin.users.emailExists'));
     }
 
-    // Check if mobile number already exists (only if mobile is provided)
-    if (data.mobile) {
-      const existingUserByMobile = await UserModel.findOne({ mobile: data.mobile, isDeleted: false });
-      if (existingUserByMobile) {
-        throw new ApiError(400, t('admin.users.mobileExists'));
-      }
+    if (data.mobile && existingUserByMobile) {
+      throw new ApiError(400, t('admin.users.mobileExists'));
     }
 
     // Validate and get roles (support both role names and ObjectIds)
@@ -93,8 +95,9 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
       throw new ApiError(400, t('admin.users.invalidRoles'));
     }
 
-    // Hash password
-    const hashedPassword = await hashPassword(data.password);
+    // Generate secure random password
+    const generatedPassword = generateSecurePassword(12);
+    const hashedPassword = await hashPassword(generatedPassword);
 
     // Generate unique user ID
     const userId = uuidv4();
@@ -112,7 +115,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
       };
     }
 
-    // Create user
+    // Create user and populate roles in parallel
     const user = await UserModel.create({
       id: userId,
       email: data.email.toLowerCase(),
@@ -142,7 +145,22 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
 
     logger.info(`Admin created user: ${userId} (${data.email})`);
 
-    const response = new ApiResponse(201, { user: populatedUser }, t('admin.users.created') || 'User created successfully');
+    // Send account credentials email asynchronously (don't wait for it)
+    // This prevents email sending from blocking the API response
+    const userName = `${data.firstName}${data.lastName ? ' ' + data.lastName : ''}`;
+    sendAccountCredentialsEmail(data.email.toLowerCase(), generatedPassword, userName)
+      .then(() => {
+        logger.info(`Account credentials email sent to user: ${data.email}`);
+      })
+      .catch((emailError) => {
+        logger.error('Failed to send account credentials email', {
+          email: data.email,
+          error: emailError instanceof Error ? emailError.message : emailError,
+        });
+        // Don't fail user creation if email fails, just log the error
+      });
+
+    const response = new ApiResponse(201, { user: populatedUser }, t('admin.users.created') || 'User created successfully. Credentials have been sent to their email.');
     res.status(201).json(response);
   } catch (error) {
     if (error instanceof ApiError) {
@@ -170,10 +188,29 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
     const search = req.query.search as string | undefined;
     const userType = req.query.userType as string | undefined;
     const isActive = req.query.isActive as string | undefined;
-    const role = req.query.role as string | undefined;
+    // Note: role filter removed - only showing users with "user" or "academy" roles
 
-    // Build query
-    const query: any = { isDeleted: false };
+    // Get user and academy role IDs
+    const userRole = await RoleModel.findOne({ name: DefaultRoles.USER }).lean();
+    const academyRole = await RoleModel.findOne({ name: DefaultRoles.ACADEMY }).lean();
+    // Convert to ObjectId - Types.ObjectId constructor handles both ObjectId and string
+    const userRoleId = userRole?._id ? new Types.ObjectId(userRole._id.toString()) : null;
+    const academyRoleId = academyRole?._id ? new Types.ObjectId(academyRole._id.toString()) : null;
+
+    // Build query - only include users with "user" or "academy" roles
+    const roleIds: Types.ObjectId[] = [];
+    if (userRoleId) roleIds.push(userRoleId);
+    if (academyRoleId) roleIds.push(academyRoleId);
+
+    // Build base query - start with isDeleted filter only
+    // Role filter will be added conditionally based on userType
+    const query: any = { 
+      isDeleted: false
+    };
+    
+    // Add base role filter only if userType is not student/guardian
+    // (student/guardian can have any role, so we don't restrict by role)
+    let shouldApplyBaseRoleFilter = true;
 
     // Search filter (by firstName, lastName, email, mobile)
     const searchConditions: any[] = [];
@@ -187,49 +224,61 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
       );
     }
 
-    // userType filter
-    const userTypeConditions: any[] = [];
+    // userType filter (supports: student, guardian, academy, other)
+    // Logic:
+    // - If userType=academy: Filter by role='academy' only (ignore userType field)
+    // - Otherwise (student, guardian, other): Filter by userType field in database
     if (userType) {
-      if (userType === 'other') {
-        // Filter for users where userType is null or doesn't exist
-        userTypeConditions.push(
+      if (userType === 'academy') {
+        // For academy: Filter by role='academy' only (don't check userType field)
+        if (academyRoleId) {
+          // Use $in with array for consistency with base query structure
+          query.roles = { $in: [academyRoleId] }; // Only academy role users
+        } else {
+          query.roles = { $in: [] }; // No results if academy role doesn't exist
+        }
+      } else if (userType === 'student' || userType === 'guardian') {
+        // Filter by userType field only - don't restrict by role
+        // Student/guardian users can have any role
+        query.userType = userType;
+        shouldApplyBaseRoleFilter = false; // Don't apply role filter for student/guardian
+      } else if (userType === 'other') {
+        // For 'other': Filter for users where userType is null or doesn't exist
+        // Keep base role filter (user or academy) since both can have null userType
+        query.$or = query.$or || [];
+        query.$or.push(
           { userType: null },
           { userType: { $exists: false } }
         );
-      } else if (userType === 'student' || userType === 'guardian') {
-        query.userType = userType;
       }
     }
 
-    // Combine search and userType filters using $and if both exist
-    if (searchConditions.length > 0 && userTypeConditions.length > 0) {
-      query.$and = [
-        { $or: searchConditions },
-        { $or: userTypeConditions }
-      ];
-    } else if (searchConditions.length > 0) {
-      query.$or = searchConditions;
-    } else if (userTypeConditions.length > 0) {
-      query.$or = userTypeConditions;
+    // Combine search filters with $and to ensure all conditions are met
+    // When both userType (direct field) and search ($or) exist, MongoDB handles them as AND
+    // But we need to make sure the structure is correct
+    if (searchConditions.length > 0) {
+      // If we already have $or (from userType 'other'), wrap it in $and
+      if (query.$or && userType === 'other') {
+        query.$and = [
+          { $or: query.$or },
+          { $or: searchConditions }
+        ];
+        delete query.$or;
+      } else {
+        // For student/guardian/academy, just add search as $or
+        // MongoDB will AND it with the userType filter
+        query.$or = searchConditions;
+      }
+    }
+
+    // Apply base role filter if needed (for academy, other, or no userType filter)
+    if (shouldApplyBaseRoleFilter && roleIds.length > 0) {
+      query.roles = { $in: roleIds }; // Only users with user or academy roles
     }
 
     // isActive filter
     if (isActive !== undefined) {
       query.isActive = isActive === 'true' || isActive === '1';
-    }
-
-    // Role filter
-    if (role) {
-      // Find role by name
-      const roleDoc = await RoleModel.findOne({ name: role }).lean();
-      if (roleDoc && roleDoc._id) {
-        // Filter users where roles array contains this role ObjectId
-        query.roles = roleDoc._id;
-      } else {
-        // If role not found, use invalid ObjectId to return empty result
-        // This ensures no users match when role doesn't exist
-        query.roles = new Types.ObjectId('000000000000000000000000');
-      }
     }
 
     // Execute query with explicit role population
@@ -258,36 +307,36 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
 
     // Only query if there are users
     if (userIds.length > 0) {
-      // Get participant counts per user
-      const participantCounts = await ParticipantModel.aggregate([
-        {
-          $match: {
-            userId: { $in: userIds },
-            is_deleted: false,
+      // Get participant and booking counts per user (parallel queries)
+      const [participantCounts, bookingCounts] = await Promise.all([
+        ParticipantModel.aggregate([
+          {
+            $match: {
+              userId: { $in: userIds },
+              is_deleted: false,
+            },
           },
-        },
-        {
-          $group: {
-            _id: '$userId',
-            count: { $sum: 1 },
+          {
+            $group: {
+              _id: '$userId',
+              count: { $sum: 1 },
+            },
           },
-        },
-      ]);
-
-      // Get booking counts per user
-      const bookingCounts = await BookingModel.aggregate([
-        {
-          $match: {
-            user: { $in: userIds },
-            is_deleted: false,
+        ]),
+        BookingModel.aggregate([
+          {
+            $match: {
+              user: { $in: userIds },
+              is_deleted: false,
+            },
           },
-        },
-        {
-          $group: {
-            _id: '$user',
-            count: { $sum: 1 },
+          {
+            $group: {
+              _id: '$user',
+              count: { $sum: 1 },
+            },
           },
-        },
+        ]),
       ]);
 
       // Create maps for quick lookup
@@ -499,7 +548,19 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
-    // Build query - support both UUID id and MongoDB _id
+    // Get user and academy role IDs to filter (parallel queries)
+    const [userRole, academyRole] = await Promise.all([
+      RoleModel.findOne({ name: DefaultRoles.USER }).lean(),
+      RoleModel.findOne({ name: DefaultRoles.ACADEMY }).lean(),
+    ]);
+    const userRoleId = userRole?._id ? new Types.ObjectId(userRole._id) : null;
+    const academyRoleId = academyRole?._id ? new Types.ObjectId(academyRole._id) : null;
+
+    const roleIds: Types.ObjectId[] = [];
+    if (userRoleId) roleIds.push(userRoleId);
+    if (academyRoleId) roleIds.push(academyRoleId);
+
+    // Build query - support both UUID id and MongoDB _id, and only users with "user" or "academy" roles
     let query: any;
     let userObjectId: Types.ObjectId | null = null;
     
@@ -508,13 +569,13 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
       userObjectId = new Types.ObjectId(id);
       query = UserModel.findOne({
         $or: [
-          { _id: userObjectId, isDeleted: false },
-          { id, isDeleted: false }
+          { _id: userObjectId, isDeleted: false, roles: { $in: roleIds } },
+          { id, isDeleted: false, roles: { $in: roleIds } }
         ]
       });
     } else {
       // Try UUID id format
-      query = UserModel.findOne({ id, isDeleted: false });
+      query = UserModel.findOne({ id, isDeleted: false, roles: { $in: roleIds } });
     }
 
     // Fetch user with populate - use same pattern as getAllUsers which works correctly
@@ -539,27 +600,27 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
       userObjectId = new Types.ObjectId((user as any)._id || formattedUser.id);
     }
 
-    // Fetch participants (latest 5)
-    const participants = await ParticipantModel.find({
-      userId: userObjectId,
-      is_deleted: false,
-    })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .lean();
-
-    // Fetch bookings (latest 5) with populated data
-    const bookings = await BookingModel.find({
-      user: userObjectId,
-      is_deleted: false,
-    })
-      .populate('batch', 'name sport center status is_active scheduled duration capacity age')
-      .populate('center', 'center_name email mobile_number address')
-      .populate('sport', 'custom_id name logo')
-      .populate('participants', 'firstName lastName dob gender contactNumber')
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .lean();
+    // Fetch participants and bookings in parallel (latest 5 each)
+    const [participants, bookings] = await Promise.all([
+      ParticipantModel.find({
+        userId: userObjectId,
+        is_deleted: false,
+      })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
+      BookingModel.find({
+        user: userObjectId,
+        is_deleted: false,
+      })
+        .populate('batch', 'name sport center status is_active scheduled duration capacity age')
+        .populate('center', 'center_name email mobile_number address')
+        .populate('sport', 'custom_id name logo')
+        .populate('participants', 'firstName lastName dob gender contactNumber')
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
+    ]);
 
     // Get unique batch IDs from bookings for enrolled batches
     const enrolledBatchIds = [...new Set(
@@ -574,33 +635,33 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
         .filter(Boolean)
     )];
     
-    // Fetch enrolled batches (latest 5 unique batches from bookings)
-    const enrolledBatches = enrolledBatchIds.length > 0
-      ? await BatchModel.find({
-          _id: { $in: enrolledBatchIds.map((id: string) => new Types.ObjectId(id)) },
-          is_deleted: false,
-        })
-          .populate('sport', 'custom_id name logo')
-          .populate('center', 'center_name email mobile_number')
-          .populate('coach', 'fullName mobileNo email')
-          .sort({ createdAt: -1 })
-          .limit(5)
-          .lean()
-      : [];
-
-    // Fetch active batches owned by this user (latest 5)
-    const activeBatches = await BatchModel.find({
-      user: userObjectId,
-      is_active: true,
-      is_deleted: false,
-      status: BatchStatus.PUBLISHED,
-    })
-      .populate('sport', 'custom_id name logo')
-      .populate('center', 'center_name email mobile_number')
-      .populate('coach', 'fullName mobileNo email')
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .lean();
+    // Fetch enrolled batches and active batches in parallel (latest 5 each)
+    const [enrolledBatches, activeBatches] = await Promise.all([
+      enrolledBatchIds.length > 0
+        ? BatchModel.find({
+            _id: { $in: enrolledBatchIds.map((id: string) => new Types.ObjectId(id)) },
+            is_deleted: false,
+          })
+            .populate('sport', 'custom_id name logo')
+            .populate('center', 'center_name email mobile_number')
+            .populate('coach', 'fullName mobileNo email')
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .lean()
+        : Promise.resolve([]),
+      BatchModel.find({
+        user: userObjectId,
+        is_active: true,
+        is_deleted: false,
+        status: BatchStatus.PUBLISHED,
+      })
+        .populate('sport', 'custom_id name logo')
+        .populate('center', 'center_name email mobile_number')
+        .populate('coach', 'fullName mobileNo email')
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
+    ]);
 
     // Prepare response with user and additional details
     const response = new ApiResponse(
@@ -711,14 +772,8 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
       updateData.email = data.email.toLowerCase();
     }
 
-    if (data.password !== undefined) {
-      if (!currentUserIsSuperAdmin) {
-        throw new ApiError(403, t('admin.users.onlySuperAdminCanUpdatePassword'));
-      }
-      // Hash the new password
-      const hashedPassword = await hashPassword(data.password);
-      updateData.password = hashedPassword;
-    }
+    // Password updates are handled separately and only by super_admin
+    // Password field is removed from update schema, so this check is no longer needed here
 
     if (data.firstName !== undefined) {
       updateData.firstName = data.firstName;
