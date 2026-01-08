@@ -183,58 +183,7 @@ router.post(
  *                     users:
  *                       type: array
  *                       items:
- *                         allOf:
- *                           - $ref: '#/components/schemas/User'
- *                           - type: object
- *                             properties:
- *                               participantCount:
- *                                 type: integer
- *                                 description: Number of participants associated with this user
- *                                 example: 2
- *                               bookingCount:
- *                                 type: integer
- *                                 description: Number of bookings made by this user
- *                                 example: 5
- *                     stats:
- *                       type: object
- *                       description: Overall statistics for users, participants, and bookings
- *                       properties:
- *                         totalUsers:
- *                           type: integer
- *                           description: Total number of users
- *                           example: 1000
- *                         totalParticipants:
- *                           type: integer
- *                           description: Total number of participants (students)
- *                           example: 500
- *                         activeBookings:
- *                           type: integer
- *                           description: Total number of active bookings
- *                           example: 250
- *                         userDetailsCount:
- *                           type: object
- *                           description: Count of users with various details
- *                           properties:
- *                             usersWithBookings:
- *                               type: integer
- *                               description: Number of users who have bookings
- *                               example: 200
- *                             usersWithParticipants:
- *                               type: integer
- *                               description: Number of users who have participants
- *                               example: 300
- *                             usersWithEnrolledBatches:
- *                               type: integer
- *                               description: Number of users who have enrolled batches (bookings)
- *                               example: 200
- *                             usersWithEnrolledBatchSports:
- *                               type: integer
- *                               description: Number of users who have enrolled in batch sports
- *                               example: 180
- *                             usersWithBookingsAndParticipants:
- *                               type: integer
- *                               description: Number of users who have both bookings and participants
- *                               example: 150
+ *                         $ref: '#/components/schemas/User'
  *                     pagination:
  *                       $ref: '#/components/schemas/Pagination'
  *             example:
@@ -254,20 +203,8 @@ router.post(
  *                         description: "Regular user"
  *                     userType: "student"
  *                     isActive: true
- *                     participantCount: 2
- *                     bookingCount: 5
  *                     createdAt: "2024-01-01T00:00:00.000Z"
  *                     updatedAt: "2024-01-01T00:00:00.000Z"
- *                 stats:
- *                   totalUsers: 1000
- *                   totalParticipants: 500
- *                   activeBookings: 250
- *                   userDetailsCount:
- *                     usersWithBookings: 200
- *                     usersWithParticipants: 300
- *                     usersWithEnrolledBatches: 200
- *                     usersWithEnrolledBatchSports: 180
- *                     usersWithBookingsAndParticipants: 150
  *                 pagination:
  *                   page: 1
  *                   limit: 10

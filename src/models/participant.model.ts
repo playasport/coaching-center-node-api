@@ -111,6 +111,7 @@ const participantSchema = new Schema<Participant>(
 participantSchema.index({ userId: 1 });
 participantSchema.index({ userId: 1, is_deleted: 1 });
 participantSchema.index({ contactNumber: 1 });
+participantSchema.index({ is_deleted: 1, userId: 1 }); // For distinct userId queries
 
 export const ParticipantModel = model<Participant>('Participant', participantSchema);
 

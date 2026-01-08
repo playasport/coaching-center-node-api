@@ -13,7 +13,7 @@ const logFilePath = path.join(logDirectory, 'application.log');
 
 let fileStream: fs.WriteStream | null = null;
 
-if (isProduction) {
+// if (isProduction) {
   try {
     if (!fs.existsSync(logDirectory)) {
       fs.mkdirSync(logDirectory, { recursive: true });
@@ -32,7 +32,7 @@ if (isProduction) {
     console.error('Failed to initialise file logger', error);
     fileStream = null;
   }
-}
+// }
 
 const consoleWriters: Record<LogLevel, (...args: unknown[]) => void> = {
   debug: (console.debug ?? console.log).bind(console),

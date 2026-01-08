@@ -16,6 +16,7 @@ import { Types } from 'mongoose';
 import { DefaultRoles } from '../../enums/defaultRoles.enum';
 import { BatchStatus } from '../../enums/batchStatus.enum';
 import type { CreateAdminUserInput, UpdateAdminUserInput } from '../../validations/adminUser.validation';
+import { getRoleIds } from '../../services/admin/role.service';
 
 /**
  * Create user (admin)
@@ -188,14 +189,11 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
     const search = req.query.search as string | undefined;
     const userType = req.query.userType as string | undefined;
     const isActive = req.query.isActive as string | undefined;
+    const includeTotal = req.query.includeTotal !== 'false'; // Make total count optional (default: true)
     // Note: role filter removed - only showing users with "user" or "academy" roles
 
-    // Get user and academy role IDs
-    const userRole = await RoleModel.findOne({ name: DefaultRoles.USER }).lean();
-    const academyRole = await RoleModel.findOne({ name: DefaultRoles.ACADEMY }).lean();
-    // Convert to ObjectId - Types.ObjectId constructor handles both ObjectId and string
-    const userRoleId = userRole?._id ? new Types.ObjectId(userRole._id.toString()) : null;
-    const academyRoleId = academyRole?._id ? new Types.ObjectId(academyRole._id.toString()) : null;
+    // Get user and academy role IDs with caching (optimization)
+    const { userRoleId, academyRoleId } = await getRoleIds();
 
     // Build query - only include users with "user" or "academy" roles
     const roleIds: Types.ObjectId[] = [];
@@ -234,8 +232,10 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
         if (academyRoleId) {
           // Use $in with array for consistency with base query structure
           query.roles = { $in: [academyRoleId] }; // Only academy role users
+          shouldApplyBaseRoleFilter = false; // Don't apply base role filter - we've already set academy-only filter
         } else {
           query.roles = { $in: [] }; // No results if academy role doesn't exist
+          shouldApplyBaseRoleFilter = false; // Don't apply base role filter
         }
       } else if (userType === 'student' || userType === 'guardian') {
         // Filter by userType field only - don't restrict by role
@@ -281,98 +281,62 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
       query.isActive = isActive === 'true' || isActive === '1';
     }
 
-    // Execute query with explicit role population
+    // Execute query without populate (we'll fetch roles manually for better performance with lean)
     const usersQuery = UserModel.find(query)
       .select('-password')
-      .populate({
-        path: 'roles',
-        select: 'name description',
-        options: { strictPopulate: false } // Don't throw error if role doesn't exist
-      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const [users, total] = await Promise.all([
-      usersQuery.lean(),
-      UserModel.countDocuments(query),
-    ]);
-
-    // Get user IDs for counting participants and bookings
-    const userIds = users.map((user: any) => user._id);
-
-    // Initialize maps for counts
-    const participantCountMap = new Map<string, number>();
-    const bookingCountMap = new Map<string, number>();
-
-    // Only query if there are users
-    if (userIds.length > 0) {
-      // Get participant and booking counts per user (parallel queries)
-      const [participantCounts, bookingCounts] = await Promise.all([
-        ParticipantModel.aggregate([
-          {
-            $match: {
-              userId: { $in: userIds },
-              is_deleted: false,
-            },
-          },
-          {
-            $group: {
-              _id: '$userId',
-              count: { $sum: 1 },
-            },
-          },
-        ]),
-        BookingModel.aggregate([
-          {
-            $match: {
-              user: { $in: userIds },
-              is_deleted: false,
-            },
-          },
-          {
-            $group: {
-              _id: '$user',
-              count: { $sum: 1 },
-            },
-          },
-        ]),
-      ]);
-
-      // Create maps for quick lookup
-      participantCounts.forEach((item) => {
-        participantCountMap.set(item._id.toString(), item.count);
-      });
-      bookingCounts.forEach((item) => {
-        bookingCountMap.set(item._id.toString(), item.count);
-      });
+    // Fetch users first, then count only if needed (optimization - count can be slow with complex queries)
+    const users = await usersQuery.lean();
+    
+    // Only fetch total count if requested (default: true, but can be disabled for faster responses)
+    let total = users.length; // Default to current page size
+    if (includeTotal) {
+      try {
+        // Use aggregation with $count - can be faster than countDocuments for complex queries
+        const totalResult = await UserModel.aggregate([
+          { $match: query },
+          { $count: 'total' }
+        ]).allowDiskUse(true); // Allow disk use for large collections
+        
+        total = totalResult.length > 0 ? totalResult[0].total : users.length;
+      } catch (error) {
+        // Fallback to countDocuments if aggregation fails
+        logger.warn('Aggregation count failed, falling back to countDocuments', { error });
+        total = await UserModel.countDocuments(query);
+      }
     }
 
-    // Collect all unique role ObjectIds that need to be populated
+    // Collect all unique role ObjectIds from users (optimized - functional approach with flatMap)
+    // Start with known role IDs
     const roleObjectIds = new Set<string>();
-    users.forEach((user: any) => {
-      if (user.roles && Array.isArray(user.roles)) {
-        user.roles.forEach((role: any) => {
-          if (role) {
-            // If it's an ObjectId (not populated), collect it
-            if (typeof role === 'object' && !('name' in role)) {
-              const roleId = role._id ? role._id.toString() : role.toString();
-              if (Types.ObjectId.isValid(roleId)) {
-                roleObjectIds.add(roleId);
-              }
-            }
-          }
-        });
-      }
-    });
+    if (userRoleId) roleObjectIds.add(userRoleId.toString());
+    if (academyRoleId) roleObjectIds.add(academyRoleId.toString());
+    
+    // Collect any other roles that users might have using flatMap (more functional, no nested loops)
+    users
+      .flatMap((user: any) => user.roles || [])
+      .filter((roleId: any) => roleId != null)
+      .forEach((roleId: any) => {
+        const roleIdStr = roleId._id ? roleId._id.toString() : roleId.toString();
+        if (Types.ObjectId.isValid(roleIdStr)) {
+          roleObjectIds.add(roleIdStr);
+        }
+      });
 
-    // Fetch all roles in one query if there are unpopulated ObjectIds
+    // Fetch all roles in one query and create a Map for O(1) lookups
+    // This avoids N+1 query problem - instead of querying for each user's roles separately
     const rolesMap = new Map<string, any>();
     if (roleObjectIds.size > 0) {
       const roleDocs = await RoleModel.find({
         _id: { $in: Array.from(roleObjectIds).map(id => new Types.ObjectId(id)) }
-      }).select('name description').lean();
+      })
+      .select('name')
+      .lean();
       
+      // Create Map for fast lookups (O(1) instead of O(n) array search)
       roleDocs.forEach((role: any) => {
         if (role._id) {
           rolesMap.set(role._id.toString(), role);
@@ -382,31 +346,21 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
 
     // Add counts to users and ensure roles are properly formatted
     const usersWithCounts = users.map((user: any) => {
-      // Ensure roles array is properly formatted
+      // Format roles array
       let formattedRoles: any[] = [];
       
       if (user.roles && Array.isArray(user.roles) && user.roles.length > 0) {
         formattedRoles = user.roles
-          .filter((role: any) => role !== null && role !== undefined)
-          .map((role: any) => {
-            // If role is already populated (has name property), format it
-            if (role && typeof role === 'object' && ('name' in role || (role._id && role.name))) {
-              return {
-                _id: role._id ? role._id.toString() : (role.id || null),
-                name: role.name || null,
-                description: role.description || null,
-              };
-            }
+          .map((roleId: any) => {
+            // Extract role ID (handle both ObjectId and string)
+            const roleIdStr = roleId?._id ? roleId._id.toString() : (roleId?.toString ? roleId.toString() : String(roleId));
             
-            // If it's an unpopulated ObjectId, try to get it from rolesMap
-            const roleId = role._id ? role._id.toString() : (role.toString ? role.toString() : null);
-            if (roleId && Types.ObjectId.isValid(roleId)) {
-              const populatedRole = rolesMap.get(roleId);
+            if (Types.ObjectId.isValid(roleIdStr)) {
+              const populatedRole = rolesMap.get(roleIdStr);
               if (populatedRole) {
                 return {
                   _id: populatedRole._id.toString(),
-                  name: populatedRole.name || null,
-                  description: populatedRole.description || null,
+                  name: populatedRole.name || null
                 };
               }
             }
@@ -419,117 +373,24 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
       return {
         ...user,
         roles: formattedRoles,
-        participantCount: participantCountMap.get(user._id.toString()) || 0,
-        bookingCount: bookingCountMap.get(user._id.toString()) || 0,
       };
     });
 
-    // Get statistics
-    const [
-      totalUsers,
-      totalParticipants,
-      activeBookings,
-      usersWithBookings,
-      usersWithParticipants,
-      usersWithEnrolledBatchSports,
-      usersWithBookingsAndParticipants,
-    ] = await Promise.all([
-      // Total users
-      UserModel.countDocuments({ isDeleted: false }),
-      
-      // Total participants (students)
-      ParticipantModel.countDocuments({ is_deleted: false }),
-      
-      // Active bookings (is_active = true and is_deleted = false)
-      BookingModel.countDocuments({ is_active: true, is_deleted: false }),
-      
-      // Users with bookings (enrolled batches)
-      BookingModel.distinct('user', { is_deleted: false }),
-      
-      // Users with participants
-      ParticipantModel.distinct('userId', { is_deleted: false }),
-      
-      // Users with enrolled batch sports (users with bookings that have sports)
-      BookingModel.distinct('user', {
-        is_deleted: false,
-        sport: { $exists: true, $ne: null },
-      }),
-      
-      // Users with both bookings and participants (users who have bookings AND participants)
-      BookingModel.aggregate([
-        {
-          $match: { is_deleted: false },
-        },
-        {
-          $lookup: {
-            from: 'participants',
-            let: { userId: '$user' },
-            pipeline: [
-              {
-                $match: {
-                  $expr: { $eq: ['$userId', '$$userId'] },
-                  is_deleted: false,
-                },
-              },
-              { $limit: 1 },
-            ],
-            as: 'hasParticipant',
-          },
-        },
-        {
-          $match: {
-            hasParticipant: { $ne: [] },
-          },
-        },
-        {
-          $group: {
-            _id: '$user',
-          },
-        },
-      ]),
-    ]);
-
-    // Convert to Sets for counting unique users
-    const usersWithBookingsIds = new Set(
-      usersWithBookings.map((id: any) => id.toString())
-    );
-    const usersWithParticipantsIds = new Set(
-      usersWithParticipants.map((id: any) => id.toString())
-    );
-    const usersWithEnrolledBatchSportsIds = new Set(
-      usersWithEnrolledBatchSports.map((id: any) => id.toString())
-    );
-    const usersWithBookingsAndParticipantsIds = new Set(
-      usersWithBookingsAndParticipants.map((item: any) => item._id.toString())
-    );
-
-    const stats = {
-      totalUsers,
-      totalParticipants, // Total participants (which are students)
-      activeBookings,
-      userDetailsCount: {
-        usersWithBookings: usersWithBookingsIds.size, // Users who have bookings (enrolled batches)
-        usersWithParticipants: usersWithParticipantsIds.size, // Users who have participants
-        usersWithEnrolledBatches: usersWithBookingsIds.size, // Same as usersWithBookings (enrolled batches = bookings)
-        usersWithEnrolledBatchSports: usersWithEnrolledBatchSportsIds.size, // Users with bookings in sports batches
-        usersWithBookingsAndParticipants: usersWithBookingsAndParticipantsIds.size, // Users with both bookings and participants
+    const responseData: any = {
+      users: usersWithCounts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPrevPage: page > 1,
       },
     };
 
     const response = new ApiResponse(
       200,
-      {
-        users: usersWithCounts,
-        stats,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-          hasNextPage: page < Math.ceil(total / limit),
-          hasPrevPage: page > 1,
-        },
-      },
+      responseData,
       t('admin.users.retrieved')
     );
     res.json(response);
@@ -581,8 +442,7 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
     // Fetch user with populate - use same pattern as getAllUsers which works correctly
     const user = await query
       .select('-password')
-      .populate('roles', 'name description')
-      .populate('favoriteSports', 'custom_id name logo')
+      .populate('roles', 'name')
       .lean();
 
     if (!user) {
@@ -607,7 +467,7 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
         is_deleted: false,
       })
         .sort({ createdAt: -1 })
-        .limit(5)
+        .limit(6)
         .lean(),
       BookingModel.find({
         user: userObjectId,
@@ -618,7 +478,7 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
         .populate('sport', 'custom_id name logo')
         .populate('participants', 'firstName lastName dob gender contactNumber')
         .sort({ createdAt: -1 })
-        .limit(5)
+        .limit(6)
         .lean(),
     ]);
 
@@ -646,7 +506,7 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
             .populate('center', 'center_name email mobile_number')
             .populate('coach', 'fullName mobileNo email')
             .sort({ createdAt: -1 })
-            .limit(5)
+            .limit(6)
             .lean()
         : Promise.resolve([]),
       BatchModel.find({
@@ -659,7 +519,7 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
         .populate('center', 'center_name email mobile_number')
         .populate('coach', 'fullName mobileNo email')
         .sort({ createdAt: -1 })
-        .limit(5)
+        .limit(6)
         .lean(),
     ]);
 

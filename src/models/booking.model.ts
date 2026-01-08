@@ -235,6 +235,9 @@ bookingSchema.index({ is_deleted: 1 });
 bookingSchema.index({ user: 1, status: 1 });
 bookingSchema.index({ batch: 1, status: 1 });
 bookingSchema.index({ user: 1, is_deleted: 1 });
+bookingSchema.index({ is_deleted: 1, is_active: 1 }); // For active bookings count
+bookingSchema.index({ is_deleted: 1, sport: 1 }); // For users with enrolled batch sports
+bookingSchema.index({ is_deleted: 1, user: 1 }); // For distinct user queries
 
 export const BookingModel = model<Booking>('Booking', bookingSchema);
 

@@ -44,7 +44,7 @@ export interface Transaction {
   razorpay_webhook_data?: Record<string, any> | null; // Store full webhook payload
   metadata?: Record<string, any> | null; // Additional metadata
   processed_at?: Date | null;
-  created_at: Date;
+  createdAt: Date;
   updatedAt: Date;
 }
 
@@ -170,7 +170,7 @@ transactionSchema.index({ razorpay_payment_id: 1 });
 transactionSchema.index({ status: 1 });
 transactionSchema.index({ type: 1 });
 transactionSchema.index({ source: 1 });
-transactionSchema.index({ created_at: -1 });
+transactionSchema.index({ createdAt: -1 });
 
 // Compound indexes
 transactionSchema.index({ booking: 1, status: 1 });

@@ -6,6 +6,83 @@ import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
 import { Types } from 'mongoose';
 
+// Simple in-memory cache for role IDs (roles don't change often, so cache for longer)
+let roleCache: {
+  userRoleId: Types.ObjectId | null;
+  academyRoleId: Types.ObjectId | null;
+  timestamp: number;
+} | null = null;
+
+// Cache for 1 hour (roles rarely change, so longer cache is safe)
+const ROLE_CACHE_TTL = 300 * 60 * 1000; // 5 hours
+
+// Flag to prevent multiple simultaneous fetches
+let isFetchingRoles = false;
+let fetchPromise: Promise<{ userRoleId: Types.ObjectId | null; academyRoleId: Types.ObjectId | null }> | null = null;
+
+/**
+ * Get user and academy role IDs with caching (optimized for performance)
+ * This is used frequently in user queries, so caching significantly improves performance
+ */
+export const getRoleIds = async (): Promise<{ userRoleId: Types.ObjectId | null; academyRoleId: Types.ObjectId | null }> => {
+  const now = Date.now();
+  
+  // Return cached roles if still valid (fast path - no DB query)
+  if (roleCache && (now - roleCache.timestamp) < ROLE_CACHE_TTL) {
+    return {
+      userRoleId: roleCache.userRoleId,
+      academyRoleId: roleCache.academyRoleId,
+    };
+  }
+  
+  // If already fetching, wait for that promise instead of creating a new query
+  if (isFetchingRoles && fetchPromise) {
+    return fetchPromise;
+  }
+  
+  // Fetch roles from database (only if cache expired and not already fetching)
+  isFetchingRoles = true;
+  fetchPromise = (async () => {
+    try {
+      // Use parallel findOne calls for better performance (faster than find with $in for just 2 items)
+      // Since 'name' has a unique index, findOne is very fast
+      const [userRole, academyRole] = await Promise.all([
+        RoleModel.findOne({ name: DefaultRoles.USER }).select('_id').lean(),
+        RoleModel.findOne({ name: DefaultRoles.ACADEMY }).select('_id').lean(),
+      ]);
+      
+      const userRoleId = userRole?._id ? new Types.ObjectId(userRole._id.toString()) : null;
+      const academyRoleId = academyRole?._id ? new Types.ObjectId(academyRole._id.toString()) : null;
+      
+      // Update cache
+      roleCache = {
+        userRoleId,
+        academyRoleId,
+        timestamp: Date.now(),
+      };
+      
+      return { userRoleId, academyRoleId };
+    } finally {
+      isFetchingRoles = false;
+      fetchPromise = null;
+    }
+  })();
+  
+  return fetchPromise;
+};
+
+/**
+ * Pre-load role cache on server startup (optional optimization)
+ */
+export const preloadRoleCache = async (): Promise<void> => {
+  try {
+    await getRoleIds();
+    logger.info('Role cache preloaded successfully');
+  } catch (error) {
+    logger.warn('Failed to preload role cache, will load on first request', error);
+  }
+};
+
 /**
  * Get all roles visible to the logged-in user based on their role
  * @param userRole - The role ID of the logged-in user

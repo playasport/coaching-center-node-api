@@ -12,6 +12,7 @@ import { closeRateLimit } from './middleware/rateLimit.middleware';
 import { closePermissionCache } from './services/admin/permission.service';
 import { startMediaCleanupJob } from './jobs/mediaCleanup.job';
 import { startPermanentDeleteJob } from './jobs/permanentDelete.job';
+import { preloadRoleCache } from './services/admin/role.service';
 
 const startServer = async (): Promise<void> => {
   try {
@@ -22,6 +23,9 @@ const startServer = async (): Promise<void> => {
     // Test database connection
     await connectDatabase();
     logger.info('MongoDB connected successfully');
+
+    // Pre-load role cache for faster API responses
+    await preloadRoleCache();
 
     // Start media cleanup cron job (runs daily at 2 AM)
     startMediaCleanupJob();

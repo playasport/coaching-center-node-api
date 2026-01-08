@@ -136,7 +136,7 @@ export const getDashboardStats = async () => {
           $match: {
             type: TransactionType.PAYMENT,
             status: TransactionStatus.SUCCESS,
-            created_at: { $gte: startOfToday },
+            createdAt: { $gte: startOfToday },
           },
         },
         {
@@ -153,7 +153,7 @@ export const getDashboardStats = async () => {
           $match: {
             type: TransactionType.PAYMENT,
             status: TransactionStatus.SUCCESS,
-            created_at: { $gte: startOfWeek },
+            createdAt: { $gte: startOfWeek },
           },
         },
         {
@@ -170,7 +170,7 @@ export const getDashboardStats = async () => {
           $match: {
             type: TransactionType.PAYMENT,
             status: TransactionStatus.SUCCESS,
-            created_at: { $gte: startOfMonth },
+            createdAt: { $gte: startOfMonth },
           },
         },
         {

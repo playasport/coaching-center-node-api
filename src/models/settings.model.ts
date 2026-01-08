@@ -159,7 +159,10 @@ const settingsSchema = new Schema<Settings>(
 );
 
 // Ensure only one settings document exists
-settingsSchema.index({ _id: 1 }, { unique: true });
+// Note: unique _id already exists in MongoDB, this does NOT enforce singleton by itself.
+// Enforce singleton by forcing a constant key across all documents.
+settingsSchema.add({ singletonKey: { type: String, default: 'SETTINGS_SINGLETON', immutable: true } });
+settingsSchema.index({ singletonKey: 1 }, { unique: true });
 
 export const SettingsModel = model<Settings>('Settings', settingsSchema);
 

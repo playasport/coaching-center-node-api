@@ -56,7 +56,7 @@ const userSchema = new Schema<User>(
       index: true,
     },
     address: { type: addressSchema, default: null },
-    isDeleted: { type: Boolean, default: false },
+    isDeleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date, default: null },
   },
   {
@@ -81,5 +81,23 @@ const userSchema = new Schema<User>(
   }
 );
 
+// Single field indexes (most selective first)
+// Note: email already has unique index from schema definition, so we don't need to add it again
+userSchema.index({ isDeleted: 1 });
+userSchema.index({ mobile: 1 });
+userSchema.index({ createdAt: -1 });
+
+// Compound indexes for better query performance
+// Index for common filter combinations in getAllUsers
+// Note: Order matters - most selective fields first
+userSchema.index({ isDeleted: 1, roles: 1, createdAt: -1 });
+userSchema.index({ isDeleted: 1, userType: 1, createdAt: -1 });
+userSchema.index({ isDeleted: 1, isActive: 1, createdAt: -1 });
+userSchema.index({ isDeleted: 1, roles: 1, userType: 1, createdAt: -1 });
+userSchema.index({ isDeleted: 1, roles: 1, isActive: 1, createdAt: -1 });
+userSchema.index({ isDeleted: 1, userType: 1, isActive: 1, createdAt: -1 });
+
+// Text index for search functionality (correct syntax)
+userSchema.index({ firstName: 'text', lastName: 'text', email: 'text', mobile: 'text' }, { name: 'user_search_text_index' });
 
 export const UserModel = model<User>('User', userSchema);

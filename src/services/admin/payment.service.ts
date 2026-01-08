@@ -102,14 +102,14 @@ export const getAllPayments = async (
 
     // Date range filter
     if (params.startDate || params.endDate) {
-      query.created_at = {};
+      query.createdAt = {};
       if (params.startDate) {
-        query.created_at.$gte = new Date(params.startDate);
+        query.createdAt.$gte = new Date(params.startDate);
       }
       if (params.endDate) {
         const endDate = new Date(params.endDate);
         endDate.setHours(23, 59, 59, 999);
-        query.created_at.$lte = endDate;
+        query.createdAt.$lte = endDate;
       }
     }
 
@@ -129,7 +129,11 @@ export const getAllPayments = async (
     const skip = (page - 1) * limit;
 
     // Sorting
-    const sortField = params.sortBy || 'created_at';
+    const sortBy = params.sortBy || 'created_at';
+    const sortField =
+      sortBy === 'created_at' || sortBy === 'createdAt'
+        ? 'createdAt'
+        : sortBy;
     const sortOrder = params.sortOrder === 'asc' ? 1 : -1;
     const sort: any = { [sortField]: sortOrder };
 
@@ -168,7 +172,7 @@ export const getAllPayments = async (
           razorpay_payment_id: transaction.razorpay_payment_id || null,
           failure_reason: transaction.failure_reason || null,
           processed_at: transaction.processed_at || null,
-          created_at: transaction.created_at,
+          created_at: transaction.createdAt,
         };
       });
 
@@ -290,14 +294,14 @@ export const getPaymentStats = async (params?: {
     };
     
     if (params?.startDate || params?.endDate) {
-      dateQuery.created_at = {};
+      dateQuery.createdAt = {};
       if (params.startDate) {
-        dateQuery.created_at.$gte = new Date(params.startDate);
+        dateQuery.createdAt.$gte = new Date(params.startDate);
       }
       if (params.endDate) {
         const endDate = new Date(params.endDate);
         endDate.setHours(23, 59, 59, 999);
-        dateQuery.created_at.$lte = endDate;
+        dateQuery.createdAt.$lte = endDate;
       }
     }
 

@@ -118,14 +118,14 @@ export const getAllTransactions = async (
 
     // Date range filter
     if (params.startDate || params.endDate) {
-      query.created_at = {};
+      query.createdAt = {};
       if (params.startDate) {
-        query.created_at.$gte = new Date(params.startDate);
+        query.createdAt.$gte = new Date(params.startDate);
       }
       if (params.endDate) {
         const endDate = new Date(params.endDate);
         endDate.setHours(23, 59, 59, 999); // End of day
-        query.created_at.$lte = endDate;
+        query.createdAt.$lte = endDate;
       }
     }
 
@@ -146,7 +146,11 @@ export const getAllTransactions = async (
     const skip = (page - 1) * limit;
 
     // Sorting
-    const sortField = params.sortBy || 'created_at';
+    const sortBy = params.sortBy || 'created_at';
+    const sortField =
+      sortBy === 'created_at' || sortBy === 'createdAt'
+        ? 'createdAt'
+        : sortBy;
     const sortOrder = params.sortOrder === 'asc' ? 1 : -1;
     const sort: any = { [sortField]: sortOrder };
 
@@ -188,7 +192,7 @@ export const getAllTransactions = async (
           razorpay_refund_id: transaction.razorpay_refund_id || null,
           failure_reason: transaction.failure_reason || null,
           processed_at: transaction.processed_at || null,
-          created_at: transaction.created_at,
+          created_at: transaction.createdAt,
         };
       });
 
@@ -301,14 +305,14 @@ export const getTransactionStats = async (params?: {
     const dateQuery: any = {};
     
     if (params?.startDate || params?.endDate) {
-      dateQuery.created_at = {};
+      dateQuery.createdAt = {};
       if (params.startDate) {
-        dateQuery.created_at.$gte = new Date(params.startDate);
+        dateQuery.createdAt.$gte = new Date(params.startDate);
       }
       if (params.endDate) {
         const endDate = new Date(params.endDate);
         endDate.setHours(23, 59, 59, 999);
-        dateQuery.created_at.$lte = endDate;
+        dateQuery.createdAt.$lte = endDate;
       }
     }
 
