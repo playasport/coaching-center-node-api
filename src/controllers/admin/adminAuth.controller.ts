@@ -226,6 +226,11 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
 
     const { currentPassword, newPassword }: AdminChangePasswordInput = req.body;
 
+    // Validate that new password is different from current password
+    if (currentPassword === newPassword) {
+      throw new ApiError(400, t('auth.password.sameAsCurrent'));
+    }
+
     const user = await UserModel.findOne({ id: req.user.id, isDeleted: false }).select('password');
 
     if (!user) {

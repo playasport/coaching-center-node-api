@@ -59,6 +59,7 @@
     "password": {
       "changed": "Password changed successfully",
       "currentPasswordIncorrect": "Current password is incorrect",
+      "sameAsCurrent": "New password must be different from the current password",
       "resetOtpSent": "Password reset OTP sent successfully",
       "resetSuccess": "Password reset successfully",
       "resetUserNotFound": "No account found for the provided details",
