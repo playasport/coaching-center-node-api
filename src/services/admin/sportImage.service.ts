@@ -50,7 +50,7 @@ export const uploadSportImage = async (
     // Generate filename using sport slug or name (this ensures same filename = automatic replacement)
     const sportSlug = sport.slug || generateSportSlug(sport.name);
     const fileExtension = file.originalname.split('.').pop() || 'jpg';
-    const fileName = `images/sports/${sportSlug}.${fileExtension}`;
+    const fileName = `images/sports/playasport-${sportSlug}.${fileExtension}`;
 
     // Upload to S3 (will automatically replace if file with same name exists)
     const command = new PutObjectCommand({

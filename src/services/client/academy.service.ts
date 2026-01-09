@@ -202,11 +202,17 @@ export const getAllAcademies = async (
       .populate('sports', 'custom_id name logo is_popular')
       .populate({
         path: 'user',
-        select: 'id',
-        match: { isDeleted: false },
+        select: 'id isDeleted',
+        // Don't use match here - we'll filter deleted users after fetching
+        options: { lean: true },
       })
       .select('id center_name logo location sports age allowed_genders sport_details user')
       .lean();
+
+    // Filter out academies with deleted users
+    academies = academies.filter((academy: any) => {
+      return academy.user && !(academy.user as any).isDeleted;
+    });
 
     // Calculate distances if location provided
     if (userLocation && academies.length > 0) {
@@ -337,6 +343,11 @@ export const getAcademyById = async (
       .populate('sports', 'custom_id name logo is_popular')
       .populate('sport_details.sport_id', 'custom_id name logo is_popular')
       .populate('facility', 'custom_id name description icon')
+      .populate({
+        path: 'user',
+        select: 'id isDeleted',
+        options: { lean: true },
+      })
       .lean();
 
     // If not found by id field, try by ObjectId (if it's a valid ObjectId)
@@ -351,6 +362,11 @@ export const getAcademyById = async (
         .populate('sports', 'custom_id name logo is_popular')
         .populate('sport_details.sport_id', 'custom_id name logo is_popular')
         .populate('facility', 'custom_id name description icon')
+        .populate({
+          path: 'user',
+          select: 'id isDeleted',
+          options: { lean: true },
+        })
         .lean();
     }
 
@@ -371,11 +387,21 @@ export const getAcademyById = async (
           .populate('sports', 'custom_id name logo is_popular')
           .populate('sport_details.sport_id', 'custom_id name logo is_popular')
           .populate('facility', 'custom_id name description icon')
+          .populate({
+            path: 'user',
+            select: 'id isDeleted',
+            options: { lean: true },
+          })
           .lean();
       }
     }
 
     if (!coachingCenter) {
+      return null;
+    }
+
+    // Return 404 if user is deleted
+    if (coachingCenter.user && (coachingCenter.user as any).isDeleted) {
       return null;
     }
 
@@ -488,22 +514,33 @@ export const getAcademiesByCity = async (
       'location.address.city': { $regex: new RegExp(`^${cityName}$`, 'i') },
     };
 
-    // Get total count
-    const total = await CoachingCenterModel.countDocuments(query);
-
-    // Fetch academies
-    const academies = await CoachingCenterModel.find(query)
+    // Fetch all academies (we'll filter and paginate after filtering deleted users)
+    let academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo is_popular')
-      .select('id center_name logo location sports age allowed_genders sport_details')
+      .populate({
+        path: 'user',
+        select: 'id isDeleted',
+        options: { lean: true },
+      })
+      .select('id center_name logo location sports age allowed_genders sport_details user')
       .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(pageSize)
       .lean();
 
-    const totalPages = Math.ceil(total / pageSize);
+    // Filter out academies with deleted users
+    academies = academies.filter((academy: any) => {
+      return academy.user && !(academy.user as any).isDeleted;
+    });
+
+    // Get total count after filtering
+    const filteredTotal = academies.length;
+
+    // Apply pagination after filtering
+    const paginatedAcademies = academies.slice(skip, skip + pageSize);
+
+    const totalPages = Math.ceil(filteredTotal / pageSize);
 
     return {
-      data: academies.map((academy: any) => {
+      data: paginatedAcademies.map((academy: any) => {
         // Get first active image from sport_details, prioritizing banner images
         let image: string | null = null;
         if (academy.sport_details && Array.isArray(academy.sport_details)) {
@@ -541,7 +578,7 @@ export const getAcademiesByCity = async (
       pagination: {
         page: pageNumber,
         limit: pageSize,
-        total,
+        total: filteredTotal,
         totalPages,
         hasNextPage: pageNumber < totalPages,
         hasPrevPage: pageNumber > 1,
@@ -602,11 +639,17 @@ export const getAcademiesBySport = async (
       .populate('sports', 'custom_id name logo is_popular')
       .populate({
         path: 'user',
-        select: 'id',
-        match: { isDeleted: false },
+        select: 'id isDeleted',
+        // Don't use match here - we'll filter deleted users after fetching
+        options: { lean: true },
       })
       .select('id center_name logo location sports age allowed_genders sport_details user')
       .lean();
+
+    // Filter out academies with deleted users
+    academies = academies.filter((academy: any) => {
+      return academy.user && !(academy.user as any).isDeleted;
+    });
 
     // Calculate distances if location provided
     if (userLocation && academies.length > 0) {

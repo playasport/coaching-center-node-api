@@ -914,6 +914,33 @@
           "response": []
         },
         {
+          "name": "Toggle User Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/:id/toggle-status",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", ":id", "toggle-status"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{userId}}",
+                  "description": "User ID"
+                }
+              ]
+            },
+            "description": "Toggle a user's active status (activate if inactive, deactivate if active). No request body required. Requires user:update permission.\n\n**ID Format Support:**\n- UUID format: `550e8400-e29b-41d4-a716-446655440000`\n- MongoDB ObjectId format: `69428b55c8c9ac23116e89da` (24 hex characters)\n\nBoth formats are supported for backward compatibility.\n\n**Behavior:**\n- If user is currently active (isActive: true), it will be deactivated (isActive: false)\n- If user is currently inactive (isActive: false), it will be activated (isActive: true)"
+          },
+          "response": []
+        },
+        {
           "name": "Delete User",
           "request": {
             "method": "DELETE",

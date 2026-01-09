@@ -300,6 +300,83 @@ router.get('/:id', requirePermission(Section.USER, Action.VIEW), userController.
 
 /**
  * @swagger
+ * /admin/users/{id}/toggle-status:
+ *   patch:
+ *     summary: Toggle user status (admin)
+ *     description: Toggle a user's active status (activate if inactive, deactivate if active). No request body required. Requires user:update permission.
+ *     tags: [Admin Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID (supports both UUID format and MongoDB ObjectId format for backward compatibility)
+ *         examples:
+ *           uuid:
+ *             value: "550e8400-e29b-41d4-a716-446655440000"
+ *             summary: UUID format
+ *           objectId:
+ *             value: "69428b55c8c9ac23116e89da"
+ *             summary: MongoDB ObjectId format
+ *     responses:
+ *       200:
+ *         description: User status toggled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "User activated successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *             example:
+ *               success: true
+ *               message: "User activated successfully"
+ *               data:
+ *                 user:
+ *                   id: "550e8400-e29b-41d4-a716-446655440000"
+ *                   firstName: "John"
+ *                   lastName: "Doe"
+ *                   email: "user@example.com"
+ *                   isActive: true
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               success: false
+ *               message: "Forbidden - Insufficient permissions"
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               success: false
+ *               message: "User not found"
+ */
+router.patch(
+  '/:id/toggle-status',
+  requirePermission(Section.USER, Action.UPDATE),
+  userController.toggleUserStatus
+);
+
+/**
+ * @swagger
  * /admin/users/{id}:
  *   patch:
  *     summary: Update user (admin)

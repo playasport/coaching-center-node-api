@@ -781,6 +781,69 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
 };
 
 /**
+ * Toggle user status (admin)
+ */
+export const toggleUserStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    // Build query - support both UUID id and MongoDB _id
+    let findQuery: any;
+    if (Types.ObjectId.isValid(id) && id.length === 24) {
+      // Try MongoDB _id first (24 hex characters)
+      findQuery = {
+        $or: [
+          { _id: new Types.ObjectId(id), isDeleted: false },
+          { id, isDeleted: false }
+        ]
+      };
+    } else {
+      // Try UUID id format
+      findQuery = { id, isDeleted: false };
+    }
+
+    // Find user first to get current status
+    const existingUser = await UserModel.findOne(findQuery).select('isActive');
+    
+    if (!existingUser) {
+      throw new ApiError(404, t('auth.user.notFound'));
+    }
+
+    // Toggle status
+    const newStatus = !existingUser.isActive;
+
+    // Update user status
+    const user = await UserModel.findOneAndUpdate(
+      findQuery,
+      { $set: { isActive: newStatus } },
+      { new: true, runValidators: true }
+    )
+      .select('-password')
+      .populate('roles', 'name description')
+      .lean();
+
+    if (!user) {
+      throw new ApiError(404, t('auth.user.notFound'));
+    }
+
+    logger.info(`Admin toggled user status: ${id} to ${newStatus ? 'active' : 'inactive'}`);
+
+    const response = new ApiResponse(
+      200,
+      { user },
+      newStatus ? t('admin.users.statusActivated') : t('admin.users.statusDeactivated')
+    );
+    res.json(response);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Toggle user status error:', error);
+    throw new ApiError(500, t('errors.internalServerError'));
+  }
+};
+
+/**
  * Delete user (admin - soft delete)
  */
 export const deleteUser = async (req: Request, res: Response): Promise<void> => {

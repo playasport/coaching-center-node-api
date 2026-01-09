@@ -103,10 +103,10 @@ export const videoProcessingWorker = new Worker<VideoProcessingJobData>(
 
       // Update highlight or reel with processed video URLs and set status to COMPLETED
       if (highlightId) {
-        // Construct permanent video URL: highlights/{highlightId}/{highlightId}.mp4
+        // Construct permanent video URL: highlights/playasport-{highlightId}/playasport-{highlightId}.mp4
         // Extract file extension from original videoUrl
         const fileExtension = videoUrl.split('.').pop()?.split('?')[0] || 'mp4';
-        const permanentVideoUrl = `https://${config.aws.s3Bucket}.s3.${config.aws.region}.amazonaws.com/highlights/${highlightId}/${highlightId}.${fileExtension}`;
+        const permanentVideoUrl = `https://${config.aws.s3Bucket}.s3.${config.aws.region}.amazonaws.com/highlights/playasport-${highlightId}/playasport-${highlightId}.${fileExtension}`;
         
         const updateData: any = {
           videoProcessingStatus: VideoProcessingStatus.COMPLETED,
@@ -140,10 +140,10 @@ export const videoProcessingWorker = new Worker<VideoProcessingJobData>(
           duration: result.duration,
         });
       } else if (reelId) {
-        // Construct permanent video URL: reels/{reelId}/{reelId}.mp4
+        // Construct permanent video URL: reels/playasport-{reelId}/playasport-{reelId}.mp4
         // Extract file extension from original videoUrl
         const fileExtension = videoUrl.split('.').pop()?.split('?')[0] || 'mp4';
-        const permanentVideoUrl = `https://${config.aws.s3Bucket}.s3.${config.aws.region}.amazonaws.com/reels/${reelId}/${reelId}.${fileExtension}`;
+        const permanentVideoUrl = `https://${config.aws.s3Bucket}.s3.${config.aws.region}.amazonaws.com/reels/playasport-${reelId}/playasport-${reelId}.${fileExtension}`;
         
         const updateData: any = {
           videoProcessingStatus: VideoProcessingStatus.COMPLETED,

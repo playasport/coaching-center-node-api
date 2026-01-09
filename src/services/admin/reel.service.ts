@@ -842,8 +842,8 @@ async function moveThumbnailToPermanentLocation(
     // Get file extension from temp key
     const fileExtension = tempKey.split('.').pop() || 'jpg';
     
-    // Create permanent key: reels/{reelId}/thumbnail.{ext}
-    const permanentKey = `reels/${reelId}/thumbnail.${fileExtension}`;
+    // Create permanent key: reels/playasport-{reelId}/playasport-thumbnail.{ext}
+    const permanentKey = `reels/playasport-${reelId}/playasport-thumbnail.${fileExtension}`;
 
     logger.info('Moving thumbnail from temp to permanent location', {
       tempKey,
@@ -929,8 +929,8 @@ async function moveVideoToPermanentLocation(
     // Get file extension from temp key
     const fileExtension = tempKey.split('.').pop() || 'mp4';
 
-    // Create permanent key: reels/{reelId}/{reelId}.mp4
-    const permanentKey = `reels/${reelId}/${reelId}.${fileExtension}`;
+    // Create permanent key: reels/playasport-{reelId}/playasport-{reelId}.mp4
+    const permanentKey = `reels/playasport-${reelId}/playasport-${reelId}.${fileExtension}`;
 
     logger.info('Moving video from temp to permanent location', {
       tempKey,

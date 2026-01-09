@@ -11,7 +11,7 @@ import { enqueueThumbnailGeneration } from '../../queue/thumbnailQueue';
 /**
  * Helper to get query by ID (supports both MongoDB ObjectId and custom UUID id)
  */
-const getQueryById = (id: string) => {
+export const getQueryById = (id: string) => {
   return Types.ObjectId.isValid(id) ? { _id: id } : { id: id };
 };
 
@@ -79,21 +79,30 @@ export const getCoachingCenterById = async (id: string): Promise<CoachingCenter 
       .populate('facility', 'custom_id name description icon')
       .populate({
         path: 'user',
-        select: 'id firstName lastName email',
-        match: { isDeleted: false },
+        select: 'id firstName lastName email isDeleted',
+        // Don't use match here - it can exclude parent documents
+        // Instead, we'll check if user is deleted and return 404
+        options: { lean: true },
       })
       .lean();
 
-    if (coachingCenter) {
-      // Filter deleted documents
-      if (coachingCenter.documents && Array.isArray(coachingCenter.documents)) {
-        (coachingCenter as any).documents = filterDeletedDocuments(coachingCenter.documents);
-      }
-      
-      // Sort images so banner images appear first and filter deleted media
-      if (coachingCenter.sport_details) {
-        (coachingCenter as any).sport_details = sortSportDetailsImages(coachingCenter.sport_details);
-      }
+    if (!coachingCenter) {
+      return null;
+    }
+
+    // Return 404 if user is deleted
+    if (coachingCenter.user && (coachingCenter.user as any).isDeleted) {
+      return null;
+    }
+
+    // Filter deleted documents
+    if (coachingCenter.documents && Array.isArray(coachingCenter.documents)) {
+      (coachingCenter as any).documents = filterDeletedDocuments(coachingCenter.documents);
+    }
+    
+    // Sort images so banner images appear first and filter deleted media
+    if (coachingCenter.sport_details) {
+      (coachingCenter as any).sport_details = sortSportDetailsImages(coachingCenter.sport_details);
     }
 
     return coachingCenter;
@@ -208,6 +217,27 @@ export const enqueueThumbnailGenerationForVideos = async (coachingCenter: Coachi
   } catch (error) {
     logger.error('Failed to enqueue thumbnail generation', { error });
   }
+};
+
+/**
+ * Extract all file URLs from coaching center that need to be moved
+ */
+export const extractFileUrlsFromCoachingCenter = (coachingCenter: CoachingCenter): string[] => {
+  const fileUrls: string[] = [];
+  
+  if (coachingCenter.logo) fileUrls.push(coachingCenter.logo);
+  
+  coachingCenter.sport_details?.forEach(sd => {
+    sd.images?.forEach(img => { if (img.url && !img.is_deleted) fileUrls.push(img.url); });
+    sd.videos?.forEach(vid => {
+      if (vid.url && !vid.is_deleted) fileUrls.push(vid.url);
+      if (vid.thumbnail && !vid.is_deleted) fileUrls.push(vid.thumbnail);
+    });
+  });
+
+  coachingCenter.documents?.forEach(doc => { if (doc.url && !doc.is_deleted) fileUrls.push(doc.url); });
+  
+  return fileUrls;
 };
 
 /**

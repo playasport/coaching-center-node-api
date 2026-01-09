@@ -331,9 +331,9 @@ export const generateVideoThumbnail = async (videoUrl: string): Promise<string> 
     // Generate thumbnail from buffer
     const thumbnailBuffer = await generateThumbnailFromBuffer(videoBuffer, actualVideoKey);
 
-    // Generate thumbnail key: /images/coachingCentres/{uniqueId}.jpg
+    // Generate thumbnail key: /images/coachingCentres/playasport-{uniqueId}.jpg
     const uniqueId = uuidv4();
-    const thumbnailKey = `images/coachingCentres/${uniqueId}.jpg`;
+    const thumbnailKey = `images/coachingCentres/playasport-${uniqueId}.jpg`;
     
     logger.debug('Uploading thumbnail to S3', { bucket: config.aws.s3Bucket, key: thumbnailKey });
     

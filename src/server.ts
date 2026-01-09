@@ -6,6 +6,8 @@ import { logger } from './utils/logger';
 import { thumbnailWorker, thumbnailQueue } from './queue/thumbnailQueue';
 import { videoProcessingQueue } from './queue/videoProcessingQueue';
 import { closeVideoProcessingWorker } from './queue/videoProcessingWorker';
+import { mediaMoveQueue } from './queue/mediaMoveQueue';
+import { closeMediaMoveWorker } from './queue/mediaMoveWorker';
 import { closeUserCache } from './utils/userCache';
 import { closeTokenBlacklist } from './utils/tokenBlacklist';
 import { closeRateLimit } from './middleware/rateLimit.middleware';
@@ -67,6 +69,14 @@ const gracefulShutdown = async (signal: string) => {
     // Close video processing queue
     await videoProcessingQueue.close();
     logger.info('Video processing queue closed');
+    
+    // Close media move worker
+    await closeMediaMoveWorker();
+    logger.info('Media move worker closed');
+    
+    // Close media move queue
+    await mediaMoveQueue.close();
+    logger.info('Media move queue closed');
     
     // Close user cache Redis connection
     await closeUserCache();

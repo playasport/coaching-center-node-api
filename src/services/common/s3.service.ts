@@ -58,8 +58,8 @@ export const uploadFileToS3 = async ({
 
   const fileExtension = file.originalname.split('.').pop() || 'jpg';
   const fileName = userId
-    ? `${folder}/${userId}-${uuidv4()}.${fileExtension}`
-    : `${folder}/${uuidv4()}.${fileExtension}`;
+    ? `${folder}/playasport-${userId}-${uuidv4()}.${fileExtension}`
+    : `${folder}/playasport-${uuidv4()}.${fileExtension}`;
 
   const contentType = file.mimetype || 'image/jpeg';
 

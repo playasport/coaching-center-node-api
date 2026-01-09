@@ -613,6 +613,20 @@
     },
     "dashboard": {
       "statsRetrieved": "Statistics retrieved successfully"
+    },
+    "users": {
+      "created": "User created successfully. Credentials have been sent to their email.",
+      "createFailed": "Failed to create user",
+      "retrieved": "Users retrieved successfully",
+      "updated": "User updated successfully",
+      "deleted": "User deleted successfully",
+      "statusActivated": "User activated successfully",
+      "statusDeactivated": "User deactivated successfully",
+      "emailExists": "Email already exists",
+      "mobileExists": "A user with this mobile number already exists",
+      "invalidRoles": "One or more roles are invalid",
+      "invalidRolesFormat": "Invalid roles format",
+      "onlySuperAdminCanUpdateEmail": "Only super admin can update email"
     }
   }
 }

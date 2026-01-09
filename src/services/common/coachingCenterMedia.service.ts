@@ -42,7 +42,7 @@ const getS3Client = (): S3Client => {
  */
 const getTempFilePath = (mediaType: MediaType, fileName: string): string => {
   const fileExtension = fileName.split('.').pop() || 'jpg';
-  const uniqueFileName = `${uuidv4()}.${fileExtension}`;
+  const uniqueFileName = `playasport-${uuidv4()}.${fileExtension}`;
 
   switch (mediaType) {
     case 'logo':

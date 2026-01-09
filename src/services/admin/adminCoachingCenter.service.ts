@@ -15,6 +15,8 @@ import { DefaultRoles as DefaultRolesEnum } from '../../enums/defaultRoles.enum'
 import { AdminApproveStatus } from '../../enums/adminApprove.enum';
 import { EmployeeModel } from '../../models/employee.model';
 import { config } from '../../config/env';
+import { enqueueMediaMove } from '../../queue/mediaMoveQueue';
+import type { CreateNotificationInput } from '../common/notification.service';
 
 export interface AdminPaginatedResult<T> {
   coachingCenters: T[];
@@ -160,7 +162,13 @@ export const getAllCoachingCenters = async (
     const [coachingCenters, total] = await Promise.all([
       CoachingCenterModel.find(query)
         .select('_id id center_name email mobile_number logo status is_active approval_status reject_reason user sports location createdAt updatedAt')
-        .populate('user', 'id firstName lastName email mobile')
+        .populate({
+          path: 'user',
+          select: 'id firstName lastName email mobile isDeleted',
+          // Don't use match here - it can exclude parent documents
+          // Instead, we'll filter deleted users in the transformation
+          options: { lean: true },
+        })
         .populate('sports', 'id name')
         .sort(sort)
         .skip(skip)
@@ -181,7 +189,7 @@ export const getAllCoachingCenters = async (
       is_active: center.is_active,
       approval_status: center.approval_status || 'approved',
       reject_reason: center.reject_reason || null,
-      user: center.user ? {
+      user: center.user && !center.user.isDeleted ? {
         id: center.user.id || center.user._id?.toString() || '',
         firstName: center.user.firstName || '',
         lastName: center.user.lastName || '',
@@ -271,7 +279,13 @@ export const getCoachingCentersByUserId = async (
 
     const [coachingCenters, total] = await Promise.all([
       CoachingCenterModel.find(query)
-        .populate('user', 'firstName lastName email mobile')
+        .populate({
+          path: 'user',
+          select: 'firstName lastName email mobile isDeleted',
+          // Don't use match here - it can exclude parent documents
+          // Instead, we'll filter deleted users in the transformation if needed
+          options: { lean: true },
+        })
         .populate('sports', 'name')
         .sort(sort)
         .skip(skip)
@@ -443,73 +457,113 @@ export const createCoachingCenterByAdmin = async (
     const coachingCenter = new CoachingCenterModel(coachingCenterData);
     await coachingCenter.save();
 
-    // 7. Handle media move if published
+    // 7. Handle media move if published (async - non-blocking)
     if (data.status === 'published') {
       try {
         // Convert to plain object for media processing
         const coachingCenterObj = coachingCenter.toObject({ flattenObjectIds: false });
-        await commonService.moveMediaFilesToPermanent(coachingCenterObj as CoachingCenter);
-        await commonService.enqueueThumbnailGenerationForVideos(coachingCenterObj as CoachingCenter);
+        const fileUrls = commonService.extractFileUrlsFromCoachingCenter(coachingCenterObj as CoachingCenter);
+        
+        // Enqueue media move as background job (non-blocking)
+        if (fileUrls.length > 0) {
+          enqueueMediaMove({
+            coachingCenterId: coachingCenter._id.toString(),
+            fileUrls,
+            timestamp: Date.now(),
+          }).catch((error) => {
+            logger.error('Failed to enqueue media move job (non-blocking)', {
+              coachingCenterId: coachingCenter._id.toString(),
+              fileCount: fileUrls.length,
+              error: error instanceof Error ? error.message : error,
+            });
+          });
+        }
+        
+        // Enqueue thumbnail generation (already async)
+        commonService.enqueueThumbnailGenerationForVideos(coachingCenterObj as CoachingCenter).catch((error) => {
+          logger.error('Failed to enqueue thumbnail generation (non-blocking)', {
+            coachingCenterId: coachingCenter._id.toString(),
+            error: error instanceof Error ? error.message : error,
+          });
+        });
       } catch (mediaError) {
-        logger.error('Failed to move media files during creation:', {
+        logger.error('Failed to prepare media move job:', {
           error: mediaError instanceof Error ? mediaError.message : mediaError,
           stack: mediaError instanceof Error ? mediaError.stack : undefined,
           coachingCenterId: coachingCenter._id.toString()
         });
-        // Don't fail the entire creation if media move fails, but log it
-        // The media files can be moved later
+        // Don't fail the entire creation if media move preparation fails
       }
     }
 
-    // 8. Send notification to admin and super_admin if created by an agent
+    // 8. Send notification to admin and super_admin if created by an agent (async - non-blocking)
     if (adminUserId && addedByObjectId) {
-      try {
-        const adminUser = await UserModel.findOne({ _id: addedByObjectId })
-          .select('roles')
-          .populate('roles', 'name')
-          .lean();
-        
-        if (adminUser && adminUser.roles) {
-          const userRoles = adminUser.roles as any[];
-          const isAgent = userRoles.some((r: any) => r?.name === DefaultRolesEnum.AGENT);
+      // Fire and forget - don't await, process in background
+      (async () => {
+        try {
+          const adminUser = await UserModel.findOne({ _id: addedByObjectId })
+            .select('roles')
+            .populate('roles', 'name')
+            .lean();
           
-          if (isAgent) {
-            const { createAndSendNotification } = await import('../common/notification.service');
-            const centerName = coachingCenter.center_name || 'Unnamed Academy';
-            const creationDate = new Date().toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            });
+          if (adminUser && adminUser.roles) {
+            const userRoles = adminUser.roles as any[];
+            const isAgent = userRoles.some((r: any) => r?.name === DefaultRolesEnum.AGENT);
+            
+            if (isAgent) {
+              const { createAndSendNotification } = await import('../common/notification.service');
+              const centerName = coachingCenter.center_name || 'Unnamed Academy';
+              const creationDate = new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              });
 
-            await createAndSendNotification({
-              recipientType: 'role',
-              roles: [DefaultRoles.ADMIN, DefaultRoles.SUPER_ADMIN],
-              title: 'New Academy Created by Agent',
-              body: `A new academy "${centerName}" has been created by an agent and requires approval.`,
-              channels: ['push'],
-              priority: 'medium',
-              data: {
-                type: 'coaching_center_created_by_agent',
-                coachingCenterId: coachingCenter.id,
-                centerName: centerName,
-                agentId: adminUserId,
-                approvalStatus: approvalStatus,
-                creationDate,
-              },
-              metadata: {
-                source: 'admin_coaching_center_creation',
-                requiresApproval: true,
-              },
-            });
+              // Use createAndSendNotification for role-based notifications (fire-and-forget)
+              const notificationInput: CreateNotificationInput = {
+                recipientType: 'role',
+                roles: [DefaultRoles.ADMIN, DefaultRoles.SUPER_ADMIN],
+                title: 'New Academy Created by Agent',
+                body: `A new academy "${centerName}" has been created by an agent and requires approval.`,
+                channels: ['push'],
+                priority: 'medium',
+                data: {
+                  type: 'coaching_center_created_by_agent',
+                  coachingCenterId: coachingCenter.id,
+                  centerName: centerName,
+                  agentId: adminUserId,
+                  approvalStatus: approvalStatus,
+                  creationDate,
+                },
+                metadata: {
+                  source: 'admin_coaching_center_creation',
+                  requiresApproval: true,
+                },
+              };
+              
+              createAndSendNotification(notificationInput).catch((error) => {
+                logger.error('Failed to create notification for agent-created coaching center (non-blocking)', {
+                  error: error instanceof Error ? error.message : error,
+                  coachingCenterId: coachingCenter._id.toString()
+                });
+              });
+            }
           }
+        } catch (notificationError) {
+          logger.error('Failed to send admin notification for agent-created coaching center (non-blocking)', { 
+            notificationError: notificationError instanceof Error ? notificationError.message : notificationError,
+            coachingCenterId: coachingCenter._id.toString()
+          });
+          // Don't throw error - notification failure shouldn't break creation
         }
-      } catch (notificationError) {
-        logger.error('Failed to create admin notification for agent-created coaching center', { notificationError });
-        // Don't throw error - notification failure shouldn't break creation
-      }
+      })().catch((error) => {
+        logger.error('Unexpected error in notification background task', {
+          error: error instanceof Error ? error.message : error,
+          coachingCenterId: coachingCenter._id.toString()
+        });
+      });
     }
 
     return await commonService.getCoachingCenterById(coachingCenter._id.toString()) as CoachingCenter;
@@ -578,28 +632,41 @@ export const updateCoachingCenterByAdmin = async (
         commonService.validatePublishStatus({ ...existingCenter.toObject(), ...updates }, true);
       }
       
-      // Move temp files to permanent (handles both new status and new media in existing published center)
+      // Move temp files to permanent (async - non-blocking)
+      // Handles both new status and new media in existing published center
       try {
-        await commonService.moveMediaFilesToPermanent(updatedCenter as CoachingCenter);
+        const coachingCenterObj = updatedCenter as CoachingCenter;
+        const fileUrls = commonService.extractFileUrlsFromCoachingCenter(coachingCenterObj);
+        
+        // Enqueue media move as background job (non-blocking)
+        if (fileUrls.length > 0) {
+          enqueueMediaMove({
+            coachingCenterId: id,
+            fileUrls,
+            timestamp: Date.now(),
+          }).catch((error) => {
+            logger.error('Failed to enqueue media move job during update (non-blocking)', {
+              coachingCenterId: id,
+              fileCount: fileUrls.length,
+              error: error instanceof Error ? error.message : error,
+            });
+          });
+        }
+        
+        // Enqueue thumbnail generation (already async)
+        commonService.enqueueThumbnailGenerationForVideos(coachingCenterObj).catch((error) => {
+          logger.error('Failed to enqueue thumbnail generation during update (non-blocking)', {
+            coachingCenterId: id,
+            error: error instanceof Error ? error.message : error,
+          });
+        });
       } catch (mediaError) {
-        logger.error('Failed to move media files during update:', { 
+        logger.error('Failed to prepare media move job during update:', { 
           error: mediaError instanceof Error ? mediaError.message : mediaError,
           stack: mediaError instanceof Error ? mediaError.stack : undefined,
           coachingCenterId: id
         });
-        // Do not re-throw, allow update to succeed even if media movement fails
-      }
-      
-      // Generate thumbnails for videos without thumbnails
-      try {
-        await commonService.enqueueThumbnailGenerationForVideos(updatedCenter as CoachingCenter);
-      } catch (thumbnailError) {
-        logger.error('Failed to enqueue thumbnail generation during update:', { 
-          error: thumbnailError instanceof Error ? thumbnailError.message : thumbnailError,
-          stack: thumbnailError instanceof Error ? thumbnailError.stack : undefined,
-          coachingCenterId: id
-        });
-        // Do not re-throw, allow update to succeed even if thumbnail generation fails
+        // Do not re-throw, allow update to succeed even if media movement preparation fails
       }
     }
 

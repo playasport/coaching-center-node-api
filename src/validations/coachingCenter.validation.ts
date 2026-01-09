@@ -141,9 +141,9 @@ const bankInformationSchema = z.object({
  * BASE SCHEMAS
  */
 const coachingCenterBaseSchema = {
-  center_name: z.string().max(255, validationMessages.coachingCenter.centerName.maxLength()).optional(),
+  center_name: z.string().max(100, validationMessages.coachingCenter.centerName.maxLength()).optional(),
   mobile_number: z.string().optional(),
-  email: z.string().optional(),
+email: z.string().optional(),
   rules_regulation: z.array(z.string().max(500, validationMessages.coachingCenter.rulesRegulation.maxLength())).optional().nullable(),
   logo: z.string().url(validationMessages.coachingCenter.logo.invalidUrl()).optional(),
   sports: z.array(z.string()).optional(),

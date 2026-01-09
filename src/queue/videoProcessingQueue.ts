@@ -61,8 +61,8 @@ export const enqueueVideoProcessing = async (
   // Generate folder path if not provided
   const folderPath = data.folderPath || 
     (data.type === 'highlight' 
-      ? `highlights/${data.highlightId || 'temp'}`
-      : `reels/${data.reelId || 'temp'}`);
+      ? `highlights/playasport-${data.highlightId || 'temp'}`
+      : `reels/playasport-${data.reelId || 'temp'}`);
 
   // Use reelId for both highlights and reels (as per your video converter server structure)
   const reelId = data.reelId || data.highlightId || '';
