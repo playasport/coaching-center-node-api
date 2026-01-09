@@ -11,6 +11,7 @@ import { getUserObjectId } from '../../utils/userCache';
 import * as commonService from '../common/coachingCenterCommon.service';
 import { DefaultRoles } from '../../models/role.model';
 import { AdminApproveStatus } from '../../enums/adminApprove.enum';
+import type { CreateNotificationInput } from '../common/notification.service';
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -108,7 +109,7 @@ export const createCoachingCenter = async (
     // Fire and forget - don't await, process in background
     (async () => {
       try {
-        const { queueNotification } = await import('../common/notificationQueue.service');
+        const { createAndSendNotification } = await import('../common/notification.service');
         const centerName = coachingCenter.center_name || 'Unnamed Academy';
         const creationDate = new Date().toLocaleDateString('en-US', {
           year: 'numeric',
@@ -126,7 +127,7 @@ export const createCoachingCenter = async (
         const ownerName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'Unknown';
 
         // Send notification when coaching center is published
-        queueNotification({
+        const notificationInput: CreateNotificationInput = {
           recipientType: 'role',
           roles: [DefaultRoles.ADMIN, DefaultRoles.SUPER_ADMIN],
           title: 'New Academy Published',
@@ -146,6 +147,13 @@ export const createCoachingCenter = async (
             source: 'academy_coaching_center_published',
             requiresApproval: true,
           },
+        };
+        
+        createAndSendNotification(notificationInput).catch((error) => {
+          logger.error('Failed to create notification for published coaching center (non-blocking)', {
+            error: error instanceof Error ? error.message : error,
+            coachingCenterId: coachingCenter._id.toString()
+          });
         });
       } catch (notificationError) {
         logger.error('Failed to send admin notification for published coaching center (non-blocking)', { 
