@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { UserModel } from '../../models/user.model';
+import { AdminUserModel } from '../../models/adminUser.model';
 import { comparePassword } from '../../utils';
 import { generateTokenPair } from '../../utils/jwt';
 import { ApiError } from '../../utils/ApiError';
@@ -22,7 +22,7 @@ export const loginAdmin = async (req: Request, res: Response): Promise<void> => 
     const { email, password }: AdminLoginInput = req.body;
 
     // Find user by email
-    const user = await UserModel.findOne({ email: email.toLowerCase(), isDeleted: false })
+    const user = await AdminUserModel.findOne({ email: email.toLowerCase(), isDeleted: false })
       .populate('roles', 'name')
       .lean();
 
@@ -154,7 +154,7 @@ export const getAdminProfile = async (req: Request, res: Response): Promise<void
       throw new ApiError(401, t('auth.authorization.unauthorized'));
     }
 
-    const user = await UserModel.findOne({ id: req.user.id, isDeleted: false })
+    const user = await AdminUserModel.findOne({ id: req.user.id, isDeleted: false })
       .select('-password')
       .populate('roles', 'name description')
       .lean();
@@ -185,7 +185,7 @@ export const updateAdminProfile = async (req: Request, res: Response): Promise<v
 
     const updateData: AdminUpdateProfileInput = req.body;
 
-    const user = await UserModel.findOneAndUpdate(
+    const user = await AdminUserModel.findOneAndUpdate(
       { id: req.user.id, isDeleted: false },
       {
         $set: {
@@ -231,7 +231,7 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
       throw new ApiError(400, t('auth.password.sameAsCurrent'));
     }
 
-    const user = await UserModel.findOne({ id: req.user.id, isDeleted: false }).select('password');
+    const user = await AdminUserModel.findOne({ id: req.user.id, isDeleted: false }).select('password');
 
     if (!user) {
       throw new ApiError(404, t('auth.user.notFound'));
@@ -247,7 +247,7 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
     const { hashPassword } = await import('../../utils/password');
     const hashedPassword = await hashPassword(newPassword);
 
-    await UserModel.updateOne(
+    await AdminUserModel.updateOne(
       { id: req.user.id },
       { $set: { password: hashedPassword } }
     );
@@ -291,7 +291,7 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     }
 
     // Check if user exists and has admin role
-    const user = await UserModel.findOne({ id: decoded.id, isDeleted: false, isActive: true })
+    const user = await AdminUserModel.findOne({ id: decoded.id, isDeleted: false, isActive: true })
       .select('roles')
       .populate('roles', 'name')
       .lean();
@@ -435,7 +435,7 @@ export const updateAdminProfileImage = async (req: Request, res: Response): Prom
       throw new ApiError(400, t('validation.file.required'));
     }
 
-    const user = await UserModel.findOne({ id: req.user.id, isDeleted: false }).lean();
+    const user = await AdminUserModel.findOne({ id: req.user.id, isDeleted: false }).lean();
 
     if (!user) {
       throw new ApiError(404, t('auth.user.notFound'));
@@ -475,7 +475,7 @@ export const updateAdminProfileImage = async (req: Request, res: Response): Prom
       const imageUrl = await imageUrlPromise;
 
       // Update user profile image
-      const updatedUser = await UserModel.findOneAndUpdate(
+      const updatedUser = await AdminUserModel.findOneAndUpdate(
         { id: req.user.id },
         { $set: { profileImage: imageUrl } },
         { new: true, runValidators: true }

@@ -1,5 +1,5 @@
 import { connectDatabase, disconnectDatabase } from '../src/config/database';
-import { UserModel } from '../src/models/user.model';
+import { AdminUserModel } from '../src/models/adminUser.model';
 import { RoleModel } from '../src/models/role.model';
 import { DefaultRoles } from '../src/enums/defaultRoles.enum';
 import { logger } from '../src/utils/logger';
@@ -27,14 +27,14 @@ const seedSuperAdmin = async () => {
     console.log(`✅ Super Admin role found: ${superAdminRole._id}\n`);
 
     // Check if user already exists
-    const existingUser = await UserModel.findOne({ email: SUPER_ADMIN_EMAIL });
+    const existingUser = await AdminUserModel.findOne({ email: SUPER_ADMIN_EMAIL });
     if (existingUser) {
-      console.log(`⚠️  User with email ${SUPER_ADMIN_EMAIL} already exists.`);
+      console.log(`⚠️  Admin user with email ${SUPER_ADMIN_EMAIL} already exists.`);
       console.log(`   User ID: ${existingUser.id}`);
       console.log(`   Checking if user has Super Admin role...\n`);
 
       // Check if user has Super Admin role
-      const userWithRoles = await UserModel.findOne({ email: SUPER_ADMIN_EMAIL })
+      const userWithRoles = await AdminUserModel.findOne({ email: SUPER_ADMIN_EMAIL })
         .populate('roles', 'name')
         .lean();
 
@@ -49,7 +49,7 @@ const seedSuperAdmin = async () => {
         console.log('   Adding Super Admin role to existing user...\n');
 
         // Add Super Admin role to existing user
-        await UserModel.updateOne(
+        await AdminUserModel.updateOne(
           { email: SUPER_ADMIN_EMAIL },
           {
             $addToSet: { roles: superAdminRole._id },
@@ -59,7 +59,7 @@ const seedSuperAdmin = async () => {
 
         // Update password
         const hashedPassword = await hashPassword(SUPER_ADMIN_PASSWORD);
-        await UserModel.updateOne(
+        await AdminUserModel.updateOne(
           { email: SUPER_ADMIN_EMAIL },
           { $set: { password: hashedPassword } }
         );
@@ -78,7 +78,7 @@ const seedSuperAdmin = async () => {
 
     // Create Super Admin user
     console.log('👤 Creating Super Admin user...');
-    const superAdminUser = new UserModel({
+    const superAdminUser = new AdminUserModel({
       id: uuidv4(),
       firstName: 'Super',
       lastName: 'Admin',

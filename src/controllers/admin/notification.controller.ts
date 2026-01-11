@@ -6,7 +6,7 @@ import * as adminNotificationService from '../../services/admin/notification.ser
 import { SendNotificationInput, TestNotificationInput } from '../../validations/notification.validation';
 import { NotificationChannel } from '../../types/notification.types';
 import { t } from '../../utils/i18n';
-import { UserModel } from '../../models/user.model';
+import { AdminUserModel } from '../../models/adminUser.model';
 
 /**
  * Send notification from admin panel
@@ -147,7 +147,7 @@ export const getMyNotifications = async (
     }
 
     // Get user's roles from database
-    const user = await UserModel.findOne({ id: req.user.id })
+    const user = await AdminUserModel.findOne({ id: req.user.id })
       .select('roles')
       .populate('roles', 'name')
       .lean();
@@ -218,7 +218,7 @@ export const getUnreadCount = async (
     }
 
     // Get user's roles from database
-    const user = await UserModel.findOne({ id: req.user.id })
+    const user = await AdminUserModel.findOne({ id: req.user.id })
       .select('roles')
       .populate('roles', 'name')
       .lean();
@@ -262,7 +262,7 @@ export const markAsRead = async (
     }
 
     // Get user's roles from database
-    const user = await UserModel.findOne({ id: req.user.id })
+    const user = await AdminUserModel.findOne({ id: req.user.id })
       .select('roles')
       .populate('roles', 'name')
       .lean();

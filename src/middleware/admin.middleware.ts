@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { UserModel } from '../models/user.model';
+import { AdminUserModel } from '../models/adminUser.model';
 import { DefaultRoles } from '../enums/defaultRoles.enum';
 import { t } from '../utils/i18n';
 import { logger } from '../utils/logger';
@@ -33,7 +33,7 @@ export const requireAdmin = async (
     }
 
     // Get user with roles from database
-    const user = await UserModel.findOne({
+    const user = await AdminUserModel.findOne({
       id: req.user.id,
       isDeleted: false,
       isActive: true,

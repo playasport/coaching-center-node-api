@@ -8,7 +8,7 @@ import { Action } from '../../enums/section.enum';
 import { validate } from '../../middleware/validation.middleware';
 import { createRoleSchema, updateRoleSchema } from '../../validations/role.validation';
 import { DefaultRoles } from '../../enums/defaultRoles.enum';
-import { UserModel } from '../../models/user.model';
+import { AdminUserModel } from '../../models/adminUser.model';
 
 // Middleware to check if user is super admin
 const requireSuperAdmin = async (req: any, res: any, next: any) => {
@@ -17,7 +17,7 @@ const requireSuperAdmin = async (req: any, res: any, next: any) => {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
-    const user = await UserModel.findOne({ id: req.user.id })
+    const user = await AdminUserModel.findOne({ id: req.user.id })
       .select('roles')
       .populate('roles', 'name')
       .lean();

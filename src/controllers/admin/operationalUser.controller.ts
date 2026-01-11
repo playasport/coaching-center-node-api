@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
-import { UserModel } from '../../models/user.model';
+import { AdminUserModel } from '../../models/adminUser.model';
 import { RoleModel } from '../../models/role.model';
 import { hashPassword } from '../../utils/password';
 import { generateSecurePassword } from '../../utils/passwordGenerator';
@@ -39,8 +39,8 @@ export const createOperationalUser = async (req: Request, res: Response): Promis
   try {
     // Check if email and mobile already exist (parallel queries)
     const [existingUserByEmail, existingUserByMobile] = await Promise.all([
-      UserModel.findOne({ email: data.email.toLowerCase(), isDeleted: false }).lean(),
-      data.mobile ? UserModel.findOne({ mobile: data.mobile, isDeleted: false }).lean() : Promise.resolve(null),
+      AdminUserModel.findOne({ email: data.email.toLowerCase(), isDeleted: false }).lean(),
+      data.mobile ? AdminUserModel.findOne({ mobile: data.mobile, isDeleted: false }).lean() : Promise.resolve(null),
     ]);
 
     if (existingUserByEmail) {
@@ -104,7 +104,7 @@ export const createOperationalUser = async (req: Request, res: Response): Promis
     }
 
     // Create user (operational users don't have userType)
-    const user = await UserModel.create({
+    const user = await AdminUserModel.create({
       id: userId,
       email: data.email.toLowerCase(),
       firstName: data.firstName,
@@ -114,14 +114,13 @@ export const createOperationalUser = async (req: Request, res: Response): Promis
       gender: data.gender ?? null,
       dob: data.dob ?? null,
       roles: roles.map((role) => role._id),
-      userType: null, // Operational users don't have userType
       isActive: data.isActive ?? true,
       address: address,
       isDeleted: false,
     });
 
     // Populate roles before returning
-    const populatedUser = await UserModel.findById(user._id)
+    const populatedUser = await AdminUserModel.findById(user._id)
       .select('-password')
       .populate('roles', 'name description')
       .lean();
@@ -231,7 +230,7 @@ export const getAllOperationalUsers = async (req: Request, res: Response): Promi
     }
 
     // Execute query
-    const usersQuery = UserModel.find(query)
+    const usersQuery = AdminUserModel.find(query)
       .select('-password')
       .populate({
         path: 'roles',
@@ -244,7 +243,7 @@ export const getAllOperationalUsers = async (req: Request, res: Response): Promi
 
     const [users, total] = await Promise.all([
       usersQuery.lean(),
-      UserModel.countDocuments(query),
+      AdminUserModel.countDocuments(query),
     ]);
 
     // Format users
@@ -305,20 +304,19 @@ export const getOperationalUser = async (req: Request, res: Response): Promise<v
     
     if (Types.ObjectId.isValid(id) && id.length === 24) {
       userObjectId = new Types.ObjectId(id);
-      query = UserModel.findOne({
+      query = AdminUserModel.findOne({
         $or: [
           { _id: userObjectId, isDeleted: false, roles: { $in: allowedRoleIds } },
           { id, isDeleted: false, roles: { $in: allowedRoleIds } }
         ]
       });
     } else {
-      query = UserModel.findOne({ id, isDeleted: false, roles: { $in: allowedRoleIds } });
+      query = AdminUserModel.findOne({ id, isDeleted: false, roles: { $in: allowedRoleIds } });
     }
 
     const user = await query
       .select('-password')
       .populate('roles', 'name description')
-      .populate('favoriteSports', 'custom_id name logo')
       .lean();
 
     if (!user) {
@@ -347,7 +345,7 @@ export const getOperationalUser = async (req: Request, res: Response): Promise<v
  */
 const isSuperAdmin = async (userId: string): Promise<boolean> => {
   try {
-    const user = await UserModel.findOne({ id: userId, isDeleted: false, isActive: true })
+    const user = await AdminUserModel.findOne({ id: userId, isDeleted: false, isActive: true })
       .select('roles')
       .populate('roles', 'name')
       .lean();
@@ -408,7 +406,7 @@ export const updateOperationalUser = async (req: Request, res: Response): Promis
       updateQuery = { id, isDeleted: false, roles: { $in: allowedRoleIds } };
     }
 
-    const existingUser = await UserModel.findOne(findQuery);
+    const existingUser = await AdminUserModel.findOne(findQuery);
     if (!existingUser) {
       throw new ApiError(404, 'Operational user not found');
     }
@@ -420,7 +418,7 @@ export const updateOperationalUser = async (req: Request, res: Response): Promis
       if (!currentUserIsSuperAdmin) {
         throw new ApiError(403, 'Only super admin can update email');
       }
-      const emailExists = await UserModel.findOne({
+      const emailExists = await AdminUserModel.findOne({
         email: data.email.toLowerCase(),
         _id: { $ne: existingUser._id },
         isDeleted: false,
@@ -531,7 +529,7 @@ export const updateOperationalUser = async (req: Request, res: Response): Promis
       updateData.roles = roles.map((role) => role._id);
     }
 
-    const user = await UserModel.findOneAndUpdate(
+    const user = await AdminUserModel.findOneAndUpdate(
       updateQuery,
       { $set: updateData },
       { new: true, runValidators: true }
@@ -584,7 +582,7 @@ export const deleteOperationalUser = async (req: Request, res: Response): Promis
       deleteQuery = { id, isDeleted: false, roles: { $in: allowedRoleIds } };
     }
 
-    const user = await UserModel.findOneAndUpdate(
+    const user = await AdminUserModel.findOneAndUpdate(
       deleteQuery,
       {
         $set: {

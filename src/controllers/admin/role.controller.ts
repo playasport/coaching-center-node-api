@@ -5,7 +5,7 @@ import { t } from '../../utils/i18n';
 import { logger } from '../../utils/logger';
 import { RoleModel } from '../../models/role.model';
 import { DefaultRoles } from '../../enums/defaultRoles.enum';
-import { UserModel } from '../../models/user.model';
+import { AdminUserModel } from '../../models/adminUser.model';
 import type { CreateRoleInput, UpdateRoleInput } from '../../validations/role.validation';
 import { Types } from 'mongoose';
 import * as roleService from '../../services/admin/role.service';
@@ -176,8 +176,8 @@ export const deleteRole = async (req: Request, res: Response): Promise<void> => 
       throw new ApiError(400, 'Cannot delete default system roles');
     }
 
-    // Check if any users have this role
-    const usersWithRole = await UserModel.countDocuments({
+    // Check if any admin users have this role
+    const usersWithRole = await AdminUserModel.countDocuments({
       roles: new Types.ObjectId(id),
       isDeleted: false,
     });

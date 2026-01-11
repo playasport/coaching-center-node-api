@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/jwt';
 import { isTokenBlacklisted } from '../utils/tokenBlacklist';
 import { UserModel } from '../models/user.model';
+import { AdminUserModel } from '../models/adminUser.model';
 import { t } from '../utils/i18n';
 import { logger } from '../utils/logger';
 import { DefaultRoles } from '../enums/defaultRoles.enum';
@@ -30,13 +31,25 @@ const validateUserStatus = async (
     }
 
     // Check user exists, is active, and not deleted
-    const user = await UserModel.findOne({
+    // First check AdminUser table (for admin users), then User table (for client/academy users)
+    let user = await AdminUserModel.findOne({
       id: sanitizedUserId,
       isDeleted: false,
       isActive: true,
     })
       .select('_id isActive isDeleted')
       .lean();
+
+    // If not found in AdminUser, check User table
+    if (!user) {
+      user = await UserModel.findOne({
+        id: sanitizedUserId,
+        isDeleted: false,
+        isActive: true,
+      })
+        .select('_id isActive isDeleted')
+        .lean();
+    }
 
     if (!user) {
       logger.warn('User validation failed - user not found, deleted, or inactive', {

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { validationMessages } from '../utils/validationMessages';
-import { UserModel } from '../models/user.model';
+import { AdminUserModel } from '../models/adminUser.model';
 import { RoleModel } from '../models/role.model';
 import { Gender } from '../enums/gender.enum';
 import { Types } from 'mongoose';
@@ -36,7 +36,7 @@ export const createOperationalUserSchema = z.object({
       .email(validationMessages.email.invalid())
       .refine(
         async (email) => {
-          const existingUser = await UserModel.findOne({ email: email.toLowerCase() });
+          const existingUser = await AdminUserModel.findOne({ email: email.toLowerCase() });
           return !existingUser;
         },
         { message: 'Email already exists' }

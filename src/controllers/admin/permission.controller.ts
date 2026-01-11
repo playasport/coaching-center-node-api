@@ -29,8 +29,8 @@ export const getPermissions = async (req: Request, res: Response): Promise<void>
     }
 
     // Check if user is super admin
-    const { UserModel } = await import('../../models/user.model');
-    const user = await UserModel.findOne({
+    const { AdminUserModel } = await import('../../models/adminUser.model');
+    const user = await AdminUserModel.findOne({
       id: req.user.id,
     })
       .select('roles')

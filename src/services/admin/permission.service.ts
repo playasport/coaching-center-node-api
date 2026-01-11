@@ -3,7 +3,7 @@ import { Types } from 'mongoose';
 import { config } from '../../config/env';
 import { logger } from '../../utils/logger';
 import { PermissionModel, Permission } from '../../models/permission.model';
-import { UserModel } from '../../models/user.model';
+import { AdminUserModel } from '../../models/adminUser.model';
 import { Section } from '../../enums/section.enum';
 import { Action } from '../../enums/section.enum';
 import { DefaultRoles } from '../../enums/defaultRoles.enum';
@@ -135,7 +135,7 @@ export const checkPermission = async (
 ): Promise<boolean> => {
   try {
     // Get user with roles
-    const user = await UserModel.findOne({ id: userId, isDeleted: false, isActive: true })
+    const user = await AdminUserModel.findOne({ id: userId, isDeleted: false, isActive: true })
       .select('roles')
       .populate('roles', 'name')
       .lean();
@@ -181,7 +181,7 @@ export const checkPermission = async (
  */
 export const getUserPermissions = async (userId: string): Promise<Permission[]> => {
   try {
-    const user = await UserModel.findOne({ id: userId, isDeleted: false, isActive: true })
+    const user = await AdminUserModel.findOne({ id: userId, isDeleted: false, isActive: true })
       .select('roles')
       .populate('roles', 'name')
       .lean();

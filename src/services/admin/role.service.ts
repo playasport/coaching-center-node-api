@@ -1,5 +1,5 @@
 import { RoleModel } from '../../models/role.model';
-import { UserModel } from '../../models/user.model';
+import { AdminUserModel } from '../../models/adminUser.model';
 import { DefaultRoles } from '../../enums/defaultRoles.enum';
 import { logger } from '../../utils/logger';
 import { ApiError } from '../../utils/ApiError';
@@ -137,8 +137,8 @@ export const getRolesByUser = async (userRole: string): Promise<any[]> => {
         // Check if role is system-defined
         const isSystemDefined = defaultRoleNames.includes(roleName as DefaultRoles);
 
-        // Count users with this role (users where roles array contains this role _id)
-        const userCount = await UserModel.countDocuments({
+        // Count admin users with this role (admin users where roles array contains this role _id)
+        const userCount = await AdminUserModel.countDocuments({
           roles: roleObjectId, // Use ObjectId for proper MongoDB query
           isDeleted: false, // Only count active (non-deleted) users
         });
@@ -200,8 +200,8 @@ export const getAllRoles = async (page: number = 1, limit: number = 10): Promise
         // Check if role is system-defined
         const isSystemDefined = defaultRoleNames.includes(roleName as DefaultRoles);
 
-        // Count users with this role (users where roles array contains this role _id)
-        const userCount = await UserModel.countDocuments({
+        // Count admin users with this role (admin users where roles array contains this role _id)
+        const userCount = await AdminUserModel.countDocuments({
           roles: roleObjectId, // Use ObjectId for proper MongoDB query
           isDeleted: false, // Only count active (non-deleted) users
         });
