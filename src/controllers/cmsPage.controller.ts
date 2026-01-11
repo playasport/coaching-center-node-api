@@ -27,7 +27,15 @@ export const getCmsPageBySlug = async (req: Request, res: Response, next: NextFu
       throw new ApiError(404, 'CMS page not found for this platform');
     }
 
-    const response = new ApiResponse(200, { page }, 'CMS page retrieved successfully');
+    // Return only required fields: slug, title, content, updatedAt
+    const filteredPage = {
+      slug: page.slug,
+      title: page.title,
+      content: page.content,
+      updatedAt: page.updatedAt,
+    };
+
+    const response = new ApiResponse(200, { ...filteredPage }, 'CMS page retrieved successfully');
     res.json(response);
   } catch (error) {
     next(error);

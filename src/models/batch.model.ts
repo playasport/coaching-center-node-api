@@ -55,6 +55,7 @@ export interface Batch {
   admission_fee?: number | null;
   base_price: number; // Base price for the batch
   discounted_price?: number | null; // Optional discounted price
+  is_allowed_disabled: boolean; // Whether disabled participants are allowed in this batch
   status: BatchStatus;
   is_active: boolean;
   is_deleted: boolean;
@@ -337,6 +338,12 @@ const batchSchema = new Schema<Batch>(
         // Use Math.round for more precise rounding (handles 500.0 correctly)
         return Math.round(value * 100) / 100;
       },
+    },
+    is_allowed_disabled: {
+      type: Boolean,
+      default: false,
+      required: true,
+      index: true,
     },
     status: {
       type: String,

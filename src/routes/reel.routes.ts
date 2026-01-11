@@ -197,4 +197,39 @@ router.get('/reels', reelController.getReelsList);
  */
 router.get('/reels/:id', reelController.getReelsListWithIdFirst);
 
+/**
+ * @swagger
+ * /reels/{id}/view:
+ *   put:
+ *     summary: Update reel view count
+ *     tags: [Reels]
+ *     description: Increment the view count for a specific reel
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Reel ID
+ *     responses:
+ *       200:
+ *         description: Reel view updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Reel view updated successfully"
+ *                 data:
+ *                   type: object
+ *                   nullable: true
+ *                   example: null
+ */
+router.put('/reels/:id/view', reelController.updateReelView);
+
 export default router;

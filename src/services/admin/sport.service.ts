@@ -149,3 +149,34 @@ export const deleteSport = async (id: string): Promise<void> => {
     throw new ApiError(500, t('sport.delete.failed'));
   }
 };
+
+/**
+ * Toggle sport active status
+ */
+export const toggleSportActiveStatus = async (id: string): Promise<Sport | null> => {
+  try {
+    const query = Types.ObjectId.isValid(id) ? { _id: id } : { custom_id: id };
+    const existingSport = await SportModel.findOne(query);
+    if (!existingSport) {
+      throw new ApiError(404, t('sport.notFound'));
+    }
+
+    const newActiveStatus = !existingSport.is_active;
+    const updatedSport = await SportModel.findOneAndUpdate(
+      query,
+      { $set: { is_active: newActiveStatus } },
+      { new: true, runValidators: true }
+    ).lean();
+
+    if (!updatedSport) {
+      throw new ApiError(404, t('sport.notFound'));
+    }
+
+    logger.info(`Sport status toggled: ${id} (is_active: ${newActiveStatus})`);
+    return updatedSport as Sport | null;
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    logger.error('Failed to toggle sport active status:', error);
+    throw new ApiError(500, t('sport.toggleStatus.failed'));
+  }
+};

@@ -2,6 +2,7 @@ import { ReelModel, ReelStatus } from '../../models/reel.model';
 import { VideoProcessingStatus } from '../../models/streamHighlight.model';
 import { logger } from '../../utils/logger';
 import { ApiError } from '../../utils/ApiError';
+import { Types } from 'mongoose';
 
 export interface ReelListItem {
   id: string;
@@ -396,6 +397,43 @@ export const getReelsListWithIdFirst = async (
     }
     logger.error('Failed to fetch reels list with ID first:', error);
     throw new ApiError(500, 'Failed to fetch reels list');
+  }
+};
+
+/**
+ * Update reel view count (increment viewsCount)
+ */
+export const updateReelView = async (reelId: string): Promise<number> => {
+  try {
+    // Handle both custom id field and MongoDB _id
+    const query: any = { deletedAt: null };
+    if (Types.ObjectId.isValid(reelId) && reelId.length === 24) {
+      // If it's a valid ObjectId, try _id first, then fall back to id
+      query.$or = [{ _id: new Types.ObjectId(reelId) }, { id: reelId }];
+    } else {
+      // Otherwise, use the custom id field
+      query.id = reelId;
+    }
+
+    // Use findOneAndUpdate to get the updated document
+    const updatedReel = await ReelModel.findOneAndUpdate(
+      query,
+      { $inc: { viewsCount: 1 } },
+      { new: true, select: 'viewsCount' }
+    ).lean();
+    
+    if (!updatedReel) {
+      logger.warn(`Reel not found for view tracking: ${reelId}`);
+      return 0;
+    }
+
+    const viewCount = updatedReel.viewsCount || 0;
+    logger.debug(`Reel view tracked successfully: ${reelId}, new count: ${viewCount}`);
+    return viewCount;
+  } catch (error) {
+    logger.error('Failed to track reel view:', error);
+    // Return 0 on error - it's not critical
+    return 0;
   }
 };
 

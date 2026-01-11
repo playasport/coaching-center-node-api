@@ -18,7 +18,12 @@ export const createParticipant = async (
     }
 
     // Always set userId from logged-in user (userId in request body is ignored)
-    const participant = await participantService.createParticipant(data, req.user.id);
+    // Pass file if uploaded
+    const participant = await participantService.createParticipant(
+      data,
+      req.user.id,
+      req.file
+    );
 
     const response = new ApiResponse(
       201,
@@ -82,7 +87,13 @@ export const updateParticipant = async (
 
     const data = req.body as ParticipantUpdateInput;
 
-    const participant = await participantService.updateParticipant(id, data, req.user.id);
+    // Pass file if uploaded
+    const participant = await participantService.updateParticipant(
+      id,
+      data,
+      req.user.id,
+      req.file
+    );
 
     if (!participant) {
       throw new ApiError(404, t('participant.notFound'));

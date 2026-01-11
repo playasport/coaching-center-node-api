@@ -351,6 +351,11 @@
       "success": "Sport deleted successfully",
       "failed": "Failed to delete sport"
     },
+    "toggleStatus": {
+      "active": "Sport activated successfully",
+      "inactive": "Sport deactivated successfully",
+      "failed": "Failed to toggle sport active status"
+    },
     "notFound": "Sport not found",
     "alreadyExists": "Sport with this name already exists"
   },

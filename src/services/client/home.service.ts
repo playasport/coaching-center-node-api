@@ -118,6 +118,7 @@ export const getNearbyAcademies = async (
       status: 'published',
       is_active: true,
       is_deleted: false,
+      approval_status: 'approved',
     };
 
     // Get user's favorite sports if logged in

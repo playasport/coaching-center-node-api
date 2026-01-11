@@ -1766,15 +1766,42 @@ export const verifyUserPasswordReset = async (
 
 /**
  * Get current user
+ * Optimized: Excludes roles, isDeleted, updatedAt and populates favoriteSports
  */
-export const getCurrentUser = async (userId: string): Promise<User> => {
-  const user = await userService.findById(userId);
+export const getCurrentUser = async (userId: string): Promise<any> => {
+  const { UserModel } = await import('../../models/user.model');
+  
+  const user = await UserModel.findOne({ id: userId })
+    .select({
+      _id: 0,
+      password: 0,
+      roles: 0, // Exclude roles
+      isDeleted: 0, // Exclude isDeleted
+      deletedAt: 0, // Exclude deletedAt
+      updatedAt: 0, // Exclude updatedAt
+    })
+    .populate('favoriteSports', 'custom_id name logo')
+    .lean();
 
   if (!user) {
     throw new ApiError(404, t('auth.profile.notFound'));
   }
 
-  return user;
+  // Transform the user object to ensure id field is present
+  const userResponse: any = {
+    ...user,
+    id: user.id || (user as any)._id?.toString(),
+  };
+
+  // Remove any remaining unwanted fields
+  delete userResponse._id;
+  delete userResponse.password;
+  delete userResponse.roles;
+  delete userResponse.isDeleted;
+  delete userResponse.deletedAt;
+  delete userResponse.updatedAt;
+
+  return userResponse;
 };
 
 /**

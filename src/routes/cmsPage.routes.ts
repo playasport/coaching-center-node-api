@@ -55,46 +55,27 @@ const router = Router();
  *                     page:
  *                       type: object
  *                       properties:
- *                         id:
- *                           type: string
- *                           example: "550e8400-e29b-41d4-a716-446655440000"
  *                         slug:
  *                           type: string
  *                           example: "privacy-policy"
+ *                           description: CMS page slug identifier
  *                         title:
  *                           type: string
  *                           example: "Privacy Policy"
+ *                           description: CMS page title
  *                         content:
  *                           type: string
  *                           description: HTML or Markdown content (supports full HTML tags, styling, and formatting)
  *                           example: "<h1>Privacy Policy</h1><p>This Privacy Policy describes how we collect, use, and protect your personal information.</p><h2>Information We Collect</h2><p>We collect information that you provide directly to us...</p>"
- *                         platform:
- *                           type: string
- *                           enum: [web, app, both]
- *                           example: "both"
- *                         isActive:
- *                           type: boolean
- *                           example: true
- *                         version:
- *                           type: number
- *                           example: 1
- *                         createdAt:
- *                           type: string
- *                           format: date-time
- *                           example: "2024-01-15T10:00:00.000Z"
  *                         updatedAt:
  *                           type: string
  *                           format: date-time
  *                           example: "2024-01-15T10:00:00.000Z"
+ *                           description: Last update timestamp
  *                       example:
- *                         id: "550e8400-e29b-41d4-a716-446655440000"
  *                         slug: "privacy-policy"
  *                         title: "Privacy Policy"
  *                         content: "<h1>Privacy Policy</h1><p>This Privacy Policy describes how we collect, use, and protect your personal information.</p>"
- *                         platform: "both"
- *                         isActive: true
- *                         version: 1
- *                         createdAt: "2024-01-15T10:00:00.000Z"
  *                         updatedAt: "2024-01-15T10:00:00.000Z"
  *       404:
  *         description: CMS page not found

@@ -35,7 +35,8 @@ const calculateAge = (dob: Date): number => {
 
 export const createParticipant = async (
   data: ParticipantCreateInput,
-  userId: string
+  userId: string,
+  file?: Express.Multer.File
 ): Promise<Participant> => {
   try {
     // Get user ObjectId from cache or database
@@ -65,6 +66,39 @@ export const createParticipant = async (
       }
     }
 
+    // Handle profile photo file upload if provided
+    let profilePhotoUrl: string | null = data.profilePhoto || null;
+    if (file) {
+      try {
+        logger.info('Starting participant profile photo upload', {
+          userId,
+          fileName: file.originalname,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+        });
+
+        const { uploadFileToS3 } = await import('../common/s3.service');
+        profilePhotoUrl = await uploadFileToS3({
+          file,
+          folder: 'participants',
+          userId: userId,
+        });
+
+        logger.info('Participant profile photo uploaded successfully', {
+          imageUrl: profilePhotoUrl,
+          userId,
+        });
+      } catch (error: any) {
+        logger.error('Failed to upload participant profile photo', {
+          error: error?.message || error,
+          stack: error?.stack,
+          userId,
+          fileName: file?.originalname,
+        });
+        throw new ApiError(500, error?.message || 'Failed to upload profile photo');
+      }
+    }
+
     // Prepare participant data
     // Note: isSelf is always set to null for manually created participants
     // Only the system sets isSelf = '1' when creating a user
@@ -77,23 +111,37 @@ export const createParticipant = async (
       dob: data.dob ? new Date(data.dob) : null,
       schoolName: data.schoolName || null,
       contactNumber: data.contactNumber || null,
-      profilePhoto: data.profilePhoto || null,
+      profilePhoto: profilePhotoUrl,
       address: data.address || null,
       isSelf: null, // Always null for manually created participants
     };
 
     // Create participant
     const participant = new ParticipantModel(participantData);
-    await participant.save();
+    
+    // Fetch user details in parallel with save (independent operations)
+    const { UserModel } = await import('../../models/user.model');
+    const [savedParticipant, user] = await Promise.all([
+      participant.save(),
+      UserModel.findById(userObjectId)
+        .select('id firstName lastName email')
+        .lean(),
+    ]);
 
-    logger.info(`Participant created: ${participant._id} by user: ${userId}`);
+    logger.info(`Participant created: ${savedParticipant._id} by user: ${userId}`);
 
-    // Return the created participant with populated fields
-    const populatedParticipant = await ParticipantModel.findById(participant._id)
-      .populate('userId', 'id firstName lastName email')
-      .lean();
+    // Build response directly without additional query
+    const participantResponse: any = {
+      ...savedParticipant.toObject(),
+      userId: user ? {
+        id: user.id || user._id?.toString(),
+        firstName: user.firstName || null,
+        lastName: user.lastName || null,
+        email: user.email || null,
+      } : userObjectId,
+    };
 
-    return populatedParticipant || participant;
+    return participantResponse as Participant;
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
@@ -207,7 +255,8 @@ export const getParticipantsByUser = async (
 export const updateParticipant = async (
   id: string,
   data: ParticipantUpdateInput,
-  userId: string
+  userId: string,
+  file?: Express.Multer.File
 ): Promise<Participant | null> => {
   try {
     // Get user ObjectId from cache or database
@@ -229,6 +278,60 @@ export const updateParticipant = async (
 
     const updates: any = {};
 
+    // Handle profile photo file upload if provided
+    if (file) {
+      try {
+        logger.info('Starting participant profile photo upload (update)', {
+          participantId: id,
+          userId,
+          fileName: file.originalname,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+        });
+
+        // Delete old profile photo if exists
+        if (existingParticipant.profilePhoto) {
+          try {
+            const { deleteFileFromS3 } = await import('../common/s3.service');
+            await deleteFileFromS3(existingParticipant.profilePhoto);
+            logger.info('Old participant profile photo deleted', {
+              oldImageUrl: existingParticipant.profilePhoto,
+            });
+          } catch (deleteError) {
+            logger.warn('Failed to delete old participant profile photo, continuing with upload', deleteError);
+            // Don't fail the upload if deletion fails
+          }
+        }
+
+        // Upload new image to S3
+        const { uploadFileToS3 } = await import('../common/s3.service');
+        const imageUrl = await uploadFileToS3({
+          file,
+          folder: 'participants',
+          userId: userId,
+        });
+
+        updates.profilePhoto = imageUrl;
+        logger.info('Participant profile photo uploaded successfully', {
+          imageUrl,
+          participantId: id,
+          userId,
+        });
+      } catch (error: any) {
+        logger.error('Failed to upload participant profile photo', {
+          error: error?.message || error,
+          stack: error?.stack,
+          participantId: id,
+          userId,
+          fileName: file?.originalname,
+        });
+        throw new ApiError(500, error?.message || 'Failed to upload profile photo');
+      }
+    } else if (data.profilePhoto !== undefined) {
+      // If profilePhoto is explicitly set to null/empty string in request body, update it
+      updates.profilePhoto = data.profilePhoto || null;
+    }
+
     // Update fields if provided
     if (data.firstName !== undefined) updates.firstName = data.firstName || null;
     if (data.lastName !== undefined) updates.lastName = data.lastName || null;
@@ -237,7 +340,6 @@ export const updateParticipant = async (
     if (data.dob !== undefined) updates.dob = data.dob ? new Date(data.dob) : null;
     if (data.schoolName !== undefined) updates.schoolName = data.schoolName || null;
     if (data.contactNumber !== undefined) updates.contactNumber = data.contactNumber || null;
-    if (data.profilePhoto !== undefined) updates.profilePhoto = data.profilePhoto || null;
     if (data.address !== undefined) updates.address = data.address || null;
     if (data.isSelf !== undefined) updates.isSelf = data.isSelf || null;
 

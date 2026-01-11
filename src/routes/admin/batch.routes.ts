@@ -206,6 +206,11 @@ router.use(authenticate, requireAdmin);
  *                 nullable: true
  *                 description: Discounted price (must be <= base_price, max ₹1 crore)
  *                 example: 4500
+ *               is_allowed_disabled:
+ *                 type: boolean
+ *                 default: false
+ *                 description: Whether disabled participants are allowed in this batch
+ *                 example: false
  *               status:
  *                 type: string
  *                 enum: [published, draft]

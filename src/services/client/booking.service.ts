@@ -5,6 +5,7 @@ import { BatchModel } from '../../models/batch.model';
 import { ParticipantModel } from '../../models/participant.model';
 import { CoachingCenterModel } from '../../models/coachingCenter.model';
 import { BatchStatus } from '../../enums/batchStatus.enum';
+import { CoachingCenterStatus } from '../../enums/coachingCenterStatus.enum';
 import { Gender } from '../../enums/gender.enum';
 import { logger } from '../../utils/logger';
 import { ApiError } from '../../utils/ApiError';
@@ -13,15 +14,7 @@ import { getUserObjectId } from '../../utils/userCache';
 import { getPaymentService } from '../common/payment/PaymentService';
 import { config } from '../../config/env';
 import type { BookingSummaryInput, CreateOrderInput, VerifyPaymentInput, DeleteOrderInput } from '../../validations/booking.validation';
-import {
-  sendBookingConfirmationUserEmail,
-  sendBookingConfirmationCenterEmail,
-  sendBookingConfirmationAdminEmail,
-} from '../common/email.service';
-import {
-  sendBookingConfirmationUserSms,
-  sendBookingConfirmationCenterSms,
-} from '../common/sms.service';
+import { queueEmail, queueSms } from '../common/notificationQueue.service';
 
 // Get payment service instance
 const paymentService = getPaymentService();
@@ -34,19 +27,25 @@ export const generateBookingId = async (): Promise<string> => {
   const year = new Date().getFullYear();
   const prefix = `BK-${year}-`;
 
-  // Find the highest booking_id for this year
+  // Find the highest booking_id for this year using prefix match (more efficient than regex)
+  // Using $gte and $lt for better index utilization
+  const nextYearPrefix = `BK-${year + 1}-`;
   const lastBooking = await BookingModel.findOne({
-    booking_id: { $regex: `^${prefix}` },
+    booking_id: {
+      $gte: prefix,
+      $lt: nextYearPrefix,
+    },
   })
     .sort({ booking_id: -1 })
     .select('booking_id')
-    .lean();
+    .lean()
+    .limit(1);
 
   let sequence = 1;
   if (lastBooking && lastBooking.booking_id) {
     // Extract sequence number from last booking_id (e.g., BK-2024-0123 -> 123)
     const lastSequence = parseInt(lastBooking.booking_id.replace(prefix, ''), 10);
-    if (!isNaN(lastSequence)) {
+    if (!isNaN(lastSequence) && lastSequence >= 0) {
       sequence = lastSequence + 1;
     }
   }
@@ -89,7 +88,8 @@ export interface BookingSummary {
       type: string;
     };
     admission_fee?: number | null;
-    fee_structure?: any;
+    base_price: number;
+    discounted_price?: number | null;
   };
   participants: Array<{
     id: string;
@@ -113,6 +113,58 @@ export interface BookingSummary {
 
 // RazorpayOrderResponse is now PaymentOrderResponse from payment service
 export type RazorpayOrderResponse = import('../common/payment/interfaces/IPaymentGateway').PaymentOrderResponse;
+
+/**
+ * Limited booking data for order responses
+ */
+export interface CancelledBookingResponse {
+  id: string;
+  booking_id: string;
+  status: string;
+  amount: number;
+  currency: string;
+  payment: {
+    razorpay_order_id: string;
+    status: string;
+    failure_reason?: string | null;
+  };
+  batch: {
+    id: string;
+    name: string;
+  };
+  center: {
+    id: string;
+    name: string;
+  };
+  sport: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface CreatedBookingResponse {
+  id: string;
+  booking_id: string;
+  status: string;
+  amount: number;
+  currency: string;
+  payment: {
+    razorpay_order_id: string;
+    status: string;
+  };
+  batch: {
+    id: string;
+    name: string;
+  };
+  center: {
+    id: string;
+    name: string;
+  };
+  sport: {
+    id: string;
+    name: string;
+  };
+}
 
 /**
  * Round number to 2 decimal places
@@ -204,25 +256,67 @@ const validateBatchAndCenter = async (batchId: string): Promise<{ batch: any; co
   }
 
   const batch = await BatchModel.findById(batchId)
+    .select('_id id name sport center is_allowed_disabled status is_active is_deleted age')
     .populate('sport', 'id name')
     .populate('center', 'id center_name logo')
     .lean();
 
-  if (!batch || batch.is_deleted || !batch.is_active) {
-    throw new ApiError(404, 'Batch not found or inactive');
+  // Validate batch exists
+  if (!batch) {
+    throw new ApiError(404, 'Batch not found');
+  }
+
+  // Validate batch is not deleted
+  if (batch.is_deleted) {
+    throw new ApiError(400, 'Batch has been deleted and is not available for booking');
+  }
+
+  // Validate batch is active (not disabled)
+  if (!batch.is_active) {
+    throw new ApiError(400, 'Batch is disabled and not available for booking');
   }
 
   // Check if batch is published
   if (batch.status !== BatchStatus.PUBLISHED) {
-    throw new ApiError(400, 'Batch is not available for booking');
+    throw new ApiError(400, 'Batch is not published and not available for booking');
   }
 
-  // Fetch coaching center details for validation
-  const centerId = (batch.center as any)._id || (batch.center as any).id;
-  const coachingCenter = await CoachingCenterModel.findById(centerId).lean();
+  // Use populated coaching center data (already fetched in populate)
+  const populatedCenter = batch.center as any;
+  if (!populatedCenter) {
+    throw new ApiError(404, 'Coaching center not found');
+  }
 
-  if (!coachingCenter || coachingCenter.is_deleted || !coachingCenter.is_active) {
-    throw new ApiError(404, 'Coaching center not found or inactive');
+  // Fetch full coaching center details for validation (only if we need more fields than populated)
+  // Since we only populated 'id center_name logo', we need to fetch full details for age/gender validation
+  const centerId = populatedCenter._id || populatedCenter.id;
+  const coachingCenter = await CoachingCenterModel.findById(centerId)
+    .select('id center_name logo age allowed_genders allowed_disabled is_only_for_disabled is_active is_deleted status approval_status')
+    .lean();
+
+  // Validate coaching center exists
+  if (!coachingCenter) {
+    throw new ApiError(404, 'Coaching center not found');
+  }
+
+  // Validate coaching center is not deleted
+  if (coachingCenter.is_deleted) {
+    throw new ApiError(400, 'Coaching center has been deleted and is not available for booking');
+  }
+
+  // Validate coaching center is active (not disabled)
+  if (!coachingCenter.is_active) {
+    throw new ApiError(400, 'Coaching center is disabled and not available for booking');
+  }
+
+  // Validate coaching center is published
+  if (coachingCenter.status !== CoachingCenterStatus.PUBLISHED) {
+    throw new ApiError(400, 'Coaching center is not published and not available for booking');
+  }
+
+  // Validate coaching center is approved
+  if (coachingCenter.approval_status !== 'approved') {
+    throw new ApiError(400, 'Coaching center is not approved and not available for booking');
   }
 
   return { batch, coachingCenter };
@@ -236,40 +330,44 @@ const validateParticipantEnrollment = async (
   batchId: Types.ObjectId
 ): Promise<void> => {
   // Check if any participant is already enrolled in this batch
+  // First check without populate for faster query
   const existingBookings = await BookingModel.find({
     batch: batchId,
     participants: { $in: participantIds },
     status: { $in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
     is_deleted: false,
   })
-    .populate('participants', 'firstName lastName')
+    .select('participants')
     .lean();
 
   if (existingBookings.length > 0) {
     // Find which participants are already enrolled
     const enrolledParticipantIds = new Set<string>();
-    const participantNames: string[] = [];
-
+    
     for (const booking of existingBookings) {
       for (const bookingParticipantId of booking.participants) {
-        const participantIdStr = (bookingParticipantId as any)._id?.toString() || (bookingParticipantId as any).toString();
+        const participantIdStr = bookingParticipantId.toString();
         if (participantIds.some(id => id.toString() === participantIdStr)) {
           enrolledParticipantIds.add(participantIdStr);
-          const participant = booking.participants.find((p: any) => {
-            const pId = p._id?.toString() || p.toString();
-            return pId === participantIdStr;
-          });
-          if (participant) {
-            const name = (participant as any).firstName || (participant as any).lastName 
-              ? `${(participant as any).firstName || ''} ${(participant as any).lastName || ''}`.trim()
-              : participantIdStr;
-            participantNames.push(name);
-          }
         }
       }
     }
 
     if (enrolledParticipantIds.size > 0) {
+      // Only fetch participant names if we need to show them in error message
+      const enrolledIdsArray = Array.from(enrolledParticipantIds).map(id => new Types.ObjectId(id));
+      const enrolledParticipants = await ParticipantModel.find({
+        _id: { $in: enrolledIdsArray },
+      })
+        .select('firstName lastName')
+        .lean();
+
+      const participantNames = enrolledParticipants.map(p => {
+        const firstName = p.firstName || '';
+        const lastName = p.lastName || '';
+        return `${firstName} ${lastName}`.trim() || p._id.toString();
+      });
+
       const namesStr = participantNames.length > 0 
         ? participantNames.join(', ')
         : 'one or more participants';
@@ -282,23 +380,35 @@ const validateParticipantEnrollment = async (
 };
 
 /**
- * Common validation: Validate slot availabilityo
+ * Common validation: Validate slot availability
  */
 const validateSlotAvailability = async (
   batch: any,
   requestedSlots: number
 ): Promise<void> => {
-  const existingBookings = await BookingModel.find({
-    batch: batch._id,
-    status: { $in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
-    is_deleted: false,
-  }).lean();
+  // Use aggregation to count total participants efficiently
+  const result = await BookingModel.aggregate([
+    {
+      $match: {
+        batch: batch._id,
+        status: { $in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+        is_deleted: false,
+      },
+    },
+    {
+      $project: {
+        participantCount: { $size: { $ifNull: ['$participants', []] } },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalBookedParticipants: { $sum: '$participantCount' },
+      },
+    },
+  ]);
 
-  // Count total participants in existing bookings
-  let totalBookedParticipants = 0;
-  for (const booking of existingBookings) {
-    totalBookedParticipants += booking.participants.length;
-  }
+  const totalBookedParticipants = result.length > 0 ? (result[0].totalBookedParticipants || 0) : 0;
 
   // Check if adding new participants would exceed capacity
   const totalAfterBooking = totalBookedParticipants + requestedSlots;
@@ -311,6 +421,14 @@ const validateSlotAvailability = async (
 
 /**
  * Common validation: Validate participant eligibility (age, gender, disability)
+ * 
+ * Validates:
+ * 1. Age: Participant age must be within batch and coaching center age ranges
+ * 2. Gender: Participant gender must be allowed by coaching center
+ * 3. Disability: 
+ *    - If coaching center is ONLY for disabled (is_only_for_disabled = true): participant MUST have disability
+ *    - If coaching center does NOT allow disabled (allowed_disabled = false): participant MUST NOT have disability
+ *    - Note: Batches inherit disability eligibility from their coaching center
  */
 const validateParticipantEligibility = async (
   participants: any[],
@@ -359,25 +477,40 @@ const validateParticipantEligibility = async (
     }
 
     // Disability Validation
+    // Check if participant has a disability (0 = no, 1 = yes)
     const hasDisability = participant.disability === 1;
 
+    // First check batch-level disability setting (batch can override center setting)
+    if (!batch.is_allowed_disabled && hasDisability) {
+      throw new ApiError(
+        400,
+        `Participant ${participant.firstName || participant._id || 'Unknown'} has a disability. This batch (${batch.name || 'Unknown'}) does not allow disabled participants.`
+      );
+    }
+
+    // Then validate against coaching center disability settings
     if (coachingCenter.is_only_for_disabled) {
-      // Center is only for disabled participants
+      // Coaching center is ONLY for disabled participants
       if (!hasDisability) {
         throw new ApiError(
           400,
-          `Participant ${participant.firstName || participant._id} does not have a disability. This coaching center is only for disabled participants.`
+          `Participant ${participant.firstName || participant._id || 'Unknown'} does not have a disability. This coaching center (${coachingCenter.center_name || 'Unknown'}) is exclusively for disabled participants.`
         );
       }
     } else {
-      // Center is not only for disabled
+      // Coaching center is NOT exclusively for disabled participants
+      // Check if it allows disabled participants at all
       if (!coachingCenter.allowed_disabled && hasDisability) {
         throw new ApiError(
           400,
-          `Participant ${participant.firstName || participant._id} has a disability. This coaching center does not allow disabled participants.`
+          `Participant ${participant.firstName || participant._id || 'Unknown'} has a disability. This coaching center (${coachingCenter.center_name || 'Unknown'}) does not allow disabled participants.`
         );
       }
     }
+
+    // Note: Batch-level setting (is_allowed_disabled) takes precedence over center setting
+    // If batch allows disabled but center doesn't, batch setting is checked first and will fail
+    // If batch doesn't allow disabled, participant with disability cannot book regardless of center setting
   }
 };
 
@@ -395,42 +528,33 @@ export const getBookingSummary = async (
       throw new ApiError(404, t('user.notFound') || 'User not found');
     }
 
-    // Validate participants using common function
+    // Validate participants and batch/center in parallel (independent operations)
     const participantIds = Array.isArray(data.participantIds) ? data.participantIds : [data.participantIds];
-    const participants = await validateAndFetchParticipants(participantIds, userObjectId);
+    const [participants, batchAndCenter] = await Promise.all([
+      validateAndFetchParticipants(participantIds, userObjectId),
+      validateBatchAndCenter(data.batchId),
+    ]);
 
-    // Validate batch and coaching center using common function
-    const { batch, coachingCenter } = await validateBatchAndCenter(data.batchId);
+    const { batch, coachingCenter } = batchAndCenter;
 
-    // Validate slot availability using common function
-    await validateSlotAvailability(batch, participants.length);
-
-    // Validate participant eligibility (age, gender, disability) using common function
-    await validateParticipantEligibility(participants, batch, coachingCenter);
-
-    // Validate if participants are already enrolled in this batch
+    // Validate slot availability and participant enrollment in parallel (independent operations)
     const participantObjectIds = participants.map(p => p._id);
-    await validateParticipantEnrollment(participantObjectIds, batch._id);
+    await Promise.all([
+      validateSlotAvailability(batch, participants.length),
+      validateParticipantEnrollment(participantObjectIds, batch._id),
+    ]);
+
+    // Validate participant eligibility (age, gender, disability) - depends on participants, batch, and center
+    await validateParticipantEligibility(participants, batch, coachingCenter);
 
     // Calculate amount
     const admissionFeePerParticipant = batch.admission_fee || 0;
-    let baseFee = 0;
-
-    // Calculate base fee from fee_structure if available
-    if (batch.fee_structure) {
-      // This is a simplified calculation - you may need to adjust based on your fee structure logic
-      const feeConfig = batch.fee_structure.fee_configuration;
-      if (feeConfig && typeof feeConfig === 'object') {
-        // Try to get base_price from fee_configuration
-        if ('base_price' in feeConfig && typeof feeConfig.base_price === 'number') {
-          baseFee = feeConfig.base_price;
-        } else if ('price' in feeConfig && typeof feeConfig.price === 'number') {
-          baseFee = feeConfig.price;
-        }
-      }
-    }
-
-    const perParticipantFee = baseFee;
+    
+    // Use discounted_price if available, otherwise use base_price
+    // discounted_price should be <= base_price (validated in batch model)
+    const perParticipantFee = batch.discounted_price !== null && batch.discounted_price !== undefined 
+      ? batch.discounted_price 
+      : batch.base_price;
     const participantCount = participants.length;
 
     // Calculate base amount: (admission fee + base fee) * participant count
@@ -439,14 +563,13 @@ export const getBookingSummary = async (
     const baseAmount = roundToTwoDecimals(totalAdmissionFee + totalBaseFee);
 
     // Get fee configuration from settings (fallback to config for backward compatibility)
-    const { getSettingValue } = await import('../common/settings.service');
-    const platformFeeSetting = await getSettingValue<number>('fees.platform_fee');
-    const gstPercentageSetting = await getSettingValue<number>('fees.gst_percentage');
-    const gstEnabled = await getSettingValue<boolean>('fees.gst_enabled');
+    // Fetch all settings in parallel to reduce database queries
+    const { getSettings } = await import('../common/settings.service');
+    const settings = await getSettings(false);
     
-    const platformFee = platformFeeSetting ?? config.booking.platformFee;
-    const gstPercentage = gstPercentageSetting ?? config.booking.gstPercentage;
-    const isGstEnabled = gstEnabled ?? true;
+    const platformFee = (settings.fees?.platform_fee as number | undefined) ?? config.booking.platformFee;
+    const gstPercentage = (settings.fees?.gst_percentage as number | undefined) ?? config.booking.gstPercentage;
+    const isGstEnabled = (settings.fees?.gst_enabled as boolean | undefined) ?? true;
 
     // Subtotal before GST
     const subtotal = roundToTwoDecimals(baseAmount + platformFee);
@@ -479,7 +602,8 @@ export const getBookingSummary = async (
         scheduled: batch.scheduled,
         duration: batch.duration,
         admission_fee: batch.admission_fee,
-        fee_structure: batch.fee_structure,
+        base_price: batch.base_price,
+        discounted_price: batch.discounted_price,
       },
       participants: participants.map(p => {
         const dob = p.dob ? new Date(p.dob) : null;
@@ -495,7 +619,7 @@ export const getBookingSummary = async (
       currency: 'INR',
       breakdown: {
         admission_fee: totalAdmissionFee > 0 ? roundToTwoDecimals(totalAdmissionFee) : undefined,
-        base_fee: baseFee > 0 ? roundToTwoDecimals(baseFee) : undefined,
+        base_fee: totalBaseFee > 0 ? roundToTwoDecimals(totalBaseFee) : undefined,
         per_participant_fee: perParticipantFee > 0 ? roundToTwoDecimals(perParticipantFee) : undefined,
         platform_fee: platformFee > 0 ? roundToTwoDecimals(platformFee) : undefined,
         subtotal: subtotal > 0 ? roundToTwoDecimals(subtotal) : undefined,
@@ -522,7 +646,7 @@ export const getBookingSummary = async (
 export const createOrder = async (
   data: CreateOrderInput,
   userId: string
-): Promise<{ booking: Booking; razorpayOrder: RazorpayOrderResponse }> => {
+): Promise<{ booking: CreatedBookingResponse; razorpayOrder: RazorpayOrderResponse }> => {
   try {
     // Validate user
     const userObjectId = await getUserObjectId(userId);
@@ -530,7 +654,7 @@ export const createOrder = async (
       throw new ApiError(404, t('user.notFound') || 'User not found');
     }
 
-    // Get booking summary to calculate amount
+    // Get booking summary - this already does all validations
     const summary = await getBookingSummary(
       {
         batchId: data.batchId,
@@ -539,50 +663,41 @@ export const createOrder = async (
       userId
     );
 
-    // All validations are done in getBookingSummary, but we also validate here for safety
-    // Validate participants using common function
+    // All validations are already done in getBookingSummary
+    // We only need to fetch ObjectIds for creating the booking record (minimal queries)
     const participantIds = Array.isArray(data.participantIds) ? data.participantIds : [data.participantIds];
-    const participants = await validateAndFetchParticipants(participantIds, userObjectId);
+    const participantObjectIds = participantIds.map(id => new Types.ObjectId(id));
+    const batchObjectId = new Types.ObjectId(data.batchId);
+    const centerObjectId = new Types.ObjectId(summary.batch.center.id);
+    const sportObjectId = new Types.ObjectId(summary.batch.sport.id);
 
-    // Validate batch and coaching center using common function
-    const { batch, coachingCenter } = await validateBatchAndCenter(data.batchId);
-
-    // Validate slot availability using common function
-    await validateSlotAvailability(batch, participants.length);
-
-    // Validate participant eligibility (age, gender, disability) using common function
-    await validateParticipantEligibility(participants, batch, coachingCenter);
-
-    // Validate if participants are already enrolled in this batch
-    const participantObjectIds = participants.map(p => p._id);
-    await validateParticipantEnrollment(participantObjectIds, batch._id);
-
-    // Create payment order using payment service
-    const orderData = {
-      amount: Math.round(summary.amount * 100), // Convert to paise (multiply by 100)
-      currency: summary.currency,
-      receipt: `booking_${Date.now()}_${userObjectId.toString().slice(-6)}`,
-      notes: {
-        userId: userId,
-        participantIds: data.participantIds,
-        batchId: data.batchId,
-        centerId: (batch.center as any)._id?.toString() || (batch.center as any).id,
-        sportId: (batch.sport as any)._id?.toString() || (batch.sport as any).id,
-      },
-    };
-
-    const paymentOrder = await paymentService.createOrder(orderData);
-
-    // Generate unique booking ID
-    const bookingId = await generateBookingId();
+    // Generate booking ID and create payment order in parallel (independent operations)
+    const [bookingId, paymentOrder] = await Promise.all([
+      generateBookingId(),
+      (async () => {
+        const orderData = {
+          amount: Math.round(summary.amount * 100), // Convert to paise (multiply by 100)
+          currency: summary.currency,
+          receipt: `booking_${Date.now()}_${userObjectId.toString().slice(-6)}`,
+          notes: {
+            userId: userId,
+            participantIds: data.participantIds,
+            batchId: data.batchId,
+            centerId: summary.batch.center.id,
+            sportId: summary.batch.sport.id,
+          },
+        };
+        return paymentService.createOrder(orderData);
+      })(),
+    ]);
 
     // Create booking record
     const bookingData: any = {
       user: userObjectId,
       participants: participantObjectIds,
-      batch: batch._id,
-      center: (batch.center as any)._id,
-      sport: (batch.sport as any)._id,
+      batch: batchObjectId,
+      center: centerObjectId,
+      sport: sportObjectId,
       amount: summary.amount,
       currency: summary.currency,
       status: BookingStatus.PENDING,
@@ -597,11 +712,9 @@ export const createOrder = async (
     };
 
     const booking = new BookingModel(bookingData);
-    await booking.save();
-
-    // Create transaction record
+    
+    // Prepare transaction data (before saving booking to get _id)
     const transactionData: any = {
-      booking: booking._id,
       user: userObjectId,
       razorpay_order_id: paymentOrder.id,
       type: TransactionType.PAYMENT,
@@ -616,22 +729,43 @@ export const createOrder = async (
       },
     };
 
+    // Save booking first to get _id, then save transaction in parallel
+    await booking.save();
+    transactionData.booking = booking._id;
+    
     const transaction = new TransactionModel(transactionData);
     await transaction.save();
 
     logger.info(`Booking created: ${booking.id} for user ${userId}, Transaction: ${transaction.id}`);
 
-    // Populate booking before returning
-    const populatedBooking = await BookingModel.findById(booking._id)
-      .populate('user', 'id firstName lastName email')
-      .populate('participants', 'id firstName lastName')
-      .populate('batch', 'id name')
-      .populate('center', 'id center_name')
-      .populate('sport', 'id name')
-      .lean();
+    // Build response directly from existing data (no additional database query needed)
+    // We already have all the data from summary and what we just created
+    const createdBooking: CreatedBookingResponse = {
+      id: booking.id || booking._id.toString(),
+      booking_id: bookingId,
+      status: BookingStatus.PENDING,
+      amount: summary.amount,
+      currency: summary.currency,
+      payment: {
+        razorpay_order_id: paymentOrder.id,
+        status: PaymentStatus.PENDING,
+      },
+      batch: {
+        id: summary.batch.id,
+        name: summary.batch.name,
+      },
+      center: {
+        id: summary.batch.center.id,
+        name: summary.batch.center.name,
+      },
+      sport: {
+        id: summary.batch.sport.id,
+        name: summary.batch.sport.name,
+      },
+    };
 
     return {
-      booking: populatedBooking as Booking,
+      booking: createdBooking,
       razorpayOrder: paymentOrder,
     };
   } catch (error) {
@@ -758,16 +892,19 @@ export const verifyPayment = async (
 
     logger.info(`Payment verified successfully for booking: ${booking.id}`);
 
-    // Send confirmation emails to user, coaching center, and admin
-    try {
-      // Fetch batch details for scheduled information
-      // Use the original booking's batch ID (ObjectId) before population
-      const batchId = booking.batch;
-      const batchDetails = await BatchModel.findById(batchId).lean();
-      
-      if (!batchDetails) {
-        logger.warn(`Batch not found for booking ${booking.id}`);
-      } else {
+    // Send confirmation emails/SMS asynchronously (non-blocking)
+    // Don't await - let it run in background
+    (async () => {
+      try {
+        // Fetch batch details for scheduled information
+        // Use the original booking's batch ID (ObjectId) before population
+        const batchId = booking.batch;
+        const batchDetails = await BatchModel.findById(batchId).lean();
+        
+        if (!batchDetails) {
+          logger.warn(`Batch not found for booking ${booking.id}`);
+          return;
+        }
         // Format date and time
         const startDate = batchDetails.scheduled?.start_date
           ? new Date(batchDetails.scheduled.start_date).toLocaleDateString('en-IN', {
@@ -811,125 +948,126 @@ export const verifyPayment = async (
         const sportName = sport?.name || 'Sport';
         const batchName = batchDetails.name || 'Batch';
 
-        // Prepare email data
-        const emailData = {
+        // Prepare email template variables
+        const emailTemplateVariables = {
+          userName,
           bookingId: updatedBooking.id,
           batchName,
           sportName,
           centerName,
-          userName,
-          userEmail: userEmail || undefined,
           participants: participantNames,
           startDate,
           startTime,
           endTime,
           trainingDays,
-          amount: updatedBooking.amount,
+          amount: updatedBooking.amount.toFixed(2),
           currency: updatedBooking.currency,
           paymentId: data.razorpay_payment_id,
+          year: new Date().getFullYear(),
         };
 
-        // Send emails in parallel (don't wait for all to complete)
-        const emailPromises: Promise<string>[] = [];
-
+        // Queue emails using notification queue (non-blocking)
         // Send email to user
         if (userEmail) {
-          emailPromises.push(
-            sendBookingConfirmationUserEmail(userEmail, emailData).catch((error) => {
-              logger.error('Failed to send booking confirmation email to user', {
-                bookingId: booking.id,
-                userEmail,
-                error: error instanceof Error ? error.message : error,
-              });
-              return 'Failed';
-            })
-          );
+          queueEmail(userEmail, 'Booking Confirmed - PlayAsport', {
+            template: 'booking-confirmation-user.html',
+            text: `Your booking ${updatedBooking.id} has been confirmed for ${batchName} at ${centerName}.`,
+            templateVariables: emailTemplateVariables,
+            priority: 'high',
+            metadata: {
+              type: 'booking_confirmation',
+              bookingId: updatedBooking.id,
+              recipient: 'user',
+            },
+          });
         }
 
         // Send email to coaching center
         if (centerEmail) {
-          emailPromises.push(
-            sendBookingConfirmationCenterEmail(centerEmail, emailData).catch((error) => {
-              logger.error('Failed to send booking confirmation email to coaching center', {
-                bookingId: booking.id,
-                centerEmail,
-                error: error instanceof Error ? error.message : error,
-              });
-              return 'Failed';
-            })
-          );
+          queueEmail(centerEmail, 'New Booking Received - PlayAsport', {
+            template: 'booking-confirmation-center.html',
+            text: `You have received a new booking ${updatedBooking.id} for ${batchName} from ${userName}.`,
+            templateVariables: {
+              ...emailTemplateVariables,
+              userEmail: userEmail || 'N/A',
+            },
+            priority: 'high',
+            metadata: {
+              type: 'booking_confirmation',
+              bookingId: updatedBooking.id,
+              recipient: 'coaching_center',
+            },
+          });
         }
 
         // Send email to admin
         if (config.admin.email) {
-          emailPromises.push(
-            sendBookingConfirmationAdminEmail(config.admin.email, emailData).catch((error) => {
-              logger.error('Failed to send booking confirmation email to admin', {
-                bookingId: booking.id,
-                adminEmail: config.admin.email,
-                error: error instanceof Error ? error.message : error,
-              });
-              return 'Failed';
-            })
-          );
-        }
-
-        // Wait for all emails to be sent (but don't fail if email sending fails)
-        await Promise.allSettled(emailPromises);
-        logger.info(`Booking confirmation emails sent for booking: ${booking.id}`);
-
-        // Prepare SMS data
-        const smsData = {
-          bookingId: updatedBooking.id,
-          batchName,
-          sportName,
-          centerName,
-          userName,
-          participants: participantNames,
-          startDate,
-          startTime,
-          endTime,
-          amount: updatedBooking.amount,
-          currency: updatedBooking.currency,
-        };
-
-        // Send SMS notifications
-        try {
-          // Send SMS to user
-          if (userMobile) {
-            sendBookingConfirmationUserSms(userMobile, smsData);
-          } else {
-            logger.warn('User mobile number not available for SMS', {
-              bookingId: booking.id,
-            });
-          }
-
-          // Send SMS to coaching center
-          if (centerMobile) {
-            sendBookingConfirmationCenterSms(centerMobile, smsData);
-          } else {
-            logger.warn('Coaching center mobile number not available for SMS', {
-              bookingId: booking.id,
-            });
-          }
-
-          logger.info(`Booking confirmation SMS sent for booking: ${booking.id}`);
-        } catch (smsError) {
-          // Log error but don't fail the payment verification
-          logger.error('Error sending booking confirmation SMS', {
-            bookingId: booking.id,
-            error: smsError instanceof Error ? smsError.message : smsError,
+          queueEmail(config.admin.email, 'New Booking Notification - PlayAsport', {
+            template: 'booking-confirmation-admin.html',
+            text: `A new booking ${updatedBooking.id} has been confirmed for ${batchName} at ${centerName}.`,
+            templateVariables: {
+              ...emailTemplateVariables,
+              userEmail: userEmail || 'N/A',
+            },
+            priority: 'high',
+            metadata: {
+              type: 'booking_confirmation',
+              bookingId: updatedBooking.id,
+              recipient: 'admin',
+            },
           });
         }
-      }
-    } catch (notificationError) {
-      // Log error but don't fail the payment verification
-      logger.error('Error sending booking confirmation notifications', {
-        bookingId: booking.id,
-        error: notificationError instanceof Error ? notificationError.message : notificationError,
-      });
-    }
 
+        // Prepare SMS messages
+        const userNameForSms = userName || 'User';
+        const userSmsMessage = `Dear ${userNameForSms}, your booking ${updatedBooking.id} for ${batchName} (${sportName}) at ${centerName} has been confirmed. Participants: ${participantNames}. Start Date: ${startDate}, Time: ${startTime}-${endTime}. Amount Paid: ${updatedBooking.currency} ${updatedBooking.amount.toFixed(2)}. Thank you for choosing PlayAsport!`;
+        
+        const centerSmsMessage = `New booking ${updatedBooking.id} received for ${batchName} (${sportName}). Customer: ${userName || 'N/A'}. Participants: ${participantNames}. Start Date: ${startDate}, Time: ${startTime}-${endTime}. Amount: ${updatedBooking.currency} ${updatedBooking.amount.toFixed(2)}. - PlayAsport`;
+
+        // Queue SMS notifications using notification queue (non-blocking)
+        // Send SMS to user
+        if (userMobile) {
+          queueSms(userMobile, userSmsMessage, 'high', {
+            type: 'booking_confirmation',
+            bookingId: updatedBooking.id,
+            recipient: 'user',
+          });
+        } else {
+          logger.warn('User mobile number not available for SMS', {
+            bookingId: booking.id,
+          });
+        }
+
+        // Send SMS to coaching center
+        if (centerMobile) {
+          queueSms(centerMobile, centerSmsMessage, 'high', {
+            type: 'booking_confirmation',
+            bookingId: updatedBooking.id,
+            recipient: 'coaching_center',
+          });
+        } else {
+          logger.warn('Coaching center mobile number not available for SMS', {
+            bookingId: booking.id,
+          });
+        }
+
+        logger.info(`Booking confirmation notifications queued for booking: ${booking.id}`);
+      } catch (notificationError) {
+        // Log error but don't fail the payment verification
+        logger.error('Error sending booking confirmation notifications', {
+          bookingId: booking.id,
+          error: notificationError instanceof Error ? notificationError.message : notificationError,
+        });
+      }
+    })().catch((error) => {
+      // Catch any unhandled errors in the async function
+      logger.error('Unhandled error in background notification sending', {
+        bookingId: booking.id,
+        error: error instanceof Error ? error.message : error,
+      });
+    });
+
+    // Return immediately without waiting for notifications
     return updatedBooking as Booking;
   } catch (error) {
     if (error instanceof ApiError) {
@@ -1135,7 +1273,7 @@ export const getUserBookings = async (
 export const deleteOrder = async (
   data: DeleteOrderInput,
   userId: string
-): Promise<Booking> => {
+): Promise<CancelledBookingResponse> => {
   try {
     // Validate user
     const userObjectId = await getUserObjectId(userId);
@@ -1143,12 +1281,14 @@ export const deleteOrder = async (
       throw new ApiError(404, t('user.notFound') || 'User not found');
     }
 
-    // Find booking by razorpay_order_id
+    // Find booking by razorpay_order_id (no populate needed for validation)
     const booking = await BookingModel.findOne({
       'payment.razorpay_order_id': data.razorpay_order_id,
       user: userObjectId,
       is_deleted: false,
-    }).lean();
+    })
+      .select('_id id booking_id status payment batch center sport amount currency')
+      .lean();
 
     if (!booking) {
       throw new ApiError(404, 'Booking not found');
@@ -1176,11 +1316,10 @@ export const deleteOrder = async (
       },
       { new: true }
     )
-      .populate('user', 'id firstName lastName email')
-      .populate('participants', 'id firstName lastName')
-      .populate('batch', 'id name')
-      .populate('center', 'id center_name')
-      .populate('sport', 'id name')
+      .select('id booking_id status amount currency payment batch center sport')
+      .populate('batch', '_id id name')
+      .populate('center', '_id id center_name')
+      .populate('sport', '_id id name')
       .lean();
 
     if (!updatedBooking) {
@@ -1204,7 +1343,33 @@ export const deleteOrder = async (
 
     logger.info(`Order cancelled: ${booking.id} for user ${userId}, Razorpay Order ID: ${data.razorpay_order_id}`);
 
-    return updatedBooking as Booking;
+    // Return limited data
+    const cancelledBooking: CancelledBookingResponse = {
+      id: updatedBooking.id || (updatedBooking._id as any)?.toString() || '',
+      booking_id: updatedBooking.booking_id || '',
+      status: updatedBooking.status || BookingStatus.CANCELLED,
+      amount: updatedBooking.amount || 0,
+      currency: updatedBooking.currency || 'INR',
+      payment: {
+        razorpay_order_id: updatedBooking.payment?.razorpay_order_id || data.razorpay_order_id,
+        status: updatedBooking.payment?.status || PaymentStatus.FAILED,
+        failure_reason: updatedBooking.payment?.failure_reason || 'Order cancelled by user',
+      },
+      batch: {
+        id: (updatedBooking.batch as any)?._id?.toString() || (updatedBooking.batch as any)?.id || '',
+        name: (updatedBooking.batch as any)?.name || '',
+      },
+      center: {
+        id: (updatedBooking.center as any)?._id?.toString() || (updatedBooking.center as any)?.id || '',
+        name: (updatedBooking.center as any)?.center_name || '',
+      },
+      sport: {
+        id: (updatedBooking.sport as any)?._id?.toString() || (updatedBooking.sport as any)?.id || '',
+        name: (updatedBooking.sport as any)?.name || '',
+      },
+    };
+
+    return cancelledBooking;
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;

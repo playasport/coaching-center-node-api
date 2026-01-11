@@ -11,6 +11,7 @@ import { config } from '../../config/env';
 import { calculateDistances } from '../../utils/distance';
 import { getUserObjectId } from '../../utils/userCache';
 import { CoachingCenterStatus } from '../../enums/coachingCenterStatus.enum';
+import { BatchStatus } from '../../enums/batchStatus.enum';
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -21,6 +22,14 @@ export interface PaginatedResult<T> {
     totalPages: number;
     hasNextPage: boolean;
     hasPrevPage: boolean;
+  };
+}
+
+export interface PaginatedResultWithSport<T> extends PaginatedResult<T> {
+  sport: {
+    id: string;
+    name: string;
+    logo?: string | null;
   };
 }
 
@@ -199,20 +208,9 @@ export const getAllAcademies = async (
 
     // Fetch academies (total count will be calculated after filtering by radius)
     let academies = await CoachingCenterModel.find(query)
-      .populate('sports', 'custom_id name logo is_popular')
-      .populate({
-        path: 'user',
-        select: 'id isDeleted',
-        // Don't use match here - we'll filter deleted users after fetching
-        options: { lean: true },
-      })
-      .select('id center_name logo location sports age allowed_genders sport_details user')
+      .populate('sports', 'custom_id name logo')
+      .select('id center_name logo location sports age allowed_genders sport_details')
       .lean();
-
-    // Filter out academies with deleted users
-    academies = academies.filter((academy: any) => {
-      return academy.user && !(academy.user as any).isDeleted;
-    });
 
     // Calculate distances if location provided
     if (userLocation && academies.length > 0) {
@@ -340,14 +338,10 @@ export const getAcademyById = async (
       approval_status: 'approved', // Only show approved academies to users
       is_deleted: false,
     })
-      .populate('sports', 'custom_id name logo is_popular')
-      .populate('sport_details.sport_id', 'custom_id name logo is_popular')
+    .select('-user -addedBy -bank_information -documents -reject_reason -is_deleted -deletedAt -approval_status -createdAt -updatedAt')
+      .populate('sports', 'custom_id name logo')
+      .populate('sport_details.sport_id', 'custom_id name logo')
       .populate('facility', 'custom_id name description icon')
-      .populate({
-        path: 'user',
-        select: 'id isDeleted',
-        options: { lean: true },
-      })
       .lean();
 
     // If not found by id field, try by ObjectId (if it's a valid ObjectId)
@@ -359,16 +353,13 @@ export const getAcademyById = async (
         approval_status: 'approved', // Only show approved academies to users
         is_deleted: false,
       })
-        .populate('sports', 'custom_id name logo is_popular')
-        .populate('sport_details.sport_id', 'custom_id name logo is_popular')
+      .select('-user -addedBy -bank_information -documents -reject_reason -is_deleted -deletedAt -approval_status -createdAt -updatedAt')
+        .populate('sports', 'custom_id name logo')
+        .populate('sport_details.sport_id', 'custom_id name logo')
         .populate('facility', 'custom_id name description icon')
-        .populate({
-          path: 'user',
-          select: 'id isDeleted',
-          options: { lean: true },
-        })
         .lean();
     }
+
 
     // If still not found, try by user custom ID
     if (!coachingCenter) {
@@ -387,11 +378,6 @@ export const getAcademyById = async (
           .populate('sports', 'custom_id name logo is_popular')
           .populate('sport_details.sport_id', 'custom_id name logo is_popular')
           .populate('facility', 'custom_id name description icon')
-          .populate({
-            path: 'user',
-            select: 'id isDeleted',
-            options: { lean: true },
-          })
           .lean();
       }
     }
@@ -410,38 +396,46 @@ export const getAcademyById = async (
       coachingCenter.sport_details = coachingCenter.sport_details.map((sportDetail: any) => {
         const filteredDetail: any = { ...sportDetail };
         
-        // Filter and sort images (banner first)
+        // Filter and sort images (banner first), then remove internal fields
         if (sportDetail.images && Array.isArray(sportDetail.images)) {
           const activeImages = sportDetail.images.filter((img: any) => !img.is_deleted);
-          filteredDetail.images = activeImages.sort((a: any, b: any) => {
+          const sortedImages = activeImages.sort((a: any, b: any) => {
             if (a.is_banner && !b.is_banner) return -1;
             if (!a.is_banner && b.is_banner) return 1;
             return 0;
           });
+          // Remove internal fields (is_deleted, is_banner, is_active, deletedAt) from response
+          filteredDetail.images = sortedImages.map((img: any) => {
+            const { is_deleted, is_banner, is_active, deletedAt, ...imageData } = img;
+            return imageData;
+          });
         }
         
-        // Filter deleted videos
+        // Filter deleted videos and remove is_deleted field
         if (sportDetail.videos && Array.isArray(sportDetail.videos)) {
-          filteredDetail.videos = sportDetail.videos.filter((vid: any) => !vid.is_deleted);
+          const activeVideos = sportDetail.videos.filter((vid: any) => !vid.is_deleted);
+          // Remove internal fields (is_deleted, is_active, deletedAt) from response
+          filteredDetail.videos = activeVideos.map((vid: any) => {
+            const { is_deleted, is_active, deletedAt, ...videoData } = vid;
+            return videoData;
+          });
         }
         
         return filteredDetail;
       });
     }
     
-    // Filter deleted documents
-    if (coachingCenter.documents && Array.isArray(coachingCenter.documents)) {
-      coachingCenter.documents = coachingCenter.documents.filter((doc: any) => !doc.is_deleted);
-    }
 
     // Get batches for this coaching center
     const batches = await BatchModel.find({
       center: coachingCenter._id,
       is_active: true,
       is_deleted: false,
+      status: BatchStatus.PUBLISHED,
     })
       .populate('sport', 'custom_id name logo')
-      .select('name sport scheduled duration capacity age admission_fee fee_structure status is_active')
+      .populate('coach', 'fullName')
+      .select('name sport coach scheduled duration capacity age admission_fee base_price discounted_price certificate_issued status is_active is_allowed_disabled')
       .lean();
 
     // Mask email and mobile if user not logged in
@@ -456,6 +450,7 @@ export const getAcademyById = async (
           name: (batch.sport as any).name,
           logo: (batch.sport as any).logo,
         } : null,
+        coach: batch.coach ? (batch.coach as any).fullName : null,
       })),
     };
 
@@ -516,20 +511,10 @@ export const getAcademiesByCity = async (
 
     // Fetch all academies (we'll filter and paginate after filtering deleted users)
     let academies = await CoachingCenterModel.find(query)
-      .populate('sports', 'custom_id name logo is_popular')
-      .populate({
-        path: 'user',
-        select: 'id isDeleted',
-        options: { lean: true },
-      })
-      .select('id center_name logo location sports age allowed_genders sport_details user')
+      .populate('sports', 'custom_id name logo')
+      .select('id center_name logo location sports age allowed_genders sport_details')
       .sort({ createdAt: -1 })
       .lean();
-
-    // Filter out academies with deleted users
-    academies = academies.filter((academy: any) => {
-      return academy.user && !(academy.user as any).isDeleted;
-    });
 
     // Get total count after filtering
     const filteredTotal = academies.length;
@@ -599,7 +584,7 @@ export const getAcademiesBySport = async (
   limit: number = config.pagination.defaultLimit,
   userLocation?: { latitude: number; longitude: number },
   radius?: number
-): Promise<PaginatedResult<AcademyListItem>> => {
+): Promise<PaginatedResultWithSport<AcademyListItem>> => {
   try {
     const pageNumber = Math.max(1, Math.floor(page));
     const pageSize = Math.min(config.pagination.maxLimit, Math.max(1, Math.floor(limit)));
@@ -614,6 +599,11 @@ export const getAcademiesBySport = async (
     if (!sport) {
       return {
         data: [],
+        sport: {
+          id: '',
+          name: '',
+          logo: null,
+        },
         pagination: {
           page: pageNumber,
           limit: pageSize,
@@ -636,20 +626,9 @@ export const getAcademiesBySport = async (
 
     // Fetch academies (total count will be calculated after filtering by radius)
     let academies = await CoachingCenterModel.find(query)
-      .populate('sports', 'custom_id name logo is_popular')
-      .populate({
-        path: 'user',
-        select: 'id isDeleted',
-        // Don't use match here - we'll filter deleted users after fetching
-        options: { lean: true },
-      })
-      .select('id center_name logo location sports age allowed_genders sport_details user')
+      .populate('sports', 'custom_id name logo')
+      .select('id center_name logo location sports age allowed_genders sport_details')
       .lean();
-
-    // Filter out academies with deleted users
-    academies = academies.filter((academy: any) => {
-      return academy.user && !(academy.user as any).isDeleted;
-    });
 
     // Calculate distances if location provided
     if (userLocation && academies.length > 0) {
@@ -734,6 +713,11 @@ export const getAcademiesBySport = async (
           distance: academy.distance,
         };
       }) as AcademyListItem[],
+      sport: {
+        id: sport.custom_id,
+        name: sport.name,
+        logo: sport.logo,
+      },
       pagination: {
         page: pageNumber,
         limit: pageSize,

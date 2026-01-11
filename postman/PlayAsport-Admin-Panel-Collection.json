@@ -2620,6 +2620,33 @@
           "response": []
         },
         {
+          "name": "Toggle Sport Active Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/sports/:id/toggle-active",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "sports", ":id", "toggle-active"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{sportId}}",
+                  "description": "Sport ID (MongoDB ObjectId or custom_id)"
+                }
+              ]
+            },
+            "description": "Toggle a sport's active status (activate if inactive, deactivate if active). No request body required. Requires sport:update permission.\n\n**ID Format Support:**\n- MongoDB ObjectId format: `69428b55c8c9ac23116e89da` (24 hex characters)\n- Custom ID format: UUID string\n\nBoth formats are supported.\n\n**Behavior:**\n- If sport is currently active (is_active: true), it will be deactivated (is_active: false)\n- If sport is currently inactive (is_active: false), it will be activated (is_active: true)"
+          },
+          "response": []
+        },
+        {
           "name": "Delete Sport Image",
           "request": {
             "method": "DELETE",
@@ -3194,7 +3221,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Batch Name\",\n  \"base_price\": 5500,\n  \"discounted_price\": 5000\n}",
+              "raw": "{\n  \"name\": \"Updated Batch Name\",\n  \"base_price\": 5500,\n  \"discounted_price\": 5000,\n  \"is_allowed_disabled\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3213,7 +3240,7 @@
                 }
               ]
             },
-            "description": "Update an existing batch. All fields are optional. **Note: Status cannot be updated via this endpoint.**\n\n**Important:** Fee configurations have been removed. Use `base_price` and `discounted_price` instead.\n\n**Example - Simple update (only top-level fields):**\n```json\n{\n  \"name\": \"Updated Batch Name\",\n  \"base_price\": 5500,\n  \"discounted_price\": 5000\n}\n```\n\n**Example - Complete update with nested objects:**\n```json\n{\n  \"name\": \"Updated Morning Batch\",\n  \"description\": \"Updated description\",\n  \"gender\": [\"male\", \"female\", \"others\"],\n  \"certificate_issued\": true,\n  \"scheduled\": {\n    \"start_date\": \"2024-12-01\",\n    \"end_date\": \"2024-12-31\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": {\n    \"count\": 3,\n    \"type\": \"month\"\n  },\n  \"capacity\": {\n    \"min\": 10,\n    \"max\": 30\n  },\n  \"age\": {\n    \"min\": 8,\n    \"max\": 12\n  },\n  \"admission_fee\": 500,\n  \"base_price\": 5000,\n  \"discounted_price\": 4500\n}\n```\n\n**Example - Update with individual timing:**\n```json\n{\n  \"scheduled\": {\n    \"start_date\": \"2024-12-01\",\n    \"individual_timings\": [\n      {\n        \"day\": \"monday\",\n        \"start_time\": \"09:00\",\n        \"end_time\": \"11:00\"\n      },\n      {\n        \"day\": \"wednesday\",\n        \"start_time\": \"14:00\",\n        \"end_time\": \"16:00\"\n      }\n    ],\n    \"training_days\": [\"monday\", \"wednesday\"]\n  }\n}\n```\n\nRequires batch:update permission."
+            "description": "Update an existing batch. All fields are optional. **Note: Status cannot be updated via this endpoint.**\n\n**Important:** Fee configurations have been removed. Use `base_price` and `discounted_price` instead.\n\n**Example - Simple update (only top-level fields):**\n```json\n{\n  \"name\": \"Updated Batch Name\",\n  \"base_price\": 5500,\n  \"discounted_price\": 5000,\n  \"is_allowed_disabled\": true\n}\n```\n\n**Example - Complete update with nested objects:**\n```json\n{\n  \"name\": \"Updated Morning Batch\",\n  \"description\": \"Updated description\",\n  \"gender\": [\"male\", \"female\", \"others\"],\n  \"certificate_issued\": true,\n  \"scheduled\": {\n    \"start_date\": \"2024-12-01\",\n    \"end_date\": \"2024-12-31\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": {\n    \"count\": 3,\n    \"type\": \"month\"\n  },\n  \"capacity\": {\n    \"min\": 10,\n    \"max\": 30\n  },\n  \"age\": {\n    \"min\": 8,\n    \"max\": 12\n  },\n  \"admission_fee\": 500,\n  \"base_price\": 5000,\n  \"discounted_price\": 4500,\n  \"is_allowed_disabled\": false\n}\n```\n\n**Example - Update with individual timing:**\n```json\n{\n  \"scheduled\": {\n    \"start_date\": \"2024-12-01\",\n    \"individual_timings\": [\n      {\n        \"day\": \"monday\",\n        \"start_time\": \"09:00\",\n        \"end_time\": \"11:00\"\n      },\n      {\n        \"day\": \"wednesday\",\n        \"start_time\": \"14:00\",\n        \"end_time\": \"16:00\"\n      }\n    ],\n    \"training_days\": [\"monday\", \"wednesday\"]\n  }\n}\n```\n\n**Note:** `is_allowed_disabled` (boolean) - Whether disabled participants are allowed in this batch. This field takes precedence over the coaching center's disability settings during booking validation.\n\nRequires batch:update permission."
           },
           "response": []
         },
@@ -3289,7 +3316,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Morning Cricket Batch\",\n  \"description\": \"Early morning cricket training session for beginners\",\n  \"sportId\": \"{{sportId}}\",\n  \"centerId\": \"{{coachingCenterId}}\",\n  \"coach\": \"507f1f77bcf86cd799439012\",\n  \"gender\": [\"male\", \"female\"],\n  \"certificate_issued\": true,\n  \"scheduled\": {\n    \"start_date\": \"2024-12-01\",\n    \"end_date\": \"2024-12-31\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": {\n    \"count\": 3,\n    \"type\": \"month\"\n  },\n  \"capacity\": {\n    \"min\": 10,\n    \"max\": 30\n  },\n  \"age\": {\n    \"min\": 8,\n    \"max\": 12\n  },\n  \"admission_fee\": 500,\n  \"base_price\": 5000,\n  \"discounted_price\": 4500,\n  \"status\": \"draft\"\n}",
+              "raw": "{\n  \"name\": \"Morning Cricket Batch\",\n  \"description\": \"Early morning cricket training session for beginners\",\n  \"sportId\": \"{{sportId}}\",\n  \"centerId\": \"{{coachingCenterId}}\",\n  \"coach\": \"507f1f77bcf86cd799439012\",\n  \"gender\": [\"male\", \"female\"],\n  \"certificate_issued\": true,\n  \"scheduled\": {\n    \"start_date\": \"2024-12-01\",\n    \"end_date\": \"2024-12-31\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": {\n    \"count\": 3,\n    \"type\": \"month\"\n  },\n  \"capacity\": {\n    \"min\": 10,\n    \"max\": 30\n  },\n  \"age\": {\n    \"min\": 8,\n    \"max\": 12\n  },\n  \"admission_fee\": 500,\n  \"base_price\": 5000,\n  \"discounted_price\": 4500,\n  \"is_allowed_disabled\": false,\n  \"status\": \"draft\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3301,7 +3328,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["admin", "batches"]
             },
-            "description": "Create a new batch for any coaching center. The userId is automatically extracted from the centerId. Requires batch:create permission.\n\n**Note:** Fee configurations have been removed. Use `base_price` and `discounted_price` instead.\n\n**Required Fields:**\n- name (max 50 chars)\n- sportId (must be available for selected center)\n- centerId\n- gender (array: at least one of [male, female, others])\n- certificate_issued (boolean)\n- scheduled (start_date, training_days, and either common timing OR individual_timings)\n- duration (count: 1-1000, type: day/week/month/year)\n- capacity (min: 1-1000, max optional: 1-1000)\n- age (min: 3-18, max: 3-18, must respect center's age range)\n- base_price (0 to ₹1 crore)\n\n**Optional Fields:**\n- description (max 1000 chars)\n- coach\n- end_date (should match calculated end date ±1 day)\n- admission_fee (0 to ₹1 crore)\n- discounted_price (must be <= base_price, 0 to ₹1 crore)\n- status (draft/published, default: draft)\n\n**Timing Modes:**\n1. Common Timing: Provide `start_time` and `end_time` at scheduled root\n2. Individual Timing: Provide `individual_timings` array with one entry per training day\n\n**Special Rules:**\n- If duration.type === \"day\", must select exactly duration.count training days\n- End date is calculated based on start_date + duration (±1 day tolerance)\n- Age range must respect center's age range if available"
+            "description": "Create a new batch for any coaching center. The userId is automatically extracted from the centerId. Requires batch:create permission.\n\n**Note:** Fee configurations have been removed. Use `base_price` and `discounted_price` instead.\n\n**Required Fields:**\n- name (max 50 chars)\n- sportId (must be available for selected center)\n- centerId\n- gender (array: at least one of [male, female, others])\n- certificate_issued (boolean)\n- scheduled (start_date, training_days, and either common timing OR individual_timings)\n- duration (count: 1-1000, type: day/week/month/year)\n- capacity (min: 1-1000, max optional: 1-1000)\n- age (min: 3-18, max: 3-18, must respect center's age range)\n- base_price (0 to ₹1 crore)\n\n**Optional Fields:**\n- description (max 1000 chars)\n- coach\n- end_date (should match calculated end date ±1 day)\n- admission_fee (0 to ₹1 crore)\n- discounted_price (must be <= base_price, 0 to ₹1 crore)\n- is_allowed_disabled (boolean, default: false) - Whether disabled participants are allowed in this batch. This field takes precedence over the coaching center's disability settings during booking validation.\n- status (draft/published, default: draft)\n\n**Timing Modes:**\n1. Common Timing: Provide `start_time` and `end_time` at scheduled root\n2. Individual Timing: Provide `individual_timings` array with one entry per training day\n\n**Special Rules:**\n- If duration.type === \"day\", must select exactly duration.count training days\n- End date is calculated based on start_date + duration (±1 day tolerance)\n- Age range must respect center's age range if available"
           },
           "response": []
         }

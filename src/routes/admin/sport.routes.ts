@@ -233,6 +233,51 @@ router.delete('/:id', sportController.deleteSport);
 
 /**
  * @swagger
+ * /admin/sports/{id}/toggle-active:
+ *   patch:
+ *     summary: Toggle sport active status
+ *     tags: [Admin Sports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Sport ID (MongoDB ObjectId or custom_id)
+ *     responses:
+ *       200:
+ *         description: Sport active status toggled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Sport activated successfully" or "Sport deactivated successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     sport:
+ *                       $ref: '#/components/schemas/PopularSport'
+ *       404:
+ *         description: Sport not found
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Admin role required
+ *       500:
+ *         description: Internal server error
+ */
+router.patch('/:id/toggle-active', sportController.toggleSportActiveStatus);
+
+/**
+ * @swagger
  * /admin/sports/{id}/image:
  *   delete:
  *     summary: Delete sport image

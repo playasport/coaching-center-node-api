@@ -182,6 +182,29 @@ export const deleteSport = async (req: Request, res: Response, next: NextFunctio
 };
 
 /**
+ * Toggle sport active status (admin only)
+ */
+export const toggleSportActiveStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const sport = await sportService.toggleSportActiveStatus(id);
+
+    if (!sport) {
+      throw new ApiError(404, t('sport.notFound'));
+    }
+
+    const statusMessage = sport.is_active
+      ? t('sport.toggleStatus.active')
+      : t('sport.toggleStatus.inactive');
+
+    const response = new ApiResponse(200, { sport }, statusMessage);
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Delete sport image (admin only)
  */
 export const deleteSportImage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

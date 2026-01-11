@@ -228,6 +228,7 @@ export const batchCreateSchema = z
           .max(10000000, 'Discounted price cannot exceed ₹1 crore')
           .optional()
           .nullable(),
+        is_allowed_disabled: z.boolean().default(false).optional(),
         status: statusEnum.default('draft'),
       })
       .refine(
@@ -347,6 +348,7 @@ export const batchUpdateSchema = z.object({
         .max(10000000, 'Discounted price cannot exceed ₹1 crore')
         .optional()
         .nullable(),
+      is_allowed_disabled: z.boolean().optional(),
       status: statusEnum.optional(),
       is_active: z.boolean().optional(),
     })

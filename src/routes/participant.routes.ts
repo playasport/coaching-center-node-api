@@ -3,6 +3,7 @@ import * as participantController from '../controllers/participant.controller';
 import { validate } from '../middleware/validation.middleware';
 import { participantCreateSchema, participantUpdateSchema } from '../validations/participant.validation';
 import { authenticate } from '../middleware/auth.middleware';
+import { uploadProfileImage } from '../middleware/upload.middleware';
 
 const router = Router();
 
@@ -12,12 +13,52 @@ const router = Router();
  *   post:
  *     summary: Create a new participant
  *     tags: [Participant]
- *     description: Create a new participant. Requires authentication. Users can only create participants for themselves.
+ *     description: Create a new participant. Requires authentication. Users can only create participants for themselves. Supports profile photo upload via multipart/form-data (field name: 'profileImage'). If both file and profilePhoto URL are provided, the file takes precedence.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profileImage:
+ *                 type: string
+ *                 format: binary
+ *                 description: Optional profile photo file (JPEG, PNG, WebP)
+ *               firstName:
+ *                 type: string
+ *                 nullable: true
+ *               lastName:
+ *                 type: string
+ *                 nullable: true
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, other]
+ *                 nullable: true
+ *               disability:
+ *                 type: string
+ *                 enum: ['0', '1']
+ *                 default: '0'
+ *               dob:
+ *                 type: string
+ *                 format: date
+ *                 nullable: true
+ *               schoolName:
+ *                 type: string
+ *                 nullable: true
+ *               contactNumber:
+ *                 type: string
+ *                 nullable: true
+ *               profilePhoto:
+ *                 type: string
+ *                 format: uri
+ *                 description: Optional profile photo URL (ignored if profileImage file is provided)
+ *                 nullable: true
+ *               address:
+ *                 type: object
+ *                 nullable: true
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/ParticipantCreateRequest'
@@ -48,6 +89,7 @@ const router = Router();
 router.post(
   '/',
   authenticate,
+  uploadProfileImage,
   validate(participantCreateSchema),
   participantController.createParticipant
 );
@@ -176,7 +218,7 @@ router.get('/:id', authenticate, participantController.getParticipant);
  *   patch:
  *     summary: Update participant details
  *     tags: [Participant]
- *     description: Update participant details. All fields are optional. Users can only update their own participants. Requires authentication.
+ *     description: Update participant details. All fields are optional. Users can only update their own participants. Requires authentication. Supports profile photo upload via multipart/form-data (field name: 'profileImage'). If a file is uploaded, the old profile photo will be automatically deleted from S3. If both file and profilePhoto URL are provided, the file takes precedence.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -189,6 +231,45 @@ router.get('/:id', authenticate, participantController.getParticipant);
  *     requestBody:
  *       required: true
  *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profileImage:
+ *                 type: string
+ *                 format: binary
+ *                 description: Optional profile photo file (JPEG, PNG, WebP). Old photo will be deleted if new one is uploaded.
+ *               firstName:
+ *                 type: string
+ *                 nullable: true
+ *               lastName:
+ *                 type: string
+ *                 nullable: true
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, other]
+ *                 nullable: true
+ *               disability:
+ *                 type: string
+ *                 enum: ['0', '1']
+ *               dob:
+ *                 type: string
+ *                 format: date
+ *                 nullable: true
+ *               schoolName:
+ *                 type: string
+ *                 nullable: true
+ *               contactNumber:
+ *                 type: string
+ *                 nullable: true
+ *               profilePhoto:
+ *                 type: string
+ *                 format: uri
+ *                 description: Optional profile photo URL (ignored if profileImage file is provided)
+ *                 nullable: true
+ *               address:
+ *                 type: object
+ *                 nullable: true
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/ParticipantUpdateRequest'
@@ -221,6 +302,7 @@ router.get('/:id', authenticate, participantController.getParticipant);
 router.patch(
   '/:id',
   authenticate,
+  uploadProfileImage,
   validate(participantUpdateSchema),
   participantController.updateParticipant
 );

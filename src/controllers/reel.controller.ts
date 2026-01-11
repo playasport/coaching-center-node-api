@@ -44,3 +44,22 @@ export const getReelsListWithIdFirst = async (
     next(error);
   }
 };
+
+/**
+ * Update reel view count
+ * PUT /reels/:id/view
+ */
+export const updateReelView = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const viewCount = await reelService.updateReelView(id);
+    const response = new ApiResponse(200, { views: viewCount }, 'Reel view updated successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};

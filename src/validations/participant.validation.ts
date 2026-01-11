@@ -23,7 +23,27 @@ export const participantCreateSchema = z.object({
     dob: z.string().date('Date of birth must be a valid date').optional().nullable(),
     schoolName: z.string().max(191, 'School name must be less than 191 characters').optional().nullable(),
     contactNumber: z.string().max(255, 'Contact number must be less than 255 characters').optional().nullable(),
-    profilePhoto: z.string().url('Profile photo must be a valid URL').max(191, 'Profile photo URL must be less than 191 characters').optional().nullable(),
+    profilePhoto: z
+      .string()
+      .optional()
+      .nullable()
+      .refine(
+        (val) => {
+          // If value is provided and not empty, it must be a valid URL
+          if (val && val.trim().length > 0) {
+            try {
+              new URL(val);
+              return val.length <= 191;
+            } catch {
+              return false;
+            }
+          }
+          return true; // Empty, null, or undefined is fine (file might be uploaded instead)
+        },
+        { message: 'Profile photo must be a valid URL (max 191 characters) or empty if uploading a file' }
+      ),
+    // Note: profilePhoto can also be uploaded as a file using multipart/form-data with field name 'profileImage'
+    // If both file and URL are provided, the file takes precedence
     address: participantAddressSchema.optional().nullable(),
     // isSelf is not allowed in create - it's automatically set to null for manually created participants
     // Only the system sets isSelf = '1' when creating a user
@@ -40,7 +60,27 @@ export const participantUpdateSchema = z.object({
     dob: z.string().date('Date of birth must be a valid date').optional().nullable(),
     schoolName: z.string().max(191, 'School name must be less than 191 characters').optional().nullable(),
     contactNumber: z.string().max(255, 'Contact number must be less than 255 characters').optional().nullable(),
-    profilePhoto: z.string().url('Profile photo must be a valid URL').max(191, 'Profile photo URL must be less than 191 characters').optional().nullable(),
+    profilePhoto: z
+      .string()
+      .optional()
+      .nullable()
+      .refine(
+        (val) => {
+          // If value is provided and not empty, it must be a valid URL
+          if (val && val.trim().length > 0) {
+            try {
+              new URL(val);
+              return val.length <= 191;
+            } catch {
+              return false;
+            }
+          }
+          return true; // Empty, null, or undefined is fine (file might be uploaded instead)
+        },
+        { message: 'Profile photo must be a valid URL (max 191 characters) or empty if uploading a file' }
+      ),
+    // Note: profilePhoto can also be uploaded as a file using multipart/form-data with field name 'profileImage'
+    // If both file and URL are provided, the file takes precedence. Old photo will be deleted when updating.
     address: participantAddressSchema.optional().nullable(),
     isSelf: z.string().max(191, 'isSelf must be less than 191 characters').optional().nullable(),
   }),

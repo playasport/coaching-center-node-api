@@ -170,6 +170,7 @@ export const createBatch = async (data: BatchCreateInput, loggedInUserId: string
       admission_fee: roundToTwoDecimals(data.admission_fee),
       base_price: roundToTwoDecimals(data.base_price),
       discounted_price: roundToTwoDecimals(data.discounted_price),
+      is_allowed_disabled: data.is_allowed_disabled ?? false,
       status: data.status || 'draft',
       is_active: (data.status || 'draft') === 'published', // Set is_active based on status: draft = false, published = true
       is_deleted: false,

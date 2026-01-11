@@ -175,6 +175,11 @@ const router = Router();
  *                 nullable: true
  *                 description: Must be <= base_price
  *                 example: 4500
+ *               is_allowed_disabled:
+ *                 type: boolean
+ *                 default: false
+ *                 description: Whether disabled participants are allowed in this batch
+ *                 example: false
  *               status:
  *                 type: string
  *                 enum: [published, draft]
