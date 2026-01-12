@@ -1220,6 +1220,117 @@
       "description": "Home page data endpoints"
     },
     {
+      "name": "Search",
+      "description": "Search APIs for autocomplete and full-text search across sports, coaching centers, reels, and highlights",
+      "item": [
+        {
+          "name": "Autocomplete Search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search/autocomplete?q=cricket&size=5&latitude=28.6139&longitude=77.2090&radius=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["search", "autocomplete"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "cricket",
+                  "description": "Search query string (required)"
+                },
+                {
+                  "key": "size",
+                  "value": "5",
+                  "description": "Number of results per index (default: 5, max: 50)"
+                },
+                {
+                  "key": "index",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Optional - Search specific index only (sports_index, coaching_centres_index, reels_index, live_streams_index)"
+                },
+                {
+                  "key": "latitude",
+                  "value": "28.6139",
+                  "description": "User's latitude for geo-based sorting (optional)"
+                },
+                {
+                  "key": "longitude",
+                  "value": "77.2090",
+                  "description": "User's longitude for geo-based sorting (optional)"
+                },
+                {
+                  "key": "radius",
+                  "value": "50",
+                  "description": "Search radius in kilometers (default: 50km, only for coaching centers)"
+                }
+              ]
+            },
+            "description": "Autocomplete/search-as-you-type API. Searches across all indices (sports, coaching centers, reels, highlights) simultaneously. Supports geo-based sorting for coaching centers when latitude/longitude provided. Falls back to MongoDB search if Meilisearch is disabled. This is a public endpoint (no authentication required)."
+          },
+          "response": []
+        },
+        {
+          "name": "Full Search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search?q=cricket academy&size=10&from=0&latitude=28.6139&longitude=77.2090&radius=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "cricket academy",
+                  "description": "Search query string (required, can also use 'query' parameter)"
+                },
+                {
+                  "key": "query",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Alternative parameter name for search query"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Number of results per page (default: 10, max: 100)"
+                },
+                {
+                  "key": "from",
+                  "value": "0",
+                  "description": "Pagination offset (default: 0)"
+                },
+                {
+                  "key": "index",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Optional - Search specific index only (sports_index, coaching_centres_index, reels_index, live_streams_index)"
+                },
+                {
+                  "key": "latitude",
+                  "value": "28.6139",
+                  "description": "User's latitude for geo-based sorting and filtering"
+                },
+                {
+                  "key": "longitude",
+                  "value": "77.2090",
+                  "description": "User's longitude for geo-based sorting and filtering"
+                },
+                {
+                  "key": "radius",
+                  "value": "50",
+                  "description": "Search radius in kilometers (default: 50km, only for coaching centers)"
+                }
+              ]
+            },
+            "description": "Full-text search across all indices with pagination, geo-filtering, and advanced sorting. Searches sports, coaching centers, reels, and highlights simultaneously. For coaching centers, supports geo-based distance sorting and sport-based prioritization. Falls back to MongoDB search if Meilisearch is disabled. This is a public endpoint (no authentication required)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Participant",
       "item": [
         {

@@ -8,6 +8,8 @@ import { videoProcessingQueue } from './queue/videoProcessingQueue';
 import { closeVideoProcessingWorker } from './queue/videoProcessingWorker';
 import { mediaMoveQueue } from './queue/mediaMoveQueue';
 import { closeMediaMoveWorker } from './queue/mediaMoveWorker';
+import { meilisearchIndexingQueue } from './queue/meilisearchIndexingQueue';
+import { closeMeilisearchIndexingWorker } from './queue/meilisearchIndexingWorker';
 import { closeUserCache } from './utils/userCache';
 import { closeTokenBlacklist } from './utils/tokenBlacklist';
 import { closeRateLimit } from './middleware/rateLimit.middleware';
@@ -77,6 +79,14 @@ const gracefulShutdown = async (signal: string) => {
     // Close media move queue
     await mediaMoveQueue.close();
     logger.info('Media move queue closed');
+    
+    // Close Meilisearch indexing worker
+    await closeMeilisearchIndexingWorker();
+    logger.info('Meilisearch indexing worker closed');
+    
+    // Close Meilisearch indexing queue
+    await meilisearchIndexingQueue.close();
+    logger.info('Meilisearch indexing queue closed');
     
     // Close user cache Redis connection
     await closeUserCache();

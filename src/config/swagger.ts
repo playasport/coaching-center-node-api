@@ -3386,6 +3386,63 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        SearchResult: {
+          type: 'object',
+          properties: {
+            index: {
+              type: 'string',
+              example: 'coaching_centres',
+              enum: ['coaching_centres', 'sports', 'reels', 'live_streams'],
+              description: 'Index name (normalized)',
+            },
+            id: {
+              type: 'string',
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+              description: 'Document ID',
+            },
+            score: {
+              type: 'number',
+              example: 0.95,
+              description: 'Relevance score (0-1)',
+            },
+            source: {
+              type: 'object',
+              description: 'Source document data',
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+                description: { type: 'string', nullable: true },
+                address: { type: 'string', nullable: true },
+                latitude: { type: 'number', nullable: true },
+                longitude: { type: 'number', nullable: true },
+                logo: { type: 'string', nullable: true },
+                images: { 
+                  type: 'array', 
+                  items: { type: 'string' },
+                  description: 'Maximum 2 images (prioritized by is_banner=true)',
+                  maxItems: 2
+                },
+                allowed_gender: { type: 'array', items: { type: 'string' } },
+                sports_names: { type: 'array', items: { type: 'string' } },
+                location_name: { type: 'string', nullable: true },
+                experience: { type: 'number', nullable: true },
+                pincode: { type: 'string', nullable: true },
+                distance: { type: 'number', nullable: true, description: 'Distance in km (only for coaching centers)' },
+                thumbnail: { type: 'string', nullable: true },
+                video_url: { type: 'string', nullable: true },
+                views: { type: 'integer' },
+                sport_specific_data: { type: 'object', nullable: true },
+              },
+            },
+            highlight: {
+              type: 'object',
+              description: 'Highlighted search matches',
+              additionalProperties: {
+                type: 'string',
+              },
+            },
+          },
+        },
         AcademyListItem: {
           type: 'object',
           properties: {
@@ -7051,6 +7108,10 @@ const options: swaggerJsdoc.Options = {
         description: 'Sport endpoints for retrieving sports data',
       },
       {
+        name: 'Search',
+        description: 'Search APIs for autocomplete and full-text search across sports, coaching centers, reels, and highlights',
+      },
+      {
         name: 'Coaching Center',
         description: 'Coaching center management endpoints',
       },
@@ -7240,7 +7301,7 @@ const options: swaggerJsdoc.Options = {
       },
       {
         name: 'Public Endpoints',
-        tags: ['Academy', 'Home', 'Basic', 'Location', 'Sport', 'Reels', 'Banners', 'CMS Pages'],
+        tags: ['Academy', 'Home', 'Basic', 'Location', 'Sport', 'Search', 'Reels', 'Banners', 'CMS Pages'],
       },
       {
         name: 'System & Utilities',

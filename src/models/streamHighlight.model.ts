@@ -211,5 +211,39 @@ streamHighlightSchema.index({ userId: 1, status: 1, deletedAt: 1 });
 streamHighlightSchema.index({ streamSessionId: 1 });
 streamHighlightSchema.index({ coachingCenterId: 1, status: 1, deletedAt: 1 });
 
+// Meilisearch indexing hooks - using queue for non-blocking indexing
+streamHighlightSchema.post('save', async function (doc) {
+  try {
+    if (doc.id) {
+      const { enqueueMeilisearchIndexing, IndexingJobType } = await import('../queue/meilisearchIndexingQueue');
+      await enqueueMeilisearchIndexing(IndexingJobType.INDEX_STREAM_HIGHLIGHT, doc.id);
+    }
+  } catch (error) {
+    // Silently fail - Meilisearch indexing is optional
+  }
+});
+
+streamHighlightSchema.post('findOneAndUpdate', async function (doc) {
+  try {
+    if (doc && doc.id) {
+      const { enqueueMeilisearchIndexing, IndexingJobType } = await import('../queue/meilisearchIndexingQueue');
+      await enqueueMeilisearchIndexing(IndexingJobType.UPDATE_STREAM_HIGHLIGHT, doc.id);
+    }
+  } catch (error) {
+    // Silently fail - Meilisearch indexing is optional
+  }
+});
+
+streamHighlightSchema.post('findOneAndDelete', async function (doc) {
+  try {
+    if (doc && doc.id) {
+      const { enqueueMeilisearchIndexing, IndexingJobType } = await import('../queue/meilisearchIndexingQueue');
+      await enqueueMeilisearchIndexing(IndexingJobType.DELETE_STREAM_HIGHLIGHT, doc.id);
+    }
+  } catch (error) {
+    // Silently fail - Meilisearch indexing is optional
+  }
+});
+
 export const StreamHighlightModel = model<StreamHighlight>('StreamHighlight', streamHighlightSchema);
 

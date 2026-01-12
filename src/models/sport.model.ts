@@ -73,5 +73,39 @@ sportSchema.pre('save', function (next) {
   next();
 });
 
+// Meilisearch indexing hooks - using queue for non-blocking indexing
+sportSchema.post('save', async function (doc) {
+  try {
+    if (doc.custom_id) {
+      const { enqueueMeilisearchIndexing, IndexingJobType } = await import('../queue/meilisearchIndexingQueue');
+      await enqueueMeilisearchIndexing(IndexingJobType.INDEX_SPORT, doc.custom_id);
+    }
+  } catch (error) {
+    // Silently fail - Meilisearch indexing is optional
+  }
+});
+
+sportSchema.post('findOneAndUpdate', async function (doc) {
+  try {
+    if (doc && doc.custom_id) {
+      const { enqueueMeilisearchIndexing, IndexingJobType } = await import('../queue/meilisearchIndexingQueue');
+      await enqueueMeilisearchIndexing(IndexingJobType.UPDATE_SPORT, doc.custom_id);
+    }
+  } catch (error) {
+    // Silently fail - Meilisearch indexing is optional
+  }
+});
+
+sportSchema.post('findOneAndDelete', async function (doc) {
+  try {
+    if (doc && doc.custom_id) {
+      const { enqueueMeilisearchIndexing, IndexingJobType } = await import('../queue/meilisearchIndexingQueue');
+      await enqueueMeilisearchIndexing(IndexingJobType.DELETE_SPORT, doc.custom_id);
+    }
+  } catch (error) {
+    // Silently fail - Meilisearch indexing is optional
+  }
+});
+
 export const SportModel = model<Sport>('Sport', sportSchema);
 

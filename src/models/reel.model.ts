@@ -111,4 +111,38 @@ reelSchema.index({ videoProcessingStatus: 1 });
 reelSchema.index({ createdAt: -1 });
 reelSchema.index({ sportIds: 1, deletedAt: 1 });
 
+// Meilisearch indexing hooks - using queue for non-blocking indexing
+reelSchema.post('save', async function (doc) {
+  try {
+    if (doc.id) {
+      const { enqueueMeilisearchIndexing, IndexingJobType } = await import('../queue/meilisearchIndexingQueue');
+      await enqueueMeilisearchIndexing(IndexingJobType.INDEX_REEL, doc.id);
+    }
+  } catch (error) {
+    // Silently fail - Meilisearch indexing is optional
+  }
+});
+
+reelSchema.post('findOneAndUpdate', async function (doc) {
+  try {
+    if (doc && doc.id) {
+      const { enqueueMeilisearchIndexing, IndexingJobType } = await import('../queue/meilisearchIndexingQueue');
+      await enqueueMeilisearchIndexing(IndexingJobType.UPDATE_REEL, doc.id);
+    }
+  } catch (error) {
+    // Silently fail - Meilisearch indexing is optional
+  }
+});
+
+reelSchema.post('findOneAndDelete', async function (doc) {
+  try {
+    if (doc && doc.id) {
+      const { enqueueMeilisearchIndexing, IndexingJobType } = await import('../queue/meilisearchIndexingQueue');
+      await enqueueMeilisearchIndexing(IndexingJobType.DELETE_REEL, doc.id);
+    }
+  } catch (error) {
+    // Silently fail - Meilisearch indexing is optional
+  }
+});
+
 export const ReelModel = model<Reel>('Reel', reelSchema);

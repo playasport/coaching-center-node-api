@@ -482,5 +482,39 @@ coachingCenterSchema.index({ status: 1, is_active: 1, is_deleted: 1 });
 coachingCenterSchema.index({ user: 1, is_deleted: 1 });
 coachingCenterSchema.index({ user: 1, status: 1, is_deleted: 1 });
 
+// Meilisearch indexing hooks - using queue for non-blocking indexing
+coachingCenterSchema.post('save', async function (doc) {
+  try {
+    if (doc.id) {
+      const { enqueueMeilisearchIndexing, IndexingJobType } = await import('../queue/meilisearchIndexingQueue');
+      await enqueueMeilisearchIndexing(IndexingJobType.INDEX_COACHING_CENTER, doc.id);
+    }
+  } catch (error) {
+    // Silently fail - Meilisearch indexing is optional
+  }
+});
+
+coachingCenterSchema.post('findOneAndUpdate', async function (doc) {
+  try {
+    if (doc && doc.id) {
+      const { enqueueMeilisearchIndexing, IndexingJobType } = await import('../queue/meilisearchIndexingQueue');
+      await enqueueMeilisearchIndexing(IndexingJobType.UPDATE_COACHING_CENTER, doc.id);
+    }
+  } catch (error) {
+    // Silently fail - Meilisearch indexing is optional
+  }
+});
+
+coachingCenterSchema.post('findOneAndDelete', async function (doc) {
+  try {
+    if (doc && doc.id) {
+      const { enqueueMeilisearchIndexing, IndexingJobType } = await import('../queue/meilisearchIndexingQueue');
+      await enqueueMeilisearchIndexing(IndexingJobType.DELETE_COACHING_CENTER, doc.id);
+    }
+  } catch (error) {
+    // Silently fail - Meilisearch indexing is optional
+  }
+});
+
 export const CoachingCenterModel = model<CoachingCenter>('CoachingCenter', coachingCenterSchema);
 

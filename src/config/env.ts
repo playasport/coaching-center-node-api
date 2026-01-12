@@ -140,4 +140,10 @@ export const config = {
   videoProcessing: {
     concurrency: Number(process.env.VIDEO_PROCESSING_CONCURRENCY || 2), // Number of videos to process simultaneously
   },
+  meilisearch: {
+    enabled: parseBoolean(process.env.MEILISEARCH_ENABLED, false), // Enable/disable Meilisearch indexing
+    host: process.env.MEILISEARCH_HOST || 'http://localhost:7700',
+    apiKey: process.env.MEILISEARCH_KEY || 'DevLOpemNTmasterKey123',
+    indexingConcurrency: Number(process.env.MEILISEARCH_INDEXING_CONCURRENCY || 5), // Number of indexing jobs to process concurrently
+  },
 };

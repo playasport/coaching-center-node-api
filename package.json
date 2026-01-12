@@ -20,7 +20,13 @@
     "test:jobs": "tsx src/jobs/testJobs.ts",
     "fix:locations": "tsx scripts/fix-location-associations.ts",
     "check:locations": "tsx scripts/check-location-data.ts",
-    "migrate:locations": "tsx scripts/migrate-location-soft-delete.ts"
+    "migrate:locations": "tsx scripts/migrate-location-soft-delete.ts",
+    "meilisearch:configure": "tsx scripts/meilisearch-configure-indices.ts",
+    "meilisearch:index-all": "tsx scripts/meilisearch-index-all.ts",
+    "meilisearch:index-coaching-centers": "tsx scripts/meilisearch-index-coaching-centers.ts",
+    "meilisearch:index-sports": "tsx scripts/meilisearch-index-sports.ts",
+    "meilisearch:index-reels": "tsx scripts/meilisearch-index-reels.ts",
+    "meilisearch:index-highlights": "tsx scripts/meilisearch-index-highlights.ts"
   },
   "keywords": [
     "nodejs",
@@ -54,6 +60,7 @@
     "fs-extra": "^11.3.0",
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.2",
+    "meilisearch": "^0.55.0",
     "mongoose": "^8.19.3",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
