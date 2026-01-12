@@ -11,7 +11,14 @@ import { config } from './config/env';
 const app: Application = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://front.playasport.in'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  credentials: true
+}));
 
 // Raw body middleware for webhooks (must be before express.json())
 app.use((req, _res, next) => {

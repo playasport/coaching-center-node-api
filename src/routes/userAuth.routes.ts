@@ -576,6 +576,11 @@ router.post('/verify-otp', validate(userVerifyOtpSchema), verifyUserOtp);
  *                 type: string
  *                 format: date
  *                 example: "2000-01-15"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "john.doe@example.com"
+ *                 description: Email address (must be unique)
  *               gender:
  *                 type: string
  *                 enum: [male, female, other]

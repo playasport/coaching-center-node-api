@@ -501,6 +501,10 @@ export const userProfileUpdateSchema = z.object({
         ])
         .optional()
         .transform((val) => (val ? val : undefined)),
+      email: z
+        .string()
+        .email(validationMessages.email.invalid())
+        .optional(),
       dob: z
         .string()
         .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format')
@@ -510,7 +514,7 @@ export const userProfileUpdateSchema = z.object({
     .refine(
       (data) =>
         Boolean(
-          data.firstName ?? data.lastName ?? data.dob ?? data.gender
+          data.firstName ?? data.lastName ?? data.email ?? data.dob ?? data.gender
         ),
       {
         message: validationMessages.profile.noChanges(),

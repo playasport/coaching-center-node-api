@@ -67,7 +67,13 @@ const generateTokensAndStoreDeviceToken = async (
   }
 ): Promise<{ accessToken: string; refreshToken: string }> => {
   // Clear user-level blacklist if it exists (user is logging in again after logout all)
-  await clearUserBlacklist(user.id);
+  // Fire-and-forget: don't block token generation on Redis operation
+  clearUserBlacklist(user.id).catch((error) => {
+    logger.error('Failed to clear user blacklist (non-blocking)', {
+      userId: user.id,
+      error: error instanceof Error ? error.message : error,
+    });
+  });
   
   const deviceType = deviceData?.deviceType || 'web';
   
@@ -1286,38 +1292,45 @@ export const registerUser = async (data: UserRegisterInput): Promise<RegisterRes
     }
   }
 
-  // Create notification for admin and super_admin when new user registers
+  // Create notification for admin and super_admin when new user registers (fire-and-forget)
   if (!existingUser) {
-    try {
-      const { createAndSendNotification } = await import('../common/notification.service');
-      const fullName = lastName ? `${firstName} ${lastName}` : firstName;
-      
-      await createAndSendNotification({
-        recipientType: 'role',
-        roles: [DefaultRoles.ADMIN, DefaultRoles.SUPER_ADMIN],
-        title: 'New User Registration',
-        body: `${fullName} (${email}) has registered as a ${type || 'user'}.`,
-        channels: ['push'],
-        priority: 'medium',
-        data: {
-          type: 'user_registration',
-          userId: user.id,
-          email: email,
-          userType: type || 'user',
-        },
-        metadata: {
-          source: 'user_registration',
-          registrationDate: new Date().toISOString(),
-        },
-      });
-    } catch (error) {
-      logger.error('Failed to create user registration notification', { error });
-      // Don't throw error - notification failure shouldn't break registration
-    }
+    // Don't await - let it run in background to avoid blocking registration response
+    (async () => {
+      try {
+        const { createAndSendNotification } = await import('../common/notification.service');
+        const fullName = lastName ? `${firstName} ${lastName}` : firstName;
+        
+        await createAndSendNotification({
+          recipientType: 'role',
+          roles: [DefaultRoles.ADMIN, DefaultRoles.SUPER_ADMIN],
+          title: 'New User Registration',
+          body: `${fullName} (${email}) has registered as a ${type || 'user'}.`,
+          channels: ['push'],
+          priority: 'medium',
+          data: {
+            type: 'user_registration',
+            userId: user.id,
+            email: email,
+            userType: type || 'user',
+          },
+          metadata: {
+            source: 'user_registration',
+            registrationDate: new Date().toISOString(),
+          },
+        });
+      } catch (error) {
+        logger.error('Failed to create user registration notification', { error });
+        // Don't throw error - notification failure shouldn't break registration
+      }
+    })();
   }
 
+  // Remove unwanted fields from user object before returning
+  const userObj = user as any;
+  const { isDeleted, deletedAt, createdAt, updatedAt, roles: _roles, ...sanitizedUser } = userObj;
+
   return {
-    user,
+    user: sanitizedUser,
     accessToken,
     refreshToken,
   };
@@ -1516,6 +1529,18 @@ export const updateUserProfile = async (
 
   if (data.lastName !== undefined) {
     updates.lastName = data.lastName ?? null;
+  }
+
+  if (data.email) {
+    // Check if email already exists for another user
+    const emailLower = data.email.toLowerCase();
+    if (emailLower !== existingUser.email.toLowerCase()) {
+      const emailExists = await userService.findByEmail(emailLower);
+      if (emailExists && emailExists.id !== userId) {
+        throw new ApiError(400, t('auth.register.emailExists'));
+      }
+    }
+    updates.email = emailLower;
   }
 
   if (data.dob) {
@@ -1770,6 +1795,7 @@ export const verifyUserPasswordReset = async (
  */
 export const getCurrentUser = async (userId: string): Promise<any> => {
   const { UserModel } = await import('../../models/user.model');
+  const { SportModel } = await import('../../models/sport.model');
   
   const user = await UserModel.findOne({ id: userId })
     .select({
@@ -1780,16 +1806,19 @@ export const getCurrentUser = async (userId: string): Promise<any> => {
       deletedAt: 0, // Exclude deletedAt
       updatedAt: 0, // Exclude updatedAt
     })
-    .populate('favoriteSports', 'custom_id name logo')
     .lean();
 
   if (!user) {
     throw new ApiError(404, t('auth.profile.notFound'));
   }
 
-  // Transform the user object to ensure id field is present
+  // Store original favoriteSports array before transforming (extract it from user object)
+  const originalFavoriteSports = (user as any).favoriteSports;
+
+  // Transform the user object to ensure id field is present, excluding favoriteSports
+  const { favoriteSports: _favoriteSports, ...userWithoutFavoriteSports } = user as any;
   const userResponse: any = {
-    ...user,
+    ...userWithoutFavoriteSports,
     id: user.id || (user as any)._id?.toString(),
   };
 
@@ -1800,6 +1829,67 @@ export const getCurrentUser = async (userId: string): Promise<any> => {
   delete userResponse.isDeleted;
   delete userResponse.deletedAt;
   delete userResponse.updatedAt;
+
+  // Manually populate favoriteSports with sport details
+  if (originalFavoriteSports && Array.isArray(originalFavoriteSports) && originalFavoriteSports.length > 0) {
+    try {
+      const { Types } = await import('mongoose');
+      
+      // Convert ObjectIds to proper format for querying
+      const sportIds = originalFavoriteSports
+        .map((id: any) => {
+          // Handle string ObjectIds
+          if (typeof id === 'string') {
+            return Types.ObjectId.isValid(id) ? new Types.ObjectId(id) : null;
+          }
+          // Handle ObjectId objects
+          if (id && typeof id === 'object' && id.toString) {
+            return Types.ObjectId.isValid(id.toString()) ? new Types.ObjectId(id.toString()) : null;
+          }
+          return null;
+        })
+        .filter((id: any) => id !== null);
+
+      if (sportIds.length > 0) {
+        // Fetch sports by their MongoDB _id
+        const sports = await SportModel.find({
+          _id: { $in: sportIds }
+        })
+          .select('_id custom_id name logo')
+          .lean();
+
+        // Map sports to the expected format, maintaining the order from originalFavoriteSports
+        const sportMap = new Map(
+          sports.map((sport: any) => [sport._id.toString(), {
+            id: sport._id.toString(),
+            custom_id: sport.custom_id,
+            name: sport.name,
+            logo: sport.logo || null,
+          }])
+        );
+
+        // Maintain original order from originalFavoriteSports
+        userResponse.favoriteSports = originalFavoriteSports
+          .map((id: any) => {
+            const idStr = typeof id === 'string' ? id : id?.toString();
+            return sportMap.get(idStr);
+          })
+          .filter((sport: any) => sport !== undefined);
+      } else {
+        userResponse.favoriteSports = [];
+      }
+    } catch (error) {
+      logger.error('Failed to populate favorite sports', {
+        userId,
+        error: error instanceof Error ? error.message : error,
+      });
+      // If population fails, return empty array
+      userResponse.favoriteSports = [];
+    }
+  } else {
+    // Ensure favoriteSports is always an array
+    userResponse.favoriteSports = [];
+  }
 
   return userResponse;
 };
@@ -1987,10 +2077,8 @@ export const verifyUserOtp = async (data: {
         addRole: true,
       });
       if (updatedUser) {
-        user = await userService.findByMobile(mobile);
-        if (!user) {
-          throw new ApiError(500, t('errors.internalServerError'));
-        }
+        // Use updatedUser directly instead of refetching - eliminates unnecessary DB query
+        user = updatedUser;
         const updatedRoles = user.roles as any[];
         // Check if user has user role
         const hasUserRole = updatedRoles.some((r: any) => r?.name === DefaultRoles.USER);
@@ -2026,8 +2114,12 @@ export const verifyUserOtp = async (data: {
         : undefined
     );
 
+    // Remove unwanted fields from user object before returning
+    const userObj = user as any;
+    const { isDeleted, deletedAt, createdAt, updatedAt, roles: _roles, ...sanitizedUser } = userObj;
+
     return {
-      user,
+      user: sanitizedUser,
       accessToken,
       refreshToken,
     };
