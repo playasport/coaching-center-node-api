@@ -11,12 +11,18 @@ import { config } from './config/env';
 const app: Application = express();
 
 // Middleware
+// app.use(cors({
+//   origin: [
+//     'http://localhost:3000',
+//     'https://frontend.playasport.in',
+//     'https://coaching-center-panel-ui-be4h.vercel.app/'
+//   ],
+//   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+//   credentials: true
+// }));
+
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://frontend.playasport.in',
-    'https://coaching-center-panel-ui-be4h.vercel.app/'
-  ],
+  origin: true, // Allow all origins
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true
 }));
