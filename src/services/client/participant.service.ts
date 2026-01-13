@@ -102,6 +102,32 @@ export const createParticipant = async (
     // Prepare participant data
     // Note: isSelf is always set to null for manually created participants
     // Only the system sets isSelf = '1' when creating a user
+    
+    // Process address - ensure it has required fields or set to null
+    // Address model requires: line2, city, state, country, pincode
+    let processedAddress: any = null;
+    if (data.address && typeof data.address === 'object') {
+      // Extract and trim address fields
+      const line2 = data.address.line2 ? String(data.address.line2).trim() : '';
+      const city = data.address.city ? String(data.address.city).trim() : '';
+      const state = data.address.state ? String(data.address.state).trim() : '';
+      const pincode = data.address.pincode ? String(data.address.pincode).trim() : '';
+      const country = data.address.country ? String(data.address.country).trim() : 'India';
+      
+      // Only set address if all required fields are present and non-empty
+      if (line2 && city && state && pincode) {
+        processedAddress = {
+          line1: data.address.line1 ? String(data.address.line1).trim() : null,
+          line2: line2,
+          area: data.address.area ? String(data.address.area).trim() : null,
+          city: city,
+          state: state,
+          country: country,
+          pincode: pincode,
+        };
+      }
+    }
+    
     const participantData: any = {
       userId: userObjectId,
       firstName: data.firstName || null,
@@ -112,7 +138,7 @@ export const createParticipant = async (
       schoolName: data.schoolName || null,
       contactNumber: data.contactNumber || null,
       profilePhoto: profilePhotoUrl,
-      address: data.address || null,
+      address: processedAddress,
       isSelf: null, // Always null for manually created participants
     };
 
@@ -150,8 +176,15 @@ export const createParticipant = async (
       error: error instanceof Error ? error.message : error,
       stack: error instanceof Error ? error.stack : undefined,
       userId,
+      data: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        hasAddress: !!data.address,
+      },
     });
-    throw new ApiError(500, t('participant.create.failed'));
+    // Include the actual error message if it's an Error instance
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create participant';
+    throw new ApiError(500, errorMessage);
   }
 };
 
@@ -278,6 +311,22 @@ export const updateParticipant = async (
 
     const updates: any = {};
 
+    // Log incoming data for debugging (especially address field)
+    logger.debug('Update participant data received', {
+      participantId: id,
+      userId,
+      hasFile: !!file,
+      addressProvided: data.address !== undefined,
+      addressType: data.address !== undefined ? typeof data.address : 'undefined',
+      addressValue: data.address !== undefined 
+        ? (typeof data.address === 'string' 
+          ? String(data.address).substring(0, 100) 
+          : typeof data.address === 'object'
+          ? JSON.stringify(data.address).substring(0, 100)
+          : String(data.address).substring(0, 100))
+        : undefined,
+    });
+
     // Handle profile photo file upload if provided
     if (file) {
       try {
@@ -340,7 +389,52 @@ export const updateParticipant = async (
     if (data.dob !== undefined) updates.dob = data.dob ? new Date(data.dob) : null;
     if (data.schoolName !== undefined) updates.schoolName = data.schoolName || null;
     if (data.contactNumber !== undefined) updates.contactNumber = data.contactNumber || null;
-    if (data.address !== undefined) updates.address = data.address || null;
+    
+    // Process address - ensure it has required fields or set to null
+    // Address model requires: line2, city, state, country, pincode
+    if (data.address !== undefined) {
+      let processedAddress: any = null;
+      
+      // Handle case where address might still be a JSON string (defensive check)
+      let addressObj: any = data.address;
+      const addressValue: any = data.address;
+      if (addressValue && typeof addressValue === 'string' && String(addressValue).trim().length > 0) {
+        try {
+          addressObj = JSON.parse(String(addressValue));
+        } catch (parseError) {
+          logger.warn('Failed to parse address JSON string in update', {
+            participantId: id,
+            addressString: String(addressValue).substring(0, 200),
+            error: parseError,
+          });
+          addressObj = null;
+        }
+      }
+      
+      if (addressObj && typeof addressObj === 'object') {
+        // Extract and trim address fields
+        const line2 = addressObj.line2 ? String(addressObj.line2).trim() : '';
+        const city = addressObj.city ? String(addressObj.city).trim() : '';
+        const state = addressObj.state ? String(addressObj.state).trim() : '';
+        const pincode = addressObj.pincode ? String(addressObj.pincode).trim() : '';
+        const country = addressObj.country ? String(addressObj.country).trim() : 'India';
+        
+        // Only set address if all required fields are present and non-empty
+        if (line2 && city && state && pincode) {
+          processedAddress = {
+            line1: addressObj.line1 ? String(addressObj.line1).trim() : null,
+            line2: line2,
+            area: addressObj.area ? String(addressObj.area).trim() : null,
+            city: city,
+            state: state,
+            country: country,
+            pincode: pincode,
+          };
+        }
+      }
+      updates.address = processedAddress;
+    }
+    
     if (data.isSelf !== undefined) updates.isSelf = data.isSelf || null;
 
     // Update participant
@@ -363,8 +457,21 @@ export const updateParticipant = async (
     if (error instanceof ApiError) {
       throw error;
     }
-    logger.error('Failed to update participant:', error);
-    throw new ApiError(500, t('participant.update.failed'));
+    logger.error('Failed to update participant:', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      participantId: id,
+      userId,
+      data: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        hasAddress: data.address !== undefined,
+        addressType: data.address ? typeof data.address : 'undefined',
+      },
+    });
+    // Include the actual error message if it's an Error instance
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update participant';
+    throw new ApiError(500, errorMessage);
   }
 };
 

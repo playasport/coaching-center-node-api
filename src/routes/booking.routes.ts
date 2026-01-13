@@ -197,9 +197,9 @@ router.post(
  * @swagger
  * /user/booking:
  *   get:
- *     summary: Get user bookings list
+ *     summary: Get user bookings list (paid bookings only)
  *     tags: [Booking]
- *     description: Retrieve a paginated list of user's bookings with enrolled batches, participants, and payment details. Requires authentication.
+ *     description: Retrieve a paginated list of user's paid bookings (payment status = success) with enrolled batches, participants, and payment details. Only shows bookings with successful payment. Requires authentication.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -223,13 +223,7 @@ router.post(
  *         schema:
  *           type: string
  *           enum: [pending, confirmed, cancelled, completed]
- *         description: Filter by booking status
- *       - in: query
- *         name: paymentStatus
- *         schema:
- *           type: string
- *           enum: [pending, processing, success, failed, refunded, cancelled]
- *         description: Filter by payment status
+ *         description: Filter by booking status (only paid bookings are shown)
  *     responses:
  *       200:
  *         description: User bookings retrieved successfully

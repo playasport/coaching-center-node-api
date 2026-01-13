@@ -44,7 +44,23 @@ export const participantCreateSchema = z.object({
       ),
     // Note: profilePhoto can also be uploaded as a file using multipart/form-data with field name 'profileImage'
     // If both file and URL are provided, the file takes precedence
-    address: participantAddressSchema.optional().nullable(),
+    address: z
+      .preprocess(
+        (val) => {
+          // Handle multipart/form-data: if address is sent as JSON string, parse it
+          if (typeof val === 'string' && val.trim().length > 0) {
+            try {
+              return JSON.parse(val);
+            } catch {
+              // If parsing fails, return the string (will fail validation, which is expected)
+              return val;
+            }
+          }
+          // If it's already an object or null/undefined, return as is
+          return val;
+        },
+        participantAddressSchema.optional().nullable()
+      ),
     // isSelf is not allowed in create - it's automatically set to null for manually created participants
     // Only the system sets isSelf = '1' when creating a user
   }),
@@ -81,7 +97,23 @@ export const participantUpdateSchema = z.object({
       ),
     // Note: profilePhoto can also be uploaded as a file using multipart/form-data with field name 'profileImage'
     // If both file and URL are provided, the file takes precedence. Old photo will be deleted when updating.
-    address: participantAddressSchema.optional().nullable(),
+    address: z
+      .preprocess(
+        (val) => {
+          // Handle multipart/form-data: if address is sent as JSON string, parse it
+          if (typeof val === 'string' && val.trim().length > 0) {
+            try {
+              return JSON.parse(val);
+            } catch {
+              // If parsing fails, return the string (will fail validation, which is expected)
+              return val;
+            }
+          }
+          // If it's already an object or null/undefined, return as is
+          return val;
+        },
+        participantAddressSchema.optional().nullable()
+      ),
     isSelf: z.string().max(191, 'isSelf must be less than 191 characters').optional().nullable(),
   }),
 });

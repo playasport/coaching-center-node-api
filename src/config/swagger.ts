@@ -3674,12 +3674,19 @@ const options: swaggerJsdoc.Options = {
               },
               description: 'List of 8 popular sports',
             },
-            popular_reels: {
+            popularReels: {
               type: 'array',
               items: {
                 $ref: '#/components/schemas/PopularReel',
               },
               description: 'List of popular reels (top 5 by views count)',
+            },
+            topCities: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/TopCity',
+              },
+              description: 'Top 10 cities with the most academies',
             },
           },
         },

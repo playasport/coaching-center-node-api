@@ -142,6 +142,7 @@ export interface AcademyDetail extends AcademyListItem {
     } | null;
     status: string;
     is_active: boolean;
+    description?: string | null;
   }>;
 }
 
@@ -435,7 +436,7 @@ export const getAcademyById = async (
     })
       .populate('sport', 'custom_id name logo')
       .populate('coach', 'fullName')
-      .select('name sport coach scheduled duration capacity age admission_fee base_price discounted_price certificate_issued status is_active is_allowed_disabled')
+      .select('name sport coach scheduled duration capacity age admission_fee base_price discounted_price certificate_issued status is_active is_allowed_disabled gender description')
       .lean();
 
     // Mask email and mobile if user not logged in
@@ -444,6 +445,7 @@ export const getAcademyById = async (
       batches: batches.map((batch) => ({
         ...batch,
         _id: batch._id.toString(),
+        allowed_genders: (batch as any).gender || [],
         sport: batch.sport ? {
           _id: (batch.sport as any)._id?.toString(),
           custom_id: (batch.sport as any).custom_id,

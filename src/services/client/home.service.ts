@@ -39,6 +39,7 @@ export interface HomeData {
   nearbyAcademies: AcademyListItem[];
   popularSports: PopularSport[];
   popularReels: PopularReel[];
+  topCities: TopCity[];
 }
 
 /**
@@ -330,6 +331,71 @@ export const getPopularReels = async (limit: number = 6): Promise<PopularReel[]>
   }
 };
 
+export interface TopCity {
+  city: string;
+  state: string;
+  academyCount: number;
+}
+
+/**
+ * Get top 10 cities with the most academies
+ * Only counts approved, active, non-deleted academies
+ */
+export const getTopCities = async (limit: number = 10): Promise<TopCity[]> => {
+  try {
+    const aggregationPipeline: any[] = [
+      {
+        $match: {
+          status: 'published',
+          is_active: true,
+          is_deleted: false,
+          approval_status: 'approved',
+          $and: [
+            { 'location.address.city': { $exists: true } },
+            { 'location.address.city': { $ne: null } },
+            { 'location.address.city': { $ne: '' } },
+          ],
+        },
+      },
+      {
+        $group: {
+          _id: {
+            city: '$location.address.city',
+            state: '$location.address.state',
+          },
+          academyCount: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          city: '$_id.city',
+          state: '$_id.state',
+          academyCount: 1,
+        },
+      },
+      {
+        $sort: { academyCount: -1 },
+      },
+      {
+        $limit: limit,
+      },
+    ];
+
+    const topCities = await CoachingCenterModel.aggregate(aggregationPipeline);
+
+    return topCities.map((city) => ({
+      city: city.city,
+      state: city.state || '',
+      academyCount: city.academyCount,
+    })) as TopCity[];
+  } catch (error) {
+    logger.error('Failed to get top cities:', error);
+    // Return empty array instead of throwing error
+    return [];
+  }
+};
+
 /**
  * Get home page data (nearby academies, popular sports, and popular reels)
  */
@@ -339,9 +405,9 @@ export const getHomeData = async (
   radius?: number
 ): Promise<HomeData> => {
   try {
-    // Get popular sports, nearby academies, and popular reels in parallel
+    // Get popular sports, nearby academies, popular reels, and top cities in parallel
     // If any error occurs, it will return empty array instead of throwing
-    const [popularSports, nearbyAcademies, popularReels] = await Promise.all([
+    const [popularSports, nearbyAcademies, popularReels, topCities] = await Promise.all([
       getPopularSports(8).catch((error) => {
         logger.error('Error getting popular sports, returning empty array:', error);
         return [];
@@ -356,12 +422,17 @@ export const getHomeData = async (
         logger.error('Error getting popular reels, returning empty array:', error);
         return [];
       }),
+      getTopCities(10).catch((error) => {
+        logger.error('Error getting top cities, returning empty array:', error);
+        return [];
+      }),
     ]);
 
     return {
       nearbyAcademies: nearbyAcademies || [],
       popularSports: popularSports || [],
       popularReels: popularReels || [],
+      topCities: topCities || [],
     };
   } catch (error) {
     logger.error('Failed to get home data:', error);
@@ -370,6 +441,7 @@ export const getHomeData = async (
       nearbyAcademies: [],
       popularSports: [],
       popularReels: [],
+      topCities: [],
     };
   }
 };

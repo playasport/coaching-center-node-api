@@ -56,33 +56,6 @@ class MeilisearchIndexingService {
   }
 
   /**
-   * Update a single document
-   */
-  private async updateDocument(
-    indexName: string,
-    document: any,
-    primaryKey: string = 'id'
-  ): Promise<boolean> {
-    if (!this.isIndexingEnabled()) {
-      return false;
-    }
-
-    const client = meilisearchClient.getClient();
-    if (!client) {
-      return false;
-    }
-
-    try {
-      const index = client.index(indexName);
-      await index.updateDocuments([document], { primaryKey });
-      return true;
-    } catch (error) {
-      logger.error(`Failed to update document in ${indexName}:`, error);
-      return false;
-    }
-  }
-
-  /**
    * Delete a document
    */
   private async deleteDocument(

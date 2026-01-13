@@ -100,6 +100,7 @@ export interface BookingSummary {
   amount: number;
   currency: string;
   breakdown: {
+    admission_fee_per_participant?: number;
     admission_fee?: number;
     base_fee?: number;
     per_participant_fee?: number;
@@ -256,7 +257,7 @@ const validateBatchAndCenter = async (batchId: string): Promise<{ batch: any; co
   }
 
   const batch = await BatchModel.findById(batchId)
-    .select('_id id name sport center is_allowed_disabled status is_active is_deleted age')
+    .select('_id id name sport center is_allowed_disabled status is_active is_deleted age capacity scheduled duration admission_fee base_price discounted_price gender')
     .populate('sport', 'id name')
     .populate('center', 'id center_name logo')
     .lean();
@@ -291,7 +292,7 @@ const validateBatchAndCenter = async (batchId: string): Promise<{ batch: any; co
   // Since we only populated 'id center_name logo', we need to fetch full details for age/gender validation
   const centerId = populatedCenter._id || populatedCenter.id;
   const coachingCenter = await CoachingCenterModel.findById(centerId)
-    .select('id center_name logo age allowed_genders allowed_disabled is_only_for_disabled is_active is_deleted status approval_status')
+    .select('id center_name logo age allowed_genders allowed_disabled is_only_for_disabled is_active is_deleted status approval_status location experience')
     .lean();
 
   // Validate coaching center exists
@@ -462,19 +463,43 @@ const validateParticipantEligibility = async (
     }
 
     // Gender Validation
-    if (participant.gender !== null && participant.gender !== undefined) {
+    // If participant gender is null or empty, allow all genders (skip validation)
+    // If batch/center gender restrictions are null or empty, allow all genders
+    // First check batch-level gender restriction (batch can be more restrictive than center)
+    // Then check center-level gender restriction
+    if (participant.gender !== null && participant.gender !== undefined && participant.gender !== '') {
       const participantGender = mapParticipantGenderToEnum(participant.gender);
 
-      if (participantGender && coachingCenter.allowed_genders && coachingCenter.allowed_genders.length > 0) {
-        if (!coachingCenter.allowed_genders.includes(participantGender)) {
-          const allowedGendersStr = coachingCenter.allowed_genders.join(', ');
-          throw new ApiError(
-            400,
-            `Participant ${participant.firstName || participant._id} gender (${participantGender}) is not allowed. Allowed genders: ${allowedGendersStr}`
-          );
+      if (participantGender) {
+        // Check batch gender restriction first (batch can override center setting)
+        // If batch.gender is null or empty array, allow all genders
+        if (batch.gender && Array.isArray(batch.gender) && batch.gender.length > 0) {
+          const batchAllowedGenders = batch.gender.map((g: string) => g.toLowerCase());
+          if (!batchAllowedGenders.includes(participantGender.toLowerCase())) {
+            const allowedGendersStr = batch.gender.join(', ');
+            throw new ApiError(
+              400,
+              `Participant ${participant.firstName || participant._id} gender (${participantGender}) is not allowed for this batch. Batch allowed genders: ${allowedGendersStr}`
+            );
+          }
         }
+        // If batch.gender is null/empty, skip batch validation (allow all)
+
+        // Also check coaching center gender restriction (for consistency)
+        // If coachingCenter.allowed_genders is null or empty array, allow all genders
+        if (coachingCenter.allowed_genders && Array.isArray(coachingCenter.allowed_genders) && coachingCenter.allowed_genders.length > 0) {
+          if (!coachingCenter.allowed_genders.includes(participantGender)) {
+            const allowedGendersStr = coachingCenter.allowed_genders.join(', ');
+            throw new ApiError(
+              400,
+              `Participant ${participant.firstName || participant._id} gender (${participantGender}) is not allowed by the coaching center. Allowed genders: ${allowedGendersStr}`
+            );
+          }
+        }
+        // If coachingCenter.allowed_genders is null/empty, skip center validation (allow all)
       }
     }
+    // If participant.gender is null/undefined/empty, skip all gender validation (allow all)
 
     // Disability Validation
     // Check if participant has a disability (0 = no, 1 = yes)
@@ -618,6 +643,7 @@ export const getBookingSummary = async (
       amount: totalAmount,
       currency: 'INR',
       breakdown: {
+        admission_fee_per_participant: admissionFeePerParticipant > 0 ? roundToTwoDecimals(admissionFeePerParticipant) : undefined,
         admission_fee: totalAdmissionFee > 0 ? roundToTwoDecimals(totalAdmissionFee) : undefined,
         base_fee: totalBaseFee > 0 ? roundToTwoDecimals(totalBaseFee) : undefined,
         per_participant_fee: perParticipantFee > 0 ? roundToTwoDecimals(perParticipantFee) : undefined,
@@ -635,8 +661,11 @@ export const getBookingSummary = async (
     logger.error('Failed to get booking summary:', {
       error: error instanceof Error ? error.message : error,
       stack: error instanceof Error ? error.stack : undefined,
+      data: { batchId: data.batchId, participantIds: data.participantIds },
     });
-    throw new ApiError(500, 'Failed to get booking summary');
+    // Include the actual error message if it's an Error instance
+    const errorMessage = error instanceof Error ? error.message : 'Failed to get booking summary';
+    throw new ApiError(500, errorMessage);
   }
 };
 
@@ -1154,10 +1183,11 @@ export const getUserBookings = async (
       throw new ApiError(404, t('user.notFound') || 'User not found');
     }
 
-    // Build query
+    // Build query - only show paid bookings (payment status = success)
     const query: any = {
       user: userObjectId,
       is_deleted: false,
+      'payment.status': PaymentStatus.SUCCESS, // Only show paid bookings
     };
 
     // Filter by status if provided
@@ -1165,10 +1195,8 @@ export const getUserBookings = async (
       query.status = params.status;
     }
 
-    // Filter by payment status if provided
-    if (params.paymentStatus) {
-      query['payment.status'] = params.paymentStatus;
-    }
+    // Note: paymentStatus filter is removed - we always show only paid bookings
+    // If paymentStatus filter is provided, it's ignored (only paid bookings are shown)
 
     // Pagination
     const page = Math.max(1, params.page || 1);
