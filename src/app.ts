@@ -14,7 +14,8 @@ const app: Application = express();
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://front.playasport.in'
+    'https://frontend.playasport.in',
+    'https://coaching-center-panel-ui-be4h.vercel.app/'
   ],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true
