@@ -14,7 +14,7 @@ import { logger } from '../src/utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 
 // Configuration
-const DEFAULT_USER_ID = '69524dda4e9cdb6816196e6a'; // Default Academy User ID
+const DEFAULT_USER_ID = '694249694e9cdb6816192a95'; // Default Academy User ID
 const DEFAULT_BATCH_COUNT = 5;
 const DEFAULT_BOOKING_COUNT_PER_BATCH = 3;
 const DEFAULT_PARTICIPANT_COUNT = 5;
@@ -347,18 +347,23 @@ const generateBookingData = (
   const bookingStatus = bookingStatuses[Math.floor(Math.random() * bookingStatuses.length)];
   const paymentStatus = paymentStatuses[Math.floor(Math.random() * paymentStatuses.length)];
 
-  // Select 1-3 random participants
+  // Select 1-3 random participants (ensure at least 1)
+  if (participantIds.length === 0) {
+    throw new Error('Cannot create booking: No participants available');
+  }
   const participantCount = Math.min(Math.floor(Math.random() * 3) + 1, participantIds.length);
   const selectedParticipants = participantIds
     .sort(() => Math.random() - 0.5)
-    .slice(0, participantCount);
+    .slice(0, Math.max(1, participantCount)); // Ensure at least 1 participant
 
   // Calculate amount (base price * number of participants)
   const amount = batchBasePrice * selectedParticipants.length;
 
-  // Generate booking ID
+  // Generate unique booking ID (using timestamp to avoid duplicates)
   const year = new Date().getFullYear();
-  const bookingId = `BK-${year}-${String(index + 1).padStart(4, '0')}`;
+  const timestamp = Date.now();
+  const randomSuffix = Math.floor(Math.random() * 1000);
+  const bookingId = `BK-${year}-${String(index + 1).padStart(4, '0')}-${timestamp}-${randomSuffix}`;
 
   // Payment details
   const paymentDetails: any = {
@@ -541,36 +546,64 @@ const seedBatchesAndBookings = async () => {
     console.log(`\n✅ Created ${batchIds.length} batches\n`);
 
     // Create bookings
-    console.log(`📝 Creating bookings (${bookingCountPerBatch} per batch)...`);
-    let totalBookings = 0;
+    let totalBookings = 0; // Declare outside if-else block for scope
     let bookingIndex = 0;
+    
+    if (participantIds.length === 0) {
+      console.error('❌ Cannot create bookings: No participants were created!');
+      console.error('   Please ensure participants are created successfully before creating bookings.\n');
+    } else if (batchIds.length === 0) {
+      console.error('❌ Cannot create bookings: No batches were created!');
+      console.error('   Please ensure batches are created successfully before creating bookings.\n');
+    } else {
+      console.log(`📝 Creating bookings (${bookingCountPerBatch} per batch)...`);
 
-    for (const batchId of batchIds) {
-      const batchPrice = batchPrices.get(batchId.toString()) || 2000;
-      
-      for (let j = 0; j < bookingCountPerBatch; j++) {
-        try {
-          const bookingData = generateBookingData(
-            userId,
-            batchId,
-            center._id,
-            sport._id,
-            participantIds,
-            batchPrice,
-            bookingIndex
-          );
-          const booking = new BookingModel(bookingData);
-          await booking.save();
-          totalBookings++;
-          bookingIndex++;
-          console.log(`  ✅ Created booking: ${bookingData.booking_id} for batch ${batchId}`);
-        } catch (error) {
-          console.error(`  ❌ Failed to create booking ${j + 1} for batch ${batchId}:`, error instanceof Error ? error.message : error);
-          logger.error(`Failed to create booking ${j + 1} for batch ${batchId}`, error);
+      for (const batchId of batchIds) {
+        const batchPrice = batchPrices.get(batchId.toString()) || 2000;
+        
+        for (let j = 0; j < bookingCountPerBatch; j++) {
+          try {
+            // Ensure we have participants before creating booking
+            if (participantIds.length === 0) {
+              console.error(`  ❌ Skipping booking ${j + 1} for batch ${batchId}: No participants available`);
+              continue;
+            }
+
+            const bookingData = generateBookingData(
+              userId,
+              batchId,
+              center._id,
+              sport._id,
+              participantIds,
+              batchPrice,
+              bookingIndex
+            );
+
+            // Validate booking data before saving
+            if (!bookingData.participants || bookingData.participants.length === 0) {
+              console.error(`  ❌ Skipping booking ${j + 1} for batch ${batchId}: No participants selected`);
+              continue;
+            }
+
+            const booking = new BookingModel(bookingData);
+            await booking.save();
+            totalBookings++;
+            bookingIndex++;
+            console.log(`  ✅ Created booking: ${bookingData.booking_id} for batch ${batchId}`);
+          } catch (error: any) {
+            const errorMessage = error?.message || 'Unknown error';
+            const errorDetails = error?.errors ? JSON.stringify(error.errors, null, 2) : '';
+            console.error(`  ❌ Failed to create booking ${j + 1} for batch ${batchId}:`);
+            console.error(`     Error: ${errorMessage}`);
+            if (errorDetails) {
+              console.error(`     Details: ${errorDetails}`);
+            }
+            logger.error(`Failed to create booking ${j + 1} for batch ${batchId}`, error);
+          }
         }
       }
+      console.log(`\n✅ Created ${totalBookings} bookings\n`);
     }
-    console.log(`\n✅ Created ${totalBookings} bookings\n`);
 
     // Display results
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

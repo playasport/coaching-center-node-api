@@ -8,6 +8,7 @@ export interface ReelListItem {
   id: string;
   videoUrl: string;
   thumbnailUrl: string;
+  previewUrl: string | null;
   title: string;
   description: string | null;
   share_url: string;
@@ -46,6 +47,7 @@ const formatReelListItem = (reel: any, user: any): ReelListItem => {
     id: reel.id,
     videoUrl: reel.masterM3u8Url || '', // Use master playlist URL directly from database
     thumbnailUrl: reel.thumbnailPath || '', // Use thumbnail URL directly from database
+    previewUrl: reel.previewUrl || null, // Preview URL from database
     title: reel.title,
     description: reel.description || null,
     share_url: `https://playasport.in/reels/${reel.id}`,

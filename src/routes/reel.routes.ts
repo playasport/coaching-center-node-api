@@ -57,6 +57,11 @@ const router = Router();
  *                             type: string
  *                             format: uri
  *                             example: "https://media-playsport.s3.ap-south-1.amazonaws.com/reels/179/1755696149_C60rlU4My8/thumbnail.jpg"
+ *                           previewUrl:
+ *                             type: string
+ *                             format: uri
+ *                             nullable: true
+ *                             example: "https://media-playsport.s3.ap-south-1.amazonaws.com/reels/179/1755696149_C60rlU4My8/preview.mp4"
  *                           title:
  *                             type: string
  *                             example: "Line up. Aim. Break. 🎱🔥 #PlayASports #8BallDreams"
@@ -161,6 +166,10 @@ router.get('/reels', reelController.getReelsList);
  *                           thumbnailUrl:
  *                             type: string
  *                             format: uri
+ *                           previewUrl:
+ *                             type: string
+ *                             format: uri
+ *                             nullable: true
  *                           title:
  *                             type: string
  *                           description:
