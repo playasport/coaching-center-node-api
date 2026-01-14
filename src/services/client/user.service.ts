@@ -19,6 +19,7 @@ export interface CreateUserData {
   password: string;
   role: string;
   userType?: 'student' | 'guardian' | null;
+  registrationMethod?: 'email' | 'mobile' | 'google' | 'facebook' | 'apple' | 'instagram' | null;
   isActive?: boolean;
 }
 
@@ -83,6 +84,7 @@ export const userService = {
       password: hashedPassword,
       roles: [role._id], // Use roles array with Role ObjectId
       userType: data.userType ?? null, // Set userType (only applies when role is 'user')
+      registrationMethod: data.registrationMethod ?? null, // How the user registered
       isActive: data.isActive ?? true,
     });
 

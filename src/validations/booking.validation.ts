@@ -113,6 +113,34 @@ export const academyEnrolledStudentsSchema = z.object({
   }),
 });
 
+// Academy enrolled users list query schema
+export const academyEnrolledUsersSchema = z.object({
+  query: z.object({
+    page: z
+      .preprocess((val) => {
+        if (typeof val === 'string') {
+          const parsed = parseInt(val, 10);
+          return isNaN(parsed) ? undefined : parsed;
+        }
+        return val;
+      }, z.number().int().min(1).optional())
+      .optional(),
+    limit: z
+      .preprocess((val) => {
+        if (typeof val === 'string') {
+          const parsed = parseInt(val, 10);
+          return isNaN(parsed) ? undefined : parsed;
+        }
+        return val;
+      }, z.number().int().min(1).max(100).optional())
+      .optional(),
+    centerId: z.string().min(1, 'Center ID must be valid').optional(),
+    batchId: z.string().min(1, 'Batch ID must be valid').optional(),
+    userType: z.enum(['student', 'guardian']).optional(),
+    search: z.string().min(1, 'Search query must be at least 1 character').optional(),
+  }),
+});
+
 // User booking list query schema
 export const userBookingListSchema = z.object({
   query: z.object({

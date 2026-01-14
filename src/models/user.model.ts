@@ -2,6 +2,8 @@ import { Schema, model, HydratedDocument, Types } from 'mongoose';
 import { addressSchema, Address } from './address.model';
 import { Gender } from '../enums/gender.enum';
 
+export type RegistrationMethod = 'email' | 'mobile' | 'google' | 'facebook' | 'apple' | 'instagram';
+
 export interface User {
   id: string;
   firstName: string;
@@ -15,6 +17,7 @@ export interface User {
   isActive: boolean;
   roles: Types.ObjectId[]; // Array of Role references - supports multiple roles
   userType?: 'student' | 'guardian' | null; // Only applies when role is 'user'
+  registrationMethod?: RegistrationMethod | null; // How the user registered (email, mobile, google, facebook, apple, instagram)
   favoriteSports?: Types.ObjectId[]; // Array of Sport references for user preferences
   address?: Address | null;
   isDeleted: boolean;
@@ -46,6 +49,12 @@ const userSchema = new Schema<User>(
     userType: {
       type: String,
       enum: ['student', 'guardian'],
+      default: null,
+      index: true,
+    },
+    registrationMethod: {
+      type: String,
+      enum: ['email', 'mobile', 'google', 'facebook', 'apple', 'instagram'],
       default: null,
       index: true,
     },

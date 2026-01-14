@@ -203,6 +203,7 @@ export const registerAcademyUser = async (data: AcademyRegisterInput): Promise<R
     lastName,
     mobile,
     role: DefaultRoles.ACADEMY,
+    registrationMethod: 'mobile', // Academy registration uses mobile OTP
     isActive: true,
   });
 
@@ -415,6 +416,20 @@ export const socialLoginAcademyUser = async (data: AcademySocialLoginInput): Pro
       (tokenLastParts.length ? tokenLastParts.join(' ') : decodedToken.family_name || null) ||
       null;
 
+    // Determine registration method from provider
+    const provider = payload.provider?.toLowerCase() || decodedToken.firebase?.sign_in_provider?.toLowerCase() || 'google';
+    let registrationMethod: 'google' | 'facebook' | 'apple' | 'instagram' = 'google';
+    
+    if (provider.includes('google')) {
+      registrationMethod = 'google';
+    } else if (provider.includes('facebook')) {
+      registrationMethod = 'facebook';
+    } else if (provider.includes('apple')) {
+      registrationMethod = 'apple';
+    } else if (provider.includes('instagram')) {
+      registrationMethod = 'instagram';
+    }
+
     user = await userService.create({
       id: uuidv4(),
       email,
@@ -422,6 +437,7 @@ export const socialLoginAcademyUser = async (data: AcademySocialLoginInput): Pro
       lastName,
       password: `${uuidv4()}!Social1`,
       role: DefaultRoles.ACADEMY,
+      registrationMethod,
       isActive: true,
     });
   }
@@ -1232,6 +1248,7 @@ export const registerUser = async (data: UserRegisterInput): Promise<RegisterRes
       mobile: verifiedMobile,
       role: DefaultRoles.USER,
       userType: type || null, // Set userType when role is 'user'
+      registrationMethod: 'mobile', // User registration uses mobile OTP
       dob: dob ? new Date(dob) : null,
       gender: gender as any,
       isActive: true,
@@ -1441,6 +1458,20 @@ export const socialLoginUser = async (data: UserSocialLoginInput): Promise<Socia
       (tokenLastParts.length ? tokenLastParts.join(' ') : decodedToken.family_name || null) ||
       null;
 
+    // Determine registration method from provider
+    const provider = payload.provider?.toLowerCase() || decodedToken.firebase?.sign_in_provider?.toLowerCase() || 'google';
+    let registrationMethod: 'google' | 'facebook' | 'apple' | 'instagram' = 'google';
+    
+    if (provider.includes('google')) {
+      registrationMethod = 'google';
+    } else if (provider.includes('facebook')) {
+      registrationMethod = 'facebook';
+    } else if (provider.includes('apple')) {
+      registrationMethod = 'apple';
+    } else if (provider.includes('instagram')) {
+      registrationMethod = 'instagram';
+    }
+
     user = await userService.create({
       id: uuidv4(),
       email,
@@ -1449,6 +1480,7 @@ export const socialLoginUser = async (data: UserSocialLoginInput): Promise<Socia
       password: `${uuidv4()}!Social1`,
       role: DefaultRoles.USER,
       userType: payload.type || null, // Set userType when role is 'user'
+      registrationMethod,
       isActive: true,
     });
   } else {

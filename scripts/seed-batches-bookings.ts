@@ -14,7 +14,7 @@ import { logger } from '../src/utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 
 // Configuration
-const DEFAULT_USER_ID = '694249694e9cdb6816192a95'; // Default Academy User ID
+const DEFAULT_USER_ID = '693a72393c18b3e80760dbda'; // Default Academy User ID
 const DEFAULT_BATCH_COUNT = 5;
 const DEFAULT_BOOKING_COUNT_PER_BATCH = 3;
 const DEFAULT_PARTICIPANT_COUNT = 5;
