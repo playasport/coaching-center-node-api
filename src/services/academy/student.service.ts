@@ -150,6 +150,7 @@ export const getAcademyEnrolledStudents = async (
       .populate('batch', 'id name sport center scheduled')
       .populate('center', 'id center_name')
       .populate('sport', 'id name')
+      .select('id amount priceBreakdown status payment participants batch center sport createdAt')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -217,7 +218,7 @@ export const getAcademyEnrolledStudents = async (
           bookingStatus: bookingData.status as BookingStatus,
           paymentStatus: bookingData.payment?.status as PaymentStatus,
           enrolledDate: bookingData.createdAt || new Date(),
-          amount: bookingData.amount || 0,
+          amount: bookingData.priceBreakdown?.batch_amount || bookingData.amount || 0, // Show only batch amount for academy
         };
 
         // Check if this batch is already added (avoid duplicates)
@@ -474,12 +475,12 @@ export const getAcademyEnrolledStudentDetail = async (
           status: booking.status as BookingStatus,
           payment: {
             status: booking.payment?.status as PaymentStatus,
-            amount: booking.payment?.amount || 0,
+            amount: booking.priceBreakdown?.batch_amount || booking.payment?.amount || 0, // Show batch amount for academy
             currency: booking.payment?.currency || 'INR',
             payment_method: booking.payment?.payment_method || null,
             paid_at: booking.payment?.paid_at || null,
           },
-          amount: booking.amount || 0,
+          amount: booking.priceBreakdown?.batch_amount || booking.amount || 0, // Show only batch amount for academy
           currency: booking.currency || 'INR',
           notes: booking.notes || null,
           createdAt: booking.createdAt || new Date(),

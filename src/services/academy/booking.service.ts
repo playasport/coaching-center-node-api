@@ -127,7 +127,7 @@ export const getAcademyBookings = async (
       .populate('participants', 'firstName lastName')
       .populate('batch', 'name')
       .populate('center', 'center_name')
-      .select('booking_id id amount payment.status payment.payment_method payment.razorpay_order_id user participants batch center createdAt')
+      .select('booking_id id amount priceBreakdown payment.status payment.payment_method payment.razorpay_order_id user participants batch center createdAt')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -150,6 +150,9 @@ export const getAcademyBookings = async (
         studentName = participantNames.join(', ') || 'N/A';
       }
 
+      // For academy, show only batch_amount (what they earn), not total amount with platform fee and GST
+      const batchAmount = booking.priceBreakdown?.batch_amount || booking.amount || 0;
+
       return {
         booking_id: booking.booking_id || booking.id, // Use booking_id if available, fallback to id
         id: booking.id,
@@ -159,7 +162,7 @@ export const getAcademyBookings = async (
         student_name: studentName,
         batch_name: booking.batch?.name || 'N/A',
         center_name: booking.center?.center_name || 'N/A',
-        amount: booking.amount,
+        amount: batchAmount, // Show only batch amount (admission fee + base fee), hide platform fee and GST
         payment_status: booking.payment?.status || 'pending',
         payment_method: booking.payment?.payment_method || null,
         invoice_id: booking.payment?.razorpay_order_id || null,
@@ -233,7 +236,17 @@ export const getAcademyBookingById = async (
       throw new ApiError(404, 'Booking not found');
     }
 
-    return booking as Booking;
+    // For academy, replace amount with batch_amount (what they earn)
+    const bookingData = booking as any;
+    if (bookingData.priceBreakdown?.batch_amount) {
+      bookingData.amount = bookingData.priceBreakdown.batch_amount;
+      // Also update payment amount if exists
+      if (bookingData.payment) {
+        bookingData.payment.amount = bookingData.priceBreakdown.batch_amount;
+      }
+    }
+
+    return bookingData as Booking;
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;

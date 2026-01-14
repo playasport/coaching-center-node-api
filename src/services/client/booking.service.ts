@@ -99,17 +99,38 @@ export interface BookingSummary {
   }>;
   amount: number;
   currency: string;
-  breakdown: {
-    admission_fee_per_participant?: number;
-    admission_fee?: number;
-    base_fee?: number;
-    per_participant_fee?: number;
-    platform_fee?: number;
-    subtotal?: number;
-    gst?: number;
-    gst_percentage?: number;
-    total: number;
-  };
+      breakdown: {
+        admission_fee_per_participant?: number;
+        admission_fee?: number;
+        base_fee?: number;
+        per_participant_fee?: number;
+        platform_fee?: number;
+        subtotal?: number;
+        gst?: number;
+        gst_percentage?: number;
+        total: number;
+      };
+      priceBreakdown?: {
+        admission_fee_per_participant: number;
+        total_admission_fee: number;
+        base_fee_per_participant: number;
+        total_base_fee: number;
+        batch_amount: number;
+        platform_fee: number;
+        subtotal: number;
+        gst_percentage: number;
+        gst_amount: number;
+        total_amount: number;
+        participant_count: number;
+        currency: string;
+        calculated_at: Date;
+      };
+      commission?: {
+        rate: number;
+        amount: number;
+        payoutAmount: number;
+        calculatedAt: Date;
+      };
 }
 
 // RazorpayOrderResponse is now PaymentOrderResponse from payment service
@@ -609,6 +630,40 @@ export const getBookingSummary = async (
       throw new ApiError(400, 'Booking amount must be greater than zero');
     }
 
+    // Get commission rate from settings
+    const commissionRate = (settings.fees?.commission_rate as number | undefined) ?? 0;
+    
+    // Calculate commission on batch amount (not total amount)
+    const commissionAmount = roundToTwoDecimals(baseAmount * commissionRate);
+    
+    // Calculate payout amount (what academy will receive after commission deduction)
+    const payoutAmount = roundToTwoDecimals(baseAmount - commissionAmount);
+
+    // Create price breakdown
+    const priceBreakdown = {
+      admission_fee_per_participant: admissionFeePerParticipant,
+      total_admission_fee: totalAdmissionFee,
+      base_fee_per_participant: perParticipantFee,
+      total_base_fee: totalBaseFee,
+      batch_amount: baseAmount, // What academy earns (before commission)
+      platform_fee: platformFee,
+      subtotal: subtotal,
+      gst_percentage: gstPercentage,
+      gst_amount: gst,
+      total_amount: totalAmount,
+      participant_count: participantCount,
+      currency: 'INR',
+      calculated_at: new Date(),
+    };
+
+    // Create commission details
+    const commission = {
+      rate: commissionRate,
+      amount: commissionAmount,
+      payoutAmount: payoutAmount, // Amount to be paid to academy after deducting commission
+      calculatedAt: new Date(),
+    };
+
     return {
       batch: {
         id: batch._id.toString(),
@@ -653,6 +708,8 @@ export const getBookingSummary = async (
         gst_percentage: gstPercentage,
         total: roundToTwoDecimals(totalAmount),
       },
+      priceBreakdown: priceBreakdown,
+      commission: commission,
     };
   } catch (error) {
     if (error instanceof ApiError) {
@@ -737,6 +794,8 @@ export const createOrder = async (
         currency: summary.currency,
         status: PaymentStatus.PENDING,
       },
+      commission: summary.commission || null,
+      priceBreakdown: summary.priceBreakdown || null,
       notes: data.notes || null,
     };
 

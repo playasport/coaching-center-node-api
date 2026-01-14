@@ -32,6 +32,36 @@ export interface PaymentDetails {
   failure_reason?: string | null;
 }
 
+// Commission details interface
+export interface CommissionDetails {
+  rate: number; // Commission rate used (e.g., 0.10 for 10%)
+  amount: number; // Calculated commission amount
+  payoutAmount: number; // Amount to be paid to academy after deducting commission (batch_amount - commission_amount)
+  calculatedAt: Date; // When commission was calculated
+}
+
+// Price breakdown interface
+export interface PriceBreakdown {
+  // Batch-related (Academy gets this)
+  admission_fee_per_participant: number;
+  total_admission_fee: number;
+  base_fee_per_participant: number;
+  total_base_fee: number;
+  batch_amount: number; // admission_fee + base_fee (what academy earns)
+  
+  // Platform charges (Academy doesn't see this)
+  platform_fee: number;
+  subtotal: number; // batch_amount + platform_fee
+  gst_percentage: number;
+  gst_amount: number;
+  total_amount: number; // Final amount user pays
+  
+  // Metadata
+  participant_count: number;
+  currency: string;
+  calculated_at: Date;
+}
+
 // Booking interface
 export interface Booking {
   id: string;
@@ -45,6 +75,8 @@ export interface Booking {
   currency: string; // Currency code (e.g., 'INR')
   status: BookingStatus;
   payment: PaymentDetails;
+  commission?: CommissionDetails | null; // Commission details
+  priceBreakdown?: PriceBreakdown | null; // Price breakdown details
   notes?: string | null;
   is_active: boolean;
   is_deleted: boolean;
@@ -99,6 +131,110 @@ const paymentDetailsSchema = new Schema<PaymentDetails>(
     failure_reason: {
       type: String,
       default: null,
+    },
+  },
+  { _id: false }
+);
+
+// Commission details sub-schema
+const commissionDetailsSchema = new Schema<CommissionDetails>(
+  {
+    rate: {
+      type: Number,
+      required: true,
+      min: [0, 'Commission rate cannot be negative'],
+      max: [1, 'Commission rate cannot exceed 100%'],
+    },
+    amount: {
+      type: Number,
+      required: true,
+      min: [0, 'Commission amount cannot be negative'],
+    },
+    payoutAmount: {
+      type: Number,
+      required: true,
+      min: [0, 'Payout amount cannot be negative'],
+    },
+    calculatedAt: {
+      type: Date,
+      required: true,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
+// Price breakdown sub-schema
+const priceBreakdownSchema = new Schema<PriceBreakdown>(
+  {
+    // Batch-related (Academy gets this)
+    admission_fee_per_participant: {
+      type: Number,
+      required: true,
+      min: [0, 'Admission fee cannot be negative'],
+    },
+    total_admission_fee: {
+      type: Number,
+      required: true,
+      min: [0, 'Total admission fee cannot be negative'],
+    },
+    base_fee_per_participant: {
+      type: Number,
+      required: true,
+      min: [0, 'Base fee cannot be negative'],
+    },
+    total_base_fee: {
+      type: Number,
+      required: true,
+      min: [0, 'Total base fee cannot be negative'],
+    },
+    batch_amount: {
+      type: Number,
+      required: true,
+      min: [0, 'Batch amount cannot be negative'],
+    },
+    // Platform charges (Academy doesn't see this)
+    platform_fee: {
+      type: Number,
+      required: true,
+      min: [0, 'Platform fee cannot be negative'],
+    },
+    subtotal: {
+      type: Number,
+      required: true,
+      min: [0, 'Subtotal cannot be negative'],
+    },
+    gst_percentage: {
+      type: Number,
+      required: true,
+      min: [0, 'GST percentage cannot be negative'],
+    },
+    gst_amount: {
+      type: Number,
+      required: true,
+      min: [0, 'GST amount cannot be negative'],
+    },
+    total_amount: {
+      type: Number,
+      required: true,
+      min: [0, 'Total amount cannot be negative'],
+    },
+    // Metadata
+    participant_count: {
+      type: Number,
+      required: true,
+      min: [1, 'Participant count must be at least 1'],
+    },
+    currency: {
+      type: String,
+      required: true,
+      default: 'INR',
+      uppercase: true,
+    },
+    calculated_at: {
+      type: Date,
+      required: true,
+      default: Date.now,
     },
   },
   { _id: false }
@@ -179,6 +315,14 @@ const bookingSchema = new Schema<Booking>(
     payment: {
       type: paymentDetailsSchema,
       required: true,
+    },
+    commission: {
+      type: commissionDetailsSchema,
+      default: null,
+    },
+    priceBreakdown: {
+      type: priceBreakdownSchema,
+      default: null,
     },
     notes: {
       type: String,

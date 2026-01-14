@@ -5029,11 +5029,112 @@ const options: swaggerJsdoc.Options = {
             amount: {
               type: 'number',
               example: 5000,
-              description: 'Total booking amount in rupees',
+              description: 'Total booking amount in rupees (what user pays)',
             },
             currency: {
               type: 'string',
               example: 'INR',
+            },
+            commission: {
+              type: 'object',
+              nullable: true,
+              description: 'Commission details (calculated at booking creation time)',
+              properties: {
+                rate: {
+                  type: 'number',
+                  example: 0.10,
+                  description: 'Commission rate used (e.g., 0.10 for 10%)',
+                },
+                amount: {
+                  type: 'number',
+                  example: 200,
+                  description: 'Calculated commission amount',
+                },
+                payoutAmount: {
+                  type: 'number',
+                  example: 1800,
+                  description: 'Amount to be paid to academy after deducting commission',
+                },
+                calculatedAt: {
+                  type: 'string',
+                  format: 'date-time',
+                  example: '2024-01-15T10:00:00.000Z',
+                  description: 'When commission was calculated',
+                },
+              },
+            },
+            priceBreakdown: {
+              type: 'object',
+              nullable: true,
+              description: 'Detailed price breakdown (calculated at booking creation time)',
+              properties: {
+                admission_fee_per_participant: {
+                  type: 'number',
+                  example: 100,
+                  description: 'Admission fee per participant',
+                },
+                total_admission_fee: {
+                  type: 'number',
+                  example: 200,
+                  description: 'Total admission fee',
+                },
+                base_fee_per_participant: {
+                  type: 'number',
+                  example: 900,
+                  description: 'Base fee per participant',
+                },
+                total_base_fee: {
+                  type: 'number',
+                  example: 1800,
+                  description: 'Total base fee',
+                },
+                batch_amount: {
+                  type: 'number',
+                  example: 2000,
+                  description: 'Batch amount (admission fee + base fee) - what academy earns',
+                },
+                platform_fee: {
+                  type: 'number',
+                  example: 50,
+                  description: 'Platform service charge',
+                },
+                subtotal: {
+                  type: 'number',
+                  example: 2050,
+                  description: 'Subtotal (batch_amount + platform_fee)',
+                },
+                gst_percentage: {
+                  type: 'number',
+                  example: 18,
+                  description: 'GST percentage',
+                },
+                gst_amount: {
+                  type: 'number',
+                  example: 369,
+                  description: 'GST amount',
+                },
+                total_amount: {
+                  type: 'number',
+                  example: 2419,
+                  description: 'Final amount user pays',
+                },
+                participant_count: {
+                  type: 'number',
+                  example: 2,
+                  description: 'Number of participants',
+                },
+                currency: {
+                  type: 'string',
+                  example: 'INR',
+                  description: 'Currency code',
+                },
+                calculated_at: {
+                  type: 'string',
+                  format: 'date-time',
+                  example: '2024-01-15T10:00:00.000Z',
+                  description: 'When price breakdown was calculated',
+                },
+              },
             },
             status: {
               type: 'string',
@@ -5994,6 +6095,7 @@ const options: swaggerJsdoc.Options = {
               gst_percentage: { type: 'number', nullable: true, example: 18, description: 'GST percentage' },
               gst_enabled: { type: 'boolean', nullable: true, example: true, description: 'Whether GST is enabled' },
               currency: { type: 'string', nullable: true, example: 'INR', description: 'Currency code' },
+              commission_rate: { type: 'number', nullable: true, example: 0.10, description: 'Commission rate (0-1, e.g., 0.10 for 10%). Used to calculate commission on batch bookings for academy payouts.' },
             },
           },
           notifications: {

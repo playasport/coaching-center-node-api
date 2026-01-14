@@ -23,6 +23,7 @@ export interface FeeConfig {
   gst_percentage?: number | null;
   gst_enabled?: boolean | null;
   currency?: string | null;
+  commission_rate?: number | null; // Commission rate for academy (e.g., 0.10 for 10%)
 }
 
 // SMS configuration interface

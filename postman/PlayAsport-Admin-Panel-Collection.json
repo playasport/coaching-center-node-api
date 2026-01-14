@@ -4833,7 +4833,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"app_name\": \"Play A Sport\",\n  \"fees\": {\n    \"platform_fee\": 250,\n    \"gst_percentage\": 18,\n    \"gst_enabled\": true,\n    \"currency\": \"INR\"\n  },\n  \"notifications\": {\n    \"enabled\": true,\n    \"sms\": {\n      \"enabled\": true,\n      \"provider\": \"twilio\",\n      \"from_number\": \"+1234567890\"\n    }\n  },\n  \"payment\": {\n    \"enabled\": true,\n    \"gateway\": \"razorpay\"\n  }\n}"
+              "raw": "{\n  \"app_name\": \"Play A Sport\",\n  \"fees\": {\n    \"platform_fee\": 250,\n    \"gst_percentage\": 18,\n    \"gst_enabled\": true,\n    \"currency\": \"INR\",\n    \"commission_rate\": 0.10\n  },\n  \"notifications\": {\n    \"enabled\": true,\n    \"sms\": {\n      \"enabled\": true,\n      \"provider\": \"twilio\",\n      \"from_number\": \"+1234567890\"\n    }\n  },\n  \"payment\": {\n    \"enabled\": true,\n    \"gateway\": \"razorpay\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/admin/settings",
@@ -4962,14 +4962,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"platform_fee\": 250,\n  \"gst_percentage\": 18,\n  \"gst_enabled\": true,\n  \"currency\": \"INR\"\n}"
+              "raw": "{\n  \"platform_fee\": 250,\n  \"gst_percentage\": 18,\n  \"gst_enabled\": true,\n  \"currency\": \"INR\",\n  \"commission_rate\": 0.10\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/admin/settings/fees",
               "host": ["{{baseUrl}}"],
               "path": ["admin", "settings", "fees"]
             },
-            "description": "Update fee configuration (platform fee, GST percentage, currency). Requires settings:update permission."
+            "description": "Update fee configuration (platform fee, GST percentage, currency, commission rate). Commission rate (0-1, e.g., 0.10 for 10%) is used to calculate commission on batch bookings for academy payouts. Requires settings:update permission."
           },
           "response": []
         },

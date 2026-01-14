@@ -69,6 +69,7 @@ router.use(requireAdmin);
  *                     gst_percentage: 18
  *                     gst_enabled: true
  *                     currency: "INR"
+ *                     commission_rate: 0.10
  *                   notifications:
  *                     enabled: true
  *                     sms:
@@ -182,6 +183,13 @@ router.get('/', requirePermission(Section.SETTINGS, Action.VIEW), settingsContro
  *                     type: string
  *                     nullable: true
  *                     example: "INR"
+ *                   commission_rate:
+ *                     type: number
+ *                     minimum: 0
+ *                     maximum: 1
+ *                     nullable: true
+ *                     example: 0.10
+ *                     description: Commission rate (0-1, e.g., 0.10 for 10%). Used to calculate commission on batch amount for academy payouts.
  *               notifications:
  *                 type: object
  *                 nullable: true
@@ -462,7 +470,7 @@ router.post(
  * /admin/settings/fees:
  *   patch:
  *     summary: Update fee configuration
- *     description: Update fee-related settings including platform fee, GST percentage, GST enabled status, and currency. All fields are optional. Requires settings:update permission.
+ *     description: Update fee-related settings including platform fee, GST percentage, GST enabled status, currency, and commission rate. Commission rate is used to calculate commission on batch bookings (admission fee + base fee) for academy payouts. All fields are optional. Requires settings:update permission.
  *     tags: [Admin Settings]
  *     security:
  *       - bearerAuth: []
@@ -496,11 +504,19 @@ router.post(
  *                 nullable: true
  *                 example: "INR"
  *                 description: Currency code (ISO 4217)
+ *               commission_rate:
+ *                 type: number
+ *                 minimum: 0
+ *                 maximum: 1
+ *                 nullable: true
+ *                 example: 0.10
+ *                 description: Commission rate (0-1, e.g., 0.10 for 10%). Used to calculate commission on batch amount (admission fee + base fee) for academy payouts. Commission is deducted from academy payout amount.
  *           example:
  *             platform_fee: 250
  *             gst_percentage: 18
  *             gst_enabled: true
  *             currency: "INR"
+ *             commission_rate: 0.10
  *     responses:
  *       200:
  *         description: Fee configuration updated successfully
