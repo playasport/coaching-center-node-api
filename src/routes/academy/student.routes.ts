@@ -105,6 +105,180 @@ router.get(
 
 /**
  * @swagger
+ * /academy/my-student/export/excel:
+ *   get:
+ *     summary: Export enrolled students to Excel
+ *     tags: [Academy Student]
+ *     description: Export enrolled students data to Excel format with filtering options. Supports filtering by center, batch, status, and date range. Requires authentication and ACADEMY role.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: centerId
+ *         schema:
+ *           type: string
+ *         description: Filter by coaching center ID
+ *       - in: query
+ *         name: batchId
+ *         schema:
+ *           type: string
+ *         description: Filter by batch ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, left, completed, pending]
+ *         description: Filter by overall student status (active = confirmed bookings, left = cancelled, completed = completed, pending = pending)
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by start date (YYYY-MM-DD) - filters bookings by creation date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by end date (YYYY-MM-DD) - filters bookings by creation date
+ *     responses:
+ *       200:
+ *         description: Excel file downloaded successfully
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - ACADEMY role required
+ */
+router.get(
+  '/export/excel',
+  authenticate,
+  authorize(DefaultRoles.ACADEMY),
+  studentController.exportToExcel
+);
+
+/**
+ * @swagger
+ * /academy/my-student/export/pdf:
+ *   get:
+ *     summary: Export enrolled students to PDF
+ *     tags: [Academy Student]
+ *     description: Export enrolled students data to PDF format with filtering options. Supports filtering by center, batch, status, and date range. Requires authentication and ACADEMY role.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: centerId
+ *         schema:
+ *           type: string
+ *         description: Filter by coaching center ID
+ *       - in: query
+ *         name: batchId
+ *         schema:
+ *           type: string
+ *         description: Filter by batch ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, left, completed, pending]
+ *         description: Filter by overall student status (active = confirmed bookings, left = cancelled, completed = completed, pending = pending)
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by start date (YYYY-MM-DD) - filters bookings by creation date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by end date (YYYY-MM-DD) - filters bookings by creation date
+ *     responses:
+ *       200:
+ *         description: PDF file downloaded successfully
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - ACADEMY role required
+ */
+router.get(
+  '/export/pdf',
+  authenticate,
+  authorize(DefaultRoles.ACADEMY),
+  studentController.exportToPDF
+);
+
+/**
+ * @swagger
+ * /academy/my-student/export/csv:
+ *   get:
+ *     summary: Export enrolled students to CSV
+ *     tags: [Academy Student]
+ *     description: Export enrolled students data to CSV format with filtering options. Supports filtering by center, batch, status, and date range. Requires authentication and ACADEMY role.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: centerId
+ *         schema:
+ *           type: string
+ *         description: Filter by coaching center ID
+ *       - in: query
+ *         name: batchId
+ *         schema:
+ *           type: string
+ *         description: Filter by batch ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, left, completed, pending]
+ *         description: Filter by overall student status (active = confirmed bookings, left = cancelled, completed = completed, pending = pending)
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by start date (YYYY-MM-DD) - filters bookings by creation date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by end date (YYYY-MM-DD) - filters bookings by creation date
+ *     responses:
+ *       200:
+ *         description: CSV file downloaded successfully
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - ACADEMY role required
+ */
+router.get(
+  '/export/csv',
+  authenticate,
+  authorize(DefaultRoles.ACADEMY),
+  studentController.exportToCSV
+);
+
+/**
+ * @swagger
  * /academy/my-student/{participantId}:
  *   get:
  *     summary: Get detailed information about a specific enrolled student

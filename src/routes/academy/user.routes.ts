@@ -172,11 +172,200 @@ router.get(
 
 /**
  * @swagger
+ * /academy/user/export/excel:
+ *   get:
+ *     summary: Export enrolled users to Excel
+ *     tags: [Academy User]
+ *     description: Export enrolled users data to Excel format with filtering options. Supports filtering by center, batch, userType, search, and date range. Requires authentication and ACADEMY role.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: centerId
+ *         schema:
+ *           type: string
+ *         description: Filter by coaching center ID
+ *       - in: query
+ *         name: batchId
+ *         schema:
+ *           type: string
+ *         description: Filter by batch ID
+ *       - in: query
+ *         name: userType
+ *         schema:
+ *           type: string
+ *           enum: [student, guardian]
+ *         description: Filter by user type
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by first name, last name, email, or mobile number
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by start date (YYYY-MM-DD) - filters bookings by creation date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by end date (YYYY-MM-DD) - filters bookings by creation date
+ *     responses:
+ *       200:
+ *         description: Excel file downloaded successfully
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - ACADEMY role required
+ */
+router.get(
+  '/export/excel',
+  authenticate,
+  authorize(DefaultRoles.ACADEMY),
+  userController.exportToExcel
+);
+
+/**
+ * @swagger
+ * /academy/user/export/pdf:
+ *   get:
+ *     summary: Export enrolled users to PDF
+ *     tags: [Academy User]
+ *     description: Export enrolled users data to PDF format with filtering options. Supports filtering by center, batch, userType, search, and date range. Requires authentication and ACADEMY role.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: centerId
+ *         schema:
+ *           type: string
+ *         description: Filter by coaching center ID
+ *       - in: query
+ *         name: batchId
+ *         schema:
+ *           type: string
+ *         description: Filter by batch ID
+ *       - in: query
+ *         name: userType
+ *         schema:
+ *           type: string
+ *           enum: [student, guardian]
+ *         description: Filter by user type
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by first name, last name, email, or mobile number
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by start date (YYYY-MM-DD) - filters bookings by creation date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by end date (YYYY-MM-DD) - filters bookings by creation date
+ *     responses:
+ *       200:
+ *         description: PDF file downloaded successfully
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - ACADEMY role required
+ */
+router.get(
+  '/export/pdf',
+  authenticate,
+  authorize(DefaultRoles.ACADEMY),
+  userController.exportToPDF
+);
+
+/**
+ * @swagger
+ * /academy/user/export/csv:
+ *   get:
+ *     summary: Export enrolled users to CSV
+ *     tags: [Academy User]
+ *     description: Export enrolled users data to CSV format with filtering options. Supports filtering by center, batch, userType, search, and date range. Requires authentication and ACADEMY role.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: centerId
+ *         schema:
+ *           type: string
+ *         description: Filter by coaching center ID
+ *       - in: query
+ *         name: batchId
+ *         schema:
+ *           type: string
+ *         description: Filter by batch ID
+ *       - in: query
+ *         name: userType
+ *         schema:
+ *           type: string
+ *           enum: [student, guardian]
+ *         description: Filter by user type
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by first name, last name, email, or mobile number
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by start date (YYYY-MM-DD) - filters bookings by creation date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by end date (YYYY-MM-DD) - filters bookings by creation date
+ *     responses:
+ *       200:
+ *         description: CSV file downloaded successfully
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - ACADEMY role required
+ */
+router.get(
+  '/export/csv',
+  authenticate,
+  authorize(DefaultRoles.ACADEMY),
+  userController.exportToCSV
+);
+
+/**
+ * @swagger
  * /academy/user/{userId}:
  *   get:
  *     summary: Get detailed information about a specific enrolled user
  *     tags: [Academy User]
- *     description: Retrieve comprehensive details about a specific enrolled user including complete user information, all participants associated with the user, and all bookings with full batch, sport, center, and payment details. Requires authentication and ACADEMY role.
+ *     description: Retrieve comprehensive details about a specific enrolled user including complete user information and all participants associated with the user. Requires authentication and ACADEMY role.
  *     security:
  *       - bearerAuth: []
  *     parameters:

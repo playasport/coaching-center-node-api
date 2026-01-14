@@ -3,6 +3,7 @@ import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
 import * as academyUserService from '../../services/academy/user.service';
+import * as exportService from '../../services/academy/userExport.service';
 
 /**
  * Get enrolled users for academy
@@ -66,6 +67,114 @@ export const getEnrolledUserDetail = async (
 
     const response = new ApiResponse(200, { user: userDetail }, 'User details retrieved successfully');
     res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Export enrolled users to Excel
+ */
+export const exportToExcel = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user || !req.user.id) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const { centerId, batchId, userType, search, startDate, endDate } = req.query;
+
+    const filters = {
+      centerId: centerId as string | undefined,
+      batchId: batchId as string | undefined,
+      userType: userType as 'student' | 'guardian' | undefined,
+      search: search as string | undefined,
+      startDate: startDate as string | undefined,
+      endDate: endDate as string | undefined,
+    };
+
+    const buffer = await exportService.exportToExcel(req.user.id, filters);
+
+    const filename = `enrolled-users-${new Date().toISOString().split('T')[0]}.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Export enrolled users to PDF
+ */
+export const exportToPDF = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user || !req.user.id) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const { centerId, batchId, userType, search, startDate, endDate } = req.query;
+
+    const filters = {
+      centerId: centerId as string | undefined,
+      batchId: batchId as string | undefined,
+      userType: userType as 'student' | 'guardian' | undefined,
+      search: search as string | undefined,
+      startDate: startDate as string | undefined,
+      endDate: endDate as string | undefined,
+    };
+
+    const buffer = await exportService.exportToPDF(req.user.id, filters);
+
+    const filename = `enrolled-users-${new Date().toISOString().split('T')[0]}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Export enrolled users to CSV
+ */
+export const exportToCSV = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user || !req.user.id) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const { centerId, batchId, userType, search, startDate, endDate } = req.query;
+
+    const filters = {
+      centerId: centerId as string | undefined,
+      batchId: batchId as string | undefined,
+      userType: userType as 'student' | 'guardian' | undefined,
+      search: search as string | undefined,
+      startDate: startDate as string | undefined,
+      endDate: endDate as string | undefined,
+    };
+
+    const csvContent = await exportService.exportToCSV(req.user.id, filters);
+
+    const filename = `enrolled-users-${new Date().toISOString().split('T')[0]}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csvContent);
   } catch (error) {
     next(error);
   }
