@@ -47,7 +47,7 @@ const getRecipientObjectId = async (
     if (recipientType === 'user') {
       return await getUserObjectId(recipientId);
     } else {
-      // For academy, find by custom ID
+      // For academy, first try to find CoachingCenter by custom ID (UUID)
       const center = await CoachingCenterModel.findOne({ id: recipientId, is_deleted: false })
         .select('_id user')
         .lean();
@@ -55,6 +55,25 @@ const getRecipientObjectId = async (
         // Return the user ObjectId who owns the academy
         return center.user as Types.ObjectId;
       }
+      
+      // If not found as CoachingCenter, try to find User by custom ID
+      // (This handles the case where req.user.id is a User ID for academy users)
+      const user = await UserModel.findOne({ id: recipientId, isDeleted: false })
+        .select('_id')
+        .lean();
+      
+      if (user) {
+        // Verify that this user owns at least one academy
+        const userAcademies = await CoachingCenterModel.find({
+          user: user._id,
+          is_deleted: false
+        }).select('_id').lean();
+        
+        if (userAcademies.length > 0) {
+          return user._id as Types.ObjectId;
+        }
+      }
+      
       return null;
     }
   } catch (error) {

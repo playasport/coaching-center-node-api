@@ -30,50 +30,39 @@ const countArg = parseArg('count') || process.env.NOTIFICATION_COUNT;
 
 const notificationCount = countArg ? parseInt(countArg, 10) : DEFAULT_NOTIFICATION_COUNT;
 
-// Helper function to get user ObjectId from academy recipientId
+// Helper function to get user ObjectId from academy recipientId (custom ID)
 const getAcademyOwnerUserId = async (recipientId: string): Promise<Types.ObjectId | null> => {
   try {
-    // First, try to find CoachingCenter by custom ID (UUID)
-    let center = await CoachingCenterModel.findOne({ 
+    // Try to find CoachingCenter by custom ID (UUID)
+    const center = await CoachingCenterModel.findOne({ 
       id: recipientId, 
       is_deleted: false 
-    }).select('_id user').lean();
-
-    // If not found, try CoachingCenter by ObjectId
-    if (!center && Types.ObjectId.isValid(recipientId) && recipientId.length === 24) {
-      center = await CoachingCenterModel.findOne({ 
-        _id: new Types.ObjectId(recipientId), 
-        is_deleted: false 
-      }).select('_id user').lean();
-    }
+    }).select('_id user id').lean();
 
     if (center) {
+      console.log(`✅ Found CoachingCenter: ${center.id}`);
       return center.user as Types.ObjectId;
     }
 
     // If not found as CoachingCenter, try to find User by custom ID (UUID)
-    let user = await UserModel.findOne({ 
+    const user = await UserModel.findOne({ 
       id: recipientId, 
       isDeleted: false 
-    }).select('_id').lean();
-
-    // If not found, try User by ObjectId
-    if (!user && Types.ObjectId.isValid(recipientId) && recipientId.length === 24) {
-      user = await UserModel.findById(recipientId).select('_id').lean();
-    }
+    }).select('_id id').lean();
 
     if (user) {
       // Verify that this user owns at least one academy
       const userAcademies = await CoachingCenterModel.find({
         user: user._id,
         is_deleted: false
-      }).select('_id').lean();
+      }).select('_id id').lean();
 
       if (userAcademies.length === 0) {
-        console.log(`⚠️  User found but does not own any academies.`);
+        console.log(`⚠️  User found (${user.id}) but does not own any academies.`);
         return null;
       }
 
+      console.log(`✅ Found User: ${user.id} (owns ${userAcademies.length} academy/academies)`);
       return user._id as Types.ObjectId;
     }
 
