@@ -56,6 +56,7 @@ export const getSettings = async (includeSensitive: boolean = false): Promise<Se
 
 /**
  * Get public settings (excludes sensitive data)
+ * @deprecated Use getLimitedPublicSettings for public routes
  */
 export const getPublicSettings = async (): Promise<Settings> => {
   try {
@@ -93,6 +94,29 @@ export const getPublicSettings = async (): Promise<Settings> => {
     return publicSettings;
   } catch (error) {
     logger.error('Failed to get public settings', error);
+    throw new ApiError(500, t('errors.internalServerError'));
+  }
+};
+
+/**
+ * Get limited public settings (only essential public-facing data)
+ * Returns only: app_name, app_logo, and contact info
+ * Excludes: basic_info, fees, notifications details, payment details, and all sensitive data
+ */
+export const getLimitedPublicSettings = async (): Promise<Partial<Settings>> => {
+  try {
+    const settings = await getSettings(false);
+    
+    // Create limited public settings object with only safe, public-facing data
+    const limitedSettings: Partial<Settings> = {
+      app_name: settings.app_name || null,
+      app_logo: settings.app_logo || null,
+      contact: settings.contact || null,
+    };
+    
+    return limitedSettings;
+  } catch (error) {
+    logger.error('Failed to get limited public settings', error);
     throw new ApiError(500, t('errors.internalServerError'));
   }
 };

@@ -11,7 +11,7 @@ The Admin Settings Management system provides a centralized way to manage applic
 - **Payment Gateway**: Manage payment gateway settings and enable/disable payments
 - **Basic Information**: Update app name, logo, contact details, and SEO information
 - **Security**: Sensitive credentials are encrypted at rest in the database
-- **Access Control**: Public endpoints exclude sensitive data; admin endpoints require authentication and permissions
+- **Access Control**: Public endpoint returns only essential data (app_name, app_logo, contact); admin endpoints require authentication and permissions and return full settings including sensitive data
 
 ## Table of Contents
 
@@ -130,7 +130,7 @@ interface Settings {
 GET /api/v1/settings
 ```
 
-Returns public settings excluding sensitive data (credentials, API keys, etc.).
+Returns limited public settings - only essential public-facing data (app name, logo, and contact information). This endpoint requires no authentication.
 
 **Response:**
 ```json
@@ -139,43 +139,27 @@ Returns public settings excluding sensitive data (credentials, API keys, etc.).
   "message": "Settings retrieved successfully",
   "data": {
     "app_name": "Play A Sport",
-    "app_logo": "https://example.com/logo.png",
+    "app_logo": "https://testplayasport.s3.ap-south-1.amazonaws.com/images/logo/afa40028-96af-45af-ad94-4c8fb33f8100.png",
     "contact": {
-      "number": ["+91-9876543210"],
-      "email": "contact@playasport.in",
-      "whatsapp": "+91-9876543210"
-    },
-    "fees": {
-      "platform_fee": 200,
-      "gst_percentage": 18,
-      "gst_enabled": true,
-      "currency": "INR"
-    },
-    "notifications": {
-      "enabled": true,
-      "sms": {
-        "enabled": true,
-        "from_number": "+1234567890"
+      "number": ["+919230981848", "+919230981845", "+919546576177"],
+      "email": "info@playasport.com",
+      "address": {
+        "office": "BD-357, sector-1, saltlake city, Kolkata, West Bengal, India, 700064",
+        "registered": "AE-694, Sector 1, Salt Lake City, Bidhan Nagar AE Market, North 24 Parganas, Saltlake, West Bengal, India, 700064"
       },
-      "email": {
-        "enabled": true,
-        "host": "smtp.gmail.com",
-        "port": 587,
-        "from": "noreply@playasport.in"
-      },
-      "whatsapp": {
-        "enabled": true
-      },
-      "payment": {
-        "enabled": true,
-        "gateway": "razorpay"
-      }
+      "whatsapp": "+919230981848",
+      "instagram": "https://www.instagram.com/playasport.in/",
+      "facebook": "https://www.facebook.com/PlayASportIndia",
+      "youtube": "https://www.youtube.com/@PlayASport_in"
     }
   }
 }
 ```
 
-**Note:** Sensitive fields (API keys, passwords, credentials) are excluded from this response.
+**Note:** 
+- This endpoint returns only `app_name`, `app_logo`, and `contact` information.
+- All other settings (fees, basic_info, notifications, payment, etc.) are excluded and available only through admin endpoints.
+- No authentication required.
 
 ### Admin Endpoints
 
