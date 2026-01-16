@@ -8,6 +8,7 @@ import {
   NotificationResult,
   SmsNotification,
   EmailNotification,
+  EmailAttachment,
   WhatsAppNotification,
   PushNotification,
 } from '../../types/notification.types';
@@ -208,6 +209,7 @@ const processEmail = async (notification: EmailNotification): Promise<Notificati
       text: notification.text,
       template: notification.template,
       variables: notification.templateVariables,
+      attachments: notification.attachments,
     });
 
     logger.info('Email sent successfully', {
@@ -482,6 +484,7 @@ export const queueEmail = (
     templateVariables?: Record<string, unknown>;
     priority?: NotificationPriority;
     metadata?: Record<string, unknown>;
+    attachments?: EmailAttachment[];
   } = {}
 ): void => {
   queueNotification({
@@ -494,6 +497,7 @@ export const queueEmail = (
     templateVariables: options.templateVariables,
     priority: options.priority || 'medium',
     metadata: options.metadata,
+    attachments: options.attachments,
   });
 };
 

@@ -3,20 +3,28 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Payment status enum
 export enum PaymentStatus {
-  PENDING = 'pending',
-  PROCESSING = 'processing',
-  SUCCESS = 'success',
-  FAILED = 'failed',
-  REFUNDED = 'refunded',
-  CANCELLED = 'cancelled',
+  NOT_INITIATED = 'not_initiated', // Payment not yet initiated (booking is SLOT_BOOKED or APPROVED, waiting for payment order creation)
+  INITIATED = 'initiated', // Razorpay order created, payment initiated, waiting for user to complete payment
+  PENDING = 'pending', // Payment initiated but not completed
+  PROCESSING = 'processing', // Payment is being processed
+  SUCCESS = 'success', // Payment successful
+  FAILED = 'failed', // Payment failed
+  REFUNDED = 'refunded', // Payment refunded
+  CANCELLED = 'cancelled', // Payment cancelled
 }
 
 // Booking status enum
 export enum BookingStatus {
-  PENDING = 'pending',
-  CONFIRMED = 'confirmed',
-  CANCELLED = 'cancelled',
-  COMPLETED = 'completed',
+  SLOT_BOOKED = 'slot_booked', // User has booked the slot, waiting for academy approval
+  APPROVED = 'approved', // Academy approved, waiting for payment
+  REJECTED = 'rejected', // Academy rejected the booking request
+  PAYMENT_PENDING = 'payment_pending', // Payment pending (legacy - for backward compatibility, also used for old flow)
+  CONFIRMED = 'confirmed', // Payment successful, booking confirmed
+  CANCELLED = 'cancelled', // Booking cancelled
+  COMPLETED = 'completed', // Booking completed
+  // Legacy status for backward compatibility
+  REQUESTED = 'requested', // Deprecated: Use SLOT_BOOKED instead
+  PENDING = 'pending', // Deprecated: Use PAYMENT_PENDING instead
 }
 
 // Payment details interface
@@ -30,6 +38,9 @@ export interface PaymentDetails {
   payment_method?: string | null;
   paid_at?: Date | null;
   failure_reason?: string | null;
+  payment_initiated_count?: number; // Number of times payment was initiated
+  payment_cancelled_count?: number; // Number of times payment was cancelled
+  payment_failed_count?: number; // Number of times payment failed
 }
 
 // Commission details interface
@@ -78,6 +89,9 @@ export interface Booking {
   commission?: CommissionDetails | null; // Commission details
   priceBreakdown?: PriceBreakdown | null; // Price breakdown details
   notes?: string | null;
+  cancellation_reason?: string | null; // Reason for cancellation
+  cancelled_by?: 'user' | 'academy' | 'system' | null; // Who cancelled the booking
+  rejection_reason?: string | null; // Reason for rejection by academy
   is_active: boolean;
   is_deleted: boolean;
   deletedAt?: Date | null;
@@ -118,7 +132,7 @@ const paymentDetailsSchema = new Schema<PaymentDetails>(
       type: String,
       enum: Object.values(PaymentStatus),
       required: true,
-      default: PaymentStatus.PENDING,
+      default: PaymentStatus.NOT_INITIATED, // Default for new bookings
     },
     payment_method: {
       type: String,
@@ -131,6 +145,21 @@ const paymentDetailsSchema = new Schema<PaymentDetails>(
     failure_reason: {
       type: String,
       default: null,
+    },
+    payment_initiated_count: {
+      type: Number,
+      default: 0,
+      min: [0, 'Payment initiated count cannot be negative'],
+    },
+    payment_cancelled_count: {
+      type: Number,
+      default: 0,
+      min: [0, 'Payment cancelled count cannot be negative'],
+    },
+    payment_failed_count: {
+      type: Number,
+      default: 0,
+      min: [0, 'Payment failed count cannot be negative'],
     },
   },
   { _id: false }
@@ -309,7 +338,7 @@ const bookingSchema = new Schema<Booking>(
       type: String,
       enum: Object.values(BookingStatus),
       required: true,
-      default: BookingStatus.PENDING,
+      default: BookingStatus.PAYMENT_PENDING, // Default for new bookings
       index: true,
     },
     payment: {
@@ -325,6 +354,21 @@ const bookingSchema = new Schema<Booking>(
       default: null,
     },
     notes: {
+      type: String,
+      default: null,
+      maxlength: 1000,
+    },
+    cancellation_reason: {
+      type: String,
+      default: null,
+      maxlength: 1000,
+    },
+    cancelled_by: {
+      type: String,
+      enum: ['user', 'academy', 'system'],
+      default: null,
+    },
+    rejection_reason: {
       type: String,
       default: null,
       maxlength: 1000,
@@ -382,6 +426,7 @@ bookingSchema.index({ user: 1, is_deleted: 1 });
 bookingSchema.index({ is_deleted: 1, is_active: 1 }); // For active bookings count
 bookingSchema.index({ is_deleted: 1, sport: 1 }); // For users with enrolled batch sports
 bookingSchema.index({ is_deleted: 1, user: 1 }); // For distinct user queries
+bookingSchema.index({ id: 1, user: 1, is_deleted: 1 }); // Optimize getBookingDetails query
 
 export const BookingModel = model<Booking>('Booking', bookingSchema);
 

@@ -9,6 +9,7 @@ import { comparePassword } from '../../utils';
 import { generateTokenPair, verifyRefreshToken, generateTempRegistrationToken, verifyTempRegistrationToken } from '../../utils/jwt';
 import { blacklistToken, blacklistUserTokens, clearUserBlacklist } from '../../utils/tokenBlacklist';
 import { queueSms, queueEmail } from '../common/notificationQueue.service';
+import { getOtpSms } from '../common/notificationMessages';
 import { sendPasswordResetEmail } from '../common/email.service';
 import { otpService } from '../common/otp.service';
 import { ApiError } from '../../utils/ApiError';
@@ -657,7 +658,7 @@ export const requestAcademyPasswordReset = async (
     const mobileNumber = `+91${data.mobile}`;
     queueSms(
       mobileNumber,
-      `Your PlayAsport Academy OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Team Thank You.`,
+      getOtpSms({ otp }),
       'high',
       { type: 'otp' }
     );
@@ -1713,7 +1714,7 @@ export const requestUserPasswordReset = async (
     const mobileNumber = `+91${data.mobile}`;
     queueSms(
       mobileNumber,
-      `Your PlayAsport Academy OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Team Thank You.`,
+      getOtpSms({ otp }),
       'high',
       { type: 'otp' }
     );

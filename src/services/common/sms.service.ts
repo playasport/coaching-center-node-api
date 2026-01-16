@@ -135,9 +135,10 @@ export const sendOtpSms = async (mobile: string, otp: string): Promise<string> =
     return 'SMS delivery disabled. OTP not sent.';
   }
 
+  const { getOtpSms } = await import('./notificationMessages');
   await sendSms(
     mobile,
-    `Your PlayAsport Academy OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Team Thank You.`,
+    getOtpSms({ otp }),
     'high',
     { type: 'otp' }
   );

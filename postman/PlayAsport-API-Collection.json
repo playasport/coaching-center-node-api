@@ -64,40 +64,6 @@
           "response": []
         },
         {
-          "name": "Create Order",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"batchId\": \"507f1f77bcf86cd799439011\",\n  \"participantIds\": [\"507f1f77bcf86cd799439012\", \"507f1f77bcf86cd799439013\"],\n  \"notes\": \"Optional booking notes\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/user/booking/create-order",
-              "host": ["{{baseUrl}}"],
-              "path": ["user", "booking", "create-order"]
-            },
-            "description": "Create a Razorpay payment order and booking record. Returns booking details and Razorpay order information."
-          },
-          "response": []
-        },
-        {
           "name": "Verify Payment",
           "request": {
             "method": "POST",
@@ -166,6 +132,108 @@
           "response": []
         },
         {
+          "name": "Book Slot (New Flow)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchId\": \"507f1f77bcf86cd799439011\",\n  \"participantIds\": [\"507f1f77bcf86cd799439012\", \"507f1f77bcf86cd799439013\"],\n  \"notes\": \"Optional booking notes\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/book-slot",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", "book-slot"]
+            },
+            "description": "Create a booking request (new flow). This will occupy slots, create a booking with SLOT_BOOKED status, and send notifications to academy, user, and admin. After academy approval, user can create payment order."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payment Order (After Approval)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/:bookingId/create-payment-order",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", ":bookingId", "create-payment-order"],
+              "variable": [
+                {
+                  "key": "bookingId",
+                  "value": "booking-id-here",
+                  "description": "Booking ID"
+                }
+              ]
+            },
+            "description": "Create a Razorpay payment order for an approved booking. The booking must be in APPROVED status. After this, user can proceed with payment."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Booking (With Reason)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Change of plans\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/:bookingId/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", ":bookingId", "cancel"],
+              "variable": [
+                {
+                  "key": "bookingId",
+                  "value": "booking-id-here",
+                  "description": "Booking ID"
+                }
+              ]
+            },
+            "description": "Cancel a booking by user with reason. Cannot cancel after payment is successful (status: CONFIRMED or payment status: SUCCESS). Creates audit trail entry."
+          },
+          "response": []
+        },
+        {
           "name": "Get User Bookings",
           "request": {
             "method": "GET",
@@ -196,13 +264,13 @@
                 {
                   "key": "status",
                   "value": "",
-                  "description": "Filter by booking status (pending, confirmed, cancelled, completed)",
+                  "description": "Filter by booking status (slot_booked, approved, rejected, payment_pending, confirmed, cancelled, completed)",
                   "disabled": true
                 },
                 {
                   "key": "paymentStatus",
                   "value": "",
-                  "description": "Filter by payment status (pending, processing, success, failed, refunded, cancelled)",
+                  "description": "Filter by payment status (not_initiated, initiated, pending, processing, success, failed, refunded, cancelled)",
                   "disabled": true
                 }
               ]
@@ -2479,18 +2547,18 @@
                     {
                       "key": "status",
                       "value": "",
-                      "description": "Filter by booking status (pending, confirmed, cancelled, completed)",
+                      "description": "Filter by booking status (slot_booked, approved, rejected, payment_pending, confirmed, cancelled, completed)",
                       "disabled": true
                     },
                     {
                       "key": "paymentStatus",
                       "value": "",
-                      "description": "Filter by payment status (pending, processing, success, failed, refunded, cancelled)",
+                      "description": "Filter by payment status (not_initiated, initiated, pending, processing, success, failed, refunded, cancelled)",
                       "disabled": true
                     }
                   ]
                 },
-                "description": "Retrieve a paginated list of bookings for coaching centers owned by the authenticated academy user. Requires authentication and ACADEMY role.\n\nReturns simplified booking information including:\n- booking_id: Unique booking reference ID (BK-YYYY-NNNN format)\n- user_name: Full name of the user\n- student_name: Participant name(s) - comma-separated if multiple\n- batch_name: Name of the batch\n- center_name: Name of the coaching center\n- amount: Total booking amount\n- payment_status: Payment status\n- payment_method: Payment method used (card, netbanking, upi, etc.)\n- invoice_id: Razorpay order ID (invoice reference)"
+                "description": "Retrieve a paginated list of bookings for coaching centers owned by the authenticated academy user. Requires authentication and ACADEMY role.\n\nReturns simplified booking information including:\n- id: Booking UUID\n- booking_id: Unique booking reference ID (BK-YYYY-NNNN format)\n- user_name: Full name of the user\n- student_name: Participant name(s) - comma-separated if multiple\n- student_count: Number of participants/students in the booking\n- batch_name: Name of the batch\n- center_name: Name of the coaching center\n- amount: Total booking amount (batch amount only, excludes platform fee and GST)\n- status: Booking status (slot_booked, approved, rejected, payment_pending, confirmed, cancelled, completed, requested, pending)\n- status_message: Custom message based on booking status and payment status\n- payment_status: Payment status (returns \"paid\" when payment status is \"success\")\n- can_accept_reject: Flag to indicate if accept/reject actions should be shown (true when status is SLOT_BOOKED or REQUESTED)\n- rejection_reason: Rejection reason if status is REJECTED, otherwise null\n- cancellation_reason: Cancellation reason if status is CANCELLED, otherwise null\n- created_at: Booking creation timestamp"
               },
               "response": [
                 {
@@ -2530,7 +2598,7 @@
                     }
                   ],
                   "cookie": [],
-                  "body": "{\n  \"success\": true,\n  \"message\": \"Bookings retrieved successfully\",\n  \"data\": {\n    \"data\": [\n      {\n        \"booking_id\": \"BK-2024-0001\",\n        \"id\": \"f316a86c-2909-4d32-8983-eb225c715bcb\",\n        \"user_name\": \"John Doe\",\n        \"student_name\": \"Alice Smith, Bob Smith\",\n        \"batch_name\": \"Morning Batch\",\n        \"center_name\": \"ABC Sports Academy\",\n        \"amount\": 5000,\n        \"payment_status\": \"success\",\n        \"payment_method\": \"card\",\n        \"invoice_id\": \"order_1234567890\",\n        \"created_at\": \"2024-01-01T00:00:00.000Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 10,\n      \"total\": 50,\n      \"totalPages\": 5,\n      \"hasNextPage\": true,\n      \"hasPrevPage\": false\n    }\n  }\n}"
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Bookings retrieved successfully\",\n  \"data\": {\n    \"data\": [\n      {\n        \"id\": \"f316a86c-2909-4d32-8983-eb225c715bcb\",\n        \"booking_id\": \"BK-2024-0001\",\n        \"user_name\": \"John Doe\",\n        \"student_name\": \"Alice Smith, Bob Smith\",\n        \"student_count\": 2,\n        \"batch_name\": \"Morning Batch\",\n        \"center_name\": \"ABC Sports Academy\",\n        \"amount\": 5000,\n        \"status\": \"confirmed\",\n        \"status_message\": \"Booking confirmed and payment completed\",\n        \"payment_status\": \"paid\",\n        \"can_accept_reject\": false,\n        \"rejection_reason\": null,\n        \"cancellation_reason\": null,\n        \"created_at\": \"2024-01-01T00:00:00.000Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 10,\n      \"total\": 50,\n      \"totalPages\": 5,\n      \"hasNextPage\": true,\n      \"hasPrevPage\": false\n    }\n  }\n}"
                 }
               ]
             },
@@ -2557,14 +2625,71 @@
                     }
                   ]
                 },
-                "description": "Retrieve a booking by its ID. The booking must belong to one of the academy's coaching centers. Requires authentication and ACADEMY role."
+                "description": "Retrieve a booking by its ID. The booking must belong to one of the academy's coaching centers. Returns booking details with user, participants, batch, center, and sport information. Requires authentication and ACADEMY role.\n\n**Response includes:**\n- _id: MongoDB ObjectId\n- id: Booking UUID\n- booking_id: Unique booking reference ID\n- user: User details with profileImage\n- participants: Array of participants with profilePhoto, gender, age, dob\n- batch: Batch details (_id, name)\n- center: Center details (_id, center_name, mobile_number, logo, email, id)\n- sport: Sport details (_id, name, logo)\n- amount: Booking amount (batch amount only, excludes platform fee and GST)\n- currency: Currency code\n- status: Booking status\n- status_message: Custom message based on booking status and payment status\n- payment_status: Payment status (returns \"paid\" when payment status is \"success\")\n- can_accept_reject: Flag to indicate if accept/reject actions should be shown\n- notes: Optional notes\n- cancellation_reason: Cancellation reason if status is CANCELLED\n- rejection_reason: Rejection reason if status is REJECTED\n- createdAt: Booking creation timestamp"
+              },
+              "response": [
+                {
+                  "name": "Success - Booking Details",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{accessToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/academy/booking/f316a86c-2909-4d32-8983-eb225c715bcb",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["academy", "booking", "f316a86c-2909-4d32-8983-eb225c715bcb"]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Booking retrieved successfully\",\n  \"data\": {\n    \"_id\": \"696a26dc6a830138ed964cb0\",\n    \"id\": \"14b31f41-2ec3-4f10-b83b-6c070b3b287b\",\n    \"booking_id\": \"PS-2026-0007\",\n    \"user\": {\n      \"_id\": \"693a72393c18b3e80760dbda\",\n      \"id\": \"862968bb-aa80-4c18-92bc-bca25f5d71a5\",\n      \"firstName\": \"Indal\",\n      \"lastName\": \"Singh\",\n      \"email\": \"indalkumarsingh@playasport.in\",\n      \"mobile\": \"9546576177\",\n      \"profileImage\": \"\"\n    },\n    \"participants\": [\n      {\n        \"_id\": \"6965db5f734654f0a9344e33\",\n        \"firstName\": \"Indal\",\n        \"lastName\": \"Singh\",\n        \"profilePhoto\": \"\",\n        \"gender\": \"male\",\n        \"age\": \"5\",\n        \"dob\": \"2019-01-12T00:00:00.000Z\"\n      }\n    ],\n    \"batch\": {\n      \"_id\": \"6965c9841713b07ad0f77adc\",\n      \"name\": \"test 2\"\n    },\n    \"center\": {\n      \"_id\": \"6954d14414b396df0d2254d4\",\n      \"center_name\": \"Monthly Cricket Training\",\n      \"mobile_number\": \"9546576177\",\n      \"logo\": \"\",\n      \"email\": \"indalkumarsingh@playasport.in\",\n      \"id\": \"61db8434-b1fd-4dc6-a040-16fc99943f2f\"\n    },\n    \"sport\": {\n      \"_id\": \"693a9e96b4d798f46c938643\",\n      \"name\": \"Cricket\",\n      \"logo\": \"\"\n    },\n    \"amount\": 5500,\n    \"currency\": \"INR\",\n    \"status\": \"slot_booked\",\n    \"status_message\": \"Booking request received. Waiting for academy approval.\",\n    \"payment_status\": \"paid\",\n    \"can_accept_reject\": false,\n    \"notes\": null,\n    \"cancellation_reason\": null,\n    \"rejection_reason\": null,\n    \"createdAt\": \"2026-01-16T11:54:04.769Z\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "Approve Booking Request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/booking/:id/approve",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "booking", ":id", "approve"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "f316a86c-2909-4d32-8983-eb225c715bcb",
+                      "description": "Booking UUID"
+                    }
+                  ]
+                },
+                "description": "Approve a booking request. The booking must be in SLOT_BOOKED status. After approval, user can create payment order. Requires authentication and ACADEMY role."
               },
               "response": []
             },
             {
-              "name": "Update Academy Booking Status",
+              "name": "Reject Booking Request",
               "request": {
-                "method": "PATCH",
+                "method": "POST",
                 "header": [
                   {
                     "key": "Authorization",
@@ -2579,7 +2704,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"status\": \"confirmed\"\n}",
+                  "raw": "{\n  \"reason\": \"Optional rejection reason\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -2587,9 +2712,9 @@
                   }
                 },
                 "url": {
-                  "raw": "{{baseUrl}}/academy/booking/:id/status",
+                  "raw": "{{baseUrl}}/academy/booking/:id/reject",
                   "host": ["{{baseUrl}}"],
-                  "path": ["academy", "booking", ":id", "status"],
+                  "path": ["academy", "booking", ":id", "reject"],
                   "variable": [
                     {
                       "key": "id",
@@ -2598,12 +2723,82 @@
                     }
                   ]
                 },
-                "description": "Update the status of a booking. The booking must belong to one of the academy's coaching centers. Status values: pending, confirmed, cancelled, completed. Requires authentication and ACADEMY role."
+                "description": "Reject a booking request. The booking must be in SLOT_BOOKED status. Optional reason can be provided. Requires authentication and ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Export Academy Bookings",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/booking/export?format=excel&startDate=2024-01-01&endDate=2024-12-31&type=all&centerId=&batchId=&status=&paymentStatus=",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "booking", "export"],
+                  "query": [
+                    {
+                      "key": "format",
+                      "value": "excel",
+                      "description": "Export format (excel, csv, or pdf)",
+                      "disabled": false
+                    },
+                    {
+                      "key": "startDate",
+                      "value": "2024-01-01",
+                      "description": "Filter by start date (YYYY-MM-DD format)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "endDate",
+                      "value": "2024-12-31",
+                      "description": "Filter by end date (YYYY-MM-DD format)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "type",
+                      "value": "all",
+                      "description": "Filter by booking type (all, confirmed, pending, cancelled, rejected)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "centerId",
+                      "value": "",
+                      "description": "Filter by coaching center ID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "batchId",
+                      "value": "",
+                      "description": "Filter by batch ID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "Filter by booking status (slot_booked, approved, rejected, payment_pending, confirmed, cancelled, completed, requested, pending)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "paymentStatus",
+                      "value": "",
+                      "description": "Filter by payment status (not_initiated, initiated, pending, processing, success, failed, refunded, cancelled)",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Export bookings to Excel, CSV, or PDF format with date range and type filters. Requires authentication and ACADEMY role.\n\n**Export Formats:**\n- `excel`: Excel file (.xlsx)\n- `csv`: CSV file (.csv)\n- `pdf`: PDF file (.pdf)\n\n**Type Filters:**\n- `all`: All bookings (default)\n- `confirmed`: Bookings with CONFIRMED status and SUCCESS payment\n- `pending`: Bookings with SLOT_BOOKED, APPROVED, REQUESTED, or PAYMENT_PENDING status\n- `cancelled`: Bookings with CANCELLED status\n- `rejected`: Bookings with REJECTED status\n\n**Date Format:** YYYY-MM-DD (e.g., 2024-01-01)\n\n**Export includes:** Booking ID, User Name, Student Names, Student Count, Batch Name, Center Name, Amount, Status, Payment Status, Rejection Reason, Cancellation Reason, Created Date"
               },
               "response": []
             }
           ],
-          "description": "Academy booking management endpoints for viewing and managing bookings"
+          "description": "Academy booking management endpoints for viewing, managing, and exporting bookings"
         },
         {
           "name": "Academy Student",

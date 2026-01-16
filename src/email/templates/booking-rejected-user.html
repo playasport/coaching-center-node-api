@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Booking Request Rejected - PlayAsport</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+
+      .wrapper {
+        width: 100%;
+        padding: 20px 0;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      .header {
+        background-color: #dc3545;
+        color: #ffffff;
+        text-align: center;
+        padding: 30px 20px;
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+
+      .content {
+        padding: 30px;
+        color: #333333;
+        line-height: 1.6;
+      }
+
+      .content h2 {
+        color: #dc3545;
+        margin-top: 0;
+      }
+
+      .info-box {
+        background-color: #f8d7da;
+        border-left: 4px solid #dc3545;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 4px;
+      }
+
+      .info-box p {
+        margin: 5px 0;
+      }
+
+      .booking-details {
+        background-color: #f9f9f9;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 4px;
+      }
+
+      .booking-details h3 {
+        color: #1f3c88;
+        margin-top: 0;
+      }
+
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #e0e0e0;
+      }
+
+      .detail-row:last-child {
+        border-bottom: none;
+      }
+
+      .detail-label {
+        font-weight: bold;
+        color: #666;
+      }
+
+      .detail-value {
+        color: #333;
+      }
+
+      .footer {
+        padding: 20px;
+        text-align: center;
+        font-size: 12px;
+        color: #777777;
+        background-color: #f9f9f9;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="container">
+        <div class="header">
+          <h1>Booking Request Rejected</h1>
+        </div>
+        <div class="content">
+          <p>Dear {{userName}},</p>
+          <p>
+            We regret to inform you that your booking request has been rejected by the academy.
+          </p>
+
+          <div class="booking-details">
+            <h3>Booking Request Details</h3>
+            <div class="detail-row">
+              <span class="detail-label">Booking ID:</span>
+              <span class="detail-value">{{bookingId}}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Batch Name:</span>
+              <span class="detail-value">{{batchName}}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Coaching Center:</span>
+              <span class="detail-value">{{centerName}}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Reason:</span>
+              <span class="detail-value">{{reason}}</span>
+            </div>
+          </div>
+
+          <div class="info-box">
+            <p><strong>What's Next?</strong></p>
+            <p>We're sorry for any inconvenience. You can explore other available batches or coaching centers that might be a better fit for your needs.</p>
+            {{#if reason}}
+            <p><strong>Reason for rejection:</strong> {{reason}}</p>
+            {{/if}}
+          </div>
+
+          <p>If you have any questions or need assistance, please feel free to contact our support team.</p>
+          <p>Thank you for choosing PlayAsport!</p>
+          <p>Best regards,<br />The PlayAsport Team</p>
+        </div>
+        <div class="footer">
+          © {{year}} PlayAsport. All rights reserved.
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

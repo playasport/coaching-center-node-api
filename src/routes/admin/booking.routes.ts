@@ -47,14 +47,14 @@ router.use(requireAdmin);
  *         name: status
  *         schema:
  *           type: string
- *           enum: [pending, confirmed, cancelled, completed]
- *         description: Filter by booking status
+ *           enum: [slot_booked, approved, rejected, payment_pending, confirmed, cancelled, completed, requested, pending]
+ *         description: Filter by booking status (includes new statuses: slot_booked, approved, rejected)
  *       - in: query
  *         name: paymentStatus
  *         schema:
  *           type: string
- *           enum: [pending, processing, success, failed, refunded, cancelled]
- *         description: Filter by payment status
+ *           enum: [not_initiated, initiated, pending, processing, success, failed, refunded, cancelled]
+ *         description: Filter by payment status (includes new statuses: not_initiated, initiated)
  *       - in: query
  *         name: search
  *         schema:
@@ -261,7 +261,7 @@ router.use(requireAdmin);
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [pending, confirmed, cancelled, completed]
+ *                 enum: [slot_booked, approved, rejected, payment_pending, confirmed, cancelled, completed, requested, pending]
  *     responses:
  *       200:
  *         description: Booking status updated successfully

@@ -1,0 +1,1877 @@
+{
+  "info": {
+    "name": "PlayAsport User & Public API",
+    "description": "Complete API collection for User and Public endpoints - includes User Authentication, Participants, Bookings, Notifications, Public Academy browsing, Search, Locations, Sports, Facilities, Banners, CMS Pages, Reels, Highlights, Home, and Settings",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "participantId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bookingId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "notificationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "academyId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "batchId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "User Authentication",
+      "item": [
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"mode\": \"login\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/send-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "send-otp"]
+            },
+            "description": "Send OTP to a mobile number for login or registration. Works for both existing and non-existing users."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"mode\": \"login\",\n  \"fcmToken\": \"fcm_token_here\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"device_unique_id\",\n  \"deviceName\": \"Samsung Galaxy S21\",\n  \"appVersion\": \"1.0.0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "verify-otp"]
+            },
+            "description": "Verify OTP for login or registration. If user exists, returns tokens. If not, returns tempToken for registration."
+          },
+          "response": []
+        },
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john@example.com\",\n  \"type\": \"student\",\n  \"dob\": \"2000-01-15\",\n  \"gender\": \"male\",\n  \"tempToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"fcmToken\": \"fcm_token_here\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"device_unique_id\",\n  \"deviceName\": \"Samsung Galaxy S21\",\n  \"appVersion\": \"1.0.0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "register"]
+            },
+            "description": "Register a new user with temporary token verification (issued after OTP verification). Mobile number is extracted from tempToken for security."
+          },
+          "response": []
+        },
+        {
+          "name": "Social Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"google\",\n  \"idToken\": \"eyJhbGciOiJSUzI1NiIsImtpZCI6IjUxOG...\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"type\": \"student\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/social-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "social-login"]
+            },
+            "description": "Login or register a user via social providers (Firebase - Google, Facebook, Instagram, Apple)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "me"]
+            },
+            "description": "Get current authenticated user profile. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "firstName",
+                  "value": "John",
+                  "type": "text"
+                },
+                {
+                  "key": "lastName",
+                  "value": "Doe",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "john.doe@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "dob",
+                  "value": "2000-01-15",
+                  "type": "text"
+                },
+                {
+                  "key": "gender",
+                  "value": "male",
+                  "type": "text"
+                },
+                {
+                  "key": "profileImage",
+                  "type": "file",
+                  "src": [],
+                  "description": "Profile image file (JPEG, PNG, WebP, max 5MB)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "profile"]
+            },
+            "description": "Update user profile details. Supports profile image upload via multipart/form-data. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Address",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": {\n    \"line1\": \"123 Main Street\",\n    \"line2\": \"Apt 4B\",\n    \"city\": \"Kolkata\",\n    \"state\": \"West Bengal\",\n    \"country\": \"India\",\n    \"pincode\": \"700001\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/address",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "address"]
+            },
+            "description": "Update user address. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"OldPassword123!\",\n  \"newPassword\": \"NewPassword123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "password"]
+            },
+            "description": "Change user password. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Favorite Sports",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"favoriteSports\": [\"507f1f77bcf86cd799439011\", \"507f1f77bcf86cd799439012\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/favorite-sports",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "favorite-sports"]
+            },
+            "description": "Update user's favorite sports. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "refresh"]
+            },
+            "description": "Refresh access token using refresh token. Device-specific tokens are validated against device records."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "logout"]
+            },
+            "description": "Logout user (blacklist current tokens). Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout All Devices",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/logout-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "logout-all"]
+            },
+            "description": "Logout from all devices (blacklist all user tokens). Requires USER role authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "User authentication endpoints for registration, login, profile management, and token management"
+    },
+    {
+      "name": "Participants",
+      "item": [
+        {
+          "name": "Create Participant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "firstName",
+                  "value": "Jane",
+                  "type": "text"
+                },
+                {
+                  "key": "lastName",
+                  "value": "Doe",
+                  "type": "text"
+                },
+                {
+                  "key": "gender",
+                  "value": "female",
+                  "type": "text"
+                },
+                {
+                  "key": "disability",
+                  "value": "0",
+                  "type": "text"
+                },
+                {
+                  "key": "dob",
+                  "value": "2010-05-20",
+                  "type": "text"
+                },
+                {
+                  "key": "schoolName",
+                  "value": "ABC School",
+                  "type": "text"
+                },
+                {
+                  "key": "contactNumber",
+                  "value": "9876543210",
+                  "type": "text"
+                },
+                {
+                  "key": "profileImage",
+                  "type": "file",
+                  "src": [],
+                  "description": "Optional profile photo file (JPEG, PNG, WebP)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/participant",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "participant"]
+            },
+            "description": "Create a new participant. Users can only create participants for themselves. Supports profile photo upload. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Participants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/participant/my/list?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "participant", "my", "list"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page"
+                }
+              ]
+            },
+            "description": "Get paginated list of participants for logged-in user. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Participant by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/participant/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "participant", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{participantId}}",
+                  "description": "Participant ID"
+                }
+              ]
+            },
+            "description": "Get participant by ID. Users can only view their own participants. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Participant",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "firstName",
+                  "value": "Jane",
+                  "type": "text"
+                },
+                {
+                  "key": "lastName",
+                  "value": "Doe Updated",
+                  "type": "text"
+                },
+                {
+                  "key": "profileImage",
+                  "type": "file",
+                  "src": [],
+                  "description": "Optional profile photo file (JPEG, PNG, WebP). Old photo will be deleted if new one is uploaded."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/participant/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "participant", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{participantId}}",
+                  "description": "Participant ID"
+                }
+              ]
+            },
+            "description": "Update participant details. All fields are optional. Users can only update their own participants. Supports profile photo upload. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Participant",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/participant/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "participant", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{participantId}}",
+                  "description": "Participant ID"
+                }
+              ]
+            },
+            "description": "Delete participant (soft delete). Users can only delete their own participants. Requires authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "Participant management endpoints for users. Requires USER role authentication."
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Get Booking Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/summary?batchId={{batchId}}&participantIds={{participantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", "summary"],
+              "query": [
+                {
+                  "key": "batchId",
+                  "value": "{{batchId}}",
+                  "description": "Batch ID (ObjectId)"
+                },
+                {
+                  "key": "participantIds",
+                  "value": "{{participantId}}",
+                  "description": "Comma-separated Participant IDs (e.g., id1,id2,id3)"
+                }
+              ]
+            },
+            "description": "Get booking summary including batch details, participant info (with age), and calculated amount before creating an order. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Book Slot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchId\": \"507f1f77bcf86cd799439011\",\n  \"participantIds\": [\"507f1f77bcf86cd799439012\", \"507f1f77bcf86cd799439013\"],\n  \"notes\": \"Optional booking notes\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/book-slot",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", "book-slot"]
+            },
+            "description": "Create a booking request (new flow). This will occupy slots, create a booking with SLOT_BOOKED status, and send notifications to academy, user, and admin. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/booking?page=1&limit=10&status=",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by booking status (optional)"
+                },
+                {
+                  "key": "paymentStatus",
+                  "value": "",
+                  "description": "Filter by payment status (optional)"
+                }
+              ]
+            },
+            "description": "Get paginated list of user's bookings with enrolled batches, participants, and payment details. Shows all bookings regardless of payment status. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Booking Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/:bookingId",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", ":bookingId"],
+              "variable": [
+                {
+                  "key": "bookingId",
+                  "value": "{{bookingId}}",
+                  "description": "Booking ID"
+                }
+              ]
+            },
+            "description": "Get detailed booking information by booking ID. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payment Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/:bookingId/create-payment-order",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", ":bookingId", "create-payment-order"],
+              "variable": [
+                {
+                  "key": "bookingId",
+                  "value": "{{bookingId}}",
+                  "description": "Booking ID"
+                }
+              ]
+            },
+            "description": "Create a Razorpay payment order for an approved booking. The booking must be in APPROVED status. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_1234567890\",\n  \"razorpay_payment_id\": \"pay_1234567890\",\n  \"razorpay_signature\": \"signature_from_razorpay\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/verify-payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", "verify-payment"]
+            },
+            "description": "Verify Razorpay payment signature and update booking status. Use this after successful payment on frontend. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Changed my mind\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/:bookingId/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", ":bookingId", "cancel"],
+              "variable": [
+                {
+                  "key": "bookingId",
+                  "value": "{{bookingId}}",
+                  "description": "Booking ID"
+                }
+              ]
+            },
+            "description": "Cancel a booking with optional reason. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete/Cancel Order",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_1234567890\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/delete-order",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", "delete-order"]
+            },
+            "description": "Cancel a booking order and mark payment status as failed. Only works for orders with pending payment status. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Download Invoice",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/:bookingId/invoice",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", ":bookingId", "invoice"],
+              "variable": [
+                {
+                  "key": "bookingId",
+                  "value": "{{bookingId}}",
+                  "description": "Booking ID (UUID)"
+                }
+              ]
+            },
+            "description": "Download invoice PDF for a booking with successful payment. The invoice is automatically sent to the user's email when payment is verified successfully. Requires authentication and booking ownership. Payment status must be SUCCESS. Returns PDF file as binary data with Content-Type: application/pdf."
+          },
+          "response": []
+        }
+      ],
+      "description": "User booking management endpoints for creating bookings, managing payments, viewing booking history, and downloading invoices. Requires USER role authentication."
+    },
+    {
+      "name": "User Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications?page=1&limit=10&isRead=",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page"
+                },
+                {
+                  "key": "isRead",
+                  "value": "",
+                  "description": "Filter by read status (true/false)"
+                }
+              ]
+            },
+            "description": "Get paginated list of notifications for the authenticated user. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications", "unread-count"]
+            },
+            "description": "Get count of unread notifications for the authenticated user. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications/:id/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications", ":id", "read"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{notificationId}}",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Mark a specific notification as read. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Unread",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications/:id/unread",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications", ":id", "unread"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{notificationId}}",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Mark a specific notification as unread. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications", "read-all"]
+            },
+            "description": "Mark all notifications as read for the authenticated user. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{notificationId}}",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Delete a specific notification. Requires USER role authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "User notification endpoints for viewing and managing notifications. Requires USER role authentication."
+    },
+    {
+      "name": "Public - Academies",
+      "item": [
+        {
+          "name": "Get All Academies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academies?page=1&limit=10&latitude=&longitude=",
+              "host": ["{{baseUrl}}"],
+              "path": ["academies"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page"
+                },
+                {
+                  "key": "latitude",
+                  "value": "",
+                  "description": "User's latitude (optional, for distance-based sorting)"
+                },
+                {
+                  "key": "longitude",
+                  "value": "",
+                  "description": "User's longitude (optional, for distance-based sorting)"
+                }
+              ]
+            },
+            "description": "Get all published academies with pagination. If location is provided, academies are sorted by distance. If user is logged in and has favorite sports, academies with favorite sports are prioritized. This is a public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Academy by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academies/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["academies", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{academyId}}",
+                  "description": "Academy ID (UUID, ObjectId, or User custom ID)"
+                }
+              ]
+            },
+            "description": "Get detailed information about an academy including all batches. Supports multiple ID types. If user is not logged in, email and mobile number will be masked. This is a public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Academies by City",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/city/:cityName?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["city", ":cityName"],
+              "variable": [
+                {
+                  "key": "cityName",
+                  "value": "Kolkata",
+                  "description": "City name (case-insensitive)"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page"
+                }
+              ]
+            },
+            "description": "Get list of academies in a specific city with sport-specific data and images. Returns academies with one image from sport_details per academy. This is a public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Academies by Sport",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sport/:slug?page=1&limit=10&latitude=&longitude=",
+              "host": ["{{baseUrl}}"],
+              "path": ["sport", ":slug"],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "cricket",
+                  "description": "Sport slug (e.g., 'cricket', 'football')"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page"
+                },
+                {
+                  "key": "latitude",
+                  "value": "",
+                  "description": "User's latitude (optional, for distance-based sorting)"
+                },
+                {
+                  "key": "longitude",
+                  "value": "",
+                  "description": "User's longitude (optional, for distance-based sorting)"
+                }
+              ]
+            },
+            "description": "Get academies that offer a specific sport. If location is provided, academies are sorted by distance (nearest first) and distance is shown in km. This is a public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Top Cities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/top-cities",
+              "host": ["{{baseUrl}}"],
+              "path": ["top-cities"]
+            },
+            "description": "Get top 15 cities with academy and sports counts. This is a public endpoint."
+          },
+          "response": []
+        }
+      ],
+      "description": "Public academy browsing endpoints. No authentication required."
+    },
+    {
+      "name": "Public - Location",
+      "item": [
+        {
+          "name": "Get Countries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/location/countries",
+              "host": ["{{baseUrl}}"],
+              "path": ["location", "countries"]
+            },
+            "description": "Get all countries. This is a public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Get States",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/location/states?countryCode=IN",
+              "host": ["{{baseUrl}}"],
+              "path": ["location", "states"],
+              "query": [
+                {
+                  "key": "countryCode",
+                  "value": "IN",
+                  "description": "Country code (ISO2) or country ID"
+                }
+              ]
+            },
+            "description": "Get states by country. This is a public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/location/cities?stateId=694119952301f6a1798b1300",
+              "host": ["{{baseUrl}}"],
+              "path": ["location", "cities"],
+              "query": [
+                {
+                  "key": "stateId",
+                  "value": "694119952301f6a1798b1300",
+                  "description": "State ID (MongoDB ObjectId or state reference ID)"
+                }
+              ]
+            },
+            "description": "Get cities by state ID. This is a public endpoint."
+          },
+          "response": []
+        }
+      ],
+      "description": "Public location endpoints for countries, states, and cities. No authentication required."
+    },
+    {
+      "name": "Public - Basic",
+      "item": [
+        {
+          "name": "Get Sports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sports",
+              "host": ["{{baseUrl}}"],
+              "path": ["sports"]
+            },
+            "description": "Get all active sports with name, logo, is_popular, and custom_id. This is a public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Facilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/facilities",
+              "host": ["{{baseUrl}}"],
+              "path": ["facilities"]
+            },
+            "description": "Get all active facilities with name, description, icon, and custom_id. This is a public endpoint."
+          },
+          "response": []
+        }
+      ],
+      "description": "Public basic endpoints for sports and facilities. No authentication required."
+    },
+    {
+      "name": "Public - Home",
+      "item": [
+        {
+          "name": "Get Home Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/home?latitude=28.6139&longitude=77.2090",
+              "host": ["{{baseUrl}}"],
+              "path": ["home"],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "28.6139",
+                  "description": "Latitude for location-based sorting (optional)"
+                },
+                {
+                  "key": "longitude",
+                  "value": "77.2090",
+                  "description": "Longitude for location-based sorting (optional)"
+                }
+              ]
+            },
+            "description": "Get home page data (nearby academies, popular sports, and popular reels). Authentication is optional."
+          },
+          "response": []
+        }
+      ],
+      "description": "Public home page data endpoint. Authentication is optional."
+    },
+    {
+      "name": "Public - Search",
+      "item": [
+        {
+          "name": "Autocomplete Search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search/autocomplete?q=cricket&size=5&latitude=&longitude=&radius=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["search", "autocomplete"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "cricket",
+                  "description": "Search query string"
+                },
+                {
+                  "key": "size",
+                  "value": "5",
+                  "description": "Number of results per index (default: 5)"
+                },
+                {
+                  "key": "index",
+                  "value": "",
+                  "description": "Optional - Search specific index only"
+                },
+                {
+                  "key": "latitude",
+                  "value": "",
+                  "description": "User's latitude for geo-based sorting (optional)"
+                },
+                {
+                  "key": "longitude",
+                  "value": "",
+                  "description": "User's longitude for geo-based sorting (optional)"
+                },
+                {
+                  "key": "radius",
+                  "value": "50",
+                  "description": "Search radius in kilometers (default: 50km)"
+                }
+              ]
+            },
+            "description": "Autocomplete/Search-as-you-type API. Searches across all indices (sports, coaching centers, reels, highlights) simultaneously. This is a public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Full Search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search?q=cricket academy&size=10&from=0&latitude=&longitude=&radius=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "cricket academy",
+                  "description": "Search query string"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Number of results per page"
+                },
+                {
+                  "key": "from",
+                  "value": "0",
+                  "description": "Pagination offset"
+                },
+                {
+                  "key": "index",
+                  "value": "",
+                  "description": "Optional - Search specific index only"
+                },
+                {
+                  "key": "latitude",
+                  "value": "",
+                  "description": "User's latitude for geo-based sorting and filtering"
+                },
+                {
+                  "key": "longitude",
+                  "value": "",
+                  "description": "User's longitude for geo-based sorting and filtering"
+                },
+                {
+                  "key": "radius",
+                  "value": "50",
+                  "description": "Search radius in kilometers (default: 50km)"
+                }
+              ]
+            },
+            "description": "Full-text search across all indices with pagination, geo-filtering, and advanced sorting. This is a public endpoint."
+          },
+          "response": []
+        }
+      ],
+      "description": "Public search endpoints for autocomplete and full-text search. No authentication required."
+    },
+    {
+      "name": "Public - Banners",
+      "item": [
+        {
+          "name": "Get Banners by Position",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/banners/:position?limit=10&sportId=&centerId=&targetAudience=all",
+              "host": ["{{baseUrl}}"],
+              "path": ["banners", ":position"],
+              "variable": [
+                {
+                  "key": "position",
+                  "value": "homepage_top",
+                  "description": "Banner position (homepage_top, homepage_middle, homepage_bottom, category_top, category_sidebar, sport_page, center_page, search_results, mobile_app_home, mobile_app_category)"
+                }
+              ],
+              "query": [
+                {
+                  "key": "sportId",
+                  "value": "",
+                  "description": "Filter banners by sport ID (optional)"
+                },
+                {
+                  "key": "centerId",
+                  "value": "",
+                  "description": "Filter banners by center ID (optional)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Maximum number of banners to return"
+                },
+                {
+                  "key": "targetAudience",
+                  "value": "all",
+                  "description": "Filter by target audience (optional)"
+                }
+              ]
+            },
+            "description": "Get active banners for a specific position. Banners are filtered by scheduling, targeting, and sorted by priority. Authentication is optional."
+          },
+          "response": []
+        },
+        {
+          "name": "Track Banner View",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/banners/:id/track/view",
+              "host": ["{{baseUrl}}"],
+              "path": ["banners", ":id", "track", "view"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "550e8400-e29b-41d4-a716-446655440000",
+                  "description": "Banner ID"
+                }
+              ]
+            },
+            "description": "Track banner view (for analytics). This endpoint is optional and failures are silently ignored. Authentication is optional."
+          },
+          "response": []
+        },
+        {
+          "name": "Track Banner Click",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/banners/:id/track/click",
+              "host": ["{{baseUrl}}"],
+              "path": ["banners", ":id", "track", "click"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "550e8400-e29b-41d4-a716-446655440000",
+                  "description": "Banner ID"
+                }
+              ]
+            },
+            "description": "Track banner click (for analytics). This endpoint is optional and failures are silently ignored. Authentication is optional."
+          },
+          "response": []
+        }
+      ],
+      "description": "Public banner endpoints. Authentication is optional."
+    },
+    {
+      "name": "Public - CMS Pages",
+      "item": [
+        {
+          "name": "Get CMS Page by Slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pages/:slug?platform=",
+              "host": ["{{baseUrl}}"],
+              "path": ["pages", ":slug"],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "privacy-policy",
+                  "description": "CMS page slug (e.g., privacy-policy, terms-and-conditions, about-us)"
+                }
+              ],
+              "query": [
+                {
+                  "key": "platform",
+                  "value": "",
+                  "description": "Filter by platform (web, app, both) - optional"
+                }
+              ]
+            },
+            "description": "Get an active CMS page by its slug. This is a public endpoint that doesn't require authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "Public CMS page endpoints. No authentication required."
+    },
+    {
+      "name": "Public - Reels",
+      "item": [
+        {
+          "name": "Get Reels List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reels?page=1&limit=3",
+              "host": ["{{baseUrl}}"],
+              "path": ["reels"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "3",
+                  "description": "Number of reels per page (max 3)"
+                }
+              ]
+            },
+            "description": "Get paginated list of approved reels (3 per page). This is a public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Reels List with ID First",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reels/:id?page=1&limit=3",
+              "host": ["{{baseUrl}}"],
+              "path": ["reels", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "a9e7fb78-085a-4cbc-993c-9784f8f6576a",
+                  "description": "Reel ID"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "3",
+                  "description": "Number of reels per page (max 3)"
+                }
+              ]
+            },
+            "description": "Get paginated list of reels where the specified reel appears first. This is a public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Reel View",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reels/:id/view",
+              "host": ["{{baseUrl}}"],
+              "path": ["reels", ":id", "view"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "a9e7fb78-085a-4cbc-993c-9784f8f6576a",
+                  "description": "Reel ID"
+                }
+              ]
+            },
+            "description": "Increment the view count for a specific reel. This is a public endpoint."
+          },
+          "response": []
+        }
+      ],
+      "description": "Public reels endpoints. No authentication required."
+    },
+    {
+      "name": "Public - Highlights",
+      "item": [
+        {
+          "name": "Get Highlights List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/highlights?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["highlights"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of highlights per page (max 100)"
+                }
+              ]
+            },
+            "description": "Get paginated list of published highlights with minimal data. This is a public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Highlight by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/highlights/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["highlights", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "3312582084045221342003",
+                  "description": "Highlight ID"
+                }
+              ]
+            },
+            "description": "Get detailed information about a specific highlight including user, sports, and coaching center data. This is a public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Highlight View",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/highlights/:id/view",
+              "host": ["{{baseUrl}}"],
+              "path": ["highlights", ":id", "view"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "3312582084045221342003",
+                  "description": "Highlight ID"
+                }
+              ]
+            },
+            "description": "Increment the view count for a specific highlight. This is a public endpoint."
+          },
+          "response": []
+        }
+      ],
+      "description": "Public highlights endpoints. No authentication required."
+    },
+    {
+      "name": "Public - Settings",
+      "item": [
+        {
+          "name": "Get Limited Public Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["settings"]
+            },
+            "description": "Get limited public-facing settings including app name, logo, and contact information only. Returns only essential public data (app_name, app_logo, contact). All other settings are excluded. This is a public endpoint."
+          },
+          "response": []
+        }
+      ],
+      "description": "Public settings endpoint. No authentication required."
+    },
+    {
+      "name": "Public - Locale",
+      "item": [
+        {
+          "name": "Get Current Locale",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locale",
+              "host": ["{{baseUrl}}"],
+              "path": ["locale"]
+            },
+            "description": "Get current locale information. This is a public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Set Locale",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locale\": \"hi\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/locale",
+              "host": ["{{baseUrl}}"],
+              "path": ["locale"]
+            },
+            "description": "Set locale for current request. Supported locales: en, hi. This is a public endpoint."
+          },
+          "response": []
+        }
+      ],
+      "description": "Public locale endpoints. No authentication required."
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Health check endpoint to verify server is running. This is a public endpoint."
+          },
+          "response": []
+        }
+      ],
+      "description": "Health check endpoint. No authentication required."
+    }
+  ]
+}

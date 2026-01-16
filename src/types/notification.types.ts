@@ -17,6 +17,12 @@ export interface SmsNotification extends BaseNotification {
   body: string;
 }
 
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+}
+
 export interface EmailNotification extends BaseNotification {
   channel: 'email';
   to: string;
@@ -25,6 +31,7 @@ export interface EmailNotification extends BaseNotification {
   text?: string;
   template?: string;
   templateVariables?: Record<string, unknown>;
+  attachments?: EmailAttachment[];
 }
 
 export interface WhatsAppNotification extends BaseNotification {

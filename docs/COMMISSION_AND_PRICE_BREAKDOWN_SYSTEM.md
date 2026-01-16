@@ -5,10 +5,11 @@ This document describes the commission system and price breakdown storage implem
 ## Overview
 
 The system implements a commission-based payout structure where:
-- **Platform** charges platform fee and GST from users
+- **Platform** charges platform fee and GST (on platform_fee only) from users
 - **Academy** receives batch amount (admission fee + base fee)
 - **Commission** is calculated on batch amount and deducted from academy payout
 - **Price breakdown** is stored at booking creation time for historical accuracy
+- **GST Calculation**: GST is applied only on platform_fee, not on the entire amount
 
 ## Table of Contents
 
@@ -28,7 +29,7 @@ The system implements a commission-based payout structure where:
 ```
 Booking Creation
     ↓
-Calculate Price Breakdown (batch amount, platform fee, GST)
+Calculate Price Breakdown (batch amount, platform fee, GST on platform_fee only)
     ↓
 Calculate Commission (on batch amount)
     ↓
@@ -161,8 +162,8 @@ Calculation:
 User Pays:
 - batch_amount: ₹2000
 - platform_fee: ₹50
-- GST (18%): ₹369
-- total_amount: ₹2419
+- GST (18% on platform_fee only): ₹9
+- total_amount: ₹2059
 ```
 
 ### Implementation
@@ -201,7 +202,7 @@ const commission = {
 | `total_base_fee` | Total base fee (fee × count) | ✅ Yes |
 | `batch_amount` | Admission fee + Base fee | ✅ Yes (What they earn) |
 | `platform_fee` | Platform service charge | ❌ No |
-| `gst_amount` | GST on subtotal | ❌ No |
+| `gst_amount` | GST on platform_fee only | ❌ No |
 | `total_amount` | Final amount user pays | ❌ No |
 
 ### Storage
@@ -303,31 +304,91 @@ Academy users **only see batch amount** (admission fee + base fee) in all listin
 
 ## Data Flow
 
-### Booking Creation Flow
+### Booking Creation Flow (New Flow)
 
 ```
-1. User initiates booking
+1. User views booking summary
    ↓
-2. System calculates:
+2. User clicks "Book Slot" button
+   ↓
+3. System calculates:
    - Batch amount (admission + base fee)
    - Platform fee
    - GST
    - Total amount
    ↓
-3. System calculates commission:
+4. System calculates commission:
    - Commission rate from settings
    - Commission amount (batch_amount × rate)
    - Payout amount (batch_amount - commission)
    ↓
-4. Booking created with:
+5. Booking created with SLOT_BOOKED status:
    - amount: total_amount (user pays)
    - commission: { rate, amount, payoutAmount }
    - priceBreakdown: { batch_amount, platform_fee, gst, total_amount, ... }
+   - status: SLOT_BOOKED
    ↓
-5. Payment verified
+6. Slots occupied based on participant count
    ↓
-6. Booking confirmed
+7. Notifications sent to:
+   - Academy owner
+   - User
+   - Admin
+   ↓
+8. Academy reviews and approves/rejects
+   ↓
+9a. If APPROVED:
+    - Booking status: APPROVED
+    - User gets payment option
+    - User creates payment order
+    - User makes payment
+    - Payment verified
+    - Booking status: CONFIRMED
+   ↓
+9b. If REJECTED:
+    - Booking status: REJECTED
+    - Slots released
+    - User notified
 ```
+
+### Booking Status Flow
+
+```
+SLOT_BOOKED → APPROVED → CONFIRMED (after payment)
+            ↘ REJECTED
+            ↘ CANCELLED (user cancels)
+```
+
+**Status Descriptions:**
+- **SLOT_BOOKED**: User has booked the slot, waiting for academy approval (user-friendly name)
+- **APPROVED**: Academy approved, waiting for user payment
+- **REJECTED**: Academy rejected the booking request
+- **PAYMENT_PENDING**: Payment pending (legacy status, for backward compatibility)
+- **CONFIRMED**: Payment successful, booking confirmed
+- **CANCELLED**: Booking cancelled
+- **COMPLETED**: Booking completed
+
+**Legacy Statuses (for backward compatibility):**
+- **REQUESTED**: Deprecated - Use SLOT_BOOKED instead
+- **PENDING**: Deprecated - Use PAYMENT_PENDING instead
+
+### Payment Status Flow
+
+```
+NOT_INITIATED → INITIATED → PENDING → PROCESSING → SUCCESS
+                                ↓
+                              FAILED
+```
+
+**Payment Status Descriptions:**
+- **NOT_INITIATED**: Payment not yet initiated (booking is SLOT_BOOKED or APPROVED, waiting for payment order creation)
+- **INITIATED**: Razorpay payment order created, payment initiated, waiting for user to complete payment
+- **PENDING**: Payment initiated but not completed (legacy status, also used in old flow)
+- **PROCESSING**: Payment is being processed
+- **SUCCESS**: Payment successful
+- **FAILED**: Payment failed
+- **REFUNDED**: Payment refunded
+- **CANCELLED**: Payment cancelled
 
 ### Academy View Flow
 
@@ -367,8 +428,8 @@ Academy users **only see batch amount** (admission fee + base fee) in all listin
     "platform_fee": 50,
     "subtotal": 2050,
     "gst_percentage": 18,
-    "gst_amount": 369,
-    "total_amount": 2419,        // User pays this
+    "gst_amount": 9,             // GST on platform_fee only (50 × 18% = 9)
+    "total_amount": 2059,        // User pays this (2000 + 50 + 9)
     "participant_count": 2,
     "currency": "INR",
     "calculated_at": "2024-01-15T10:00:00Z"
@@ -379,7 +440,7 @@ Academy users **only see batch amount** (admission fee + base fee) in all listin
     "payoutAmount": 1800,        // Academy receives this
     "calculatedAt": "2024-01-15T10:00:00Z"
   },
-  "amount": 2419                 // Total amount (user pays)
+  "amount": 2059                 // Total amount (user pays)
 }
 ```
 
@@ -456,6 +517,7 @@ For existing bookings without `priceBreakdown` or `commission`:
 - [Admin Settings Management](./ADMIN_SETTINGS_MANAGEMENT.md)
 - [Transaction Payment Management](./ADMIN_TRANSACTION_PAYMENT_MANAGEMENT.md)
 - [Academy Booking API](./BATCH_API_DOCUMENTATION.md)
+- [Booking Flow and Audit Trail](./BOOKING_FLOW_AND_AUDIT_TRAIL.md) - Complete guide to new booking flow with audit trail
 
 ## API Endpoints
 
@@ -475,16 +537,82 @@ PATCH /api/v1/admin/settings
 }
 ```
 
+### User Booking APIs (New Flow)
+
+**Get Booking Summary**:
+```
+GET /api/v1/user/booking/summary?batchId=:batchId&participantIds=:participantId1,:participantId2
+```
+
+**Book Slot** (New Flow - Creates booking request):
+```
+POST /api/v1/user/booking/book-slot
+Body: {
+  "batchId": "...",
+  "participantIds": ["..."],
+  "notes": "Optional notes"
+}
+```
+
+**Create Payment Order** (After academy approval):
+```
+POST /api/v1/user/booking/:bookingId/create-payment-order
+```
+
+**Verify Payment**:
+```
+POST /api/v1/user/booking/verify-payment
+Body: {
+  "razorpay_order_id": "...",
+  "razorpay_payment_id": "...",
+  "razorpay_signature": "..."
+}
+```
+
+**Cancel Booking** (With reason):
+```
+POST /api/v1/user/booking/:bookingId/cancel
+Body: {
+  "reason": "Change of plans"
+}
+```
+
+**Get User Bookings**:
+```
+GET /api/v1/user/booking?page=1&limit=10&status=slot_booked&paymentStatus=not_initiated
+```
+
 ### Academy Booking APIs
 
 **List Bookings** (shows only batch amount):
 ```
-GET /api/v1/academy/booking?page=1&limit=10
+GET /api/v1/academy/booking?page=1&limit=10&status=slot_booked
 ```
 
 **Get Booking Detail** (shows only batch amount):
 ```
 GET /api/v1/academy/booking/:id
+```
+
+**Approve Booking Request**:
+```
+POST /api/v1/academy/booking/:id/approve
+```
+
+**Reject Booking Request**:
+```
+POST /api/v1/academy/booking/:id/reject
+Body: {
+  "reason": "Optional rejection reason"
+}
+```
+
+**Update Booking Status**:
+```
+PATCH /api/v1/academy/booking/:id/status
+Body: {
+  "status": "confirmed"
+}
 ```
 
 **List Students** (shows only batch amount):
@@ -514,8 +642,8 @@ GET /api/v1/academy/user?page=1&limit=10
   priceBreakdown?: {
     batch_amount: number;      // What academy earns
     platform_fee: number;
-    gst_amount: number;
-    total_amount: number;      // What user pays
+    gst_amount: number;        // GST on platform_fee only
+    total_amount: number;      // What user pays (batch_amount + platform_fee + GST)
     // ... other fields
   };
   // ... other fields

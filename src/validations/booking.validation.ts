@@ -24,19 +24,6 @@ export const bookingSummarySchema = z.object({
 
 export type BookingSummaryInput = z.infer<typeof bookingSummarySchema>['query'];
 
-// Create order request schema
-export const createOrderSchema = z.object({
-  body: z.object({
-    batchId: z.string().min(1, 'Batch ID is required'),
-    participantIds: z
-      .array(z.string().min(1, 'Participant ID is required'))
-      .min(1, 'At least one participant ID is required'),
-    notes: z.string().max(1000, 'Notes must be less than 1000 characters').optional().nullable(),
-  }),
-});
-
-export type CreateOrderInput = z.infer<typeof createOrderSchema>['body'];
-
 // Verify payment request schema
 export const verifyPaymentSchema = z.object({
   body: z.object({
@@ -71,18 +58,8 @@ export const academyBookingListSchema = z.object({
       .optional(),
     centerId: z.string().min(1, 'Center ID must be valid').optional(),
     batchId: z.string().min(1, 'Batch ID must be valid').optional(),
-    status: z.enum(['pending', 'confirmed', 'cancelled', 'completed']).optional(),
-    paymentStatus: z.enum(['pending', 'processing', 'success', 'failed', 'refunded', 'cancelled']).optional(),
-  }),
-});
-
-// Academy booking status update schema
-export const academyBookingStatusUpdateSchema = z.object({
-  body: z.object({
-    status: z.enum(['pending', 'confirmed', 'cancelled', 'completed']),
-  }),
-  params: z.object({
-    id: z.string().min(1, 'Booking ID is required'),
+    status: z.enum(['slot_booked', 'approved', 'rejected', 'payment_pending', 'confirmed', 'cancelled', 'completed', 'requested', 'pending']).optional(), // Include legacy statuses for backward compatibility
+    paymentStatus: z.enum(['not_initiated', 'initiated', 'pending', 'processing', 'success', 'failed', 'refunded', 'cancelled']).optional(),
   }),
 });
 
@@ -110,6 +87,20 @@ export const academyEnrolledStudentsSchema = z.object({
     centerId: z.string().min(1, 'Center ID must be valid').optional(),
     batchId: z.string().min(1, 'Batch ID must be valid').optional(),
     status: z.enum(['active', 'left', 'completed', 'pending']).optional(),
+  }),
+});
+
+// Academy booking export query schema
+export const academyBookingExportSchema = z.object({
+  query: z.object({
+    format: z.enum(['excel', 'csv', 'pdf']),
+    centerId: z.string().min(1, 'Center ID must be valid').optional(),
+    batchId: z.string().min(1, 'Batch ID must be valid').optional(),
+    status: z.enum(['slot_booked', 'approved', 'rejected', 'payment_pending', 'confirmed', 'cancelled', 'completed', 'requested', 'pending']).optional(),
+    paymentStatus: z.enum(['not_initiated', 'initiated', 'pending', 'processing', 'success', 'failed', 'refunded', 'cancelled']).optional(),
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Start date must be in YYYY-MM-DD format').optional(),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'End date must be in YYYY-MM-DD format').optional(),
+    type: z.enum(['all', 'confirmed', 'pending', 'cancelled', 'rejected']).optional(),
   }),
 });
 
@@ -162,8 +153,8 @@ export const userBookingListSchema = z.object({
         return val;
       }, z.number().int().min(1).max(100).optional())
       .optional(),
-    status: z.enum(['pending', 'confirmed', 'cancelled', 'completed']).optional(),
-    paymentStatus: z.enum(['pending', 'processing', 'success', 'failed', 'refunded', 'cancelled']).optional(),
+    status: z.enum(['slot_booked', 'approved', 'rejected', 'payment_pending', 'confirmed', 'cancelled', 'completed', 'requested', 'pending']).optional(), // Include legacy statuses for backward compatibility
+    paymentStatus: z.enum(['not_initiated', 'initiated', 'pending', 'processing', 'success', 'failed', 'refunded', 'cancelled']).optional(),
   }),
 });
 
@@ -177,4 +168,59 @@ export const deleteOrderSchema = z.object({
 });
 
 export type DeleteOrderInput = z.infer<typeof deleteOrderSchema>['body'];
+
+// Book slot request schema (same as createOrder but different flow)
+export const bookSlotSchema = z.object({
+  body: z.object({
+    batchId: z.string().min(1, 'Batch ID is required'),
+    participantIds: z
+      .array(z.string().min(1, 'Participant ID is required'))
+      .min(1, 'At least one participant ID is required'),
+    notes: z.string().max(1000, 'Notes must be less than 1000 characters').optional().nullable(),
+  }),
+});
+
+export type BookSlotInput = z.infer<typeof bookSlotSchema>['body'];
+
+// Create payment order request schema (after academy approval)
+export const createPaymentOrderSchema = z.object({
+  params: z.object({
+    bookingId: z.string().min(1, 'Booking ID is required'),
+  }),
+});
+
+export type CreatePaymentOrderInput = z.infer<typeof createPaymentOrderSchema>['params'];
+
+// Academy approve/reject booking request schema
+export const academyBookingActionSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'Booking ID is required'),
+  }),
+  body: z.object({
+    reason: z.string().min(1, 'Rejection reason is required').max(1000, 'Rejection reason must not exceed 1000 characters'),
+  }),
+});
+
+export type AcademyBookingActionInput = z.infer<typeof academyBookingActionSchema>;
+
+// Cancel booking request schema
+export const cancelBookingSchema = z.object({
+  params: z.object({
+    bookingId: z.string().min(1, 'Booking ID is required'),
+  }),
+  body: z.object({
+    reason: z.string().min(1, 'Cancellation reason is required').max(500, 'Reason must be less than 500 characters'),
+  }),
+});
+
+export type CancelBookingInput = z.infer<typeof cancelBookingSchema>;
+
+// Get booking details schema
+export const getBookingDetailsSchema = z.object({
+  params: z.object({
+    bookingId: z.string().min(1, 'Booking ID is required'),
+  }),
+});
+
+export type GetBookingDetailsInput = z.infer<typeof getBookingDetailsSchema>['params'];
 

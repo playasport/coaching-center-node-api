@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>New Booking Request - PlayAsport</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+
+      .wrapper {
+        width: 100%;
+        padding: 20px 0;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      .header {
+        background-color: #1f3c88;
+        color: #ffffff;
+        text-align: center;
+        padding: 30px 20px;
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+
+      .content {
+        padding: 30px;
+        color: #333333;
+        line-height: 1.6;
+      }
+
+      .content h2 {
+        color: #1f3c88;
+        margin-top: 0;
+      }
+
+      .info-box {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 4px;
+      }
+
+      .info-box p {
+        margin: 5px 0;
+      }
+
+      .booking-details {
+        background-color: #f9f9f9;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 4px;
+      }
+
+      .booking-details h3 {
+        color: #1f3c88;
+        margin-top: 0;
+      }
+
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #e0e0e0;
+      }
+
+      .detail-row:last-child {
+        border-bottom: none;
+      }
+
+      .detail-label {
+        font-weight: bold;
+        color: #666;
+      }
+
+      .detail-value {
+        color: #333;
+      }
+
+      .action-box {
+        background-color: #1f3c88;
+        color: #ffffff;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 4px;
+        text-align: center;
+      }
+
+      .footer {
+        padding: 20px;
+        text-align: center;
+        font-size: 12px;
+        color: #777777;
+        background-color: #f9f9f9;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="container">
+        <div class="header">
+          <h1>New Booking Request 📋</h1>
+        </div>
+        <div class="content">
+          <p>Dear Academy Owner,</p>
+          <p>
+            You have received a new booking request that requires your review and approval.
+          </p>
+
+          <div class="booking-details">
+            <h3>Booking Request Details</h3>
+            <div class="detail-row">
+              <span class="detail-label">Booking ID:</span>
+              <span class="detail-value">{{bookingId}}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Batch Name:</span>
+              <span class="detail-value">{{batchName}}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Coaching Center:</span>
+              <span class="detail-value">{{centerName}}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Customer Name:</span>
+              <span class="detail-value">{{userName}}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Participants:</span>
+              <span class="detail-value">{{participants}}</span>
+            </div>
+          </div>
+
+          <div class="info-box">
+            <p><strong>Action Required</strong></p>
+            <p>Please review this booking request and either approve or reject it through your academy dashboard.</p>
+            <p>You will be notified once the customer completes the payment after approval.</p>
+          </div>
+
+          <div class="action-box">
+            <p style="margin: 0;">Please log in to your academy dashboard to review and respond to this booking request.</p>
+          </div>
+
+          <p>Thank you for being part of PlayAsport!</p>
+          <p>Best regards,<br />The PlayAsport Team</p>
+        </div>
+        <div class="footer">
+          © {{year}} PlayAsport. All rights reserved.
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

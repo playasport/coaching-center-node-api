@@ -34,12 +34,18 @@ The collection uses the following variables:
    - Requires: `batchId` and `participantIds` (comma-separated) as query parameters
    - Returns: Batch details, participants info, and calculated amount
 
-2. **Create Order**
-   - Create a Razorpay payment order
+2. **Book Slot** (New Flow)
+   - Create a booking request with SLOT_BOOKED status
    - Requires: `batchId`, `participantIds` (array), and optional `notes`
-   - Returns: Booking record and Razorpay order details
+   - Returns: Booking record with SLOT_BOOKED status
+   - Sends notifications to academy, user, and admin
 
-3. **Verify Payment**
+3. **Create Payment Order** (After Academy Approval)
+   - Create a Razorpay payment order after academy approves the booking
+   - Requires: `bookingId` (in URL path)
+   - Returns: Booking details and Razorpay order information
+
+4. **Verify Payment**
    - Verify Razorpay payment signature
    - Requires: `razorpay_order_id`, `razorpay_payment_id`, `razorpay_signature`
    - Returns: Updated booking record with confirmed status
@@ -56,10 +62,12 @@ The collection uses the following variables:
 
 1. **Login**: Use the User Login endpoint to get an access token
 2. **Get Summary**: Get booking summary for a batch and participant
-3. **Create Order**: Create a Razorpay order for the booking
-4. **Payment**: Complete payment on Razorpay (use Razorpay test credentials)
-5. **Verify Payment**: Verify the payment using the signature from Razorpay
-6. **Webhook**: The webhook will automatically update the booking if payment succeeds
+3. **Book Slot**: Create a booking request (status: SLOT_BOOKED)
+4. **Academy Approval**: Academy approves the booking (status: APPROVED)
+5. **Create Payment Order**: Create a Razorpay order for the approved booking
+6. **Payment**: Complete payment on Razorpay (use Razorpay test credentials)
+7. **Verify Payment**: Verify the payment using the signature from Razorpay
+8. **Webhook**: The webhook will automatically update the booking if payment succeeds
 
 ## Notes
 

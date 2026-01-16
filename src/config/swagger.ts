@@ -4767,15 +4767,15 @@ const options: swaggerJsdoc.Options = {
           type: 'object',
           description: 'Simplified booking information for listing endpoints',
           properties: {
-            booking_id: {
-              type: 'string',
-              example: 'BK-2024-0001',
-              description: 'Unique booking reference ID (format: BK-YYYY-NNNN)',
-            },
             id: {
               type: 'string',
               example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
               description: 'Booking UUID',
+            },
+            booking_id: {
+              type: 'string',
+              example: 'BK-2024-0001',
+              description: 'Unique booking reference ID (format: BK-YYYY-NNNN)',
             },
             user_name: {
               type: 'string',
@@ -4786,6 +4786,11 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: 'Alice Smith, Bob Smith',
               description: 'Participant name(s) - comma-separated if multiple',
+            },
+            student_count: {
+              type: 'number',
+              example: 2,
+              description: 'Number of participants/students in the booking',
             },
             batch_name: {
               type: 'string',
@@ -4800,25 +4805,41 @@ const options: swaggerJsdoc.Options = {
             amount: {
               type: 'number',
               example: 5000,
-              description: 'Total booking amount in rupees',
+              description: 'Total booking amount in rupees (batch amount only, excludes platform fee and GST)',
+            },
+            status: {
+              type: 'string',
+              enum: ['slot_booked', 'approved', 'rejected', 'payment_pending', 'confirmed', 'cancelled', 'completed', 'requested', 'pending'],
+              example: 'confirmed',
+              description: 'Booking status',
+            },
+            status_message: {
+              type: 'string',
+              example: 'Booking confirmed and payment completed',
+              description: 'Custom message based on booking status and payment status',
             },
             payment_status: {
               type: 'string',
-              enum: ['pending', 'processing', 'success', 'failed', 'refunded', 'cancelled'],
-              example: 'success',
-              description: 'Payment status',
+              enum: ['pending', 'paid', 'processing', 'success', 'failed', 'refunded', 'cancelled', 'not_initiated', 'initiated'],
+              example: 'paid',
+              description: 'Payment status. Returns "paid" when payment status is "success"',
             },
-            payment_method: {
+            can_accept_reject: {
+              type: 'boolean',
+              example: false,
+              description: 'Flag to indicate if accept/reject actions should be shown (true when status is SLOT_BOOKED or REQUESTED)',
+            },
+            rejection_reason: {
               type: 'string',
               nullable: true,
-              example: 'card',
-              description: 'Payment method used (e.g., card, netbanking, upi)',
+              example: null,
+              description: 'Rejection reason if status is REJECTED, otherwise null',
             },
-            invoice_id: {
+            cancellation_reason: {
               type: 'string',
               nullable: true,
-              example: 'order_1234567890',
-              description: 'Razorpay order ID (invoice reference)',
+              example: null,
+              description: 'Cancellation reason if status is CANCELLED, otherwise null',
             },
             created_at: {
               type: 'string',
@@ -4852,32 +4873,6 @@ const options: swaggerJsdoc.Options = {
                 name: {
                   type: 'string',
                   example: 'Morning Batch',
-                },
-                sport: {
-                  type: 'object',
-                  properties: {
-                    id: {
-                      type: 'string',
-                      example: 'sport-id-here',
-                    },
-                    name: {
-                      type: 'string',
-                      example: 'Cricket',
-                    },
-                  },
-                },
-                center: {
-                  type: 'object',
-                  properties: {
-                    id: {
-                      type: 'string',
-                      example: 'center-id-here',
-                    },
-                    center_name: {
-                      type: 'string',
-                      example: 'ABC Sports Academy',
-                    },
-                  },
                 },
                 scheduled: {
                   type: 'object',
@@ -4936,6 +4931,16 @@ const options: swaggerJsdoc.Options = {
                     type: 'string',
                     example: 'Smith',
                   },
+                  age: {
+                    type: 'number',
+                    nullable: true,
+                    example: 10,
+                  },
+                  profilePhoto: {
+                    type: 'string',
+                    nullable: true,
+                    example: 'https://example.com/profile.jpg',
+                  },
                 },
               },
             },
@@ -4948,35 +4953,422 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: 'INR',
             },
+            center: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  example: 'center-id-here',
+                },
+                center_name: {
+                  type: 'string',
+                  example: 'ABC Sports Academy',
+                },
+                logo: {
+                  type: 'string',
+                  nullable: true,
+                  example: 'https://example.com/logo.png',
+                },
+              },
+            },
+            sport: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  example: 'sport-id-here',
+                },
+                name: {
+                  type: 'string',
+                  example: 'Cricket',
+                },
+                logo: {
+                  type: 'string',
+                  nullable: true,
+                  example: 'https://example.com/sport-logo.png',
+                },
+              },
+            },
             status: {
               type: 'string',
-              enum: ['pending', 'confirmed', 'cancelled', 'completed'],
-              example: 'confirmed',
+              enum: ['slot_booked', 'approved', 'rejected', 'payment_pending', 'confirmed', 'cancelled', 'completed', 'requested', 'pending'],
+              example: 'approved',
+              description: 'Booking status',
             },
-            payment_status: {
+            status_message: {
               type: 'string',
-              enum: ['pending', 'processing', 'success', 'failed', 'refunded', 'cancelled'],
-              example: 'success',
+              example: 'Your booking has been approved. Please proceed with payment to confirm your booking.',
+              description: 'User-friendly status message',
             },
-            payment_method: {
+            payment_enabled: {
+              type: 'boolean',
+              example: true,
+              description: 'Flag to indicate if payment link should be enabled',
+            },
+            rejection_reason: {
               type: 'string',
               nullable: true,
-              example: 'card',
-            },
-            invoice_id: {
-              type: 'string',
-              nullable: true,
-              example: 'order_1234567890',
+              example: null,
+              description: 'Rejection reason if status is REJECTED',
             },
             created_at: {
               type: 'string',
               format: 'date-time',
               example: '2024-01-01T00:00:00.000Z',
             },
-            updated_at: {
+          },
+        },
+        BookingDetailsResponse: {
+          type: 'object',
+          description: 'Detailed booking information for a specific booking',
+          properties: {
+            id: {
+              type: 'string',
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+              description: 'Booking UUID',
+            },
+            booking_id: {
+              type: 'string',
+              example: 'BK-2024-0001',
+              description: 'Unique booking reference ID',
+            },
+            status: {
+              type: 'string',
+              enum: ['slot_booked', 'approved', 'rejected', 'payment_pending', 'confirmed', 'cancelled', 'completed', 'requested', 'pending'],
+              example: 'approved',
+            },
+            amount: {
+              type: 'number',
+              example: 5000,
+            },
+            currency: {
+              type: 'string',
+              example: 'INR',
+            },
+            payment: {
+              type: 'object',
+              properties: {
+                razorpay_order_id: {
+                  type: 'string',
+                  nullable: true,
+                },
+                status: {
+                  type: 'string',
+                  enum: ['not_initiated', 'initiated', 'pending', 'processing', 'success', 'paid', 'failed', 'refunded', 'cancelled'],
+                  description: 'Payment status. Returns "paid" when payment status is "success"',
+                },
+                payment_method: {
+                  type: 'string',
+                  nullable: true,
+                },
+                paid_at: {
+                  type: 'string',
+                  format: 'date-time',
+                  nullable: true,
+                },
+                failure_reason: {
+                  type: 'string',
+                  nullable: true,
+                },
+              },
+            },
+            payment_enabled: {
+              type: 'boolean',
+              example: true,
+            },
+            can_cancel: {
+              type: 'boolean',
+              example: true,
+            },
+            rejection_reason: {
+              type: 'string',
+              nullable: true,
+              description: 'Rejection reason if status is REJECTED',
+            },
+            cancellation_reason: {
+              type: 'string',
+              nullable: true,
+              description: 'Cancellation reason if status is CANCELLED',
+            },
+            batch: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+                scheduled: {
+                  type: 'object',
+                  properties: {
+                    start_date: { type: 'string', format: 'date-time' },
+                    start_time: { type: 'string' },
+                    end_time: { type: 'string' },
+                    training_days: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+                duration: {
+                  type: 'object',
+                  properties: {
+                    count: { type: 'number' },
+                    type: { type: 'string' },
+                  },
+                },
+              },
+            },
+            center: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                center_name: { type: 'string' },
+                logo: { type: 'string', nullable: true },
+                address: {
+                  type: 'object',
+                  nullable: true,
+                  properties: {
+                    line1: { type: 'string', nullable: true },
+                    line2: { type: 'string' },
+                    city: { type: 'string' },
+                    state: { type: 'string' },
+                    country: { type: 'string', nullable: true },
+                    pincode: { type: 'string' },
+                    lat: {
+                      type: 'number',
+                      nullable: true,
+                      description: 'Latitude coordinate',
+                    },
+                    long: {
+                      type: 'number',
+                      nullable: true,
+                      description: 'Longitude coordinate',
+                    },
+                  },
+                },
+              },
+            },
+            sport: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+                logo: { type: 'string', nullable: true },
+              },
+            },
+            participants: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  firstName: { type: 'string', nullable: true },
+                  lastName: { type: 'string', nullable: true },
+                  age: { type: 'number', nullable: true },
+                  profilePhoto: { type: 'string', nullable: true },
+                },
+              },
+            },
+            notes: {
+              type: 'string',
+              nullable: true,
+            },
+            status_message: {
+              type: 'string',
+              example: 'Your booking has been approved. Please proceed with payment to confirm your booking.',
+            },
+            created_at: {
               type: 'string',
               format: 'date-time',
-              example: '2024-01-01T00:00:00.000Z',
+            },
+          },
+        },
+        AcademyBookingDetailsResponse: {
+          type: 'object',
+          description: 'Academy booking details response',
+          properties: {
+            _id: {
+              type: 'string',
+              example: '696a26dc6a830138ed964cb0',
+              description: 'MongoDB ObjectId',
+            },
+            id: {
+              type: 'string',
+              example: '14b31f41-2ec3-4f10-b83b-6c070b3b287b',
+              description: 'Booking UUID',
+            },
+            booking_id: {
+              type: 'string',
+              example: 'PS-2026-0007',
+              description: 'Unique booking reference ID (format: PS-YYYY-NNNN)',
+            },
+            user: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string', example: '693a72393c18b3e80760dbda' },
+                id: { type: 'string', example: '862968bb-aa80-4c18-92bc-bca25f5d71a5' },
+                firstName: { type: 'string', example: 'Indal' },
+                lastName: { type: 'string', example: 'Singh' },
+                email: { type: 'string', example: 'indalkumarsingh@playasport.in' },
+                mobile: { type: 'string', example: '9546576177' },
+                profileImage: { type: 'string', example: '' },
+              },
+            },
+            participants: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  _id: { type: 'string', example: '6965db5f734654f0a9344e33' },
+                  firstName: { type: 'string', example: 'Indal' },
+                  lastName: { type: 'string', example: 'Singh' },
+                  profilePhoto: { type: 'string', example: '' },
+                  gender: { type: 'string', example: 'male' },
+                  age: { type: 'string', example: '5' },
+                  dob: { type: 'string', format: 'date-time', example: '2019-01-12T00:00:00.000Z' },
+                },
+              },
+            },
+            batch: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string', example: '6965c9841713b07ad0f77adc' },
+                name: { type: 'string', example: 'test 2' },
+              },
+            },
+            center: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string', example: '6954d14414b396df0d2254d4' },
+                center_name: { type: 'string', example: 'Monthly Cricket Training' },
+                mobile_number: { type: 'string', example: '9546576177' },
+                logo: { type: 'string', example: '' },
+                email: { type: 'string', example: 'indalkumarsingh@playasport.in' },
+                id: { type: 'string', example: '61db8434-b1fd-4dc6-a040-16fc99943f2f' },
+              },
+            },
+            sport: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string', example: '693a9e96b4d798f46c938643' },
+                name: { type: 'string', example: 'Cricket' },
+                logo: { type: 'string', example: '' },
+              },
+            },
+            amount: {
+              type: 'number',
+              example: 5500,
+              description: 'Booking amount (batch amount only, excludes platform fee and GST)',
+            },
+            currency: {
+              type: 'string',
+              example: 'INR',
+            },
+            status: {
+              type: 'string',
+              enum: ['slot_booked', 'approved', 'rejected', 'payment_pending', 'confirmed', 'cancelled', 'completed', 'requested', 'pending'],
+              example: 'slot_booked',
+            },
+            status_message: {
+              type: 'string',
+              example: 'Booking request received. Waiting for academy approval.',
+              description: 'Custom message based on booking status and payment status',
+            },
+            payment_status: {
+              type: 'string',
+              enum: ['pending', 'paid', 'processing', 'success', 'failed', 'refunded', 'cancelled', 'not_initiated', 'initiated'],
+              example: 'paid',
+              description: 'Payment status. Returns "paid" when payment status is "success"',
+            },
+            can_accept_reject: {
+              type: 'boolean',
+              example: false,
+              description: 'Flag to indicate if accept/reject actions should be shown (true when status is SLOT_BOOKED or REQUESTED)',
+            },
+            notes: {
+              type: 'string',
+              nullable: true,
+              example: null,
+            },
+            cancellation_reason: {
+              type: 'string',
+              nullable: true,
+              example: null,
+              description: 'Cancellation reason if status is CANCELLED, otherwise null',
+            },
+            rejection_reason: {
+              type: 'string',
+              nullable: true,
+              example: null,
+              description: 'Rejection reason if status is REJECTED, otherwise null',
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2026-01-16T11:54:04.769Z',
+            },
+          },
+        },
+        AcademyBookingActionResponse: {
+          type: 'object',
+          description: 'Response for academy booking approval/rejection actions',
+          properties: {
+            id: {
+              type: 'string',
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+              description: 'Booking UUID',
+            },
+            booking_id: {
+              type: 'string',
+              example: 'BK-2024-0001',
+              description: 'Unique booking reference ID',
+            },
+            status: {
+              type: 'string',
+              enum: ['slot_booked', 'approved', 'rejected', 'payment_pending', 'confirmed', 'cancelled', 'completed', 'requested', 'pending'],
+              example: 'approved',
+            },
+            amount: {
+              type: 'number',
+              example: 5000,
+            },
+            currency: {
+              type: 'string',
+              example: 'INR',
+            },
+            payment: {
+              type: 'object',
+              properties: {
+                status: {
+                  type: 'string',
+                  enum: ['not_initiated', 'initiated', 'pending', 'processing', 'success', 'failed', 'refunded', 'cancelled'],
+                },
+              },
+            },
+            rejection_reason: {
+              type: 'string',
+              nullable: true,
+              description: 'Rejection reason if status is REJECTED',
+            },
+            batch: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+              },
+            },
+            center: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                center_name: { type: 'string' },
+              },
+            },
+            sport: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+              },
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
             },
           },
         },
@@ -6929,16 +7321,6 @@ const options: swaggerJsdoc.Options = {
               example: '507f1f77bcf86cd799439011',
               description: 'Recipient ObjectId (User or Academy owner). Null when recipientType is "role"',
             },
-            roles: {
-              type: 'array',
-              items: {
-                type: 'string',
-                enum: ['super_admin', 'admin', 'user', 'academy', 'employee', 'agent'],
-              },
-              nullable: true,
-              example: ['admin', 'super_admin'],
-              description: 'Array of role names (for role-based notifications). Null when recipientType is "user" or "academy"',
-            },
             title: {
               type: 'string',
               example: 'New Booking Confirmed',
@@ -6948,21 +7330,6 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: 'Your booking for Cricket Batch has been confirmed.',
               description: 'Notification body/message',
-            },
-            channels: {
-              type: 'array',
-              items: {
-                type: 'string',
-                enum: ['sms', 'email', 'whatsapp', 'push'],
-              },
-              example: ['push', 'email'],
-              description: 'Channels through which notification was sent',
-            },
-            priority: {
-              type: 'string',
-              enum: ['high', 'medium', 'low'],
-              example: 'medium',
-              description: 'Notification priority',
             },
             data: {
               type: 'object',

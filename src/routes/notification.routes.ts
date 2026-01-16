@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import * as notificationController from '../controllers/client/notification.controller';
+import * as notificationController from '../controllers/notification.controller';
 import { validate } from '../middleware/validation.middleware';
 import {
   listNotificationsSchema,

@@ -1,59 +1,62 @@
 import { Types } from 'mongoose';
-import { BookingModel, Booking, PaymentStatus, BookingStatus } from '../../models/booking.model';
-import { TransactionModel, TransactionType, TransactionStatus, TransactionSource } from '../../models/transaction.model';
+import { BookingModel, PaymentStatus, BookingStatus } from '../../models/booking.model';
+import { TransactionModel, TransactionStatus, TransactionSource } from '../../models/transaction.model';
 import { BatchModel } from '../../models/batch.model';
 import { ParticipantModel } from '../../models/participant.model';
 import { CoachingCenterModel } from '../../models/coachingCenter.model';
-import { BatchStatus } from '../../enums/batchStatus.enum';
-import { CoachingCenterStatus } from '../../enums/coachingCenterStatus.enum';
-import { Gender } from '../../enums/gender.enum';
+import { UserModel } from '../../models/user.model';
+import { DefaultRoles } from '../../enums/defaultRoles.enum';
 import { logger } from '../../utils/logger';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
 import { getUserObjectId } from '../../utils/userCache';
 import { getPaymentService } from '../common/payment/PaymentService';
 import { config } from '../../config/env';
-import type { BookingSummaryInput, CreateOrderInput, VerifyPaymentInput, DeleteOrderInput } from '../../validations/booking.validation';
-import { queueEmail, queueSms } from '../common/notificationQueue.service';
+import type { BookingSummaryInput, VerifyPaymentInput, DeleteOrderInput, BookSlotInput } from '../../validations/booking.validation';
+import { queueEmail, queueSms, queueWhatsApp } from '../common/notificationQueue.service';
+import { createAndSendNotification } from '../common/notification.service';
+import { createAuditTrail } from '../common/auditTrail.service';
+import { ActionType, ActionScale } from '../../models/auditTrail.model';
+import {
+  getBookingRequestAcademySms,
+  getBookingRequestAcademyWhatsApp,
+  getBookingRequestSentUserSms,
+  getBookingRequestSentUserWhatsApp,
+  getBookingCancelledUserSms,
+  getBookingCancelledUserWhatsApp,
+  getBookingCancelledAcademySms,
+  getBookingCancelledAcademyWhatsApp,
+  getPaymentVerifiedUserSms,
+  getPaymentVerifiedAcademySms,
+  getPaymentVerifiedUserWhatsApp,
+  getPaymentVerifiedAcademyWhatsApp,
+} from '../common/notificationMessages';
+// Import helper functions
+import {
+  validateAndFetchParticipants,
+  validateBatchAndCenter,
+  validateParticipantEnrollment,
+  validateSlotAvailability,
+  validateParticipantEligibility,
+} from './booking.helpers.validation';
+import {
+  calculatePriceBreakdownAndCommission,
+  roundToTwoDecimals,
+} from './booking.helpers.calculation';
+import {
+  generateBookingId,
+  calculateAge,
+  getBookingStatusMessage,
+  isPaymentLinkEnabled,
+  canCancelBooking,
+  canDownloadInvoice,
+} from './booking.helpers.utils';
 
 // Get payment service instance
 const paymentService = getPaymentService();
 
-/**
- * Generate unique booking ID (format: BK-YYYY-NNNN)
- * Example: BK-2024-0001, BK-2024-0002, etc.
- */
-export const generateBookingId = async (): Promise<string> => {
-  const year = new Date().getFullYear();
-  const prefix = `BK-${year}-`;
-
-  // Find the highest booking_id for this year using prefix match (more efficient than regex)
-  // Using $gte and $lt for better index utilization
-  const nextYearPrefix = `BK-${year + 1}-`;
-  const lastBooking = await BookingModel.findOne({
-    booking_id: {
-      $gte: prefix,
-      $lt: nextYearPrefix,
-    },
-  })
-    .sort({ booking_id: -1 })
-    .select('booking_id')
-    .lean()
-    .limit(1);
-
-  let sequence = 1;
-  if (lastBooking && lastBooking.booking_id) {
-    // Extract sequence number from last booking_id (e.g., BK-2024-0123 -> 123)
-    const lastSequence = parseInt(lastBooking.booking_id.replace(prefix, ''), 10);
-    if (!isNaN(lastSequence) && lastSequence >= 0) {
-      sequence = lastSequence + 1;
-    }
-  }
-
-  // Format sequence with leading zeros (4 digits)
-  const formattedSequence = sequence.toString().padStart(4, '0');
-  return `${prefix}${formattedSequence}`;
-};
+// Re-export generateBookingId for backward compatibility
+export { generateBookingId };
 
 export interface BookingSummary {
   batch: {
@@ -164,6 +167,167 @@ export interface CancelledBookingResponse {
   };
 }
 
+// Booking slot response (minimal data)
+export interface BookSlotResponse {
+  id: string;
+  booking_id: string;
+  status: BookingStatus;
+  amount: number;
+  currency: string;
+  payment: {
+    status: PaymentStatus;
+  };
+  batch: {
+    id: string;
+    name: string;
+  };
+  center: {
+    id: string;
+    center_name: string;
+  };
+  sport: {
+    id: string;
+    name: string;
+  };
+  createdAt: Date;
+}
+
+// Payment order response
+export interface PaymentOrderResponse {
+  booking: {
+    id: string;
+    booking_id: string;
+    status: BookingStatus;
+    amount: number;
+    currency: string;
+    payment: {
+      razorpay_order_id: string;
+      status: PaymentStatus;
+    };
+  };
+  razorpayOrder: {
+    id: string;
+    amount: number;
+    currency: string;
+    receipt?: string;
+    status: string;
+    created_at: number;
+  };
+}
+
+// Cancel booking response
+export interface CancelBookingResponse {
+  id: string;
+  booking_id: string;
+  status: BookingStatus;
+  amount: number;
+  currency: string;
+  payment: {
+    status: PaymentStatus;
+    failure_reason?: string | null;
+  };
+  cancellation_reason?: string | null;
+  cancelled_by?: 'user' | 'academy' | 'system' | null;
+  batch: {
+    id: string;
+    name: string;
+  };
+  center: {
+    id: string;
+    center_name: string;
+  };
+  sport: {
+    id: string;
+    name: string;
+  };
+}
+
+// Booking summary response (restricted - only what client needs)
+export interface BookingSummaryResponse {
+  batch: {
+    id: string;
+    name: string;
+    sport: {
+      id: string;
+      name: string;
+    };
+    center: {
+      id: string;
+      name: string;
+      logo?: string | null;
+      address?: {
+        line1: string | null;
+        line2: string;
+        city: string;
+        state: string;
+        country: string | null;
+        pincode: string;
+      } | null;
+      experience?: number | null;
+    };
+    scheduled: {
+      start_date: Date;
+      start_time: string;
+      end_time: string;
+      training_days: string[];
+    };
+    duration: {
+      count: number;
+      type: string;
+    };
+    admission_fee?: number | null;
+    base_price: number;
+    discounted_price?: number | null;
+  };
+  participants: Array<{
+    id: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    age?: number | null;
+  }>;
+  amount: number;
+  currency: string;
+  breakdown: {
+    admission_fee_per_participant?: number;
+    admission_fee?: number;
+    base_fee?: number;
+    per_participant_fee?: number;
+    platform_fee?: number;
+    subtotal?: number;
+    gst?: number;
+    gst_percentage?: number;
+    total: number;
+  };
+}
+
+// Verified payment response (restricted - only what client needs)
+export interface VerifiedPaymentResponse {
+  id: string;
+  booking_id: string;
+  status: BookingStatus;
+  amount: number;
+  currency: string;
+  payment: {
+    razorpay_order_id: string;
+    status: PaymentStatus;
+    payment_method?: string | null;
+    paid_at?: Date | null;
+  };
+  batch: {
+    id: string;
+    name: string;
+  };
+  center: {
+    id: string;
+    center_name: string;
+  };
+  sport: {
+    id: string;
+    name: string;
+  };
+  updatedAt: Date;
+}
+
 export interface CreatedBookingResponse {
   id: string;
   booking_id: string;
@@ -188,377 +352,9 @@ export interface CreatedBookingResponse {
   };
 }
 
-/**
- * Round number to 2 decimal places
- */
-const roundToTwoDecimals = (value: number): number => {
-  return Math.round(value * 100) / 100;
-};
+// Re-export calculateAge for backward compatibility
+export { calculateAge };
 
-/**
- * Calculate age from date of birth
- * Exported for use in other services
- */
-export const calculateAge = (dob: Date, currentDate: Date): number => {
-  const birthDate = new Date(dob);
-  let age = currentDate.getFullYear() - birthDate.getFullYear();
-  const monthDiff = currentDate.getMonth() - birthDate.getMonth();
-  
-  if (monthDiff < 0 || (monthDiff === 0 && currentDate.getDate() < birthDate.getDate())) {
-    age--;
-  }
-  
-  return age;
-};
-
-/**
- * Map participant gender to Gender enum (now gender is already a string, so just return it)
- * Participant gender is now stored as string: 'male', 'female', 'other'
- */
-const mapParticipantGenderToEnum = (gender: string | null | undefined): Gender | null => {
-  if (!gender) return null;
-  // Gender is already a string enum value, just validate and return
-  if (Object.values(Gender).includes(gender as Gender)) {
-    return gender as Gender;
-  }
-  return null;
-};
-
-/**
- * Common validation: Validate and fetch participants
- */
-const validateAndFetchParticipants = async (
-  participantIds: string[],
-  userObjectId: Types.ObjectId
-): Promise<any[]> => {
-  if (participantIds.length === 0) {
-    throw new ApiError(400, 'At least one participant ID is required');
-  }
-
-  // Validate all participant IDs
-  for (const participantId of participantIds) {
-    if (!Types.ObjectId.isValid(participantId)) {
-      throw new ApiError(400, `Invalid participant ID: ${participantId}`);
-    }
-  }
-
-  // Check for duplicate participant IDs
-  const uniqueParticipantIds = [...new Set(participantIds)];
-  if (uniqueParticipantIds.length !== participantIds.length) {
-    throw new ApiError(400, 'Duplicate participant IDs are not allowed');
-  }
-
-  // Fetch all participants
-  const participants = await ParticipantModel.find({
-    _id: { $in: participantIds.map(id => new Types.ObjectId(id)) },
-    is_deleted: false,
-    is_active: true,
-  }).lean();
-
-  if (participants.length !== participantIds.length) {
-    throw new ApiError(404, 'One or more participants not found or inactive');
-  }
-
-  // Verify all participants belong to user
-  for (const participant of participants) {
-    if (participant.userId.toString() !== userObjectId.toString()) {
-      throw new ApiError(403, `Participant ${participant._id} does not belong to you`);
-    }
-  }
-
-  return participants;
-};
-
-/**
- * Common validation: Validate batch and fetch coaching center
- */
-const validateBatchAndCenter = async (batchId: string): Promise<{ batch: any; coachingCenter: any }> => {
-  if (!Types.ObjectId.isValid(batchId)) {
-    throw new ApiError(400, 'Invalid batch ID');
-  }
-
-  const batch = await BatchModel.findById(batchId)
-    .select('_id id name sport center is_allowed_disabled status is_active is_deleted age capacity scheduled duration admission_fee base_price discounted_price gender')
-    .populate('sport', 'id name')
-    .populate('center', 'id center_name logo')
-    .lean();
-
-  // Validate batch exists
-  if (!batch) {
-    throw new ApiError(404, 'Batch not found');
-  }
-
-  // Validate batch is not deleted
-  if (batch.is_deleted) {
-    throw new ApiError(400, 'Batch has been deleted and is not available for booking');
-  }
-
-  // Validate batch is active (not disabled)
-  if (!batch.is_active) {
-    throw new ApiError(400, 'Batch is disabled and not available for booking');
-  }
-
-  // Check if batch is published
-  if (batch.status !== BatchStatus.PUBLISHED) {
-    throw new ApiError(400, 'Batch is not published and not available for booking');
-  }
-
-  // Use populated coaching center data (already fetched in populate)
-  const populatedCenter = batch.center as any;
-  if (!populatedCenter) {
-    throw new ApiError(404, 'Coaching center not found');
-  }
-
-  // Fetch full coaching center details for validation (only if we need more fields than populated)
-  // Since we only populated 'id center_name logo', we need to fetch full details for age/gender validation
-  const centerId = populatedCenter._id || populatedCenter.id;
-  const coachingCenter = await CoachingCenterModel.findById(centerId)
-    .select('id center_name logo age allowed_genders allowed_disabled is_only_for_disabled is_active is_deleted status approval_status location experience')
-    .lean();
-
-  // Validate coaching center exists
-  if (!coachingCenter) {
-    throw new ApiError(404, 'Coaching center not found');
-  }
-
-  // Validate coaching center is not deleted
-  if (coachingCenter.is_deleted) {
-    throw new ApiError(400, 'Coaching center has been deleted and is not available for booking');
-  }
-
-  // Validate coaching center is active (not disabled)
-  if (!coachingCenter.is_active) {
-    throw new ApiError(400, 'Coaching center is disabled and not available for booking');
-  }
-
-  // Validate coaching center is published
-  if (coachingCenter.status !== CoachingCenterStatus.PUBLISHED) {
-    throw new ApiError(400, 'Coaching center is not published and not available for booking');
-  }
-
-  // Validate coaching center is approved
-  if (coachingCenter.approval_status !== 'approved') {
-    throw new ApiError(400, 'Coaching center is not approved and not available for booking');
-  }
-
-  return { batch, coachingCenter };
-};
-
-/**
- * Common validation: Check if participants are already enrolled in the batch
- */
-const validateParticipantEnrollment = async (
-  participantIds: Types.ObjectId[],
-  batchId: Types.ObjectId
-): Promise<void> => {
-  // Check if any participant is already enrolled in this batch
-  // First check without populate for faster query
-  const existingBookings = await BookingModel.find({
-    batch: batchId,
-    participants: { $in: participantIds },
-    status: { $in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
-    is_deleted: false,
-  })
-    .select('participants')
-    .lean();
-
-  if (existingBookings.length > 0) {
-    // Find which participants are already enrolled
-    const enrolledParticipantIds = new Set<string>();
-    
-    for (const booking of existingBookings) {
-      for (const bookingParticipantId of booking.participants) {
-        const participantIdStr = bookingParticipantId.toString();
-        if (participantIds.some(id => id.toString() === participantIdStr)) {
-          enrolledParticipantIds.add(participantIdStr);
-        }
-      }
-    }
-
-    if (enrolledParticipantIds.size > 0) {
-      // Only fetch participant names if we need to show them in error message
-      const enrolledIdsArray = Array.from(enrolledParticipantIds).map(id => new Types.ObjectId(id));
-      const enrolledParticipants = await ParticipantModel.find({
-        _id: { $in: enrolledIdsArray },
-      })
-        .select('firstName lastName')
-        .lean();
-
-      const participantNames = enrolledParticipants.map(p => {
-        const firstName = p.firstName || '';
-        const lastName = p.lastName || '';
-        return `${firstName} ${lastName}`.trim() || p._id.toString();
-      });
-
-      const namesStr = participantNames.length > 0 
-        ? participantNames.join(', ')
-        : 'one or more participants';
-      throw new ApiError(
-        400,
-        `${namesStr} ${participantNames.length === 1 ? 'is' : 'are'} already enrolled in this batch`
-      );
-    }
-  }
-};
-
-/**
- * Common validation: Validate slot availability
- */
-const validateSlotAvailability = async (
-  batch: any,
-  requestedSlots: number
-): Promise<void> => {
-  // Use aggregation to count total participants efficiently
-  const result = await BookingModel.aggregate([
-    {
-      $match: {
-        batch: batch._id,
-        status: { $in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
-        is_deleted: false,
-      },
-    },
-    {
-      $project: {
-        participantCount: { $size: { $ifNull: ['$participants', []] } },
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        totalBookedParticipants: { $sum: '$participantCount' },
-      },
-    },
-  ]);
-
-  const totalBookedParticipants = result.length > 0 ? (result[0].totalBookedParticipants || 0) : 0;
-
-  // Check if adding new participants would exceed capacity
-  const totalAfterBooking = totalBookedParticipants + requestedSlots;
-
-  if (batch.capacity.max !== null && batch.capacity.max !== undefined && totalAfterBooking > batch.capacity.max) {
-    const availableSlots = batch.capacity.max - totalBookedParticipants;
-    throw new ApiError(400, `Insufficient slots available. Only ${availableSlots} slot(s) remaining. Requested: ${requestedSlots}`);
-  }
-};
-
-/**
- * Common validation: Validate participant eligibility (age, gender, disability)
- * 
- * Validates:
- * 1. Age: Participant age must be within batch and coaching center age ranges
- * 2. Gender: Participant gender must be allowed by coaching center
- * 3. Disability: 
- *    - If coaching center is ONLY for disabled (is_only_for_disabled = true): participant MUST have disability
- *    - If coaching center does NOT allow disabled (allowed_disabled = false): participant MUST NOT have disability
- *    - Note: Batches inherit disability eligibility from their coaching center
- */
-const validateParticipantEligibility = async (
-  participants: any[],
-  batch: any,
-  coachingCenter: any
-): Promise<void> => {
-  const currentDate = new Date();
-
-  for (const participant of participants) {
-    // Age Validation
-    if (!participant.dob) {
-      throw new ApiError(400, `Participant ${participant.firstName || participant._id} does not have a date of birth. Age validation is required.`);
-    }
-
-    const participantAge = calculateAge(participant.dob, currentDate);
-
-    // Check against batch age range
-    if (participantAge < batch.age.min || participantAge > batch.age.max) {
-      throw new ApiError(
-        400,
-        `Participant ${participant.firstName || participant._id} age (${participantAge}) is outside the batch age range (${batch.age.min}-${batch.age.max} years)`
-      );
-    }
-
-    // Check against coaching center age range
-    if (participantAge < coachingCenter.age.min || participantAge > coachingCenter.age.max) {
-      throw new ApiError(
-        400,
-        `Participant ${participant.firstName || participant._id} age (${participantAge}) is outside the coaching center age range (${coachingCenter.age.min}-${coachingCenter.age.max} years)`
-      );
-    }
-
-    // Gender Validation
-    // If participant gender is null or empty, allow all genders (skip validation)
-    // If batch/center gender restrictions are null or empty, allow all genders
-    // First check batch-level gender restriction (batch can be more restrictive than center)
-    // Then check center-level gender restriction
-    if (participant.gender !== null && participant.gender !== undefined && participant.gender !== '') {
-      const participantGender = mapParticipantGenderToEnum(participant.gender);
-
-      if (participantGender) {
-        // Check batch gender restriction first (batch can override center setting)
-        // If batch.gender is null or empty array, allow all genders
-        if (batch.gender && Array.isArray(batch.gender) && batch.gender.length > 0) {
-          const batchAllowedGenders = batch.gender.map((g: string) => g.toLowerCase());
-          if (!batchAllowedGenders.includes(participantGender.toLowerCase())) {
-            const allowedGendersStr = batch.gender.join(', ');
-            throw new ApiError(
-              400,
-              `Participant ${participant.firstName || participant._id} gender (${participantGender}) is not allowed for this batch. Batch allowed genders: ${allowedGendersStr}`
-            );
-          }
-        }
-        // If batch.gender is null/empty, skip batch validation (allow all)
-
-        // Also check coaching center gender restriction (for consistency)
-        // If coachingCenter.allowed_genders is null or empty array, allow all genders
-        if (coachingCenter.allowed_genders && Array.isArray(coachingCenter.allowed_genders) && coachingCenter.allowed_genders.length > 0) {
-          if (!coachingCenter.allowed_genders.includes(participantGender)) {
-            const allowedGendersStr = coachingCenter.allowed_genders.join(', ');
-            throw new ApiError(
-              400,
-              `Participant ${participant.firstName || participant._id} gender (${participantGender}) is not allowed by the coaching center. Allowed genders: ${allowedGendersStr}`
-            );
-          }
-        }
-        // If coachingCenter.allowed_genders is null/empty, skip center validation (allow all)
-      }
-    }
-    // If participant.gender is null/undefined/empty, skip all gender validation (allow all)
-
-    // Disability Validation
-    // Check if participant has a disability (0 = no, 1 = yes)
-    const hasDisability = participant.disability === 1;
-
-    // First check batch-level disability setting (batch can override center setting)
-    if (!batch.is_allowed_disabled && hasDisability) {
-      throw new ApiError(
-        400,
-        `Participant ${participant.firstName || participant._id || 'Unknown'} has a disability. This batch (${batch.name || 'Unknown'}) does not allow disabled participants.`
-      );
-    }
-
-    // Then validate against coaching center disability settings
-    if (coachingCenter.is_only_for_disabled) {
-      // Coaching center is ONLY for disabled participants
-      if (!hasDisability) {
-        throw new ApiError(
-          400,
-          `Participant ${participant.firstName || participant._id || 'Unknown'} does not have a disability. This coaching center (${coachingCenter.center_name || 'Unknown'}) is exclusively for disabled participants.`
-        );
-      }
-    } else {
-      // Coaching center is NOT exclusively for disabled participants
-      // Check if it allows disabled participants at all
-      if (!coachingCenter.allowed_disabled && hasDisability) {
-        throw new ApiError(
-          400,
-          `Participant ${participant.firstName || participant._id || 'Unknown'} has a disability. This coaching center (${coachingCenter.center_name || 'Unknown'}) does not allow disabled participants.`
-        );
-      }
-    }
-
-    // Note: Batch-level setting (is_allowed_disabled) takes precedence over center setting
-    // If batch allows disabled but center doesn't, batch setting is checked first and will fail
-    // If batch doesn't allow disabled, participant with disability cannot book regardless of center setting
-  }
-};
 
 /**
  * Get booking summary before creating order
@@ -566,7 +362,7 @@ const validateParticipantEligibility = async (
 export const getBookingSummary = async (
   data: BookingSummaryInput,
   userId: string
-): Promise<BookingSummary> => {
+): Promise<BookingSummaryResponse> => {
   try {
     // Validate user
     const userObjectId = await getUserObjectId(userId);
@@ -617,65 +413,42 @@ export const getBookingSummary = async (
     const gstPercentage = (settings.fees?.gst_percentage as number | undefined) ?? config.booking.gstPercentage;
     const isGstEnabled = (settings.fees?.gst_enabled as boolean | undefined) ?? true;
 
-    // Subtotal before GST
-    const subtotal = roundToTwoDecimals(baseAmount + platformFee);
+    // Subtotal = base amount only (without platform fee)
+    // This allows frontend to show: subtotal, then platform fee, then GST, then total
+    const subtotal = roundToTwoDecimals(baseAmount);
 
-    // GST calculation (from settings, default from config if not set, only if GST is enabled)
-    const gst = isGstEnabled ? roundToTwoDecimals((subtotal * gstPercentage) / 100) : 0;
+    // GST calculation - applied only on platform_fee, not on the entire amount
+    const gst = isGstEnabled ? roundToTwoDecimals((platformFee * gstPercentage) / 100) : 0;
 
-    // Total amount including GST (if enabled)
-    const totalAmount = roundToTwoDecimals(subtotal + gst);
+    // Total amount: baseAmount + platformFee + GST (on platform_fee only)
+    const totalAmount = roundToTwoDecimals(baseAmount + platformFee + gst);
 
     if (totalAmount <= 0) {
       throw new ApiError(400, 'Booking amount must be greater than zero');
     }
 
-    // Get commission rate from settings
-    const commissionRate = (settings.fees?.commission_rate as number | undefined) ?? 0;
-    
-    // Calculate commission on batch amount (not total amount)
-    const commissionAmount = roundToTwoDecimals(baseAmount * commissionRate);
-    
-    // Calculate payout amount (what academy will receive after commission deduction)
-    const payoutAmount = roundToTwoDecimals(baseAmount - commissionAmount);
+    // Calculate price breakdown and commission (for internal use, not returned to client)
+    // These are calculated but not included in the response
+    await calculatePriceBreakdownAndCommission(
+      admissionFeePerParticipant,
+      perParticipantFee,
+      participantCount,
+      baseAmount
+    );
 
-    // Create price breakdown
-    const priceBreakdown = {
-      admission_fee_per_participant: admissionFeePerParticipant,
-      total_admission_fee: totalAdmissionFee,
-      base_fee_per_participant: perParticipantFee,
-      total_base_fee: totalBaseFee,
-      batch_amount: baseAmount, // What academy earns (before commission)
-      platform_fee: platformFee,
-      subtotal: subtotal,
-      gst_percentage: gstPercentage,
-      gst_amount: gst,
-      total_amount: totalAmount,
-      participant_count: participantCount,
-      currency: 'INR',
-      calculated_at: new Date(),
-    };
-
-    // Create commission details
-    const commission = {
-      rate: commissionRate,
-      amount: commissionAmount,
-      payoutAmount: payoutAmount, // Amount to be paid to academy after deducting commission
-      calculatedAt: new Date(),
-    };
-
-    return {
+    // Return only relevant data (exclude internal priceBreakdown and commission)
+    const response: BookingSummaryResponse = {
       batch: {
         id: batch._id.toString(),
         name: batch.name,
         sport: {
-          id: (batch.sport as any)._id?.toString() || (batch.sport as any).id,
-          name: (batch.sport as any).name,
+          id: (batch.sport as any)?._id?.toString() || (batch.sport as any)?.id || '',
+          name: (batch.sport as any)?.name || '',
         },
         center: {
-          id: (batch.center as any)._id?.toString() || (batch.center as any).id,
-          name: (batch.center as any).center_name,
-          logo: (batch.center as any).logo || null,
+          id: (batch.center as any)?._id?.toString() || (batch.center as any)?.id || '',
+          name: (batch.center as any)?.center_name || '',
+          logo: (batch.center as any)?.logo || null,
           address: coachingCenter.location?.address || null,
           experience: coachingCenter.experience ?? null,
         },
@@ -708,9 +481,9 @@ export const getBookingSummary = async (
         gst_percentage: gstPercentage,
         total: roundToTwoDecimals(totalAmount),
       },
-      priceBreakdown: priceBreakdown,
-      commission: commission,
     };
+
+    return response;
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
@@ -726,13 +499,15 @@ export const getBookingSummary = async (
   }
 };
 
+
 /**
- * Create Razorpay order and booking record
+ * Book slot - Create booking request (new flow)
+ * This creates a booking with SLOT_BOOKED status, occupies slots, and sends notifications
  */
-export const createOrder = async (
-  data: CreateOrderInput,
+export const bookSlot = async (
+  data: BookSlotInput,
   userId: string
-): Promise<{ booking: CreatedBookingResponse; razorpayOrder: RazorpayOrderResponse }> => {
+): Promise<BookSlotResponse> => {
   try {
     // Validate user
     const userObjectId = await getUserObjectId(userId);
@@ -750,34 +525,58 @@ export const createOrder = async (
     );
 
     // All validations are already done in getBookingSummary
-    // We only need to fetch ObjectIds for creating the booking record (minimal queries)
     const participantIds = Array.isArray(data.participantIds) ? data.participantIds : [data.participantIds];
     const participantObjectIds = participantIds.map(id => new Types.ObjectId(id));
     const batchObjectId = new Types.ObjectId(data.batchId);
-    const centerObjectId = new Types.ObjectId(summary.batch.center.id);
-    const sportObjectId = new Types.ObjectId(summary.batch.sport.id);
+    
+    // Validate and convert center and sport IDs to ObjectIds
+    // The summary returns IDs as strings, but we need to validate they exist and are valid
+    const centerId = summary.batch.center.id;
+    const sportId = summary.batch.sport.id;
+    
+    if (!centerId || !Types.ObjectId.isValid(centerId)) {
+      logger.error('Invalid center ID in booking summary', {
+        centerId,
+        summary: JSON.stringify(summary.batch.center),
+      });
+      throw new ApiError(400, `Invalid center ID in booking summary: ${centerId || 'undefined'}`);
+    }
+    if (!sportId || !Types.ObjectId.isValid(sportId)) {
+      logger.error('Invalid sport ID in booking summary', {
+        sportId,
+        summary: JSON.stringify(summary.batch.sport),
+      });
+      throw new ApiError(400, `Invalid sport ID in booking summary: ${sportId || 'undefined'}`);
+    }
+    
+    const centerObjectId = new Types.ObjectId(centerId);
+    const sportObjectId = new Types.ObjectId(sportId);
 
-    // Generate booking ID and create payment order in parallel (independent operations)
-    const [bookingId, paymentOrder] = await Promise.all([
+    // Use data from summary instead of re-fetching batch
+    // Summary already has all the batch data we need
+    const admissionFeePerParticipant = summary.batch.admission_fee || 0;
+    const perParticipantFee = summary.batch.discounted_price !== null && summary.batch.discounted_price !== undefined 
+      ? summary.batch.discounted_price 
+      : summary.batch.base_price;
+    const participantCount = participantIds.length;
+    const totalAdmissionFee = roundToTwoDecimals(admissionFeePerParticipant * participantCount);
+    const totalBaseFee = roundToTwoDecimals(perParticipantFee * participantCount);
+    const baseAmount = roundToTwoDecimals(totalAdmissionFee + totalBaseFee);
+    
+    // Parallelize price calculation and booking ID generation (independent operations)
+    const [priceBreakdownAndCommission, bookingId] = await Promise.all([
+      calculatePriceBreakdownAndCommission(
+        admissionFeePerParticipant,
+        perParticipantFee,
+        participantCount,
+        baseAmount
+      ),
       generateBookingId(),
-      (async () => {
-        const orderData = {
-          amount: Math.round(summary.amount * 100), // Convert to paise (multiply by 100)
-          currency: summary.currency,
-          receipt: `booking_${Date.now()}_${userObjectId.toString().slice(-6)}`,
-          notes: {
-            userId: userId,
-            participantIds: data.participantIds,
-            batchId: data.batchId,
-            centerId: summary.batch.center.id,
-            sportId: summary.batch.sport.id,
-          },
-        };
-        return paymentService.createOrder(orderData);
-      })(),
     ]);
+    
+    const { priceBreakdown, commission } = priceBreakdownAndCommission;
 
-    // Create booking record
+    // Create booking record with SLOT_BOOKED status (no payment order yet)
     const bookingData: any = {
       user: userObjectId,
       participants: participantObjectIds,
@@ -786,85 +585,416 @@ export const createOrder = async (
       sport: sportObjectId,
       amount: summary.amount,
       currency: summary.currency,
-      status: BookingStatus.PENDING,
+      status: BookingStatus.SLOT_BOOKED, // User has booked the slot, waiting for academy approval
       booking_id: bookingId,
       payment: {
-        razorpay_order_id: paymentOrder.id,
         amount: summary.amount,
         currency: summary.currency,
-        status: PaymentStatus.PENDING,
+        status: PaymentStatus.NOT_INITIATED, // Payment not initiated yet, waiting for academy approval
+        payment_initiated_count: 0, // Initialize payment attempt counters
+        payment_cancelled_count: 0,
+        payment_failed_count: 0,
       },
-      commission: summary.commission || null,
-      priceBreakdown: summary.priceBreakdown || null,
+      commission: commission || null,
+      priceBreakdown: priceBreakdown || null,
       notes: data.notes || null,
     };
 
     const booking = new BookingModel(bookingData);
-    
-    // Prepare transaction data (before saving booking to get _id)
-    const transactionData: any = {
-      user: userObjectId,
-      razorpay_order_id: paymentOrder.id,
-      type: TransactionType.PAYMENT,
-      status: TransactionStatus.PENDING,
-      source: TransactionSource.USER_VERIFICATION,
-      amount: summary.amount,
-      currency: summary.currency,
-      metadata: {
-        participantIds: data.participantIds,
-        batchId: data.batchId,
-        notes: data.notes,
-      },
-    };
-
-    // Save booking first to get _id, then save transaction in parallel
     await booking.save();
-    transactionData.booking = booking._id;
-    
-    const transaction = new TransactionModel(transactionData);
-    await transaction.save();
 
-    logger.info(`Booking created: ${booking.id} for user ${userId}, Transaction: ${transaction.id}`);
+    // Fetch notification data in parallel (batch name, center details, user details, academy owner)
+    // Use summary data where possible to avoid redundant queries
+    const [centerDetails, userDetails, academyOwner] = await Promise.all([
+      CoachingCenterModel.findById(centerObjectId).select('center_name user email mobile_number').lean(),
+      UserModel.findById(userObjectId).select('id firstName lastName email mobile').lean(),
+      // Fetch academy owner in parallel if center has user reference
+      (async () => {
+        const center = await CoachingCenterModel.findById(centerObjectId).select('user').lean();
+        if (center?.user) {
+          return UserModel.findById(center.user).select('id email mobile').lean();
+        }
+        return null;
+      })(),
+    ]);
 
-    // Build response directly from existing data (no additional database query needed)
-    // We already have all the data from summary and what we just created
-    const createdBooking: CreatedBookingResponse = {
-      id: booking.id || booking._id.toString(),
-      booking_id: bookingId,
-      status: BookingStatus.PENDING,
-      amount: summary.amount,
-      currency: summary.currency,
+    const centerOwnerId = (centerDetails as any)?.user?.toString();
+    const participantNames = summary.participants.map(p => `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Participant').join(', ');
+    const batchName = summary.batch.name; // Use from summary instead of re-fetching
+    const centerName = (centerDetails as any)?.center_name || 'Academy';
+    const userName = userDetails ? `${userDetails.firstName || ''} ${userDetails.lastName || ''}`.trim() || userDetails.email || 'User' : 'User';
+
+    // Create audit trail and send notifications in parallel (fire-and-forget for notifications)
+    // Audit trail is important, but notifications can be async
+    const auditTrailPromise = createAuditTrail(
+      ActionType.BOOKING_REQUESTED,
+      ActionScale.MEDIUM,
+      `Booking request created for batch ${batchName}`,
+      'Booking',
+      booking._id,
+      {
+        userId: userObjectId,
+        academyId: centerObjectId,
+        bookingId: booking._id,
+        metadata: {
+          batchId: data.batchId,
+          participantCount: participantIds.length,
+          amount: summary.amount,
+        },
+      }
+    ).catch((error) => {
+      logger.error('Failed to create audit trail for booking', { error, bookingId: booking.id });
+    });
+
+    // Notification to Academy Owner (Push + Email + SMS + WhatsApp) - fire-and-forget
+    if (centerOwnerId && academyOwner) {
+      // Fire-and-forget notifications (don't await, but catch errors)
+      (async () => {
+        try {
+          // Push notification (fire-and-forget)
+          createAndSendNotification({
+            recipientType: 'academy',
+            recipientId: academyOwner.id,
+            title: 'New Booking Request',
+            body: `You have a new booking request for batch "${batchName}" from ${userName}. Participants: ${participantNames}.`,
+            channels: ['push'],
+            priority: 'high',
+            data: {
+              type: 'booking_request',
+              bookingId: booking.id,
+              batchId: data.batchId,
+              centerId: summary.batch.center.id,
+            },
+          }).catch((error) => {
+            logger.error('Failed to send push notification to academy owner', { error, bookingId: booking.id });
+          });
+
+          // Email notification (async)
+          const academyEmail = (centerDetails as any)?.email || academyOwner.email;
+          if (academyEmail) {
+            queueEmail(academyEmail, 'New Booking Request - PlayAsport', {
+              template: 'booking-request-academy.html',
+              text: `You have a new booking request for batch "${batchName}" from ${userName}. Participants: ${participantNames}.`,
+              templateVariables: {
+                centerName,
+                batchName,
+                userName,
+                participants: participantNames,
+                bookingId: booking.id,
+                year: new Date().getFullYear(),
+              },
+              priority: 'high',
+              metadata: {
+                type: 'booking_request',
+                bookingId: booking.id,
+                recipient: 'academy',
+              },
+            });
+          }
+
+          // SMS notification (async)
+          const academyMobile = (centerDetails as any)?.mobile_number || academyOwner.mobile;
+          if (academyMobile) {
+            const smsMessage = getBookingRequestAcademySms({
+              batchName,
+              userName,
+              participants: participantNames,
+              bookingId: booking.id,
+            });
+            queueSms(academyMobile, smsMessage, 'high', {
+              type: 'booking_request',
+              bookingId: booking.id,
+              recipient: 'academy',
+            });
+          }
+
+          // WhatsApp notification (async)
+          if (academyMobile) {
+            const whatsappMessage = getBookingRequestAcademyWhatsApp({
+              batchName,
+              userName,
+              participants: participantNames,
+              bookingId: booking.id,
+            });
+            queueWhatsApp(academyMobile, whatsappMessage, 'high', {
+              type: 'booking_request',
+              bookingId: booking.id,
+              recipient: 'academy',
+            });
+          }
+        } catch (error) {
+          logger.error('Failed to send academy notifications', { error, bookingId: booking.id });
+        }
+      })().catch(() => {
+        // Errors already logged in try-catch
+      });
+    }
+
+    // Notification to User (Push + Email + SMS + WhatsApp)
+    // Push notification (fire-and-forget)
+    const userNotificationPromise = createAndSendNotification({
+      recipientType: 'user',
+      recipientId: userId,
+      title: 'Booking Request Sent',
+      body: `Your booking request for "${batchName}" has been sent to the academy. You will be notified once the academy responds.`,
+      channels: ['push'],
+      priority: 'medium',
+      data: {
+        type: 'booking_request_sent',
+        bookingId: booking.id,
+        batchId: data.batchId,
+      },
+    }).catch((error) => {
+      logger.error('Failed to send push notification to user', { error, bookingId: booking.id });
+    });
+
+    // Email notification (async)
+    if (userDetails?.email) {
+      queueEmail(userDetails.email, 'Booking Request Sent - PlayAsport', {
+        template: 'booking-request-sent-user.html',
+        text: `Your booking request for "${batchName}" at "${centerName}" has been sent to the academy. You will be notified once the academy responds.`,
+        templateVariables: {
+          userName,
+          batchName,
+          centerName,
+          participants: participantNames,
+          bookingId: booking.id,
+          year: new Date().getFullYear(),
+        },
+        priority: 'medium',
+        metadata: {
+          type: 'booking_request_sent',
+          bookingId: booking.id,
+          recipient: 'user',
+        },
+      });
+    }
+
+    // SMS notification (async)
+    if (userDetails?.mobile) {
+      const smsMessage = getBookingRequestSentUserSms({
+        batchName,
+        centerName,
+        bookingId: booking.id,
+      });
+      queueSms(userDetails.mobile, smsMessage, 'medium', {
+        type: 'booking_request_sent',
+        bookingId: booking.id,
+        recipient: 'user',
+      });
+    }
+
+    // WhatsApp notification (async)
+    if (userDetails?.mobile) {
+      const whatsappMessage = getBookingRequestSentUserWhatsApp({
+        batchName,
+        centerName,
+        participants: participantNames,
+        bookingId: booking.id,
+      });
+      queueWhatsApp(userDetails.mobile, whatsappMessage, 'medium', {
+        type: 'booking_request_sent',
+        bookingId: booking.id,
+        recipient: 'user',
+      });
+    }
+
+    // Notification to Admin (role-based) - fire-and-forget
+    const adminNotificationPromise = createAndSendNotification({
+      recipientType: 'role',
+      roles: [DefaultRoles.ADMIN, DefaultRoles.SUPER_ADMIN],
+      title: 'New Booking Request',
+      body: `New booking request created: ${userDetails?.firstName || 'User'} requested booking for "${batchName}" at "${centerName}".`,
+      channels: ['push'],
+      priority: 'medium',
+      data: {
+        type: 'booking_request_admin',
+        bookingId: booking.id,
+        batchId: data.batchId,
+        centerId: summary.batch.center.id,
+      },
+    }).catch((error) => {
+      logger.error('Failed to send admin notification', { error, bookingId: booking.id });
+    });
+
+    // Wait for audit trail (important for tracking), but don't block on notifications
+    await auditTrailPromise;
+
+    logger.info(`Booking request created: ${booking.id} for user ${userId}`);
+
+    // Construct response directly from booking object and summary data (no need to re-fetch)
+    // This avoids an extra database query with populate
+    const response: BookSlotResponse = {
+      id: booking.id || (booking._id as any)?.toString() || '',
+      booking_id: booking.booking_id || '',
+      status: booking.status as BookingStatus,
+      amount: booking.amount,
+      currency: booking.currency,
       payment: {
-        razorpay_order_id: paymentOrder.id,
-        status: PaymentStatus.PENDING,
+        status: booking.payment.status,
       },
       batch: {
-        id: summary.batch.id,
-        name: summary.batch.name,
+        id: batchObjectId.toString(),
+        name: batchName,
       },
       center: {
-        id: summary.batch.center.id,
-        name: summary.batch.center.name,
+        id: centerObjectId.toString(),
+        center_name: centerName,
       },
       sport: {
-        id: summary.batch.sport.id,
+        id: sportObjectId.toString(),
         name: summary.batch.sport.name,
       },
+      createdAt: booking.createdAt || new Date(),
     };
 
-    return {
-      booking: createdBooking,
-      razorpayOrder: paymentOrder,
-    };
+    // Don't await notifications - they're fire-and-forget
+    // This allows the API to return immediately while notifications are processed in background
+    Promise.all([userNotificationPromise, adminNotificationPromise]).catch(() => {
+      // Errors already logged in individual catch blocks
+    });
+
+    return response;
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
     }
-    logger.error('Failed to create order:', {
+    logger.error('Failed to book slot:', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      data: {
+        batchId: data.batchId,
+        participantIds: data.participantIds,
+        userId,
+      },
+    });
+    // Include the actual error message for debugging
+    throw new ApiError(500, `Failed to book slot`);
+  }
+};
+
+/**
+ * Create payment order after academy approval
+ * This is called after academy approves the booking request
+ */
+export const createPaymentOrder = async (
+  bookingId: string,
+  userId: string
+): Promise<PaymentOrderResponse> => {
+  try {
+    // Validate user first
+    const userObjectId = await getUserObjectId(userId);
+    if (!userObjectId) {
+      throw new ApiError(404, t('user.notFound') || 'User not found');
+    }
+
+    // Find booking - must be APPROVED status
+    const booking = await BookingModel.findOne({
+      id: bookingId,
+      user: userObjectId,
+      status: BookingStatus.APPROVED,
+      is_deleted: false,
+    }).lean();
+
+    if (!booking) {
+      throw new ApiError(404, 'booking not found');
+    }
+
+    // Create Razorpay order and prepare update data in parallel
+    const currentInitiatedCount = booking.payment?.payment_initiated_count || 0;
+    const receipt = `booking_${Date.now()}_${userObjectId.toString().slice(-6)}`;
+    
+    // Create order (this is the main external API call)
+    const paymentOrder = await paymentService.createOrder({
+      amount: Math.round(booking.amount * 100), // Convert to paise
+      currency: booking.currency,
+      receipt,
+      notes: {
+        userId: userId,
+        bookingId: booking.id,
+        batchId: booking.batch.toString(),
+        centerId: booking.center.toString(),
+      },
+    });
+
+    // Update booking with razorpay order ID and payment status
+    const updatedBooking = await BookingModel.findByIdAndUpdate(
+      booking._id,
+      {
+        $set: {
+          'payment.razorpay_order_id': paymentOrder.id,
+          'payment.status': PaymentStatus.INITIATED, // Payment initiated, waiting for user to complete payment
+          'payment.payment_initiated_count': currentInitiatedCount + 1,
+        },
+      },
+      { new: true }
+    )
+      .select('id booking_id status amount currency payment')
+      .lean();
+
+    if (!updatedBooking) {
+      throw new ApiError(500, 'Failed to update booking with payment order');
+    }
+
+    // Create audit trail asynchronously (non-blocking) - don't await
+    createAuditTrail(
+      ActionType.PAYMENT_INITIATED,
+      ActionScale.MEDIUM,
+      `Payment order created for booking ${booking.booking_id || booking.id}`,
+      'Booking',
+      booking._id,
+      {
+        userId: userObjectId,
+        academyId: booking.center,
+        bookingId: booking._id,
+        metadata: {
+          razorpayOrderId: paymentOrder.id,
+          amount: booking.amount,
+          payment_initiated_count: currentInitiatedCount + 1,
+        },
+      }
+    ).catch((error) => {
+      logger.error('Failed to create audit trail for payment initiation', {
+        bookingId: booking.id,
+        error: error instanceof Error ? error.message : error,
+      });
+    });
+
+    logger.info(`Payment order created for booking: ${booking.id}`);
+
+    // Return only relevant data
+    const response: PaymentOrderResponse = {
+      booking: {
+        id: updatedBooking.id || (updatedBooking._id as any)?.toString() || '',
+        booking_id: updatedBooking.booking_id || '',
+        status: updatedBooking.status as BookingStatus,
+        amount: updatedBooking.amount,
+        currency: updatedBooking.currency,
+        payment: {
+          razorpay_order_id: updatedBooking.payment.razorpay_order_id || paymentOrder.id,
+          status: updatedBooking.payment.status,
+        },
+      },
+      razorpayOrder: {
+        id: paymentOrder.id,
+        amount: paymentOrder.amount,
+        currency: paymentOrder.currency,
+        receipt: paymentOrder.receipt,
+        status: paymentOrder.status,
+        created_at: paymentOrder.created_at,
+      },
+    };
+
+    return response;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Failed to create payment order:', {
       error: error instanceof Error ? error.message : error,
       stack: error instanceof Error ? error.stack : undefined,
     });
-    throw new ApiError(500, 'Failed to create order');
+    throw new ApiError(500, 'Failed to create payment order');
   }
 };
 
@@ -874,7 +1004,7 @@ export const createOrder = async (
 export const verifyPayment = async (
   data: VerifyPaymentInput,
   userId: string
-): Promise<Booking> => {
+): Promise<VerifiedPaymentResponse> => {
   try {
     // Validate user
     const userObjectId = await getUserObjectId(userId);
@@ -898,14 +1028,57 @@ export const verifyPayment = async (
       throw new ApiError(400, 'Payment has already been verified');
     }
 
-    // Verify payment signature using payment service
-    const isValidSignature = await paymentService.verifyPaymentSignature(
-      data.razorpay_order_id,
-      data.razorpay_payment_id,
-      data.razorpay_signature
-    );
+    // Check if payment is initiated (should be INITIATED or PENDING for legacy)
+    if (booking.payment.status !== PaymentStatus.INITIATED && booking.payment.status !== PaymentStatus.PENDING) {
+      throw new ApiError(400, `Payment cannot be verified. Current status: ${booking.payment.status}. Payment must be initiated first.`);
+    }
+
+    // Parallelize signature verification and payment fetch
+    // Signature verification is fast (local crypto), payment fetch is external API call
+    // Run them in parallel to reduce total latency
+    const [isValidSignature, razorpayPayment] = await Promise.all([
+      paymentService.verifyPaymentSignature(
+        data.razorpay_order_id,
+        data.razorpay_payment_id,
+        data.razorpay_signature
+      ),
+      paymentService.fetchPayment(data.razorpay_payment_id),
+    ]);
 
     if (!isValidSignature) {
+      // Payment failed due to invalid signature - increment payment_failed_count
+      const currentFailedCount = booking.payment?.payment_failed_count || 0;
+      const newFailedCount = currentFailedCount + 1;
+      await Promise.all([
+        BookingModel.findByIdAndUpdate(
+          booking._id,
+          {
+            $set: {
+              'payment.status': PaymentStatus.FAILED,
+              'payment.failure_reason': 'Invalid payment signature',
+              'payment.payment_failed_count': newFailedCount,
+            },
+          }
+        ),
+        createAuditTrail(
+          ActionType.PAYMENT_FAILED,
+          ActionScale.MEDIUM,
+          `Payment verification failed (invalid signature) for booking ${booking.booking_id || booking.id}`,
+          'Booking',
+          booking._id,
+          {
+            userId: userObjectId,
+            academyId: booking.center,
+            bookingId: booking._id,
+            metadata: {
+              razorpay_order_id: data.razorpay_order_id,
+              razorpay_payment_id: data.razorpay_payment_id,
+              reason: 'Invalid payment signature',
+              payment_failed_count: newFailedCount,
+            },
+          }
+        ),
+      ]);
       logger.warn('Payment signature verification failed', {
         bookingId: booking.id,
         userId,
@@ -914,17 +1087,83 @@ export const verifyPayment = async (
       throw new ApiError(400, 'Invalid payment signature');
     }
 
-    // Fetch payment details using payment service
-    const razorpayPayment = await paymentService.fetchPayment(data.razorpay_payment_id);
-
-    // Verify payment status and amount
+    // Verify payment status and amount (razorpayPayment already fetched in parallel above)
     if (razorpayPayment.status !== 'captured' && razorpayPayment.status !== 'authorized') {
+      // Payment failed - increment payment_failed_count
+      const currentFailedCount = booking.payment?.payment_failed_count || 0;
+      const newFailedCount = currentFailedCount + 1;
+      await Promise.all([
+        BookingModel.findByIdAndUpdate(
+          booking._id,
+          {
+            $set: {
+              'payment.status': PaymentStatus.FAILED,
+              'payment.failure_reason': `Payment status is ${razorpayPayment.status}. Payment must be captured or authorized.`,
+              'payment.payment_failed_count': newFailedCount,
+            },
+          }
+        ),
+        createAuditTrail(
+          ActionType.PAYMENT_FAILED,
+          ActionScale.MEDIUM,
+          `Payment verification failed (status: ${razorpayPayment.status}) for booking ${booking.booking_id || booking.id}`,
+          'Booking',
+          booking._id,
+          {
+            userId: userObjectId,
+            academyId: booking.center,
+            bookingId: booking._id,
+            metadata: {
+              razorpay_order_id: data.razorpay_order_id,
+              razorpay_payment_id: data.razorpay_payment_id,
+              razorpay_status: razorpayPayment.status,
+              reason: `Payment status is ${razorpayPayment.status}. Payment must be captured or authorized.`,
+              payment_failed_count: newFailedCount,
+            },
+          }
+        ),
+      ]);
       throw new ApiError(400, `Payment status is ${razorpayPayment.status}. Payment must be captured or authorized.`);
     }
 
     // Verify amount matches (convert from paise to rupees)
     const expectedAmount = Math.round(booking.amount * 100);
     if (razorpayPayment.amount !== expectedAmount) {
+      // Payment failed due to amount mismatch - increment payment_failed_count
+      const currentFailedCount = booking.payment?.payment_failed_count || 0;
+      const newFailedCount = currentFailedCount + 1;
+      await Promise.all([
+        BookingModel.findByIdAndUpdate(
+          booking._id,
+          {
+            $set: {
+              'payment.status': PaymentStatus.FAILED,
+              'payment.failure_reason': `Payment amount mismatch. Expected: ${expectedAmount}, Received: ${razorpayPayment.amount}`,
+              'payment.payment_failed_count': newFailedCount,
+            },
+          }
+        ),
+        createAuditTrail(
+          ActionType.PAYMENT_FAILED,
+          ActionScale.MEDIUM,
+          `Payment verification failed (amount mismatch) for booking ${booking.booking_id || booking.id}`,
+          'Booking',
+          booking._id,
+          {
+            userId: userObjectId,
+            academyId: booking.center,
+            bookingId: booking._id,
+            metadata: {
+              razorpay_order_id: data.razorpay_order_id,
+              razorpay_payment_id: data.razorpay_payment_id,
+              expected_amount: expectedAmount,
+              received_amount: razorpayPayment.amount,
+              reason: 'Payment amount mismatch',
+              payment_failed_count: newFailedCount,
+            },
+          }
+        ),
+      ]);
       logger.error('Payment amount mismatch', {
         bookingId: booking.id,
         expected: expectedAmount,
@@ -933,8 +1172,9 @@ export const verifyPayment = async (
       throw new ApiError(400, 'Payment amount does not match booking amount');
     }
 
-    // Update booking with payment details
-    const updatedBooking = await BookingModel.findByIdAndUpdate(
+    // Update booking and transaction in parallel for better performance
+    // Transaction update is fire-and-forget (we don't need to wait for it)
+    const bookingUpdatePromise = BookingModel.findByIdAndUpdate(
       booking._id,
       {
         $set: {
@@ -948,19 +1188,14 @@ export const verifyPayment = async (
       },
       { new: true }
     )
-      .populate('user', 'id firstName lastName email mobile')
-      .populate('participants', 'id firstName lastName')
       .populate('batch', 'id name')
       .populate('center', 'id center_name email mobile_number')
       .populate('sport', 'id name')
+      .select('id booking_id status amount currency payment batch center sport updatedAt')
       .lean();
 
-    if (!updatedBooking) {
-      throw new ApiError(500, 'Failed to update booking');
-    }
-
-    // Update or create transaction record
-    await TransactionModel.findOneAndUpdate(
+    // Transaction update - fire and forget (don't block response)
+    TransactionModel.findOneAndUpdate(
       {
         booking: booking._id,
         razorpay_order_id: data.razorpay_order_id,
@@ -976,7 +1211,19 @@ export const verifyPayment = async (
         },
       },
       { upsert: true, new: true }
-    );
+    ).catch((error) => {
+      // Log but don't fail the payment verification
+      logger.error('Failed to update transaction record', {
+        bookingId: booking.id,
+        error: error instanceof Error ? error.message : error,
+      });
+    });
+
+    const updatedBooking = await bookingUpdatePromise;
+
+    if (!updatedBooking) {
+      throw new ApiError(500, 'Failed to update booking');
+    }
 
     logger.info(`Payment verified successfully for booking: ${booking.id}`);
 
@@ -984,15 +1231,19 @@ export const verifyPayment = async (
     // Don't await - let it run in background
     (async () => {
       try {
-        // Fetch batch details for scheduled information
-        // Use the original booking's batch ID (ObjectId) before population
-        const batchId = booking.batch;
-        const batchDetails = await BatchModel.findById(batchId).lean();
+        // Fetch all required data for notifications (since we don't populate user/participants in response)
+        const [batchDetails, userDetails, participantDetails, centerDetails] = await Promise.all([
+          BatchModel.findById(booking.batch).lean(),
+          UserModel.findById(booking.user).select('id firstName lastName email mobile').lean(),
+          ParticipantModel.find({ _id: { $in: booking.participants } }).select('id firstName lastName').lean(),
+          CoachingCenterModel.findById(booking.center).select('id center_name email mobile_number user').lean(),
+        ]);
         
         if (!batchDetails) {
           logger.warn(`Batch not found for booking ${booking.id}`);
           return;
         }
+        
         // Format date and time
         const startDate = batchDetails.scheduled?.start_date
           ? new Date(batchDetails.scheduled.start_date).toLocaleDateString('en-IN', {
@@ -1009,7 +1260,7 @@ export const verifyPayment = async (
           : 'N/A';
 
         // Format participant names
-        const participantNames = (updatedBooking.participants as any[])
+        const participantNames = (participantDetails || [])
           .map((p: any) => {
             const firstName = p.firstName || '';
             const lastName = p.lastName || '';
@@ -1018,7 +1269,7 @@ export const verifyPayment = async (
           .join(', ');
 
         // Get user details
-        const user = updatedBooking.user as any;
+        const user = userDetails as any;
         const userName = user
           ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'User'
           : 'User';
@@ -1026,13 +1277,13 @@ export const verifyPayment = async (
         const userMobile = user?.mobile;
 
         // Get center details
-        const center = updatedBooking.center as any;
+        const center = centerDetails as any;
         const centerName = center?.center_name || 'Coaching Center';
         const centerEmail = center?.email;
         const centerMobile = center?.mobile_number;
 
         // Get sport and batch details
-        const sport = updatedBooking.sport as any;
+        const sport = (updatedBooking.sport as any);
         const sportName = sport?.name || 'Sport';
         const batchName = batchDetails.name || 'Batch';
 
@@ -1054,8 +1305,21 @@ export const verifyPayment = async (
           year: new Date().getFullYear(),
         };
 
+        // Generate invoice PDF for email attachment
+        let invoiceBuffer: Buffer | null = null;
+        try {
+          const { generateBookingInvoice } = await import('../admin/invoice.service');
+          invoiceBuffer = await generateBookingInvoice(updatedBooking.id);
+        } catch (invoiceError) {
+          logger.error('Failed to generate invoice for email', {
+            bookingId: updatedBooking.id,
+            error: invoiceError instanceof Error ? invoiceError.message : invoiceError,
+          });
+          // Continue without invoice attachment if generation fails
+        }
+
         // Queue emails using notification queue (non-blocking)
-        // Send email to user
+        // Send email to user with invoice attachment
         if (userEmail) {
           queueEmail(userEmail, 'Booking Confirmed - PlayAsport', {
             template: 'booking-confirmation-user.html',
@@ -1067,6 +1331,15 @@ export const verifyPayment = async (
               bookingId: updatedBooking.id,
               recipient: 'user',
             },
+            attachments: invoiceBuffer
+              ? [
+                  {
+                    filename: `invoice-${updatedBooking.booking_id || updatedBooking.id}.pdf`,
+                    content: invoiceBuffer,
+                    contentType: 'application/pdf',
+                  },
+                ]
+              : undefined,
           });
         }
 
@@ -1106,11 +1379,33 @@ export const verifyPayment = async (
           });
         }
 
-        // Prepare SMS messages
-        const userNameForSms = userName || 'User';
-        const userSmsMessage = `Dear ${userNameForSms}, your booking ${updatedBooking.id} for ${batchName} (${sportName}) at ${centerName} has been confirmed. Participants: ${participantNames}. Start Date: ${startDate}, Time: ${startTime}-${endTime}. Amount Paid: ${updatedBooking.currency} ${updatedBooking.amount.toFixed(2)}. Thank you for choosing PlayAsport!`;
+        // Prepare SMS messages using notification messages
+        const userSmsMessage = getPaymentVerifiedUserSms({
+          userName: userName || 'User',
+          bookingId: updatedBooking.id,
+          batchName,
+          sportName,
+          centerName,
+          participants: participantNames,
+          startDate,
+          startTime,
+          endTime,
+          currency: updatedBooking.currency,
+          amount: updatedBooking.amount.toFixed(2),
+        });
         
-        const centerSmsMessage = `New booking ${updatedBooking.id} received for ${batchName} (${sportName}). Customer: ${userName || 'N/A'}. Participants: ${participantNames}. Start Date: ${startDate}, Time: ${startTime}-${endTime}. Amount: ${updatedBooking.currency} ${updatedBooking.amount.toFixed(2)}. - PlayAsport`;
+        const centerSmsMessage = getPaymentVerifiedAcademySms({
+          bookingId: updatedBooking.id,
+          batchName,
+          sportName,
+          userName: userName || 'N/A',
+          participants: participantNames,
+          startDate,
+          startTime,
+          endTime,
+          currency: updatedBooking.currency,
+          amount: updatedBooking.amount.toFixed(2),
+        });
 
         // Queue SMS notifications using notification queue (non-blocking)
         // Send SMS to user
@@ -1139,6 +1434,133 @@ export const verifyPayment = async (
           });
         }
 
+        // Prepare WhatsApp messages using notification messages
+        const userWhatsAppMessage = getPaymentVerifiedUserWhatsApp({
+          userName: userName || 'User',
+          bookingId: updatedBooking.id,
+          batchName,
+          sportName,
+          centerName,
+          participants: participantNames,
+          startDate,
+          startTime,
+          endTime,
+          currency: updatedBooking.currency,
+          amount: updatedBooking.amount.toFixed(2),
+        });
+        
+        const centerWhatsAppMessage = getPaymentVerifiedAcademyWhatsApp({
+          bookingId: updatedBooking.id,
+          batchName,
+          sportName,
+          userName: userName || 'N/A',
+          participants: participantNames,
+          startDate,
+          startTime,
+          endTime,
+          currency: updatedBooking.currency,
+          amount: updatedBooking.amount.toFixed(2),
+        });
+
+        // Queue WhatsApp notifications using notification queue (non-blocking)
+        // Send WhatsApp to user
+        if (userMobile) {
+          queueWhatsApp(userMobile, userWhatsAppMessage, 'high', {
+            type: 'booking_confirmation',
+            bookingId: updatedBooking.id,
+            recipient: 'user',
+          });
+        } else {
+          logger.warn('User mobile number not available for WhatsApp', {
+            bookingId: booking.id,
+          });
+        }
+
+        // Send WhatsApp to coaching center
+        if (centerMobile) {
+          queueWhatsApp(centerMobile, centerWhatsAppMessage, 'high', {
+            type: 'booking_confirmation',
+            bookingId: updatedBooking.id,
+            recipient: 'coaching_center',
+          });
+        } else {
+          logger.warn('Coaching center mobile number not available for WhatsApp', {
+            bookingId: booking.id,
+          });
+        }
+
+        // Push notifications (fire-and-forget)
+        // Push notification to User
+        if (user?.id) {
+          createAndSendNotification({
+            recipientType: 'user',
+            recipientId: user.id,
+            title: 'Booking Confirmed! 🎉',
+            body: `Your booking ${updatedBooking.id} for "${batchName}" at "${centerName}" has been confirmed. Payment successful!`,
+            channels: ['push'],
+            priority: 'high',
+            data: {
+              type: 'booking_confirmation',
+              bookingId: updatedBooking.id,
+              batchId: booking.batch.toString(),
+              centerId: booking.center.toString(),
+            },
+          }).catch((error) => {
+            logger.error('Failed to send push notification to user', {
+              bookingId: booking.id,
+              userId: user.id,
+              error: error instanceof Error ? error.message : error,
+            });
+          });
+        }
+
+        // Push notification to Academy Owner
+        // Get center owner ID
+        const centerOwnerId = (centerDetails as any)?.user?.toString();
+        if (centerOwnerId) {
+          createAndSendNotification({
+            recipientType: 'academy',
+            recipientId: centerOwnerId,
+            title: 'New Booking Received! 💰',
+            body: `New booking ${updatedBooking.id} received for "${batchName}" from ${userName}. Payment confirmed!`,
+            channels: ['push'],
+            priority: 'high',
+            data: {
+              type: 'booking_confirmation_academy',
+              bookingId: updatedBooking.id,
+              batchId: booking.batch.toString(),
+              centerId: booking.center.toString(),
+            },
+          }).catch((error) => {
+            logger.error('Failed to send push notification to academy owner', {
+              bookingId: booking.id,
+              centerOwnerId,
+              error: error instanceof Error ? error.message : error,
+            });
+          });
+        }
+
+        // Push notification to Admin (role-based)
+        createAndSendNotification({
+          recipientType: 'role',
+          roles: [DefaultRoles.ADMIN, DefaultRoles.SUPER_ADMIN],
+          title: 'New Booking Confirmed',
+          body: `Booking ${updatedBooking.id} for "${batchName}" at "${centerName}" has been confirmed. Payment successful!`,
+          channels: ['push'],
+          priority: 'high',
+          data: {
+            type: 'booking_confirmation_admin',
+            bookingId: updatedBooking.id,
+            batchId: booking.batch.toString(),
+            centerId: booking.center.toString(),
+          },
+        }).catch((error) => {
+          logger.error('Failed to send push notification to admin', {
+            bookingId: booking.id,
+            error: error instanceof Error ? error.message : error,
+          });
+        });
+
         logger.info(`Booking confirmation notifications queued for booking: ${booking.id}`);
       } catch (notificationError) {
         // Log error but don't fail the payment verification
@@ -1155,8 +1577,36 @@ export const verifyPayment = async (
       });
     });
 
+    // Return only relevant data
+    const response: VerifiedPaymentResponse = {
+      id: updatedBooking.id || (updatedBooking._id as any)?.toString() || '',
+      booking_id: updatedBooking.booking_id || '',
+      status: updatedBooking.status as BookingStatus,
+      amount: updatedBooking.amount,
+      currency: updatedBooking.currency,
+      payment: {
+        razorpay_order_id: updatedBooking.payment.razorpay_order_id || '',
+        status: updatedBooking.payment.status,
+        payment_method: updatedBooking.payment.payment_method || razorpayPayment.method || null,
+        paid_at: updatedBooking.payment.paid_at || new Date(),
+      },
+      batch: {
+        id: (updatedBooking.batch as any)?._id?.toString() || (updatedBooking.batch as any)?.id || '',
+        name: (updatedBooking.batch as any)?.name || '',
+      },
+      center: {
+        id: (updatedBooking.center as any)?._id?.toString() || (updatedBooking.center as any)?.id || '',
+        center_name: (updatedBooking.center as any)?.center_name || '',
+      },
+      sport: {
+        id: (updatedBooking.sport as any)?._id?.toString() || (updatedBooking.sport as any)?.id || '',
+        name: (updatedBooking.sport as any)?.name || '',
+      },
+      updatedAt: updatedBooking.updatedAt,
+    };
+
     // Return immediately without waiting for notifications
-    return updatedBooking as Booking;
+    return response;
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
@@ -1178,14 +1628,6 @@ export interface UserBookingListItem {
   batch: {
     id: string;
     name: string;
-    sport: {
-      id: string;
-      name: string;
-    };
-    center: {
-      id: string;
-      center_name: string;
-    };
     scheduled: {
       start_date: Date;
       start_time: string;
@@ -1197,19 +1639,32 @@ export interface UserBookingListItem {
       type: string;
     };
   };
+  center: {
+    id: string;
+    center_name: string;
+    logo?: string | null;
+  };
+  sport: {
+    id: string;
+    name: string;
+    logo?: string | null;
+  };
   participants: Array<{
     id: string;
     firstName: string;
     lastName: string;
+    age?: number | null;
+    profilePhoto?: string | null;
   }>;
   amount: number;
   currency: string;
   status: BookingStatus;
-  payment_status: PaymentStatus;
-  payment_method: string | null;
-  invoice_id: string | null;
+  status_message: string; // User-friendly message based on booking and payment status
+  payment_status: PaymentStatus | string; // Payment status (returns 'paid' when payment status is SUCCESS, otherwise returns PaymentStatus)
+  can_download_invoice: boolean; // Flag to indicate if invoice can be downloaded
+  payment_enabled: boolean; // Flag to indicate if payment link should be enabled
+  rejection_reason?: string | null; // Rejection reason if status is REJECTED
   created_at: Date;
-  updated_at: Date;
 }
 
 export interface UserBookingsResult {
@@ -1223,6 +1678,7 @@ export interface UserBookingsResult {
     hasPrevPage: boolean;
   };
 }
+
 
 /**
  * Get user bookings with enrolled batches
@@ -1242,20 +1698,22 @@ export const getUserBookings = async (
       throw new ApiError(404, t('user.notFound') || 'User not found');
     }
 
-    // Build query - only show paid bookings (payment status = success)
+    // Build query - show all bookings (not just paid ones) to support new booking flow
+    // Users can see bookings in SLOT_BOOKED, APPROVED, REJECTED, CONFIRMED, etc.
     const query: any = {
       user: userObjectId,
       is_deleted: false,
-      'payment.status': PaymentStatus.SUCCESS, // Only show paid bookings
     };
 
-    // Filter by status if provided
+    // Filter by booking status if provided
     if (params.status) {
       query.status = params.status;
     }
 
-    // Note: paymentStatus filter is removed - we always show only paid bookings
-    // If paymentStatus filter is provided, it's ignored (only paid bookings are shown)
+    // Filter by payment status if provided
+    if (params.paymentStatus) {
+      query['payment.status'] = params.paymentStatus;
+    }
 
     // Pagination
     const page = Math.max(1, params.page || 1);
@@ -1266,23 +1724,23 @@ export const getUserBookings = async (
     const [total, bookings] = await Promise.all([
       BookingModel.countDocuments(query),
       BookingModel.find(query)
-        .populate('participants', 'id firstName lastName')
+        .populate('participants', 'id firstName lastName dob profilePhoto')
         .populate('batch', 'id name scheduled duration')
         .populate({
           path: 'batch',
           populate: {
             path: 'sport',
-            select: 'id name',
+            select: 'id name logo',
           },
         })
         .populate({
           path: 'batch',
           populate: {
             path: 'center',
-            select: 'id center_name',
+            select: 'id center_name logo',
           },
         })
-        .select('booking_id id participants batch amount currency status payment.status payment.payment_method payment.razorpay_order_id createdAt updatedAt')
+        .select('booking_id id participants batch amount currency status payment.status rejection_reason createdAt updatedAt')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -1292,45 +1750,59 @@ export const getUserBookings = async (
     const totalPages = Math.ceil(total / limit);
 
     // Transform bookings to return required fields
-    const transformedBookings: UserBookingListItem[] = bookings.map((booking: any) => ({
-      booking_id: booking.booking_id || booking.id,
-      id: booking.id,
-      batch: {
-        id: booking.batch?._id?.toString() || booking.batch?.id || '',
-        name: booking.batch?.name || 'N/A',
-        sport: {
-          id: booking.batch?.sport?._id?.toString() || booking.batch?.sport?.id || '',
-          name: booking.batch?.sport?.name || 'N/A',
+    const transformedBookings: UserBookingListItem[] = bookings.map((booking: any) => {
+      const bookingStatus = booking.status || BookingStatus.PENDING;
+      const paymentStatus = booking.payment?.status || PaymentStatus.PENDING;
+      
+      return {
+        booking_id: booking.booking_id || booking.id,
+        id: booking.id,
+        batch: {
+          id: booking.batch?._id?.toString() || booking.batch?.id || '',
+          name: booking.batch?.name || 'N/A',
+          scheduled: booking.batch?.scheduled || {
+            start_date: new Date(),
+            start_time: '',
+            end_time: '',
+            training_days: [],
+          },
+          duration: booking.batch?.duration || {
+            count: 0,
+            type: '',
+          },
         },
+        participants: (booking.participants || []).map((p: any) => {
+          const dob = p.dob ? new Date(p.dob) : null;
+          const age = dob ? calculateAge(dob, new Date()) : null;
+          return {
+            id: p._id?.toString() || p.id || '',
+            firstName: p.firstName || '',
+            lastName: p.lastName || '',
+            age,
+            profilePhoto: p.profilePhoto || null,
+          };
+        }),
         center: {
           id: booking.batch?.center?._id?.toString() || booking.batch?.center?.id || '',
           center_name: booking.batch?.center?.center_name || 'N/A',
+          logo: booking.batch?.center?.logo || null,
         },
-        scheduled: booking.batch?.scheduled || {
-          start_date: new Date(),
-          start_time: '',
-          end_time: '',
-          training_days: [],
+        sport: {
+          id: booking.batch?.sport?._id?.toString() || booking.batch?.sport?.id || '',
+          name: booking.batch?.sport?.name || 'N/A',
+          logo: booking.batch?.sport?.logo || null,
         },
-        duration: booking.batch?.duration || {
-          count: 0,
-          type: '',
-        },
-      },
-      participants: (booking.participants || []).map((p: any) => ({
-        id: p._id?.toString() || p.id || '',
-        firstName: p.firstName || '',
-        lastName: p.lastName || '',
-      })),
-      amount: booking.amount || 0,
-      currency: booking.currency || 'INR',
-      status: booking.status || BookingStatus.PENDING,
-      payment_status: booking.payment?.status || PaymentStatus.PENDING,
-      payment_method: booking.payment?.payment_method || null,
-      invoice_id: booking.payment?.razorpay_order_id || null,
-      created_at: booking.createdAt,
-      updated_at: booking.updatedAt,
-    }));
+        amount: booking.amount || 0,
+        currency: booking.currency || 'INR',
+        status: bookingStatus,
+        status_message: getBookingStatusMessage(bookingStatus, paymentStatus),
+        payment_status: paymentStatus === PaymentStatus.SUCCESS ? 'paid' : paymentStatus,
+        payment_enabled: isPaymentLinkEnabled(bookingStatus, paymentStatus),
+        can_download_invoice: canDownloadInvoice(bookingStatus, paymentStatus),
+        rejection_reason: bookingStatus === BookingStatus.REJECTED ? booking.rejection_reason || null : null,
+        created_at: booking.createdAt,
+      };
+    });
 
     return {
       data: transformedBookings,
@@ -1354,8 +1826,252 @@ export const getUserBookings = async (
   }
 };
 
+// Booking details response
+export interface BookingDetailsResponse {
+  id: string;
+  booking_id: string;
+  status: BookingStatus;
+  amount: number;
+  currency: string;
+  payment: {
+    razorpay_order_id?: string | null;
+    status: PaymentStatus | string; // Returns 'paid' when payment status is SUCCESS, otherwise returns PaymentStatus
+    payment_method?: string | null;
+    paid_at?: Date | null;
+    failure_reason?: string | null;
+  };
+  payment_enabled: boolean; // Flag to indicate if payment link should be enabled
+  can_cancel: boolean; // Flag to indicate if booking can be cancelled
+  can_download_invoice: boolean; // Flag to indicate if invoice can be downloaded
+  rejection_reason?: string | null; // Rejection reason if status is REJECTED
+  cancellation_reason?: string | null; // Cancellation reason if status is CANCELLED
+  batch: {
+    id: string;
+    name: string;
+    scheduled: {
+      start_date: Date;
+      start_time: string;
+      end_time: string;
+      training_days: string[];
+    };
+    duration: {
+      count: number;
+      type: string;
+    };
+  };
+  center: {
+    id: string;
+    center_name: string;
+    logo?: string | null;
+    address?: {
+      line1: string | null;
+      line2: string;
+      city: string;
+      state: string;
+      country: string | null;
+      pincode: string;
+      latitude?: number | null;
+      longitude ?: number | null;
+    } | null;
+  };
+  sport: {
+    id: string;
+    name: string;
+    logo?: string | null;
+  };
+  participants: Array<{
+    id: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    age?: number | null;
+    profilePhoto?: string | null;
+  }>;
+  notes?: string | null;
+  status_message: string;
+  created_at: Date;
+}
+
 /**
- * Delete/Cancel order and mark payment status as failed
+ * Get booking details by ID
+ */
+export const getBookingDetails = async (
+  bookingId: string,
+  userId: string
+): Promise<BookingDetailsResponse> => {
+  try {
+    // Validate user
+    const userObjectId = await getUserObjectId(userId);
+    if (!userObjectId) {
+      throw new ApiError(404, t('user.notFound') || 'User not found');
+    }
+
+    // Fetch booking with all related data (using custom id field, not MongoDB _id)
+    const booking = await BookingModel.findOne({
+      id: bookingId,
+      user: userObjectId,
+      is_deleted: false,
+    })
+      .populate('participants', 'id firstName lastName dob profilePhoto')
+      .populate({
+        path: 'batch',
+        select: 'id name scheduled duration',
+        populate: [
+          {
+            path: 'sport',
+            select: 'id name logo',
+          },
+          {
+            path: 'center',
+            select: 'id center_name logo location',
+          },
+        ],
+      })
+      .select('id booking_id status amount currency payment participants batch notes rejection_reason cancellation_reason createdAt')
+      .lean();
+
+    if (!booking) {
+      throw new ApiError(404, 'Booking not found');
+    }
+
+    const bookingStatus = booking.status || BookingStatus.PENDING;
+    const paymentStatus = booking.payment?.status || PaymentStatus.PENDING;
+
+    // Calculate participant ages
+    const participants = (booking.participants || []).map((p: any) => {
+      const dob = p.dob ? new Date(p.dob) : null;
+      const age = dob ? calculateAge(dob, new Date()) : null;
+      return {
+        id: p._id?.toString() || p.id || '',
+        firstName: p.firstName || null,
+        lastName: p.lastName || null,
+        age,
+        profilePhoto: p.profilePhoto || null,
+      };
+    });
+
+    // Transform batch data
+    const batchData = booking.batch as any;
+    const centerData = batchData?.center as any;
+    const sportData = batchData?.sport as any;
+
+    const response: BookingDetailsResponse = {
+      id: booking._id?.toString() || booking.id || '',
+      booking_id: booking.booking_id || '',
+      status: bookingStatus,
+      amount: booking.amount || 0,
+      currency: booking.currency || 'INR',
+      payment: {
+        razorpay_order_id: booking.payment?.razorpay_order_id || null,
+        status: paymentStatus === PaymentStatus.SUCCESS ? 'paid' : paymentStatus,
+        payment_method: booking.payment?.payment_method || null,
+        paid_at: booking.payment?.paid_at || null,
+        failure_reason: booking.payment?.failure_reason || null,
+      },
+      payment_enabled: isPaymentLinkEnabled(bookingStatus, paymentStatus),
+      can_cancel: canCancelBooking(bookingStatus, paymentStatus),
+      can_download_invoice: canDownloadInvoice(bookingStatus, paymentStatus),
+      rejection_reason: bookingStatus === BookingStatus.REJECTED ? booking.rejection_reason || null : null,
+      cancellation_reason: bookingStatus === BookingStatus.CANCELLED ? booking.cancellation_reason || null : null,
+      batch: {
+        id: batchData?._id?.toString() || batchData?.id || '',
+        name: batchData?.name || 'N/A',
+        scheduled: batchData?.scheduled || {
+          start_date: new Date(),
+          start_time: '',
+          end_time: '',
+          training_days: [],
+        },
+        duration: batchData?.duration || {
+          count: 0,
+          type: '',
+        },
+      },
+      center: {
+        id: centerData?._id?.toString() || centerData?.id || '',
+        center_name: centerData?.center_name || 'N/A',
+        logo: centerData?.logo || null,
+        address: centerData?.location?.address
+          ? {
+              ...centerData.location.address,
+              lat: centerData.location.latitude || centerData.location.lat || null,
+              long: centerData.location.longitude || centerData.location.long || null,
+            }
+          : null,
+      },
+      sport: {
+        id: sportData?._id?.toString() || sportData?.id || '',
+        name: sportData?.name || 'N/A',
+        logo: sportData?.logo || null,
+      },
+      participants,
+      notes: booking.notes || null,
+      status_message: getBookingStatusMessage(bookingStatus, paymentStatus),
+      created_at: booking.createdAt,
+    };
+
+    return response;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Failed to get booking details:', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      bookingId,
+    });
+    throw new ApiError(500, 'Failed to get booking details');
+  }
+};
+
+/**
+ * Download booking invoice as PDF (user-side)
+ */
+export const downloadBookingInvoice = async (
+  bookingId: string,
+  userId: string
+): Promise<Buffer> => {
+  try {
+    // Validate user
+    const userObjectId = await getUserObjectId(userId);
+    if (!userObjectId) {
+      throw new ApiError(404, t('user.notFound') || 'User not found');
+    }
+
+    // Find booking and verify ownership
+    const booking = await BookingModel.findOne({
+      id: bookingId,
+      user: userObjectId,
+      is_deleted: false,
+    }).lean();
+
+    if (!booking) {
+      throw new ApiError(404, 'Booking not found');
+    }
+
+    // Check if invoice can be downloaded (payment must be successful)
+    if (booking.payment?.status !== PaymentStatus.SUCCESS) {
+      throw new ApiError(400, 'Invoice can only be downloaded for successful payments');
+    }
+
+    // Import and use admin invoice service (reuse existing logic)
+    const { generateBookingInvoice } = await import('../admin/invoice.service');
+    return await generateBookingInvoice(bookingId);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Failed to download booking invoice:', {
+      error: error instanceof Error ? error.message : error,
+      bookingId,
+      userId,
+    });
+    throw new ApiError(500, 'Failed to download invoice');
+  }
+};
+
+/**
+ * Cancel payment order (only updates payment status, does not cancel booking)
+ * Used when user initiates payment but cancels it before completing
  */
 export const deleteOrder = async (
   data: DeleteOrderInput,
@@ -1386,19 +2102,21 @@ export const deleteOrder = async (
       throw new ApiError(400, 'Cannot cancel order with successful payment. Please request a refund instead.');
     }
 
-    // Check if payment is already failed or cancelled
-    if (booking.payment.status === PaymentStatus.FAILED || booking.payment.status === PaymentStatus.CANCELLED) {
-      throw new ApiError(400, 'Order is already cancelled or failed');
+    // Check if payment is already cancelled
+    if (booking.payment.status === PaymentStatus.CANCELLED) {
+      throw new ApiError(400, 'Order is already cancelled');
     }
 
-    // Update booking: mark payment status as failed and booking status as cancelled
+    // Only update payment status to CANCELLED, don't cancel the booking
+    // Increment payment_cancelled_count each time payment is cancelled
+    const currentCancelledCount = booking.payment?.payment_cancelled_count || 0;
     const updatedBooking = await BookingModel.findByIdAndUpdate(
       booking._id,
       {
         $set: {
-          status: BookingStatus.CANCELLED,
-          'payment.status': PaymentStatus.FAILED,
-          'payment.failure_reason': 'Order cancelled by user',
+          'payment.status': PaymentStatus.CANCELLED,
+          'payment.failure_reason': 'Payment order cancelled by user',
+          'payment.payment_cancelled_count': currentCancelledCount + 1,
         },
       },
       { new: true }
@@ -1421,26 +2139,49 @@ export const deleteOrder = async (
       },
       {
         $set: {
-          status: TransactionStatus.FAILED,
+          status: TransactionStatus.CANCELLED,
           source: TransactionSource.USER_VERIFICATION,
+          failure_reason: 'Payment order cancelled by user',
         },
       },
       { upsert: false } // Don't create if doesn't exist
     );
 
-    logger.info(`Order cancelled: ${booking.id} for user ${userId}, Razorpay Order ID: ${data.razorpay_order_id}`);
+    // Create audit trail for payment order cancellation
+    await createAuditTrail(
+      ActionType.PAYMENT_FAILED,
+      ActionScale.MEDIUM,
+      `Payment order cancelled by user for booking ${booking.booking_id || booking.id}`,
+      'Booking',
+      booking._id,
+      {
+        userId: userObjectId,
+        academyId: booking.center,
+        bookingId: booking._id,
+        metadata: {
+          razorpay_order_id: data.razorpay_order_id,
+          previousPaymentStatus: booking.payment.status,
+          bookingStatus: booking.status,
+          reason: 'Payment order cancelled by user',
+          payment_cancelled_count: currentCancelledCount + 1,
+          cancelledAt: new Date().toISOString(),
+        },
+      }
+    );
 
-    // Return limited data
+    logger.info(`Payment order cancelled: ${booking.id} for user ${userId}, Razorpay Order ID: ${data.razorpay_order_id}`);
+
+    // Return limited data (booking status remains unchanged, only payment status changed)
     const cancelledBooking: CancelledBookingResponse = {
       id: updatedBooking.id || (updatedBooking._id as any)?.toString() || '',
       booking_id: updatedBooking.booking_id || '',
-      status: updatedBooking.status || BookingStatus.CANCELLED,
+      status: updatedBooking.status || booking.status, // Keep original booking status
       amount: updatedBooking.amount || 0,
       currency: updatedBooking.currency || 'INR',
       payment: {
         razorpay_order_id: updatedBooking.payment?.razorpay_order_id || data.razorpay_order_id,
-        status: updatedBooking.payment?.status || PaymentStatus.FAILED,
-        failure_reason: updatedBooking.payment?.failure_reason || 'Order cancelled by user',
+        status: updatedBooking.payment?.status || PaymentStatus.CANCELLED,
+        failure_reason: updatedBooking.payment?.failure_reason || 'Payment order cancelled by user',
       },
       batch: {
         id: (updatedBooking.batch as any)?._id?.toString() || (updatedBooking.batch as any)?.id || '',
@@ -1466,6 +2207,369 @@ export const deleteOrder = async (
       stack: error instanceof Error ? error.stack : undefined,
     });
     throw new ApiError(500, 'Failed to cancel order');
+  }
+};
+
+/**
+ * Cancel booking by user with reason
+ * Prevents cancellation after payment success
+ */
+export const cancelBooking = async (
+  bookingId: string,
+  reason: string,
+  userId: string
+): Promise<CancelBookingResponse> => {
+  try {
+    // Validate user
+    const userObjectId = await getUserObjectId(userId);
+    if (!userObjectId) {
+      throw new ApiError(404, t('user.notFound') || 'User not found');
+    }
+
+    // Find booking by ID
+    const booking = await BookingModel.findOne({
+      id: bookingId,
+      user: userObjectId,
+      is_deleted: false,
+    })
+      .populate('batch', 'id name')
+      .populate('center', 'id center_name')
+      .populate('sport', 'id name')
+      .lean();
+
+    if (!booking) {
+      throw new ApiError(404, 'Booking not found');
+    }
+
+    // Check if booking is already cancelled
+    if (booking.status === BookingStatus.CANCELLED) {
+      throw new ApiError(400, 'Booking is already cancelled');
+    }
+
+    // Check if booking is completed
+    if (booking.status === BookingStatus.COMPLETED) {
+      throw new ApiError(400, 'Cannot cancel a completed booking');
+    }
+
+    // Check if booking is confirmed (payment successful)
+    if (booking.status === BookingStatus.CONFIRMED) {
+      throw new ApiError(400, 'Cannot cancel a confirmed booking. Please request a refund instead.');
+    }
+
+    // Prevent cancellation after payment success
+    if (booking.payment.status === PaymentStatus.SUCCESS) {
+      throw new ApiError(400, 'Cannot cancel booking after payment is successful. Please request a refund instead.');
+    }
+
+    // Update booking status to CANCELLED
+    const updatedBooking = await BookingModel.findByIdAndUpdate(
+      booking._id,
+      {
+        $set: {
+          status: BookingStatus.CANCELLED,
+          'payment.status': booking.payment.status === PaymentStatus.INITIATED || booking.payment.status === PaymentStatus.PENDING 
+            ? PaymentStatus.CANCELLED 
+            : booking.payment.status, // Only update payment status if it's INITIATED or PENDING
+          'payment.failure_reason': reason,
+          cancellation_reason: reason, // Store cancellation reason in separate field
+          cancelled_by: 'user', // User cancelled the booking
+        },
+      },
+      { new: true }
+    )
+      .populate('batch', 'id name')
+      .populate('center', 'id center_name')
+      .populate('sport', 'id name')
+      .select('id booking_id status amount currency payment cancellation_reason cancelled_by batch center sport')
+      .lean();
+
+    if (!updatedBooking) {
+      throw new ApiError(500, 'Failed to cancel booking');
+    }
+
+    // Update transaction record if exists
+    if (booking.payment.razorpay_order_id) {
+      await TransactionModel.findOneAndUpdate(
+        {
+          booking: booking._id,
+          razorpay_order_id: booking.payment.razorpay_order_id,
+        },
+        {
+          $set: {
+            status: TransactionStatus.CANCELLED,
+            source: TransactionSource.USER_VERIFICATION,
+            failure_reason: reason,
+          },
+        },
+        { upsert: false } // Don't create if doesn't exist
+      );
+    }
+
+    // Create audit trail
+    await createAuditTrail(
+      ActionType.BOOKING_CANCELLED,
+      ActionScale.MEDIUM,
+      `Booking cancelled by user: ${reason}`,
+      'Booking',
+      booking._id,
+      {
+        userId: userObjectId,
+        academyId: booking.center,
+        bookingId: booking._id,
+        metadata: {
+          reason: reason,
+          cancelledBy: 'user',
+          cancelledAt: new Date().toISOString(),
+          previousStatus: booking.status,
+          previousPaymentStatus: booking.payment.status,
+        },
+      }
+    );
+
+    // Send notifications for cancellation (async, non-blocking)
+    (async () => {
+      try {
+        // Fetch required data for notifications
+        const [userDetails, centerDetails, batchDetails] = await Promise.all([
+          UserModel.findById(booking.user).select('id firstName lastName email mobile').lean(),
+          CoachingCenterModel.findById(booking.center).select('id center_name user email mobile_number').lean(),
+          BatchModel.findById(booking.batch).select('id name').lean(),
+        ]);
+
+        const batchName = batchDetails?.name || 'batch';
+        const centerName = (centerDetails as any)?.center_name || 'Academy';
+        const user = userDetails as any;
+        const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'User' : 'User';
+        const centerOwnerId = (centerDetails as any)?.user?.toString();
+
+        // Notification to User (Push + Email + SMS + WhatsApp)
+        if (user?.id) {
+          // Push notification
+          await createAndSendNotification({
+            recipientType: 'user',
+            recipientId: user.id,
+            title: 'Booking Cancelled',
+            body: `Your booking for "${batchName}" has been cancelled.${reason ? ` Reason: ${reason}` : ''}`,
+            channels: ['push'],
+            priority: 'medium',
+            data: {
+              type: 'booking_cancelled',
+              bookingId: booking.id,
+              batchId: booking.batch.toString(),
+              reason: reason || null,
+            },
+          });
+
+          // Email notification (async)
+          if (user.email) {
+            queueEmail(user.email, 'Booking Cancelled - PlayAsport', {
+              template: 'booking-cancelled-user.html',
+              text: `Your booking for "${batchName}" at "${centerName}" has been cancelled.${reason ? ` Reason: ${reason}` : ''}`,
+              templateVariables: {
+                userName,
+                batchName,
+                centerName,
+                bookingId: booking.id,
+                reason: reason || null,
+                year: new Date().getFullYear(),
+              },
+              priority: 'medium',
+              metadata: {
+                type: 'booking_cancelled',
+                bookingId: booking.id,
+                recipient: 'user',
+              },
+            });
+          }
+
+          // SMS notification (async)
+          if (user.mobile) {
+            const smsMessage = getBookingCancelledUserSms({
+              batchName,
+              centerName,
+              bookingId: booking.id,
+              reason: reason || null,
+            });
+            queueSms(user.mobile, smsMessage, 'medium', {
+              type: 'booking_cancelled',
+              bookingId: booking.id,
+              recipient: 'user',
+            });
+          }
+
+          // WhatsApp notification (async)
+          if (user.mobile) {
+            const whatsappMessage = getBookingCancelledUserWhatsApp({
+              batchName,
+              centerName,
+              bookingId: booking.id,
+              reason: reason || null,
+            });
+            queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
+              type: 'booking_cancelled',
+              bookingId: booking.id,
+              recipient: 'user',
+            });
+          }
+        }
+
+        // Notification to Academy Owner (Push + Email + SMS + WhatsApp)
+        if (centerOwnerId) {
+          const academyOwner = await UserModel.findById(centerOwnerId).select('id email mobile').lean();
+          if (academyOwner) {
+            // Push notification
+            await createAndSendNotification({
+              recipientType: 'academy',
+              recipientId: academyOwner.id,
+              title: 'Booking Cancelled',
+              body: `Booking ${booking.id} for batch "${batchName}" has been cancelled by ${userName}.${reason ? ` Reason: ${reason}` : ''}`,
+              channels: ['push'],
+              priority: 'medium',
+              data: {
+                type: 'booking_cancelled_academy',
+                bookingId: booking.id,
+                batchId: booking.batch.toString(),
+                reason: reason || null,
+              },
+            });
+
+            // Email notification (async)
+            const academyEmail = (centerDetails as any)?.email || academyOwner.email;
+            if (academyEmail) {
+              queueEmail(academyEmail, 'Booking Cancelled - PlayAsport', {
+                template: 'booking-cancelled-academy.html',
+                text: `Booking ${booking.id} for batch "${batchName}" has been cancelled by ${userName}.${reason ? ` Reason: ${reason}` : ''}`,
+                templateVariables: {
+                  centerName,
+                  batchName,
+                  userName,
+                  userEmail: user?.email || 'N/A',
+                  bookingId: booking.id,
+                  reason: reason || null,
+                  year: new Date().getFullYear(),
+                },
+                priority: 'medium',
+                metadata: {
+                  type: 'booking_cancelled',
+                  bookingId: booking.id,
+                  recipient: 'academy',
+                },
+              });
+            }
+
+            // SMS notification (async)
+            const academyMobile = (centerDetails as any)?.mobile_number || academyOwner.mobile;
+            if (academyMobile) {
+              const smsMessage = getBookingCancelledAcademySms({
+                bookingId: booking.id,
+                batchName,
+                userName,
+                reason: reason || null,
+              });
+              queueSms(academyMobile, smsMessage, 'medium', {
+                type: 'booking_cancelled',
+                bookingId: booking.id,
+                recipient: 'academy',
+              });
+            }
+
+            // WhatsApp notification (async)
+            if (academyMobile) {
+              const whatsappMessage = getBookingCancelledAcademyWhatsApp({
+                bookingId: booking.id,
+                batchName,
+                userName,
+                reason: reason || null,
+              });
+              queueWhatsApp(academyMobile, whatsappMessage, 'medium', {
+                type: 'booking_cancelled',
+                bookingId: booking.id,
+                recipient: 'academy',
+              });
+            }
+          }
+        }
+
+        // Notification to Admin (Email only, async)
+        if (config.admin.email) {
+          queueEmail(config.admin.email, 'Booking Cancelled - PlayAsport', {
+            template: 'booking-cancelled-admin.html',
+            text: `Booking ${booking.id} for batch "${batchName}" at "${centerName}" has been cancelled by ${userName}.${reason ? ` Reason: ${reason}` : ''}`,
+            templateVariables: {
+              userName,
+              userEmail: user?.email || 'N/A',
+              batchName,
+              centerName,
+              bookingId: booking.id,
+              reason: reason || null,
+              year: new Date().getFullYear(),
+            },
+            priority: 'medium',
+            metadata: {
+              type: 'booking_cancelled',
+              bookingId: booking.id,
+              recipient: 'admin',
+            },
+          });
+        }
+
+        logger.info(`Booking cancellation notifications queued for booking: ${booking.id}`);
+      } catch (notificationError) {
+        // Log error but don't fail the cancellation
+        logger.error('Error sending booking cancellation notifications', {
+          bookingId: booking.id,
+          error: notificationError instanceof Error ? notificationError.message : notificationError,
+        });
+      }
+    })().catch((error) => {
+      // Catch any unhandled errors in the async function
+      logger.error('Unhandled error in background notification sending for cancellation', {
+        bookingId: booking.id,
+        error: error instanceof Error ? error.message : error,
+      });
+    });
+
+    logger.info(`Booking cancelled: ${booking.id} by user ${userId}, Reason: ${reason}`);
+
+    // Return only relevant data
+    const response: CancelBookingResponse = {
+      id: updatedBooking.id || (updatedBooking._id as any)?.toString() || '',
+      booking_id: updatedBooking.booking_id || '',
+      status: updatedBooking.status as BookingStatus,
+      amount: updatedBooking.amount,
+      currency: updatedBooking.currency,
+      payment: {
+        status: updatedBooking.payment.status,
+        failure_reason: updatedBooking.payment.failure_reason || reason,
+      },
+      cancellation_reason: updatedBooking.cancellation_reason || reason,
+      cancelled_by: updatedBooking.cancelled_by || 'user',
+      batch: {
+        id: (updatedBooking.batch as any)?._id?.toString() || (updatedBooking.batch as any)?.id || '',
+        name: (updatedBooking.batch as any)?.name || '',
+      },
+      center: {
+        id: (updatedBooking.center as any)?._id?.toString() || (updatedBooking.center as any)?.id || '',
+        center_name: (updatedBooking.center as any)?.center_name || '',
+      },
+      sport: {
+        id: (updatedBooking.sport as any)?._id?.toString() || (updatedBooking.sport as any)?.id || '',
+        name: (updatedBooking.sport as any)?.name || '',
+      },
+    };
+
+    return response;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Failed to cancel booking:', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      bookingId,
+      userId,
+    });
+    throw new ApiError(500, 'Failed to cancel booking');
   }
 };
 

@@ -1,23 +1,130 @@
-import PDFDocument from 'pdfkit';
+import puppeteer, { Browser } from 'puppeteer';
 import { Types } from 'mongoose';
+import { promises as fs } from 'fs';
+import path from 'path';
 import { BookingModel } from '../../models/booking.model';
 import { logger } from '../../utils/logger';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
 
+// Template directories (same as email service)
+const TEMPLATE_DIRECTORIES = [
+  path.resolve(process.cwd(), 'dist', 'email', 'templates'),
+  path.resolve(process.cwd(), 'email', 'templates'),
+  path.resolve(process.cwd(), 'src', 'email', 'templates'),
+  path.resolve(__dirname, '..', 'email', 'templates'),
+];
+
+// Helper function to resolve template path
+const resolveTemplatePath = async (templateName: string): Promise<string | null> => {
+  for (const dir of TEMPLATE_DIRECTORIES) {
+    try {
+      const templatePath = path.join(dir, templateName);
+      await fs.access(templatePath);
+      return templatePath;
+    } catch {
+      // Continue searching other directories
+    }
+  }
+  return null;
+};
+
+// Helper function to load template
+const loadTemplate = async (templateName: string): Promise<string> => {
+  const templatePath = await resolveTemplatePath(templateName);
+  if (!templatePath) {
+    throw new Error(`Invoice template "${templateName}" not found.`);
+  }
+  return await fs.readFile(templatePath, 'utf-8');
+};
+
+// Helper function to render template (simple variable replacement)
+const renderTemplate = (template: string, variables: Record<string, unknown>): string => {
+  return template.replace(/{{\s*(\w+)\s*}}/g, (_match, token) => {
+    const value = variables[token];
+    return value === undefined || value === null ? '' : String(value);
+  });
+};
+
+// Helper function to format currency
+const formatCurrency = (amount: number, currency: string = 'INR'): string => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
+
+// Helper function to format date
+const formatDate = (date: Date | string): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString('en-IN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
+// Helper function to format datetime
+const formatDateTime = (date: Date | string): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleString('en-IN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+// Helper function to load logo and convert to base64
+const loadLogoAsBase64 = async (): Promise<string | null> => {
+  try {
+    // Try multiple possible paths for the logo
+    const logoPaths = [
+      path.resolve(process.cwd(), 'src', 'statics', 'images', 'logo.png'),
+      path.resolve(process.cwd(), 'dist', 'statics', 'images', 'logo.png'),
+      path.resolve(__dirname, '..', '..', 'statics', 'images', 'logo.png'),
+      path.resolve(__dirname, '..', 'statics', 'images', 'logo.png'),
+    ];
+
+    for (const logoPath of logoPaths) {
+      try {
+        await fs.access(logoPath);
+        const logoBuffer = await fs.readFile(logoPath);
+        const base64Logo = logoBuffer.toString('base64');
+        const mimeType = 'image/png'; // Assuming PNG format
+        return `data:${mimeType};base64,${base64Logo}`;
+      } catch {
+        // Continue to next path
+        continue;
+      }
+    }
+    
+    logger.warn('Logo file not found, invoice will be generated without logo');
+    return null;
+  } catch (error) {
+    logger.error('Error loading logo for invoice:', error);
+    return null;
+  }
+};
+
 /**
- * Generate PDF invoice for a booking
+ * Generate PDF invoice for a booking using HTML template
  * Returns PDF buffer
  */
 export const generateBookingInvoice = async (bookingId: string): Promise<Buffer> => {
+  let browser: Browser | null = null;
   try {
     const query = Types.ObjectId.isValid(bookingId) ? { _id: bookingId } : { id: bookingId };
     const booking = await BookingModel.findOne({ ...query, is_deleted: false })
-      .populate('user', 'id firstName lastName email mobile')
+      .populate('user', 'id firstName lastName email mobile address')
       .populate('participants', 'id firstName lastName dob gender')
       .populate('batch', 'id name scheduled duration')
       .populate('center', 'id center_name email mobile_number location')
       .populate('sport', 'id name')
+      .select('id booking_id amount currency payment priceBreakdown user participants batch center sport createdAt')
       .lean();
 
     if (!booking) {
@@ -26,198 +133,173 @@ export const generateBookingInvoice = async (bookingId: string): Promise<Buffer>
 
     const bookingData = booking as any;
 
-    // Create PDF document
-    const doc = new PDFDocument({ margin: 50, size: 'A4' });
-    const buffers: Buffer[] = [];
-
-    doc.on('data', buffers.push.bind(buffers));
-    doc.on('end', () => {});
-
-    // Helper function to format currency
-    const formatCurrency = (amount: number, currency: string = 'INR'): string => {
-      return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: currency,
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-      }).format(amount);
-    };
-
-    // Helper function to format date
-    const formatDate = (date: Date | string): string => {
-      const d = typeof date === 'string' ? new Date(date) : date;
-      return d.toLocaleDateString('en-IN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-    };
-
-    // Header
-    doc.fontSize(20).font('Helvetica-Bold').text('INVOICE', 50, 50, { align: 'left' });
+    // Prepare template variables
+    const userName = bookingData.user
+      ? `${bookingData.user.firstName || ''} ${bookingData.user.lastName || ''}`.trim() || 'N/A'
+      : 'N/A';
+    const userEmail = bookingData.user?.email || 'N/A';
+    const userMobile = bookingData.user?.mobile || 'N/A';
     
-    // Invoice details
     const invoiceNumber = bookingData.booking_id || bookingData.id;
     const invoiceDate = formatDate(bookingData.createdAt);
     
-    doc.fontSize(10).font('Helvetica').text(`Invoice #: ${invoiceNumber}`, 400, 50, { align: 'right' });
-    doc.text(`Date: ${invoiceDate}`, 400, 70, { align: 'right' });
-
-    // Company/Platform Info (you can customize this)
-    doc.fontSize(12).font('Helvetica-Bold').text('PlayAsport', 50, 120);
-    doc.fontSize(10).font('Helvetica').text('Coaching Center Platform', 50, 140);
+    const sportName = bookingData.sport?.name || 'N/A';
+    const centerName = bookingData.center?.center_name || 'N/A';
+    const batchName = bookingData.batch?.name || 'N/A';
     
-    // Billing To section
-    let yPos = 120;
-    doc.fontSize(12).font('Helvetica-Bold').text('Bill To:', 400, yPos);
-    yPos += 20;
-    doc.fontSize(10).font('Helvetica');
-    
-    const userName = bookingData.user
-      ? `${bookingData.user.firstName || ''} ${bookingData.user.lastName || ''}`.trim()
-      : 'N/A';
-    doc.text(userName, 400, yPos);
-    yPos += 15;
-    
-    if (bookingData.user?.email) {
-      doc.text(`Email: ${bookingData.user.email}`, 400, yPos);
-      yPos += 15;
-    }
-    if (bookingData.user?.mobile) {
-      doc.text(`Mobile: ${bookingData.user.mobile}`, 400, yPos);
-      yPos += 15;
-    }
-
-    // Line separator
-    doc.moveTo(50, 200).lineTo(550, 200).stroke();
-
-    // Booking Details
-    yPos = 220;
-    doc.fontSize(14).font('Helvetica-Bold').text('Booking Details', 50, yPos);
-    yPos += 25;
-    
-    doc.fontSize(10).font('Helvetica');
-    doc.text(`Sport: ${bookingData.sport?.name || 'N/A'}`, 50, yPos);
-    yPos += 15;
-    
-    doc.text(`Center: ${bookingData.center?.center_name || 'N/A'}`, 50, yPos);
-    yPos += 15;
-    
-    doc.text(`Batch: ${bookingData.batch?.name || 'N/A'}`, 50, yPos);
-    yPos += 15;
+    // Format scheduled details
+    let startDate = '';
+    let timeSlot = '';
+    let trainingDays = '';
+    let duration = '';
     
     if (bookingData.batch?.scheduled) {
       const scheduled = bookingData.batch.scheduled;
-      doc.text(`Start Date: ${formatDate(scheduled.start_date)}`, 50, yPos);
-      yPos += 15;
-      doc.text(`Time: ${scheduled.start_time} - ${scheduled.end_time}`, 50, yPos);
-      yPos += 15;
-      if (scheduled.training_days && scheduled.training_days.length > 0) {
-        doc.text(`Training Days: ${scheduled.training_days.join(', ')}`, 50, yPos);
-        yPos += 15;
-      }
+      startDate = scheduled.start_date ? formatDate(scheduled.start_date) : '';
+      timeSlot = scheduled.start_time && scheduled.end_time 
+        ? `${scheduled.start_time} - ${scheduled.end_time}`
+        : '';
+      trainingDays = scheduled.training_days && scheduled.training_days.length > 0
+        ? scheduled.training_days.join(', ')
+        : '';
     }
     
     if (bookingData.batch?.duration) {
-      doc.text(`Duration: ${bookingData.batch.duration.count} ${bookingData.batch.duration.type}`, 50, yPos);
-      yPos += 15;
+      duration = `${bookingData.batch.duration.count} ${bookingData.batch.duration.type}`;
     }
-
-    // Participants
-    yPos += 10;
-    doc.fontSize(12).font('Helvetica-Bold').text('Participants:', 50, yPos);
-    yPos += 20;
     
-    if (bookingData.participants && bookingData.participants.length > 0) {
-      bookingData.participants.forEach((participant: any, index: number) => {
-        const participantName = `${participant.firstName || ''} ${participant.lastName || ''}`.trim();
-        doc.fontSize(10).font('Helvetica').text(`${index + 1}. ${participantName}`, 50, yPos);
-        yPos += 15;
-      });
-    } else {
-      doc.text('N/A', 50, yPos);
-      yPos += 15;
-    }
-
-    // Payment Details Table
-    yPos += 20;
-    doc.fontSize(14).font('Helvetica-Bold').text('Payment Details', 50, yPos);
-    yPos += 25;
-
-    // Table header
-    doc.fontSize(10).font('Helvetica-Bold');
-    doc.text('Description', 50, yPos);
-    doc.text('Amount', 450, yPos, { align: 'right', width: 100 });
-    yPos += 20;
-
-    // Table line
-    doc.moveTo(50, yPos).lineTo(550, yPos).stroke();
-    yPos += 10;
-
-    // Table rows
-    doc.fontSize(10).font('Helvetica');
-    doc.text('Booking Amount', 50, yPos);
-    doc.text(formatCurrency(bookingData.amount, bookingData.currency), 450, yPos, { align: 'right', width: 100 });
-    yPos += 20;
-
-    // Payment status
-    yPos += 10;
-    doc.fontSize(10).font('Helvetica');
+    // Format participants list
+    const participantsList = bookingData.participants && bookingData.participants.length > 0
+      ? bookingData.participants
+          .map((p: any, index: number) => {
+            const name = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+            return `<li>${index + 1}. ${name || 'Participant'}</li>`;
+          })
+          .join('')
+      : '<li>N/A</li>';
+    
+    // Payment details
     const paymentStatus = bookingData.payment?.status || 'pending';
-    doc.text(`Payment Status: ${paymentStatus.toUpperCase()}`, 50, yPos);
-    yPos += 15;
+    const paymentStatusDisplay = paymentStatus === 'success' ? 'paid' : paymentStatus.toUpperCase();
+    const paymentStatusClass = paymentStatus === 'success' ? 'success' : 'pending';
+    const paymentMethod = bookingData.payment?.payment_method 
+      ? bookingData.payment.payment_method.toUpperCase()
+      : 'N/A';
+    const orderId = bookingData.payment?.razorpay_order_id || 'N/A';
+    const paidAt = bookingData.payment?.paid_at 
+      ? formatDateTime(bookingData.payment.paid_at)
+      : 'N/A';
     
-    if (bookingData.payment?.payment_method) {
-      doc.text(`Payment Method: ${bookingData.payment.payment_method.toUpperCase()}`, 50, yPos);
-      yPos += 15;
+    // Format user address
+    let userAddress = '';
+    if (bookingData.user?.address) {
+      const addr = bookingData.user.address;
+      const addressParts: string[] = [];
+      if (addr.line1) addressParts.push(addr.line1);
+      if (addr.line2) addressParts.push(addr.line2);
+      if (addr.area) addressParts.push(addr.area);
+      if (addr.city) addressParts.push(addr.city);
+      if (addr.state) addressParts.push(addr.state);
+      if (addr.pincode) addressParts.push(addr.pincode);
+      if (addr.country) addressParts.push(addr.country);
+      userAddress = addressParts.join(', ') || 'N/A';
+    } else {
+      userAddress = 'N/A';
     }
     
-    if (bookingData.payment?.razorpay_order_id) {
-      doc.text(`Order ID: ${bookingData.payment.razorpay_order_id}`, 50, yPos);
-      yPos += 15;
-    }
-    
-    if (bookingData.payment?.razorpay_payment_id) {
-      doc.text(`Payment ID: ${bookingData.payment.razorpay_payment_id}`, 50, yPos);
-      yPos += 15;
-    }
+    // Price breakdown
+    const priceBreakdown = bookingData.priceBreakdown;
+    const batchAmount = priceBreakdown?.batch_amount 
+      ? formatCurrency(priceBreakdown.batch_amount, bookingData.currency)
+      : formatCurrency(bookingData.amount, bookingData.currency);
+    const platformFee = priceBreakdown?.platform_fee 
+      ? formatCurrency(priceBreakdown.platform_fee, bookingData.currency)
+      : '₹0.00';
+    const subtotal = priceBreakdown?.subtotal 
+      ? formatCurrency(priceBreakdown.subtotal, bookingData.currency)
+      : formatCurrency(bookingData.amount, bookingData.currency);
+    const gstAmount = priceBreakdown?.gst_amount 
+      ? formatCurrency(priceBreakdown.gst_amount, bookingData.currency)
+      : '₹0.00';
+    const gstPercentage = priceBreakdown?.gst_percentage || 0;
+    const totalAmount = formatCurrency(bookingData.amount, bookingData.currency);
+    const year = new Date().getFullYear();
 
-    // Total
-    yPos += 10;
-    doc.moveTo(50, yPos).lineTo(550, yPos).stroke();
-    yPos += 15;
-    
-    doc.fontSize(12).font('Helvetica-Bold');
-    doc.text('Total Amount:', 350, yPos);
-    doc.text(formatCurrency(bookingData.amount, bookingData.currency), 450, yPos, { align: 'right', width: 100 });
-    yPos += 20;
-    
-    doc.moveTo(50, yPos).lineTo(550, yPos).stroke();
+    // Load logo and convert to base64
+    const logoBase64 = await loadLogoAsBase64();
+    const logoImage = logoBase64
+      ? `<img src="${logoBase64}" alt="PlayAsport Logo" class="inpany-logo" />`
+      : '';
 
-    // Footer
-    const pageHeight = doc.page.height;
-    const footerY = pageHeight - 50;
-    
-    doc.fontSize(8).font('Helvetica').fillColor('gray');
-    doc.text('This is a computer-generated invoice. No signature required.', 50, footerY, { align: 'center', width: 500 });
-    doc.text('Thank you for your booking!', 50, footerY + 15, { align: 'center', width: 500 });
-
-    // Finalize PDF
-    doc.end();
-
-    // Wait for PDF to be generated
-    return new Promise<Buffer>((resolve, reject) => {
-      doc.on('end', () => {
-        const pdfBuffer = Buffer.concat(buffers);
-        resolve(pdfBuffer);
-      });
-      
-      doc.on('error', (error) => {
-        logger.error('PDF generation error:', error);
-        reject(new ApiError(500, 'Failed to generate invoice PDF'));
-      });
+    // Load and render HTML template
+    const template = await loadTemplate('invoice.html');
+    const html = renderTemplate(template, {
+      invoiceNumber,
+      invoiceDate,
+      userName,
+      userEmail,
+      userMobile,
+      userAddress,
+      sportName,
+      centerName,
+      batchName,
+      startDate,
+      timeSlot,
+      trainingDays,
+      duration,
+      participantsList,
+      paymentStatus: paymentStatusDisplay,
+      paymentStatusClass,
+      paymentMethod,
+      orderId,
+      paidAt,
+      batchAmount,
+      platformFee,
+      subtotal,
+      gstAmount,
+      gstPercentage,
+      totalAmount,
+      year,
+      logoImage,
     });
+
+    // Launch Puppeteer browser
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'], // Required for some environments
+    });
+
+    const page = await browser.newPage();
+    
+    // Set content and wait for rendering
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    
+    // Generate PDF
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '0.5in',
+        right: '0.5in',
+        bottom: '0.5in',
+        left: '0.5in',
+      },
+    });
+
+    await browser.close();
+    browser = null;
+
+    return Buffer.from(pdfBuffer);
   } catch (error) {
+    // Ensure browser is closed even on error
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeError) {
+        logger.error('Error closing browser:', closeError);
+      }
+    }
+    
     if (error instanceof ApiError) {
       throw error;
     }

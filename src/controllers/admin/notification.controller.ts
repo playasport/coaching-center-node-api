@@ -126,7 +126,18 @@ export const getAllNotifications = async (
 
     const result = await adminNotificationService.getAllNotifications(params);
 
-    const response = new ApiResponse(200, result, 'Notifications retrieved successfully');
+    // Remove roles, priority, and channels from notifications
+    const filteredNotifications = result.notifications.map((notification: any) => {
+      const { roles, priority, channels, ...rest } = notification;
+      return rest;
+    });
+
+    const filteredResult = {
+      ...result,
+      notifications: filteredNotifications,
+    };
+
+    const response = new ApiResponse(200, filteredResult, 'Notifications retrieved successfully');
     res.json(response);
   } catch (error) {
     next(error);
@@ -197,7 +208,18 @@ export const getMyNotifications = async (
       req.user.id
     );
 
-    const response = new ApiResponse(200, result, t('notification.list.success'));
+    // Remove roles, priority, and channels from notifications
+    const filteredNotifications = result.notifications.map((notification: any) => {
+      const { roles, priority, channels, ...rest } = notification;
+      return rest;
+    });
+
+    const filteredResult = {
+      ...result,
+      notifications: filteredNotifications,
+    };
+
+    const response = new ApiResponse(200, filteredResult, t('notification.list.success'));
     res.json(response);
   } catch (error) {
     next(error);
@@ -285,7 +307,10 @@ export const markAsRead = async (
 
     const notification = await notificationService.markAsReadByRoles(id, roleNames, req.user.id);
 
-    const response = new ApiResponse(200, notification, t('notification.markRead.success'));
+    // Remove roles, priority, and channels from notification
+    const { roles, priority, channels, ...filteredNotification } = notification as any;
+
+    const response = new ApiResponse(200, filteredNotification, t('notification.markRead.success'));
     res.json(response);
   } catch (error) {
     next(error);

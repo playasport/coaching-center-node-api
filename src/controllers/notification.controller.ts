@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { ApiResponse } from '../../utils/ApiResponse';
-import { ApiError } from '../../utils/ApiError';
-import * as notificationService from '../../services/common/notification.service';
-import { t } from '../../utils/i18n';
+import { ApiResponse } from '../utils/ApiResponse';
+import { ApiError } from '../utils/ApiError';
+import * as notificationService from '../services/common/notification.service';
+import { t } from '../utils/i18n';
 
 /**
  * Get notifications for user
@@ -29,7 +29,18 @@ export const getNotifications = async (
       isRead
     );
 
-    const response = new ApiResponse(200, result, t('notification.list.success'));
+    // Remove roles, priority, and channels from notifications
+    const filteredNotifications = result.notifications.map((notification: any) => {
+      const { roles, priority, channels, ...rest } = notification;
+      return rest;
+    });
+
+    const filteredResult = {
+      ...result,
+      notifications: filteredNotifications,
+    };
+
+    const response = new ApiResponse(200, filteredResult, t('notification.list.success'));
     res.json(response);
   } catch (error) {
     next(error);
@@ -75,7 +86,10 @@ export const markAsRead = async (
 
     const notification = await notificationService.markAsRead(id, 'user', req.user.id);
 
-    const response = new ApiResponse(200, notification, t('notification.markRead.success'));
+    // Remove roles, priority, and channels from notification
+    const { roles, priority, channels, ...filteredNotification } = notification as any;
+
+    const response = new ApiResponse(200, filteredNotification, t('notification.markRead.success'));
     res.json(response);
   } catch (error) {
     next(error);
@@ -99,7 +113,10 @@ export const markAsUnread = async (
 
     const notification = await notificationService.markAsUnread(id, 'user', req.user.id);
 
-    const response = new ApiResponse(200, notification, t('notification.markUnread.success'));
+    // Remove roles, priority, and channels from notification
+    const { roles, priority, channels, ...filteredNotification } = notification as any;
+
+    const response = new ApiResponse(200, filteredNotification, t('notification.markUnread.success'));
     res.json(response);
   } catch (error) {
     next(error);

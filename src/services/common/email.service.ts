@@ -126,6 +126,12 @@ const renderTemplate = (template: string, variables: Record<string, unknown>): s
   });
 };
 
+interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+}
+
 interface SendEmailOptions {
   to: string;
   subject: string;
@@ -133,6 +139,7 @@ interface SendEmailOptions {
   text?: string;
   template?: string;
   variables?: Record<string, unknown>;
+  attachments?: EmailAttachment[];
 }
 
 export const sendTemplatedEmail = async ({
@@ -142,6 +149,7 @@ export const sendTemplatedEmail = async ({
   text,
   template,
   variables = {},
+  attachments = [],
 }: SendEmailOptions): Promise<string> => {
   let finalHtml = html;
 
@@ -165,9 +173,16 @@ export const sendTemplatedEmail = async ({
   const mailer = await getTransporter();
 
   if (!mailer) {
-    logger.info('Email mocked send', { to, subject, html: finalHtml, text });
+    logger.info('Email mocked send', { to, subject, html: finalHtml, text, attachments: attachments.length });
     return 'Email mocked';
   }
+
+  // Format attachments for nodemailer
+  const nodemailerAttachments = attachments.map(att => ({
+    filename: att.filename,
+    content: att.content,
+    contentType: att.contentType || 'application/pdf',
+  }));
 
   await mailer.sendMail({
     from: emailConfig.from || emailConfig.username,
@@ -175,9 +190,10 @@ export const sendTemplatedEmail = async ({
     subject,
     html: finalHtml,
     text,
+    attachments: nodemailerAttachments.length > 0 ? nodemailerAttachments : undefined,
   });
 
-  logger.info('Email queued for delivery', { to, subject });
+  logger.info('Email queued for delivery', { to, subject, attachments: attachments.length });
 
   return 'Email queued for delivery';
 };
