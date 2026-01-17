@@ -288,40 +288,6 @@
           "response": []
         },
         {
-          "name": "Change Password",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"currentPassword\": \"OldPassword123!\",\n  \"newPassword\": \"NewPassword123!\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/user/auth/password",
-              "host": ["{{baseUrl}}"],
-              "path": ["user", "auth", "password"]
-            },
-            "description": "Change user password. Requires USER role authentication."
-          },
-          "response": []
-        },
-        {
           "name": "Update Favorite Sports",
           "request": {
             "method": "PATCH",

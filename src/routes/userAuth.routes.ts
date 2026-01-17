@@ -6,7 +6,6 @@ import {
   verifyUserOtp,
   updateUserProfile,
   updateUserAddress,
-  changeUserPassword,
   getCurrentUser,
   refreshToken,
   logout,
@@ -21,7 +20,6 @@ import {
   userVerifyOtpSchema,
   userProfileUpdateSchema,
   userAddressUpdateSchema,
-  userPasswordChangeSchema,
   userFavoriteSportsUpdateSchema,
 } from '../validations/auth.validation';
 import { authenticate, authorize } from '../middleware/auth.middleware';
@@ -646,52 +644,6 @@ router.patch(
   authorize(DefaultRoles.USER),
   validate(userAddressUpdateSchema),
   updateUserAddress
-);
-
-/**
- * @swagger
- * /user/auth/password:
- *   patch:
- *     summary: Change user password
- *     tags: [User Auth]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - currentPassword
- *               - newPassword
- *             properties:
- *               currentPassword:
- *                 type: string
- *                 format: password
- *               newPassword:
- *                 type: string
- *                 format: password
- *     responses:
- *       200:
- *         description: Password updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
- *       400:
- *         description: Validation error or incorrect current password
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.patch(
-  '/password',
-  authenticate,
-  authorize(DefaultRoles.USER),
-  validate(userPasswordChangeSchema),
-  changeUserPassword
 );
 
 /**
