@@ -1,0 +1,1 @@
+This is A script which is help to migrate the data from old mysql data to my new mongodb data accodring to the models 

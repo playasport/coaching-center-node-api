@@ -26,7 +26,9 @@
     "meilisearch:index-coaching-centers": "tsx scripts/meilisearch-index-coaching-centers.ts",
     "meilisearch:index-sports": "tsx scripts/meilisearch-index-sports.ts",
     "meilisearch:index-reels": "tsx scripts/meilisearch-index-reels.ts",
-    "meilisearch:index-highlights": "tsx scripts/meilisearch-index-highlights.ts"
+    "meilisearch:index-highlights": "tsx scripts/meilisearch-index-highlights.ts",
+    "migrate:coaching-centers": "tsx scripts/migration-script/coaching-center-migration.js",
+    "migrate:create-indexes": "tsx scripts/migration-script/coaching-center-migration.js indexes"
   },
   "keywords": [
     "nodejs",
@@ -64,6 +66,7 @@
     "meilisearch": "^0.55.0",
     "mongoose": "^8.19.3",
     "multer": "^2.0.2",
+    "mysql2": "^3.16.1",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.10",
     "pdfkit": "^0.17.2",
