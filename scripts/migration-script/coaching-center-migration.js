@@ -24,6 +24,7 @@ const mysql = require('mysql2/promise');
 // Import MongoDB models and utilities
 const { connectDatabase, disconnectDatabase } = require('../../src/config/database');
 const { UserModel } = require('../../src/models/user.model');
+const { AdminUserModel } = require('../../src/models/adminUser.model');
 const { SportModel } = require('../../src/models/sport.model');
 const { CoachingCenterModel } = require('../../src/models/coachingCenter.model');
 const { FacilityModel } = require('../../src/models/facility.model');
@@ -388,22 +389,22 @@ async function getOrCreateRole(roleName) {
 }
 
 /**
- * Get or create user for admin (agent)
+ * Get or create admin user for admin (agent) - uses AdminUserModel instead of UserModel
  */
 async function getOrCreateAdminUser(adminData, agentRoleId) {
   try {
-    // Check if user already exists by email
-    let user = await UserModel.findOne({ email: adminData.email.toLowerCase() });
+    // Check if admin user already exists by email in AdminUserModel
+    let adminUser = await AdminUserModel.findOne({ email: adminData.email.toLowerCase() });
 
-    if (!user) {
+    if (!adminUser) {
       // Hash password if exists (don't generate random for admin users)
       let hashedPassword = adminData.password;
       if (adminData.password && !adminData.password.startsWith('$2')) {
         hashedPassword = await hashPassword(adminData.password);
       }
 
-      // Create new user
-      user = new UserModel({
+      // Create new admin user using AdminUserModel (not UserModel)
+      adminUser = new AdminUserModel({
         id: uuidv4(),
         firstName: adminData.first_name || 'Admin',
         lastName: adminData.last_name || null,
@@ -415,11 +416,13 @@ async function getOrCreateAdminUser(adminData, agentRoleId) {
         isDeleted: adminData.deleted_at ? true : false,
       });
 
-      await user.save();
-      log(`Created admin user: ${adminData.email}`);
+      await adminUser.save();
+      log(`Created admin user (AdminUserModel): ${adminData.email}`);
+    } else {
+      log(`Admin user already exists (AdminUserModel): ${adminData.email}`);
     }
 
-    return user._id;
+    return adminUser._id;
   } catch (error) {
     logError(`Error getting/creating admin user: ${adminData.email}`, error);
     throw error;
@@ -504,6 +507,9 @@ async function migrateSingleCoachingCenter(cc, mysqlConnection, agentRoleId, aca
         mobile: cc.mobile_number || cc.contact_number || null,
         password: hashedPassword,
         roles: [academyRoleId], // Academy role for coaching center owners
+        academyDetails: {
+          name: cc.coaching_name || cc.first_name || 'Coaching Center'
+        },
         isActive: cc.is_active === 1,
         isDeleted: false,
       });
