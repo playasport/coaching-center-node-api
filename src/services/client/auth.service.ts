@@ -1838,6 +1838,8 @@ export const getCurrentUser = async (userId: string): Promise<any> => {
       isDeleted: 0, // Exclude isDeleted
       deletedAt: 0, // Exclude deletedAt
       updatedAt: 0, // Exclude updatedAt
+      registrationMethod: 0, // Exclude registrationMethod
+      academyDetails: 0, // Exclude academyDetails
     })
     .lean();
 
@@ -1862,6 +1864,8 @@ export const getCurrentUser = async (userId: string): Promise<any> => {
   delete userResponse.isDeleted;
   delete userResponse.deletedAt;
   delete userResponse.updatedAt;
+  delete userResponse.registrationMethod;
+  delete userResponse.academyDetails;
 
   // Manually populate favoriteSports with sport details
   if (originalFavoriteSports && Array.isArray(originalFavoriteSports) && originalFavoriteSports.length > 0) {
@@ -1894,8 +1898,7 @@ export const getCurrentUser = async (userId: string): Promise<any> => {
         // Map sports to the expected format, maintaining the order from originalFavoriteSports
         const sportMap = new Map(
           sports.map((sport: any) => [sport._id.toString(), {
-            id: sport._id.toString(),
-            custom_id: sport.custom_id,
+            id: sport.custom_id || sport._id.toString(),
             name: sport.name,
             logo: sport.logo || null,
           }])

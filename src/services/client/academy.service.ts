@@ -34,7 +34,6 @@ export interface PaginatedResultWithSport<T> extends PaginatedResult<T> {
 }
 
 export interface AcademyListItem {
-  _id: string;
   id: string; // CoachingCenter UUID id field
   center_name: string;
   logo?: string | null;
@@ -52,16 +51,11 @@ export interface AcademyListItem {
     };
   };
   sports: Array<{
-    _id: string;
-    custom_id: string;
+    id: string;
     name: string;
     logo?: string | null;
     is_popular: boolean;
   }>;
-  age: {
-    min: number;
-    max: number;
-  };
   allowed_genders: string[];
   distance?: number; // Distance in km (if location provided)
 }
@@ -72,8 +66,7 @@ export interface AcademyDetail extends AcademyListItem {
   rules_regulation?: string[] | null;
   sport_details: Array<{
     sport_id: {
-      _id: string;
-      custom_id: string;
+      id: string;
       name: string;
       logo?: string | null;
       is_popular: boolean;
@@ -92,8 +85,7 @@ export interface AcademyDetail extends AcademyListItem {
     }>;
   }>;
   facility: Array<{
-    _id: string;
-    custom_id: string;
+    id: string;
     name: string;
     description?: string | null;
     icon?: string | null;
@@ -108,11 +100,10 @@ export interface AcademyDetail extends AcademyListItem {
   is_only_for_disabled: boolean;
   experience: number; // Number of years of experience
   batches?: Array<{
-    _id: string;
+    id: string;
     name: string;
     sport: {
-      _id: string;
-      custom_id: string;
+      id: string;
       name: string;
       logo?: string | null;
     };
@@ -210,7 +201,7 @@ export const getAllAcademies = async (
     // Fetch academies (total count will be calculated after filtering by radius)
     let academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo')
-      .select('id center_name logo location sports age allowed_genders sport_details')
+      .select('id center_name logo location sports allowed_genders sport_details')
       .lean();
 
     // Calculate distances if location provided
@@ -291,14 +282,17 @@ export const getAllAcademies = async (
         }
 
         return {
-          _id: academy._id.toString(),
           id: academy.id || academy._id.toString(),
           center_name: academy.center_name,
           logo: academy.logo,
           image: image,
           location: academy.location,
-          sports: academy.sports || [],
-          age: academy.age,
+          sports: (academy.sports || []).map((sport: any) => ({
+            id: sport.custom_id || sport._id?.toString(),
+            name: sport.name,
+            logo: sport.logo || null,
+            is_popular: sport.is_popular || false,
+          })),
           allowed_genders: academy.allowed_genders || [],
           distance: academy.distance,
         };
@@ -439,21 +433,47 @@ export const getAcademyById = async (
       .select('name sport coach scheduled duration capacity age admission_fee base_price discounted_price certificate_issued status is_active is_allowed_disabled gender description')
       .lean();
 
-    // Mask email and mobile if user not logged in
+    // Transform response: remove _id, status, is_active, transform sports, sport_details, facility, and batches
+    const { _id, sports, sport_details, facility, status, is_active, ...coachingCenterData } = coachingCenter as any;
+    
     const result: any = {
-      ...coachingCenter,
-      batches: batches.map((batch) => ({
-        ...batch,
-        _id: batch._id.toString(),
-        allowed_genders: (batch as any).gender || [],
-        sport: batch.sport ? {
-          _id: (batch.sport as any)._id?.toString(),
-          custom_id: (batch.sport as any).custom_id,
-          name: (batch.sport as any).name,
-          logo: (batch.sport as any).logo,
-        } : null,
-        coach: batch.coach ? (batch.coach as any).fullName : null,
+      ...coachingCenterData,
+      id: coachingCenter.id || (coachingCenter as any)._id?.toString(),
+      sports: (sports || []).map((sport: any) => ({
+        id: sport.custom_id || sport._id?.toString(),
+        name: sport.name,
+        logo: sport.logo || null,
+        is_popular: sport.is_popular || false,
       })),
+      sport_details: (sport_details || []).map((sportDetail: any) => ({
+        ...sportDetail,
+        sport_id: sportDetail.sport_id ? {
+          id: sportDetail.sport_id.custom_id || sportDetail.sport_id._id?.toString(),
+          name: sportDetail.sport_id.name,
+          logo: sportDetail.sport_id.logo || null,
+          is_popular: sportDetail.sport_id.is_popular || false,
+        } : null,
+      })),
+      facility: (facility || []).map((fac: any) => ({
+        id: fac.custom_id || fac._id?.toString(),
+        name: fac.name,
+        description: fac.description || null,
+        icon: fac.icon || null,
+      })),
+      batches: batches.map((batch) => {
+        const { _id: batchId, sport, status, is_active, ...batchData } = batch as any;
+        return {
+          ...batchData,
+          id: batchId.toString(),
+          allowed_genders: (batch as any).gender || [],
+          sport: sport ? {
+            id: (sport as any).custom_id || (sport as any)._id?.toString(),
+            name: (sport as any).name,
+            logo: (sport as any).logo || null,
+          } : null,
+          coach: batch.coach ? (batch.coach as any).fullName : null,
+        };
+      }),
     };
 
     if (!isUserLoggedIn) {
@@ -514,7 +534,7 @@ export const getAcademiesByCity = async (
     // Fetch all academies (we'll filter and paginate after filtering deleted users)
     let academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo')
-      .select('id center_name logo location sports age allowed_genders sport_details')
+      .select('id center_name logo location sports allowed_genders sport_details')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -551,14 +571,17 @@ export const getAcademiesByCity = async (
         }
 
         return {
-          _id: academy._id.toString(),
           id: academy.id || academy._id.toString(),
           center_name: academy.center_name,
           logo: academy.logo,
           image: image,
           location: academy.location,
-          sports: academy.sports || [],
-          age: academy.age,
+          sports: (academy.sports || []).map((sport: any) => ({
+            id: sport.custom_id || sport._id?.toString(),
+            name: sport.name,
+            logo: sport.logo || null,
+            is_popular: sport.is_popular || false,
+          })),
           allowed_genders: academy.allowed_genders || [],
         };
       }) as AcademyListItem[],
@@ -629,7 +652,7 @@ export const getAcademiesBySport = async (
     // Fetch academies (total count will be calculated after filtering by radius)
     let academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo')
-      .select('id center_name logo location sports age allowed_genders sport_details')
+      .select('id center_name logo location sports allowed_genders sport_details')
       .lean();
 
     // Calculate distances if location provided
@@ -703,14 +726,17 @@ export const getAcademiesBySport = async (
         }
 
         return {
-          _id: academy._id.toString(),
           id: academy.id || academy._id.toString(),
           center_name: academy.center_name,
           logo: academy.logo,
           image: image,
           location: academy.location,
-          sports: academy.sports || [],
-          age: academy.age,
+          sports: (academy.sports || []).map((sportItem: any) => ({
+            id: sportItem.custom_id || sportItem._id?.toString(),
+            name: sportItem.name,
+            logo: sportItem.logo || null,
+            is_popular: sportItem.is_popular || false,
+          })),
           allowed_genders: academy.allowed_genders || [],
           distance: academy.distance,
         };

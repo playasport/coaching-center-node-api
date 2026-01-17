@@ -148,7 +148,7 @@ export const getNearbyAcademies = async (
         select: 'id',
         match: { isDeleted: false },
       })
-      .select('id center_name logo location sports age allowed_genders sport_details user')
+      .select('id center_name logo location sports allowed_genders sport_details')
       .lean();
 
     // Calculate distances
@@ -230,14 +230,17 @@ export const getNearbyAcademies = async (
       }
 
       return {
-        _id: academy._id.toString(),
         id: academy.id || academy._id.toString(),
         center_name: academy.center_name,
         logo: academy.logo,
         image: image,
         location: academy.location,
-        sports: academy.sports || [],
-        age: academy.age,
+        sports: (academy.sports || []).map((sport: any) => ({
+          id: sport.custom_id || sport._id?.toString(),
+          name: sport.name,
+          logo: sport.logo || null,
+          is_popular: sport.is_popular || false,
+        })),
         allowed_genders: academy.allowed_genders || [],
         distance: academy.distance,
       };

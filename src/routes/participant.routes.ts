@@ -307,49 +307,4 @@ router.patch(
   participantController.updateParticipant
 );
 
-/**
- * @swagger
- * /user/participant/{id}:
- *   delete:
- *     summary: Delete participant (soft delete)
- *     tags: [Participant]
- *     description: Soft delete a participant by setting is_deleted to true. Users can only delete their own participants. Requires authentication.
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Participant ID
- *     responses:
- *       200:
- *         description: Participant deleted successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Participant deleted successfully"
- *                 data:
- *                   type: object
- *                   example: {}
- *       401:
- *         description: Unauthorized - Authentication required
- *       404:
- *         description: Participant not found
- */
-router.delete(
-  '/:id',
-  authenticate,
-  participantController.deleteParticipant
-);
-
 export default router;
-

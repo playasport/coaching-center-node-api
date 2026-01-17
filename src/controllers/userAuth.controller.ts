@@ -75,9 +75,12 @@ export const updateUserProfile = async (
     const payload = req.body as UserProfileUpdateInput;
     const file = req.file;
 
-    const updatedUser = await authService.updateUserProfile(req.user.id, payload, file);
+    await authService.updateUserProfile(req.user.id, payload, file);
 
-    const response = new ApiResponse(200, { user: updatedUser }, t('auth.profile.updateSuccess'));
+    // Get the updated user in the same format as /me route
+    const user = await authService.getCurrentUser(req.user.id);
+
+    const response = new ApiResponse(200, { ...user }, t('auth.profile.updateSuccess'));
     res.json(response);
   } catch (error) {
     next(error);
@@ -95,9 +98,12 @@ export const updateUserAddress = async (
     }
 
     const payload = req.body as UserAddressUpdateInput;
-    const updatedUser = await authService.updateUserAddress(req.user.id, payload);
+    await authService.updateUserAddress(req.user.id, payload);
 
-    const response = new ApiResponse(200, { user: updatedUser }, t('auth.profile.updateSuccess'));
+    // Get the updated user in the same format as /me route
+    const user = await authService.getCurrentUser(req.user.id);
+
+    const response = new ApiResponse(200, { ...user }, t('auth.profile.updateSuccess'));
     res.json(response);
   } catch (error) {
     next(error);
@@ -314,17 +320,93 @@ export const updateUserFavoriteSports = async (
     }
 
     const payload = req.body as UserFavoriteSportsUpdateInput;
-    const updatedUser = await userService.update(req.user.id, {
-      favoriteSports: payload.favoriteSports,
+    
+    // Validate sport IDs exist if provided and convert to ObjectIds
+    let sportObjectIdsForStorage: string[] = [];
+    
+    if (payload.favoriteSports && payload.favoriteSports.length > 0) {
+      const { SportModel } = await import('../models/sport.model');
+      const { Types } = await import('mongoose');
+      
+      // Separate ObjectIds and custom_ids
+      const objectIdArray: string[] = [];
+      const customIdArray: string[] = [];
+      
+      payload.favoriteSports.forEach((id) => {
+        if (Types.ObjectId.isValid(id)) {
+          objectIdArray.push(id);
+        } else {
+          customIdArray.push(id);
+        }
+      });
+
+      // Build query to find sports by both _id and custom_id
+      const query: any = {
+        is_active: true,
+        $or: [],
+      };
+
+      if (objectIdArray.length > 0) {
+        query.$or.push({ _id: { $in: objectIdArray.map((id) => new Types.ObjectId(id)) } });
+      }
+
+      if (customIdArray.length > 0) {
+        query.$or.push({ custom_id: { $in: customIdArray } });
+      }
+
+      // Check if all sports exist and are active
+      const existingSports = await SportModel.find(query)
+        .select('_id custom_id')
+        .lean();
+
+      // Create maps for lookup
+      const sportByIdMap = new Map<string, string>(); // input ID -> MongoDB _id
+      const sportByCustomIdMap = new Map<string, string>(); // custom_id -> MongoDB _id
+
+      existingSports.forEach((sport: any) => {
+        const mongoId = sport._id.toString();
+        if (sport.custom_id) {
+          sportByCustomIdMap.set(sport.custom_id, mongoId);
+        }
+        sportByIdMap.set(mongoId, mongoId);
+      });
+
+      // Find missing sport IDs and collect valid ObjectIds for storage
+      const missingSportIds: string[] = [];
+      
+      payload.favoriteSports.forEach((id) => {
+        let mongoId: string | undefined;
+        
+        if (Types.ObjectId.isValid(id)) {
+          // Check if ObjectId exists
+          mongoId = sportByIdMap.get(id);
+        } else {
+          // Check if custom_id exists
+          mongoId = sportByCustomIdMap.get(id);
+        }
+
+        if (mongoId) {
+          sportObjectIdsForStorage.push(mongoId);
+        } else {
+          missingSportIds.push(id);
+        }
+      });
+
+      if (missingSportIds.length > 0) {
+        throw new ApiError(404, `Sport(s) not found or inactive: ${missingSportIds.join(', ')}`);
+      }
+    }
+
+    await userService.update(req.user.id, {
+      favoriteSports: sportObjectIdsForStorage,
     });
 
-    if (!updatedUser) {
-      throw new ApiError(404, t('auth.profile.notFound'));
-    }
+    // Get the updated user in the same format as /me route
+    const user = await authService.getCurrentUser(req.user.id);
 
     const response = new ApiResponse(
       200,
-      { user: updatedUser },
+      { ...user },
       'Favorite sports updated successfully'
     );
     res.json(response);

@@ -1536,33 +1536,6 @@
             "description": "Update participant. Requires authentication."
           },
           "response": []
-        },
-        {
-          "name": "Delete Participant",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/user/participant/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["user", "participant", ":id"],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": "507f1f77bcf86cd799439011",
-                  "description": "Participant ID"
-                }
-              ]
-            },
-            "description": "Delete participant (soft delete). Requires authentication."
-          },
-          "response": []
         }
       ],
       "description": "Participant management endpoints for users"

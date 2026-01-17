@@ -29,7 +29,6 @@
 | `GET /user/participant/my/list` | `GET /user/participant/my/list` (participant.routes.ts:167) | ✅ Match - Protected (authenticate) |
 | `GET /user/participant/:id` | `GET /user/participant/:id` (participant.routes.ts:213) | ✅ Match - Protected (authenticate) |
 | `PATCH /user/participant/:id` | `PATCH /user/participant/:id` (participant.routes.ts:302) | ✅ Match - Protected (authenticate) |
-| `DELETE /user/participant/:id` | `DELETE /user/participant/:id` (participant.routes.ts:348) | ✅ Match - Protected (authenticate) |
 
 **Note:** All participant routes require authentication. Users can only manage their own participants.
 
@@ -64,12 +63,12 @@
 
 ### Routes Count
 - **User Authentication:** 12 routes (5 public, 7 protected)
-- **Participants:** 5 routes (all protected)
+- **Participants:** 4 routes (all protected)
 - **Bookings:** 9 routes (all protected)
 - **User Notifications:** 6 routes (all protected)
 
-**Total User Protected Routes Checked:** 32  
-**Routes Matching:** 32 ✅  
+**Total User Protected Routes Checked:** 31  
+**Routes Matching:** 31 ✅  
 **Routes Missing:** 0  
 **Routes Extra in Codebase:** 0  
 

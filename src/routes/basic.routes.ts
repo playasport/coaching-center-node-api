@@ -10,7 +10,7 @@ const router = Router();
  *   get:
  *     summary: Get all active sports
  *     tags: [Basic]
- *     description: Retrieve a list of all active sports with name, logo, is_popular, and custom_id
+ *     description: Retrieve a list of all active sports with id, name, logo, and is_popular
  *     responses:
  *       200:
  *         description: List of sports retrieved successfully

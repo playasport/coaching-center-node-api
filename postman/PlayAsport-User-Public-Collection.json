@@ -582,33 +582,6 @@
             "description": "Update participant details. All fields are optional. Users can only update their own participants. Supports profile photo upload. Requires authentication."
           },
           "response": []
-        },
-        {
-          "name": "Delete Participant",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/user/participant/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["user", "participant", ":id"],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": "{{participantId}}",
-                  "description": "Participant ID"
-                }
-              ]
-            },
-            "description": "Delete participant (soft delete). Users can only delete their own participants. Requires authentication."
-          },
-          "response": []
         }
       ],
       "description": "Participant management endpoints for users. Requires USER role authentication."
@@ -1309,7 +1282,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["sports"]
             },
-            "description": "Get all active sports with name, logo, is_popular, and custom_id. This is a public endpoint."
+            "description": "Get all active sports with id, name, logo, and is_popular. This is a public endpoint."
           },
           "response": []
         },

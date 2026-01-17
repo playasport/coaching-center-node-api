@@ -33,6 +33,44 @@ const calculateAge = (dob: Date): number => {
   return age;
 };
 
+/**
+ * Helper function to clean address object - removes internal fields
+ */
+const cleanAddressObject = (address: any): any => {
+  if (address && typeof address === 'object') {
+    const { isDeleted, createdAt, updatedAt, ...cleanAddress } = address;
+    return cleanAddress;
+  }
+  return address;
+};
+
+/**
+ * Helper function to clean participant object - removes internal fields from address and participant
+ */
+const cleanParticipantObject = (participant: any): any => {
+  if (!participant) return participant;
+  
+  const { deletedAt, is_deleted, userId, _id, ...cleaned } = { ...participant };
+  
+  // Transform _id to id (only if id doesn't already exist)
+  const participantId = cleaned.id || (_id ? (typeof _id === 'string' ? _id : _id.toString()) : undefined);
+  
+  // Clean address if present
+  if (cleaned.address) {
+    cleaned.address = cleanAddressObject(cleaned.address);
+  }
+  
+  // Return object with id first
+  if (participantId) {
+    return {
+      id: participantId,
+      ...cleaned,
+    };
+  }
+  
+  return cleaned;
+};
+
 export const createParticipant = async (
   data: ParticipantCreateInput,
   userId: string,
@@ -106,24 +144,46 @@ export const createParticipant = async (
     // Process address - ensure it has required fields or set to null
     // Address model requires: line2, city, state, country, pincode
     let processedAddress: any = null;
-    if (data.address && typeof data.address === 'object') {
+    
+    // Handle case where address might still be a JSON string (defensive check)
+    let addressObj: any = data.address;
+    // Type guard: check if address is a string (defensive check for multipart/form-data)
+    if (data.address && typeof data.address === 'string') {
+      const addressString = (data.address as unknown as string).trim();
+      if (addressString.length > 0) {
+        try {
+          addressObj = JSON.parse(addressString);
+        } catch (parseError) {
+          logger.warn('Failed to parse address JSON string in createParticipant', {
+            userId,
+            addressString: addressString.substring(0, 200),
+            error: parseError,
+          });
+          addressObj = null;
+        }
+      }
+    }
+    
+    if (addressObj && typeof addressObj === 'object') {
       // Extract and trim address fields
-      const line2 = data.address.line2 ? String(data.address.line2).trim() : '';
-      const city = data.address.city ? String(data.address.city).trim() : '';
-      const state = data.address.state ? String(data.address.state).trim() : '';
-      const pincode = data.address.pincode ? String(data.address.pincode).trim() : '';
-      const country = data.address.country ? String(data.address.country).trim() : 'India';
+      const line1 = addressObj.line1 ? String(addressObj.line1).trim() : null;
+      const line2 = addressObj.line2 ? String(addressObj.line2).trim() : (line1 || ''); // Use line1 as fallback for line2
+      const city = addressObj.city ? String(addressObj.city).trim() : '';
+      const state = addressObj.state ? String(addressObj.state).trim() : '';
+      const country = addressObj.country ? String(addressObj.country).trim() : 'India';
+      const pincode = addressObj.pincode ? String(addressObj.pincode).trim() : '';
       
-      // Only set address if all required fields are present and non-empty
-      if (line2 && city && state && pincode) {
+      // Only set address if city and state are present (minimum required for a valid address)
+      // Provide defaults for other required fields if missing
+      if (city && state) {
         processedAddress = {
-          line1: data.address.line1 ? String(data.address.line1).trim() : null,
-          line2: line2,
-          area: data.address.area ? String(data.address.area).trim() : null,
+          line1: line1,
+          line2: line2 || (line1 || ''), // Use line1 if line2 is empty, or empty string as fallback
+          area: addressObj.area ? String(addressObj.area).trim() : null,
           city: city,
           state: state,
           country: country,
-          pincode: pincode,
+          pincode: pincode || '', // Allow empty pincode if not provided
         };
       }
     }
@@ -145,29 +205,16 @@ export const createParticipant = async (
     // Create participant
     const participant = new ParticipantModel(participantData);
     
-    // Fetch user details in parallel with save (independent operations)
-    const { UserModel } = await import('../../models/user.model');
-    const [savedParticipant, user] = await Promise.all([
-      participant.save(),
-      UserModel.findById(userObjectId)
-        .select('id firstName lastName email')
-        .lean(),
-    ]);
+    // Save participant
+    const savedParticipant = await participant.save();
 
     logger.info(`Participant created: ${savedParticipant._id} by user: ${userId}`);
 
     // Build response directly without additional query
-    const participantResponse: any = {
-      ...savedParticipant.toObject(),
-      userId: user ? {
-        id: user.id || user._id?.toString(),
-        firstName: user.firstName || null,
-        lastName: user.lastName || null,
-        email: user.email || null,
-      } : userObjectId,
-    };
+    const participantObj = savedParticipant.toObject();
+    const cleanedParticipant = cleanParticipantObject(participantObj);
 
-    return participantResponse as Participant;
+    return cleanedParticipant as Participant;
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
@@ -208,7 +255,7 @@ export const getParticipantById = async (
       .populate('userId', 'id firstName lastName email')
       .lean();
 
-    return participant;
+    return cleanParticipantObject(participant);
   } catch (error) {
     logger.error('Failed to fetch participant:', error);
     throw new ApiError(500, t('participant.get.failed'));
@@ -254,6 +301,9 @@ export const getParticipantsByUser = async (
       .limit(pageSize)
       .lean();
 
+    // Clean address objects in participants list
+    const cleanedParticipants = participants.map(participant => cleanParticipantObject(participant));
+
     // Calculate total pages
     const totalPages = Math.ceil(total / pageSize);
 
@@ -266,7 +316,7 @@ export const getParticipantsByUser = async (
     });
 
     return {
-      data: participants,
+      data: cleanedParticipants,
       pagination: {
         page: pageNumber,
         limit: pageSize,
@@ -452,7 +502,7 @@ export const updateParticipant = async (
 
     logger.info(`Participant updated: ${id} by user: ${userId}`);
 
-    return updatedParticipant;
+    return cleanParticipantObject(updatedParticipant);
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;

@@ -48,16 +48,33 @@ export const participantCreateSchema = z.object({
       .preprocess(
         (val) => {
           // Handle multipart/form-data: if address is sent as JSON string, parse it
-          if (typeof val === 'string' && val.trim().length > 0) {
+          if (typeof val === 'string') {
+            const trimmed = val.trim();
+            // If empty string, return null
+            if (trimmed.length === 0) {
+              return null;
+            }
+            // Try to parse as JSON
             try {
-              return JSON.parse(val);
-            } catch {
-              // If parsing fails, return the string (will fail validation, which is expected)
+              const parsed = JSON.parse(trimmed);
+              // If parsed result is null or undefined, return as is
+              if (parsed === null || parsed === undefined) {
+                return parsed;
+              }
+              // Ensure parsed result is an object
+              if (typeof parsed === 'object') {
+                return parsed;
+              }
+              // If not an object after parsing, return original (will fail validation)
+              return val;
+            } catch (error) {
+              // If parsing fails and it's not a JSON string, return the string as is
+              // This allows for future validation to provide a better error message
               return val;
             }
           }
           // If it's already an object or null/undefined, return as is
-          return val;
+          return val === undefined ? undefined : val;
         },
         participantAddressSchema.optional().nullable()
       ),
@@ -101,16 +118,33 @@ export const participantUpdateSchema = z.object({
       .preprocess(
         (val) => {
           // Handle multipart/form-data: if address is sent as JSON string, parse it
-          if (typeof val === 'string' && val.trim().length > 0) {
+          if (typeof val === 'string') {
+            const trimmed = val.trim();
+            // If empty string, return null
+            if (trimmed.length === 0) {
+              return null;
+            }
+            // Try to parse as JSON
             try {
-              return JSON.parse(val);
-            } catch {
-              // If parsing fails, return the string (will fail validation, which is expected)
+              const parsed = JSON.parse(trimmed);
+              // If parsed result is null or undefined, return as is
+              if (parsed === null || parsed === undefined) {
+                return parsed;
+              }
+              // Ensure parsed result is an object
+              if (typeof parsed === 'object') {
+                return parsed;
+              }
+              // If not an object after parsing, return original (will fail validation)
+              return val;
+            } catch (error) {
+              // If parsing fails and it's not a JSON string, return the string as is
+              // This allows for future validation to provide a better error message
               return val;
             }
           }
           // If it's already an object or null/undefined, return as is
-          return val;
+          return val === undefined ? undefined : val;
         },
         participantAddressSchema.optional().nullable()
       ),

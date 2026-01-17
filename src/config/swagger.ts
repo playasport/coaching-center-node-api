@@ -1210,16 +1210,11 @@ const options: swaggerJsdoc.Options = {
         SportListItem: {
           type: 'object',
           properties: {
-            _id: {
-              type: 'string',
-              example: '507f1f77bcf86cd799439011',
-              description: 'MongoDB Object ID',
-            },
-            custom_id: {
+            id: {
               type: 'string',
               format: 'uuid',
               example: '06da21af-f11c-4cd9-8ecc-b21d3de9ad2c',
-              description: 'Unique identifier for the sport',
+              description: 'Unique identifier for the sport (custom_id)',
             },
             name: {
               type: 'string',
@@ -3446,15 +3441,10 @@ const options: swaggerJsdoc.Options = {
         AcademyListItem: {
           type: 'object',
           properties: {
-            _id: {
+            id: {
               type: 'string',
-              example: '507f1f77bcf86cd799439011',
-            },
-            custom_id: {
-              type: 'string',
-              nullable: true,
               example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
-              description: "User's custom ID (academy owner's user ID)",
+              description: 'CoachingCenter UUID identifier',
             },
             center_name: {
               type: 'string',
@@ -3520,19 +3510,6 @@ const options: swaggerJsdoc.Options = {
               type: 'array',
               items: {
                 $ref: '#/components/schemas/SportListItem',
-              },
-            },
-            age: {
-              type: 'object',
-              properties: {
-                min: {
-                  type: 'number',
-                  example: 5,
-                },
-                max: {
-                  type: 'number',
-                  example: 18,
-                },
               },
             },
             allowed_genders: {
