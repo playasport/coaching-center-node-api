@@ -4,6 +4,10 @@ import { Gender } from '../enums/gender.enum';
 
 export type RegistrationMethod = 'email' | 'mobile' | 'google' | 'facebook' | 'apple' | 'instagram';
 
+export interface AcademyDetails {
+  name: string;
+}
+
 export interface User {
   id: string;
   firstName: string;
@@ -20,6 +24,7 @@ export interface User {
   registrationMethod?: RegistrationMethod | null; // How the user registered (email, mobile, google, facebook, apple, instagram)
   favoriteSports?: Types.ObjectId[]; // Array of Sport references for user preferences
   address?: Address | null;
+  academyDetails?: AcademyDetails | null;
   isDeleted: boolean;
   deletedAt?: Date | null;
   createdAt: Date;
@@ -65,6 +70,12 @@ const userSchema = new Schema<User>(
       index: true,
     },
     address: { type: addressSchema, default: null },
+    academyDetails: {
+      type: {
+        name: { type: String, trim: true },
+      },
+      default: null,
+    },
     isDeleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date, default: null },
   },
