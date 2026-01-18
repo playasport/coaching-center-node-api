@@ -132,9 +132,27 @@ export const deviceTokenService = {
 
   /**
    * Get all active device tokens for a user
+   * Supports both MongoDB ObjectId and custom UUID string
    */
   async getUserDeviceTokens(userId: string | Types.ObjectId): Promise<any[]> {
-    const userIdObj = typeof userId === 'string' ? new Types.ObjectId(userId) : userId;
+    let userIdObj: Types.ObjectId;
+    
+    if (userId instanceof Types.ObjectId) {
+      userIdObj = userId;
+    } else if (Types.ObjectId.isValid(userId) && userId.length === 24) {
+      // Valid MongoDB ObjectId string (24 hex characters)
+      userIdObj = new Types.ObjectId(userId);
+    } else {
+      // Custom UUID string - need to look up user's ObjectId
+      const { getUserObjectId } = await import('../../utils/userCache');
+      const objectId = await getUserObjectId(userId);
+      if (!objectId) {
+        logger.warn('User not found for getUserDeviceTokens', { userId });
+        return [];
+      }
+      userIdObj = objectId;
+    }
+    
     const tokens = await DeviceTokenModel.find({
       userId: userIdObj,
       isActive: true,
@@ -145,13 +163,31 @@ export const deviceTokenService = {
 
   /**
    * Deactivate a device token (mark as inactive)
+   * Supports both MongoDB ObjectId and custom UUID string
    */
   async deactivateDeviceToken(
     userId: string | Types.ObjectId,
     deviceId?: string,
     fcmToken?: string
   ): Promise<void> {
-    const userIdObj = typeof userId === 'string' ? new Types.ObjectId(userId) : userId;
+    let userIdObj: Types.ObjectId;
+    
+    if (userId instanceof Types.ObjectId) {
+      userIdObj = userId;
+    } else if (Types.ObjectId.isValid(userId) && userId.length === 24) {
+      // Valid MongoDB ObjectId string
+      userIdObj = new Types.ObjectId(userId);
+    } else {
+      // Custom UUID string - need to look up user's ObjectId
+      const { getUserObjectId } = await import('../../utils/userCache');
+      const objectId = await getUserObjectId(userId);
+      if (!objectId) {
+        logger.warn('User not found for deactivateDeviceToken', { userId });
+        return;
+      }
+      userIdObj = objectId;
+    }
+    
     const query: any = { userId: userIdObj, isActive: true };
 
     if (deviceId) {
@@ -252,13 +288,31 @@ export const deviceTokenService = {
 
   /**
    * Revoke refresh token for a specific device
+   * Supports both MongoDB ObjectId and custom UUID string
    */
   async revokeDeviceRefreshToken(
     userId: string | Types.ObjectId,
     deviceId?: string,
     refreshToken?: string
   ): Promise<void> {
-    const userIdObj = typeof userId === 'string' ? new Types.ObjectId(userId) : userId;
+    let userIdObj: Types.ObjectId;
+    
+    if (userId instanceof Types.ObjectId) {
+      userIdObj = userId;
+    } else if (Types.ObjectId.isValid(userId) && userId.length === 24) {
+      // Valid MongoDB ObjectId string
+      userIdObj = new Types.ObjectId(userId);
+    } else {
+      // Custom UUID string - need to look up user's ObjectId
+      const { getUserObjectId } = await import('../../utils/userCache');
+      const objectId = await getUserObjectId(userId);
+      if (!objectId) {
+        logger.warn('User not found for revokeDeviceRefreshToken', { userId });
+        return;
+      }
+      userIdObj = objectId;
+    }
+    
     const query: any = { userId: userIdObj, isActive: true };
 
     if (deviceId) {

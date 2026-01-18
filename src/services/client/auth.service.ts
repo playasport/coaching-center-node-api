@@ -37,6 +37,7 @@ import { uploadFileToS3, deleteFileFromS3 } from '../common/s3.service';
 import { User } from '../../models/user.model';
 import { deviceTokenService } from '../common/deviceToken.service';
 import { DeviceType } from '../../enums/deviceType.enum';
+import { getUserObjectId } from '../../utils/userCache';
 import jwt from 'jsonwebtoken';
 
 // Helper function to get role name from roles array
@@ -98,8 +99,19 @@ const generateTokensAndStoreDeviceToken = async (
         ? new Date(decoded.exp * 1000) 
         : null;
 
+      // Get user's ObjectId (_id) for device token storage
+      // user.id is a UUID string, but DeviceToken needs ObjectId
+      const userObjectId = await getUserObjectId(user.id);
+      if (!userObjectId) {
+        logger.error('Failed to get user ObjectId for device token storage', {
+          userId: user.id,
+        });
+        // Don't throw - device token storage should not block login
+        return { accessToken, refreshToken };
+      }
+
       await deviceTokenService.registerOrUpdateDeviceToken({
-        userId: user.id,
+        userId: userObjectId,
         fcmToken: deviceData.fcmToken,
         deviceType: deviceData.deviceType as DeviceType,
         deviceId: deviceData.deviceId ?? null,
@@ -109,10 +121,11 @@ const generateTokensAndStoreDeviceToken = async (
         refreshTokenExpiresAt,
       });
     } catch (error) {
-      // Don't fail if device token storage fails
+      // Don't fail if device token storage fails, but log the error
       logger.error('Failed to store refresh token in device token', {
         error: error instanceof Error ? error.message : error,
         userId: user.id,
+        deviceType: deviceData.deviceType,
       });
     }
   }

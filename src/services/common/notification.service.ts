@@ -38,6 +38,7 @@ export interface PaginatedNotificationsResult {
 
 /**
  * Get recipient ObjectId based on recipient type and custom ID
+ * Supports both MongoDB ObjectId and custom UUID string
  */
 const getRecipientObjectId = async (
   recipientType: NotificationRecipientType,
@@ -45,6 +46,18 @@ const getRecipientObjectId = async (
 ): Promise<Types.ObjectId | null> => {
   try {
     if (recipientType === 'user') {
+      // Check if recipientId is a valid MongoDB ObjectId (24 hex characters)
+      if (Types.ObjectId.isValid(recipientId) && recipientId.length === 24) {
+        // Try to find user by MongoDB _id first
+        const user = await UserModel.findOne({ _id: new Types.ObjectId(recipientId), isDeleted: false })
+          .select('_id')
+          .lean();
+        if (user) {
+          return user._id as Types.ObjectId;
+        }
+      }
+      
+      // If not found by _id or not a valid ObjectId, treat as custom UUID and use getUserObjectId
       return await getUserObjectId(recipientId);
     } else {
       // For academy, first try to find CoachingCenter by custom ID (UUID)
@@ -56,11 +69,23 @@ const getRecipientObjectId = async (
         return center.user as Types.ObjectId;
       }
       
-      // If not found as CoachingCenter, try to find User by custom ID
-      // (This handles the case where req.user.id is a User ID for academy users)
-      const user = await UserModel.findOne({ id: recipientId, isDeleted: false })
-        .select('_id')
-        .lean();
+      // If not found as CoachingCenter, try to find User by custom ID or ObjectId
+      let user = null;
+      
+      // Check if recipientId is a valid MongoDB ObjectId
+      if (Types.ObjectId.isValid(recipientId) && recipientId.length === 24) {
+        // Try to find user by MongoDB _id
+        user = await UserModel.findOne({ _id: new Types.ObjectId(recipientId), isDeleted: false })
+          .select('_id')
+          .lean();
+      }
+      
+      // If not found by _id, try custom UUID
+      if (!user) {
+        user = await UserModel.findOne({ id: recipientId, isDeleted: false })
+          .select('_id')
+          .lean();
+      }
       
       if (user) {
         // Verify that this user owns at least one academy

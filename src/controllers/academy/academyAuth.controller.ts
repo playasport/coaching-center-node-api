@@ -250,9 +250,14 @@ export const verifyAcademyOtp = async (
       mobile: string;
       otp: string;
       mode?: 'login' | 'register' | 'profile_update' | 'forgot_password';
+      fcmToken?: string;
+      deviceType?: 'web' | 'android' | 'ios';
+      deviceId?: string;
+      deviceName?: string;
+      appVersion?: string;
     };
 
-    const result = await academyAuthService.verifyAcademyOtp({ mobile, otp, mode });
+    const result = await academyAuthService.verifyAcademyOtp({ mobile, otp, mode, ...req.body });
 
     if (result.user && result.accessToken && result.refreshToken) {
       // Login mode - return tokens
