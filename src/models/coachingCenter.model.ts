@@ -479,6 +479,7 @@ coachingCenterSchema.index({ facility: 1 });
 coachingCenterSchema.index({ status: 1 });
 coachingCenterSchema.index({ is_active: 1, is_deleted: 1 });
 coachingCenterSchema.index({ status: 1, is_active: 1, is_deleted: 1 });
+coachingCenterSchema.index({ status: 1, is_active: 1, approval_status: 1, is_deleted: 1 }); // Compound index for getAllAcademies query
 coachingCenterSchema.index({ user: 1, is_deleted: 1 });
 coachingCenterSchema.index({ user: 1, status: 1, is_deleted: 1 });
 

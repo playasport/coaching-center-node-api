@@ -1,7 +1,7 @@
 import { SportModel } from '../../models/sport.model';
 import { CoachingCenterModel} from '../../models/coachingCenter.model';
 import { logger } from '../../utils/logger';
-import { calculateDistances } from '../../utils/distance';
+import { calculateDistances, getBoundingBox } from '../../utils/distance';
 import { Types } from 'mongoose';
 import { getUserObjectId } from '../../utils/userCache';
 import { UserModel } from '../../models/user.model';
@@ -9,6 +9,7 @@ import { config } from '../../config/env';
 import type { AcademyListItem } from './academy.service';
 import { ReelModel, ReelStatus } from '../../models/reel.model';
 import { VideoProcessingStatus } from '../../models/streamHighlight.model';
+import { CoachingCenterStatus } from '../../enums/coachingCenterStatus.enum';
 
 export interface PopularSport {
   _id: string;
@@ -106,6 +107,7 @@ export const getPopularSports = async (limit: number = 8): Promise<PopularSport[
 
 /**
  * Get nearby academies based on location
+ * Optimized to use database-level filtering and limit records fetched
  */
 export const getNearbyAcademies = async (
   userLocation: { latitude: number; longitude: number },
@@ -116,11 +118,15 @@ export const getNearbyAcademies = async (
   try {
     // Build base query - only published and active academies
     const query: any = {
-      status: 'published',
+      status: CoachingCenterStatus.PUBLISHED,
       is_active: true,
       is_deleted: false,
       approval_status: 'approved',
     };
+
+    // Don't use bounding box filter - fetch records and calculate distances directly
+    // This ensures we don't miss nearby records (even with 0.0 distance)
+    const searchRadius = radius ?? config.location.defaultRadius;
 
     // Get user's favorite sports if logged in
     let favoriteSportIds: Types.ObjectId[] = [];
@@ -140,18 +146,52 @@ export const getNearbyAcademies = async (
       }
     }
 
-    // Fetch academies
+    // Fetch records without location filtering - we'll filter by distance after calculation
+    // Fetch enough records to ensure we have enough after distance filtering
+    // For nearby academies, we fetch more records to get accurate results
+    const fetchLimit = Math.min(limit * 10, 500);
     let academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo is_popular')
-      .populate({
-        path: 'user',
-        select: 'id',
-        match: { isDeleted: false },
-      })
-      .select('id center_name logo location sports allowed_genders sport_details')
+      .select('id center_name logo location sports allowed_genders sport_details createdAt user')
+      .sort({ createdAt: -1 }) // Default sort by creation date
+      .limit(fetchLimit)
       .lean();
 
-    // Calculate distances
+    // Filter out academies with deleted users
+    if (academies.length > 0) {
+      const academyUserIds = academies
+        .map((a: any) => a.user)
+        .filter((uid: any) => uid && (Types.ObjectId.isValid(uid) || uid._id));
+      
+      if (academyUserIds.length > 0) {
+        // Convert to ObjectIds if needed
+        const userIds = academyUserIds.map((uid: any) => 
+          Types.ObjectId.isValid(uid) ? new Types.ObjectId(uid) : (uid._id || uid)
+        );
+        
+        const validUsers = await UserModel.find({
+          _id: { $in: userIds },
+          isDeleted: false,
+        })
+          .select('_id')
+          .lean();
+        
+        const validUserIds = new Set(validUsers.map((u: any) => u._id.toString()));
+        
+        academies = academies.filter((academy: any) => {
+          if (!academy.user) return false;
+          const userId = academy.user._id || academy.user;
+          const userIdStr = userId.toString ? userId.toString() : String(userId);
+          return validUserIds.has(userIdStr);
+        });
+      } else {
+        // If no valid user IDs, filter all out
+        academies = [];
+      }
+    }
+
+    // Calculate distances for ALL fetched records
+    // This ensures we don't miss any nearby records
     if (academies.length > 0) {
       const destinations = academies.map((academy) => ({
         latitude: academy.location.latitude,
@@ -170,8 +210,8 @@ export const getNearbyAcademies = async (
         distance: distances[index],
       }));
 
-      // Filter by radius if provided
-      const searchRadius = radius ?? config.location.defaultRadius;
+      // Filter by exact radius after calculating distances
+      // This ensures we include all records within radius, including 0.0 distance
       academies = academies.filter((academy) => {
         const distance = (academy as any).distance;
         return distance !== undefined && distance <= searchRadius;

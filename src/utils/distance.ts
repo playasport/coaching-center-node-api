@@ -75,6 +75,43 @@ export const calculateHaversineDistance = (
 };
 
 /**
+ * Calculate bounding box for approximate radius filtering
+ * Returns {minLat, maxLat, minLon, maxLon}
+ * 
+ * This creates a rectangular bounding box around a point to pre-filter
+ * locations before calculating exact distances. The bounding box includes
+ * a buffer factor to ensure we don't miss nearby records that are just
+ * outside the circular radius but inside the rectangular box.
+ * 
+ * @param latitude - Center point latitude
+ * @param longitude - Center point longitude
+ * @param radiusKm - Search radius in kilometers
+ * @param bufferFactor - Multiplier for bounding box size (default: 1.414 for diagonal coverage)
+ * @returns Bounding box coordinates
+ */
+export const getBoundingBox = (
+  latitude: number,
+  longitude: number,
+  radiusKm: number,
+  bufferFactor: number = 1.5 // 1.5x buffer to ensure we don't miss nearby records
+): { minLat: number; maxLat: number; minLon: number; maxLon: number } => {
+  // Earth's radius in kilometers
+  const R = 6371;
+  // Apply buffer factor to ensure we don't miss records at the edges
+  const adjustedRadius = radiusKm * bufferFactor;
+  // Convert radius to degrees (approximate)
+  const latDelta = adjustedRadius / R * (180 / Math.PI);
+  const lonDelta = adjustedRadius / (R * Math.cos(latitude * Math.PI / 180)) * (180 / Math.PI);
+  
+  return {
+    minLat: latitude - latDelta,
+    maxLat: latitude + latDelta,
+    minLon: longitude - lonDelta,
+    maxLon: longitude + lonDelta,
+  };
+};
+
+/**
  * Generate cache key for distance calculation
  */
 const getCacheKey = (lat1: number, lon1: number, lat2: number, lon2: number): string => {

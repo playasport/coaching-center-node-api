@@ -348,14 +348,45 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
       }
     }
 
-    // Use the auth service refreshToken function to get new tokens
-    const result = await authService.refreshToken(token);
+    // Generate new token pair for admin user
+    // Get user email (we already have roles from previous query)
+    const userWithEmail = await AdminUserModel.findOne({ id: decoded.id })
+      .select('email')
+      .lean();
+
+    if (!userWithEmail) {
+      throw new ApiError(401, t('auth.token.invalidToken'));
+    }
+
+    // Determine role name (use first admin role found from existing userRoles)
+    const adminRole = userRoles.find((r: any) => adminRoles.includes(r?.name));
+    const roleName = adminRole?.name || DefaultRoles.ADMIN;
+
+    // Get device type from decoded token (default to web for admin)
+    const deviceType = (decoded.deviceType as 'web' | 'android' | 'ios') || 'web';
+
+    // Generate new token pair
+    const { accessToken, refreshToken: newRefreshToken } = generateTokenPair(
+      {
+        id: userWithEmail.id || decoded.id,
+        email: userWithEmail.email,
+        role: roleName,
+        deviceId: decoded.deviceId,
+        deviceType,
+      },
+      deviceType,
+      decoded.deviceId
+    );
+
+    // Blacklist old refresh token
+    const { blacklistToken } = await import('../../utils/tokenBlacklist');
+    await blacklistToken(token);
 
     const response = new ApiResponse(
       200,
       {
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
+        accessToken,
+        refreshToken: newRefreshToken,
       },
       t('auth.token.refreshed')
     );
