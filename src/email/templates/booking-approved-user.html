@@ -3,123 +3,161 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Booking Approved - PlayAsport</title>
+    <title>Booking Approved - Play A Sport</title>
     <style>
       body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background-color: #f5f7fa;
         margin: 0;
         padding: 0;
+        line-height: 1.6;
       }
-
-      .wrapper {
+      .email-wrapper {
         width: 100%;
-        padding: 20px 0;
+        padding: 40px 20px;
       }
-
-      .container {
+      .email-container {
         max-width: 600px;
         margin: 0 auto;
         background-color: #ffffff;
-        border-radius: 8px;
+        border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 4px 12px rgba(10, 37, 64, 0.1);
       }
-
       .header {
-        background-color: #28a745;
-        color: #ffffff;
+        background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        padding: 40px 30px;
         text-align: center;
-        padding: 30px 20px;
       }
-
-      .header h1 {
-        margin: 0;
+      .logo-container {
+        margin-bottom: 20px;
+      }
+      .header-title {
+        color: #ffffff;
         font-size: 28px;
+        font-weight: 600;
+        margin: 0;
+        letter-spacing: 0.5px;
       }
-
       .content {
-        padding: 30px;
+        padding: 40px 30px;
         color: #333333;
-        line-height: 1.6;
       }
-
-      .content h2 {
-        color: #28a745;
-        margin-top: 0;
+      .greeting {
+        font-size: 16px;
+        color: #333333;
+        margin-bottom: 20px;
       }
-
-      .info-box {
-        background-color: #d4edda;
-        border-left: 4px solid #28a745;
-        padding: 15px;
-        margin: 20px 0;
-        border-radius: 4px;
+      .message {
+        font-size: 15px;
+        color: #555555;
+        margin-bottom: 30px;
       }
-
-      .info-box p {
-        margin: 5px 0;
-      }
-
       .booking-details {
-        background-color: #f9f9f9;
-        padding: 20px;
-        margin: 20px 0;
-        border-radius: 4px;
+        background: linear-gradient(135deg, #F0F4FF 0%, #E8F0FF 100%);
+        border: 1px solid #0A2540;
+        border-radius: 8px;
+        padding: 25px;
+        margin: 25px 0;
       }
-
       .booking-details h3 {
-        color: #1f3c88;
+        color: #0A2540;
+        font-size: 20px;
         margin-top: 0;
+        margin-bottom: 20px;
+        font-weight: 600;
       }
-
       .detail-row {
         display: flex;
         justify-content: space-between;
-        padding: 8px 0;
+        padding: 12px 0;
         border-bottom: 1px solid #e0e0e0;
       }
-
       .detail-row:last-child {
         border-bottom: none;
       }
-
       .detail-label {
-        font-weight: bold;
-        color: #666;
+        font-weight: 600;
+        color: #0A2540;
+        min-width: 140px;
       }
-
       .detail-value {
-        color: #333;
+        color: #333333;
+        text-align: right;
+        flex: 1;
       }
-
-      .action-box {
-        background-color: #28a745;
-        color: #ffffff;
-        padding: 15px;
-        margin: 20px 0;
-        border-radius: 4px;
-        text-align: center;
-      }
-
-      .footer {
+      .info-box {
+        background-color: #E8F5E9;
+        border-left: 4px solid #4CAF50;
         padding: 20px;
+        margin: 25px 0;
+        border-radius: 8px;
+      }
+      .info-box h4 {
+        color: #0A2540;
+        font-size: 16px;
+        margin-top: 0;
+        margin-bottom: 12px;
+      }
+      .info-box p {
+        margin: 8px 0;
+        font-size: 14px;
+        color: #555555;
+      }
+      .action-box {
+        background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
+        color: #ffffff;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 8px;
         text-align: center;
-        font-size: 12px;
-        color: #777777;
-        background-color: #f9f9f9;
+      }
+      .action-box p {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .footer {
+        background-color: #f8f9fa;
+        padding: 30px;
+        text-align: center;
+        border-top: 1px solid #e9ecef;
+      }
+      .footer-text {
+        font-size: 13px;
+        color: #666666;
+        margin: 5px 0;
+      }
+      .footer-link {
+        color: #0A2540;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .footer-link:hover {
+        color: #FF6B35;
+      }
+      .signature {
+        margin-top: 30px;
+        color: #333333;
+        font-size: 15px;
+      }
+      .signature strong {
+        color: #0A2540;
       }
     </style>
   </head>
   <body>
-    <div class="wrapper">
-      <div class="container">
+    <div class="email-wrapper">
+      <div class="email-container">
         <div class="header">
-          <h1>Booking Approved! ✅</h1>
+          <div class="logo-container">
+            {{logoImage}}
+          </div>
+          <h1 class="header-title">Booking Approved</h1>
         </div>
         <div class="content">
-          <p>Dear {{userName}},</p>
-          <p>
+          <p class="greeting">Dear {{userName}},</p>
+          <p class="message">
             Great news! Your booking request has been approved by the academy. You can now proceed with payment to confirm your booking.
           </p>
 
@@ -140,19 +178,24 @@
           </div>
 
           <div class="info-box">
-            <p><strong>Next Steps</strong></p>
+            <h4>Next Steps</h4>
             <p>Please complete the payment to confirm your booking. Once payment is successful, your booking will be confirmed and you will receive a confirmation email with all the details.</p>
           </div>
 
           <div class="action-box">
-            <p style="margin: 0; font-weight: bold;">Please proceed with payment to confirm your booking.</p>
+            <p>Please proceed with payment to confirm your booking.</p>
           </div>
 
-          <p>Thank you for choosing PlayAsport!</p>
-          <p>Best regards,<br />The PlayAsport Team</p>
+          <p class="message">Thank you for choosing <strong>Play A Sport</strong>!</p>
+          <div class="signature">
+            <p>Best regards,<br /><strong>The Play A Sport Team</strong></p>
+          </div>
         </div>
         <div class="footer">
-          © {{year}} PlayAsport. All rights reserved.
+          <p class="footer-text">
+            <a href="{{websiteUrl}}" class="footer-link">{{companyName}}</a> | <a href="{{websiteUrl}}" class="footer-link">{{website}}</a>
+          </p>
+          <p class="footer-text">© {{year}} {{companyName}}. All rights reserved.</p>
         </div>
       </div>
     </div>

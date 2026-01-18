@@ -3,87 +3,164 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>One-Time Password</title>
+    <title>Verification Code - Play A Sport</title>
     <style>
       body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background-color: #f5f7fa;
         margin: 0;
         padding: 0;
+        line-height: 1.6;
       }
-
-      .wrapper {
+      .email-wrapper {
         width: 100%;
-        padding: 20px 0;
+        padding: 40px 20px;
       }
-
-      .container {
-        max-width: 480px;
+      .email-container {
+        max-width: 600px;
         margin: 0 auto;
         background-color: #ffffff;
-        border-radius: 8px;
+        border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 4px 12px rgba(10, 37, 64, 0.1);
       }
-
       .header {
-        background-color: #1f3c88;
+        background: linear-gradient(135deg, #0A2540 0%, #1F3C88 100%);
+        padding: 40px 30px;
+        text-align: center;
+      }
+      .logo-container {
+        margin-bottom: 20px;
+      }
+      .header-title {
         color: #ffffff;
-        text-align: center;
-        padding: 18px;
-        font-size: 20px;
-        font-weight: bold;
+        font-size: 24px;
+        font-weight: 600;
+        margin: 0;
+        letter-spacing: 0.5px;
       }
-
       .content {
-        padding: 24px;
+        padding: 40px 30px;
         color: #333333;
-        line-height: 1.5;
       }
-
-      .otp {
-        display: inline-block;
-        padding: 12px 24px;
-        margin: 16px 0;
-        font-size: 28px;
-        letter-spacing: 6px;
-        border-radius: 6px;
-        background-color: #f0f4ff;
-        color: #1f3c88;
-        font-weight: bold;
+      .greeting {
+        font-size: 16px;
+        color: #333333;
+        margin-bottom: 20px;
       }
-
-      .footer {
-        padding: 16px;
+      .message {
+        font-size: 15px;
+        color: #555555;
+        margin-bottom: 30px;
+      }
+      .otp-container {
+        background: linear-gradient(135deg, #FFF5F0 0%, #FFE8E0 100%);
+        border: 2px solid #FF6B35;
+        border-radius: 8px;
+        padding: 25px;
         text-align: center;
-        font-size: 12px;
-        color: #777777;
+        margin: 30px 0;
+      }
+      .otp-label {
+        font-size: 13px;
+        color: #666666;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 12px;
+        font-weight: 600;
+      }
+      .otp-code {
+        font-size: 36px;
+        font-weight: 700;
+        letter-spacing: 8px;
+        color: #FF6B35;
+        font-family: 'Courier New', monospace;
+        margin: 10px 0;
+      }
+      .otp-expiry {
+        font-size: 13px;
+        color: #888888;
+        margin-top: 12px;
+      }
+      .warning-box {
+        background-color: #FFF9E6;
+        border-left: 4px solid #FF6B35;
+        padding: 15px 20px;
+        margin: 25px 0;
+        border-radius: 4px;
+      }
+      .warning-box p {
+        margin: 5px 0;
+        font-size: 14px;
+        color: #666666;
+      }
+      .footer {
+        background-color: #f8f9fa;
+        padding: 30px;
+        text-align: center;
+        border-top: 1px solid #e9ecef;
+      }
+      .footer-text {
+        font-size: 13px;
+        color: #666666;
+        margin: 5px 0;
+      }
+      .footer-link {
+        color: #0A2540;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .footer-link:hover {
+        color: #FF6B35;
+      }
+      .signature {
+        margin-top: 30px;
+        color: #333333;
+        font-size: 15px;
+      }
+      .signature strong {
+        color: #0A2540;
       }
     </style>
   </head>
   <body>
-    <div class="wrapper">
-      <div class="container">
-        <div class="header">PlayAsport Verification</div>
+    <div class="email-wrapper">
+      <div class="email-container">
+        <div class="header">
+          <div class="logo-container">
+            {{logoImage}}
+          </div>
+          <h1 class="header-title">Verification Code</h1>
+        </div>
         <div class="content">
-          <p>Hi {{name}},</p>
-          <p>
-            Use the one-time password (OTP) below to complete your verification process. The OTP
-            expires in <strong>{{expiryMinutes}} minutes</strong>.
+          <p class="greeting">Hi {{name}},</p>
+          <p class="message">
+            Use the verification code below to complete your verification process. This code will expire in <strong>{{expiryMinutes}} minutes</strong>.
           </p>
-          <div class="otp">{{otp}}</div>
-          <p style="margin-top: 24px;">
-            If you did not request this, please ignore this email. For your security, do not share
-            this code with anyone.
-          </p>
-          <p>Thank you,<br />PlayAsport Team</p>
+          
+          <div class="otp-container">
+            <div class="otp-label">Your Verification Code</div>
+            <div class="otp-code">{{otp}}</div>
+            <div class="otp-expiry">Valid for {{expiryMinutes}} minutes</div>
+          </div>
+
+          <div class="warning-box">
+            <p><strong>Security Notice:</strong></p>
+            <p>If you did not request this code, please ignore this email.</p>
+            <p>Never share this code with anyone. Play A Sport will never ask for your verification code.</p>
+          </div>
+
+          <div class="signature">
+            <p>Best regards,<br /><strong>The Play A Sport Team</strong></p>
+          </div>
         </div>
         <div class="footer">
-          © {{year}} PlayAsport. All rights reserved.
+          <p class="footer-text">
+            <a href="{{websiteUrl}}" class="footer-link">{{companyName}}</a> | <a href="{{websiteUrl}}" class="footer-link">{{website}}</a>
+          </p>
+          <p class="footer-text">© {{year}} {{companyName}}. All rights reserved.</p>
         </div>
       </div>
     </div>
   </body>
 </html>
-
-

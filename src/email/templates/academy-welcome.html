@@ -3,95 +3,151 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Welcome to PlayAsport Academy</title>
+    <title>Welcome to Play A Sport Academy</title>
     <style>
       body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background-color: #f5f7fa;
         margin: 0;
         padding: 0;
+        line-height: 1.6;
       }
-
-      .wrapper {
+      .email-wrapper {
         width: 100%;
-        padding: 20px 0;
+        padding: 40px 20px;
       }
-
-      .container {
+      .email-container {
         max-width: 600px;
         margin: 0 auto;
         background-color: #ffffff;
-        border-radius: 8px;
+        border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 4px 12px rgba(10, 37, 64, 0.1);
       }
-
       .header {
-        background-color: #1f3c88;
-        color: #ffffff;
+        background: linear-gradient(135deg, #0A2540 0%, #1F3C88 100%);
+        padding: 40px 30px;
         text-align: center;
-        padding: 30px 20px;
       }
-
-      .header h1 {
-        margin: 0;
-        font-size: 28px;
+      .logo-container {
+        margin-bottom: 20px;
       }
-
-      .content {
-        padding: 30px;
-        color: #333333;
-        line-height: 1.6;
-      }
-
-      .content h2 {
-        color: #1f3c88;
-        margin-top: 0;
-      }
-
-      .info-box {
-        background-color: #f0f4ff;
-        border-left: 4px solid #1f3c88;
-        padding: 15px;
-        margin: 20px 0;
-        border-radius: 4px;
-      }
-
-      .info-box p {
-        margin: 5px 0;
-      }
-
-      .button {
-        display: inline-block;
-        padding: 12px 30px;
-        background-color: #1f3c88;
+      .header-title {
         color: #ffffff;
+        font-size: 28px;
+        font-weight: 600;
+        margin: 0;
+        letter-spacing: 0.5px;
+      }
+      .content {
+        padding: 40px 30px;
+        color: #333333;
+      }
+      .greeting {
+        font-size: 18px;
+        color: #333333;
+        margin-bottom: 20px;
+        font-weight: 600;
+      }
+      .message {
+        font-size: 15px;
+        color: #555555;
+        margin-bottom: 30px;
+      }
+      .info-box {
+        background: linear-gradient(135deg, #F0F4FF 0%, #E8F0FF 100%);
+        border-left: 4px solid #0A2540;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 8px;
+      }
+      .info-box p {
+        margin: 10px 0;
+        font-size: 15px;
+        color: #333333;
+      }
+      .info-box strong {
+        color: #0A2540;
+        font-weight: 600;
+        min-width: 140px;
+        display: inline-block;
+      }
+      .features-section {
+        background-color: #FFF9E6;
+        border-left: 4px solid #FF6B35;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 8px;
+      }
+      .features-section h2 {
+        color: #0A2540;
+        font-size: 20px;
+        margin-top: 0;
+        margin-bottom: 15px;
+      }
+      .features-section ul {
+        margin: 15px 0;
+        padding-left: 25px;
+      }
+      .features-section li {
+        margin: 10px 0;
+        font-size: 14px;
+        color: #555555;
+      }
+      .cta-button {
+        display: inline-block;
+        background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
+        color: #ffffff;
+        padding: 14px 32px;
         text-decoration: none;
         border-radius: 6px;
+        font-weight: 600;
+        font-size: 15px;
         margin: 20px 0;
-        font-weight: bold;
-      }
-
-      .footer {
-        padding: 20px;
         text-align: center;
-        font-size: 12px;
-        color: #777777;
-        background-color: #f9f9f9;
+      }
+      .footer {
+        background-color: #f8f9fa;
+        padding: 30px;
+        text-align: center;
+        border-top: 1px solid #e9ecef;
+      }
+      .footer-text {
+        font-size: 13px;
+        color: #666666;
+        margin: 5px 0;
+      }
+      .footer-link {
+        color: #0A2540;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .footer-link:hover {
+        color: #FF6B35;
+      }
+      .signature {
+        margin-top: 30px;
+        color: #333333;
+        font-size: 15px;
+      }
+      .signature strong {
+        color: #0A2540;
       }
     </style>
   </head>
   <body>
-    <div class="wrapper">
-      <div class="container">
+    <div class="email-wrapper">
+      <div class="email-container">
         <div class="header">
-          <h1>Welcome to PlayAsport Academy!</h1>
+          <div class="logo-container">
+            {{logoImage}}
+          </div>
+          <h1 class="header-title">Welcome to Play A Sport Academy</h1>
         </div>
         <div class="content">
-          <p>Dear {{name}},</p>
-          <p>
-            Congratulations! Your academy account has been successfully registered on PlayAsport.
-            We're excited to have you join our platform.
+          <p class="greeting">Dear {{name}},</p>
+          <p class="message">
+            Congratulations! Your academy account has been successfully registered on <strong>Play A Sport</strong>. We're excited to have you join our platform and help you grow your coaching center.
           </p>
 
           <div class="info-box">
@@ -100,21 +156,35 @@
             <p><strong>Registration Date:</strong> {{registrationDate}}</p>
           </div>
 
-          <h2>What's Next?</h2>
-          <p>
-            You can now start using your academy account to manage your coaching center, 
-            create batches, manage participants, and much more.
+          <div class="features-section">
+            <h2>What's Next?</h2>
+            <p>You can now start using your academy account to:</p>
+            <ul>
+              <li>Manage your coaching center profile</li>
+              <li>Create and manage training batches</li>
+              <li>Manage participants and enrollments</li>
+              <li>Track bookings and payments</li>
+              <li>Access analytics and reports</li>
+            </ul>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{websiteUrl}}" class="cta-button">Access Your Dashboard</a>
+          </div>
+
+          <p class="message">
+            If you have any questions or need assistance, please don't hesitate to contact our support team at <a href="mailto:support@playasport.in" style="color: #FF6B35; text-decoration: none;">support@playasport.in</a>. We're here to help you succeed!
           </p>
 
-          <p>
-            If you have any questions or need assistance, please don't hesitate to contact our 
-            support team. We're here to help you succeed!
-          </p>
-
-          <p>Best regards,<br />The PlayAsport Team</p>
+          <div class="signature">
+            <p>Best regards,<br /><strong>The Play A Sport Team</strong></p>
+          </div>
         </div>
         <div class="footer">
-          © {{year}} PlayAsport. All rights reserved.
+          <p class="footer-text">
+            <a href="{{websiteUrl}}" class="footer-link">{{companyName}}</a> | <a href="{{websiteUrl}}" class="footer-link">{{website}}</a>
+          </p>
+          <p class="footer-text">© {{year}} {{companyName}}. All rights reserved.</p>
         </div>
       </div>
     </div>

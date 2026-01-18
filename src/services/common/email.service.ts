@@ -8,6 +8,7 @@ import { getEmailConfig } from './settings.service';
 let transporter: Transporter | null = null;
 let transporterInitializationPromise: Promise<Transporter | null> | null = null;
 const templateCache = new Map<string, string>();
+let logoBase64Cache: string | null = null;
 
 const TEMPLATE_DIRECTORIES = [
   path.resolve(process.cwd(), 'dist', 'email', 'templates'),
@@ -15,6 +16,43 @@ const TEMPLATE_DIRECTORIES = [
   path.resolve(process.cwd(), 'src', 'email', 'templates'),
   path.resolve(__dirname, '..', 'email', 'templates'),
 ];
+
+/**
+ * Load logo as base64 for email templates
+ */
+const loadLogoAsBase64 = async (): Promise<string | null> => {
+  if (logoBase64Cache) {
+    return logoBase64Cache;
+  }
+
+  try {
+    const logoPaths = [
+      path.resolve(process.cwd(), 'src', 'statics', 'images', 'logo.png'),
+      path.resolve(process.cwd(), 'dist', 'statics', 'images', 'logo.png'),
+      path.resolve(__dirname, '..', '..', 'statics', 'images', 'logo.png'),
+      path.resolve(__dirname, '..', 'statics', 'images', 'logo.png'),
+    ];
+
+    for (const logoPath of logoPaths) {
+      try {
+        await fs.access(logoPath);
+        const logoBuffer = await fs.readFile(logoPath);
+        const base64Logo = logoBuffer.toString('base64');
+        const mimeType = 'image/png';
+        logoBase64Cache = `data:${mimeType};base64,${base64Logo}`;
+        return logoBase64Cache;
+      } catch {
+        continue;
+      }
+    }
+    
+    logger.warn('Logo file not found for email templates');
+    return null;
+  } catch (error) {
+    logger.error('Error loading logo for email templates:', error);
+    return null;
+  }
+};
 
 const getTransporter = async (): Promise<Transporter | null> => {
   // If transporter already exists, return it
@@ -119,7 +157,26 @@ const loadTemplate = async (templateName: string): Promise<string> => {
   return template;
 };
 
-const renderTemplate = (template: string, variables: Record<string, unknown>): string => {
+const renderTemplate = async (template: string, variables: Record<string, unknown>): Promise<string> => {
+  // Load logo and add to variables if not already present
+  if (!variables.logoImage) {
+    const logoBase64 = await loadLogoAsBase64();
+    variables.logoImage = logoBase64
+      ? `<img src="${logoBase64}" alt="Play A Sport Logo" style="max-width: 180px; height: auto; margin-bottom: 10px;" />`
+      : '';
+  }
+
+  // Add company info if not present
+  if (!variables.companyName) {
+    variables.companyName = 'Play A Sport';
+  }
+  if (!variables.website) {
+    variables.website = 'playasport.in';
+  }
+  if (!variables.websiteUrl) {
+    variables.websiteUrl = 'https://playasport.in';
+  }
+
   return template.replace(/{{\s*(\w+)\s*}}/g, (_match, token) => {
     const value = variables[token];
     return value === undefined || value === null ? '' : String(value);
@@ -155,7 +212,7 @@ export const sendTemplatedEmail = async ({
 
   if (!finalHtml && template) {
     const rawTemplate = await loadTemplate(template);
-    finalHtml = renderTemplate(rawTemplate, variables);
+    finalHtml = await renderTemplate(rawTemplate, variables);
   }
 
   if (!finalHtml) {
