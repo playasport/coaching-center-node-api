@@ -1,7 +1,7 @@
 import { SportModel } from '../../models/sport.model';
 import { CoachingCenterModel} from '../../models/coachingCenter.model';
 import { logger } from '../../utils/logger';
-import { calculateDistances, getBoundingBox } from '../../utils/distance';
+import { calculateDistances } from '../../utils/distance';
 import { Types } from 'mongoose';
 import { getUserObjectId } from '../../utils/userCache';
 import { UserModel } from '../../models/user.model';
