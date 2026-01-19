@@ -223,6 +223,168 @@ router.use(requireAdmin);
  *         description: Sport deleted successfully
  */
 
+/**
+ * @swagger
+ * /admin/sports/export/excel:
+ *   get:
+ *     summary: Export sports to Excel
+ *     description: Export all sports data to Excel format with optional filtering. Requires admin authentication.
+ *     tags: [Admin Sports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by sport name
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter by active status
+ *       - in: query
+ *         name: isPopular
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter by popular status
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by start date (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by end date (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Excel file downloaded successfully
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Admin role required
+ */
+router.get('/export/excel', sportController.exportToExcel);
+
+/**
+ * @swagger
+ * /admin/sports/export/pdf:
+ *   get:
+ *     summary: Export sports to PDF
+ *     description: Export all sports data to PDF format with optional filtering. Requires admin authentication.
+ *     tags: [Admin Sports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by sport name
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter by active status
+ *       - in: query
+ *         name: isPopular
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter by popular status
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by start date (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by end date (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: PDF file downloaded successfully
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Admin role required
+ */
+router.get('/export/pdf', sportController.exportToPDF);
+
+/**
+ * @swagger
+ * /admin/sports/export/csv:
+ *   get:
+ *     summary: Export sports to CSV
+ *     description: Export all sports data to CSV format with optional filtering. Requires admin authentication.
+ *     tags: [Admin Sports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by sport name
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter by active status
+ *       - in: query
+ *         name: isPopular
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter by popular status
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by start date (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by end date (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: CSV file downloaded successfully
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Admin role required
+ */
+router.get('/export/csv', sportController.exportToCSV);
+
 router.get('/', sportController.getAllSports);
 router.get('/:id', sportController.getSportById);
 // Create sport - supports both JSON (with logo URL) and multipart/form-data (with image file)

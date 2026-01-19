@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import * as locationController from '../controllers/location.controller';
-import { generalRateLimit } from '../middleware/rateLimit.middleware';
 import { validate } from '../middleware/validation.middleware';
 import { z } from 'zod';
 
@@ -48,7 +47,7 @@ const getCitiesQuerySchema = z.object({
  *                       items:
  *                         $ref: '#/components/schemas/Country'
  */
-router.get('/countries', generalRateLimit, locationController.getCountries);
+router.get('/countries', locationController.getCountries);
 
 /**
  * @swagger
@@ -89,7 +88,7 @@ router.get('/countries', generalRateLimit, locationController.getCountries);
  *       400:
  *         description: Country code is required
  */
-router.get('/states', generalRateLimit, validate(getStatesQuerySchema), locationController.getStates);
+router.get('/states', validate(getStatesQuerySchema), locationController.getStates);
 
 /**
  * @swagger
@@ -130,7 +129,7 @@ router.get('/states', generalRateLimit, validate(getStatesQuerySchema), location
  *       400:
  *         description: State ID is required
  */
-router.get('/cities', generalRateLimit, validate(getCitiesQuerySchema), locationController.getCities);
+router.get('/cities', validate(getCitiesQuerySchema), locationController.getCities);
 
 export default router;
 

@@ -5,6 +5,7 @@ import { t } from '../../utils/i18n';
 import { logger } from '../../utils/logger';
 import * as sportService from '../../services/admin/sport.service';
 import * as sportImageService from '../../services/admin/sportImage.service';
+import * as exportService from '../../services/admin/sportExport.service';
 
 /**
  * Get all sports for admin
@@ -213,6 +214,87 @@ export const deleteSportImage = async (req: Request, res: Response, next: NextFu
     await sportImageService.deleteSportImage(id);
     const response = new ApiResponse(200, null, 'Sport image deleted successfully');
     res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Export sports to Excel
+ */
+export const exportToExcel = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { search, isActive, isPopular, startDate, endDate } = req.query;
+
+    const filters = {
+      search: search as string,
+      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      isPopular: isPopular === 'true' ? true : isPopular === 'false' ? false : undefined,
+      startDate: startDate as string,
+      endDate: endDate as string,
+    };
+
+    const buffer = await exportService.exportToExcel(filters);
+
+    const filename = `sports-${new Date().toISOString().split('T')[0]}.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Export sports to PDF
+ */
+export const exportToPDF = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { search, isActive, isPopular, startDate, endDate } = req.query;
+
+    const filters = {
+      search: search as string,
+      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      isPopular: isPopular === 'true' ? true : isPopular === 'false' ? false : undefined,
+      startDate: startDate as string,
+      endDate: endDate as string,
+    };
+
+    const buffer = await exportService.exportToPDF(filters);
+
+    const filename = `sports-${new Date().toISOString().split('T')[0]}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Export sports to CSV
+ */
+export const exportToCSV = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { search, isActive, isPopular, startDate, endDate } = req.query;
+
+    const filters = {
+      search: search as string,
+      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      isPopular: isPopular === 'true' ? true : isPopular === 'false' ? false : undefined,
+      startDate: startDate as string,
+      endDate: endDate as string,
+    };
+
+    const csvContent = await exportService.exportToCSV(filters);
+
+    const filename = `sports-${new Date().toISOString().split('T')[0]}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csvContent);
   } catch (error) {
     next(error);
   }

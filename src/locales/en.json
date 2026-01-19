@@ -535,19 +535,24 @@
       "success": "Notification sent successfully"
     },
     "list": {
-      "success": "Notifications retrieved successfully"
+      "success": "Notifications retrieved successfully",
+      "failed": "Failed to retrieve notifications"
     },
     "markRead": {
-      "success": "Notification marked as read"
+      "success": "Notification marked as read",
+      "failed": "Failed to mark notification as read"
     },
     "markUnread": {
-      "success": "Notification marked as unread"
+      "success": "Notification marked as unread",
+      "failed": "Failed to mark notification as unread"
     },
     "markAllRead": {
-      "success": "All notifications marked as read"
+      "success": "All notifications marked as read",
+      "failed": "Failed to mark all notifications as read"
     },
     "delete": {
-      "success": "Notification deleted successfully"
+      "success": "Notification deleted successfully",
+      "failed": "Failed to delete notification"
     },
     "unreadCount": {
       "success": "Unread count retrieved successfully"

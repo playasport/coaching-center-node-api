@@ -60,43 +60,49 @@ const getRecipientObjectId = async (
       // If not found by _id or not a valid ObjectId, treat as custom UUID and use getUserObjectId
       return await getUserObjectId(recipientId);
     } else {
-      // For academy, first try to find CoachingCenter by custom ID (UUID)
+      // For academy, we can receive either:
+      // 1. A user ID (most common case - when academy user requests their notifications)
+      // 2. An academy ID (less common - when sending to specific academy)
+      
+      // First, try to find User by custom ID or ObjectId (most common case)
+      let userObjectId: Types.ObjectId | null = null;
+      
+      // Check if recipientId is a valid MongoDB ObjectId
+      if (Types.ObjectId.isValid(recipientId) && recipientId.length === 24) {
+        // Try to find user by MongoDB _id
+        const user = await UserModel.findOne({ _id: new Types.ObjectId(recipientId), isDeleted: false })
+          .select('_id')
+          .lean();
+        if (user) {
+          userObjectId = user._id as Types.ObjectId;
+        }
+      }
+      
+      // If not found by _id, try custom UUID using getUserObjectId (more robust with caching)
+      if (!userObjectId) {
+        userObjectId = await getUserObjectId(recipientId);
+      }
+      
+      // If we found a user, verify they own at least one academy
+      if (userObjectId) {
+        const userAcademies = await CoachingCenterModel.findOne({
+          user: userObjectId,
+          is_deleted: false
+        }).select('_id').lean();
+        
+        if (userAcademies) {
+          return userObjectId;
+        }
+      }
+      
+      // If not found as User, try to find CoachingCenter by custom ID (UUID)
+      // This handles the case where someone passes an academy ID directly
       const center = await CoachingCenterModel.findOne({ id: recipientId, is_deleted: false })
         .select('_id user')
         .lean();
       if (center) {
         // Return the user ObjectId who owns the academy
         return center.user as Types.ObjectId;
-      }
-      
-      // If not found as CoachingCenter, try to find User by custom ID or ObjectId
-      let user = null;
-      
-      // Check if recipientId is a valid MongoDB ObjectId
-      if (Types.ObjectId.isValid(recipientId) && recipientId.length === 24) {
-        // Try to find user by MongoDB _id
-        user = await UserModel.findOne({ _id: new Types.ObjectId(recipientId), isDeleted: false })
-          .select('_id')
-          .lean();
-      }
-      
-      // If not found by _id, try custom UUID
-      if (!user) {
-        user = await UserModel.findOne({ id: recipientId, isDeleted: false })
-          .select('_id')
-          .lean();
-      }
-      
-      if (user) {
-        // Verify that this user owns at least one academy
-        const userAcademies = await CoachingCenterModel.find({
-          user: user._id,
-          is_deleted: false
-        }).select('_id').lean();
-        
-        if (userAcademies.length > 0) {
-          return user._id as Types.ObjectId;
-        }
       }
       
       return null;
