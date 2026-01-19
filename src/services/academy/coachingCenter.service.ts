@@ -1,4 +1,3 @@
-import { Types } from 'mongoose';
 import { CoachingCenterModel, CoachingCenter } from '../../models/coachingCenter.model';
 import { SportModel } from '../../models/sport.model';
 import { UserModel } from '../../models/user.model';
@@ -8,6 +7,7 @@ import { t } from '../../utils/i18n';
 import type { CoachingCenterCreateInput, CoachingCenterUpdateInput } from '../../validations/coachingCenter.validation';
 import { config } from '../../config/env';
 import { getUserObjectId } from '../../utils/userCache';
+import { getSportObjectIds, getSportObjectId } from '../../utils/sportCache';
 import * as commonService from '../common/coachingCenterCommon.service';
 import { DefaultRoles } from '../../models/role.model';
 import { AdminApproveStatus } from '../../enums/adminApprove.enum';
@@ -36,14 +36,15 @@ export const createCoachingCenter = async (
   if (!userObjectId) throw new ApiError(404, 'User not found');
 
   // Validate sports and resolve facilities in parallel
-  const sportIds = data.sports ? data.sports.map((id) => new Types.ObjectId(id)) : [];
+  // Support both ObjectId and UUID for sport IDs
+  const sportIds = data.sports ? await getSportObjectIds(data.sports) : [];
   
   const [sportsCount, facilityIds] = await Promise.all([
     sportIds.length > 0 ? SportModel.countDocuments({ _id: { $in: sportIds } }) : Promise.resolve(0),
     data.facility ? commonService.resolveFacilities(data.facility) : Promise.resolve([]),
   ]);
   
-  if (sportIds.length > 0 && sportsCount !== (data.sports?.length || 0)) {
+  if (data.sports && data.sports.length > 0 && sportsCount !== data.sports.length) {
     throw new ApiError(400, t('coachingCenter.sports.invalid'));
   }
 
@@ -54,10 +55,18 @@ export const createCoachingCenter = async (
     sports: sportIds,
     facility: facilityIds,
     approval_status: AdminApproveStatus.PENDING_APPROVAL, // Academy-created centers need approval
-    sport_details: data.sport_details?.map(sd => ({
-      ...sd,
-      sport_id: new Types.ObjectId(sd.sport_id)
-    }))
+    sport_details: data.sport_details ? await Promise.all(
+      data.sport_details.map(async (sd) => {
+        const sportObjectId = await getSportObjectId(sd.sport_id);
+        if (!sportObjectId) {
+          throw new ApiError(400, `Invalid sport ID: ${sd.sport_id}`);
+        }
+        return {
+          ...sd,
+          sport_id: sportObjectId
+        };
+      })
+    ) : undefined
   };
   delete coachingCenterData.description;
 
@@ -397,7 +406,8 @@ export const updateCoachingCenter = async (
 
     // Validate sports and resolve facilities in parallel if both are being updated
     if (data.sports !== undefined || data.facility !== undefined) {
-      const sportIds = data.sports ? data.sports.map(sid => new Types.ObjectId(sid)) : null;
+      // Support both ObjectId and UUID for sport IDs
+      const sportIds = data.sports ? await getSportObjectIds(data.sports) : null;
       
       const [sportsCount, facilityIds] = await Promise.all([
         sportIds && sportIds.length > 0 
@@ -434,11 +444,20 @@ export const updateCoachingCenter = async (
 
     // Note: sport_details merge logic would go here if needed, keeping it simple for now or using common logic
     // For now using basic update
+    // Support both ObjectId and UUID for sport IDs in sport_details
     if (data.sport_details) {
-      updates.sport_details = data.sport_details.map(sd => ({
-        ...sd,
-        sport_id: new Types.ObjectId(sd.sport_id)
-      }));
+      updates.sport_details = await Promise.all(
+        data.sport_details.map(async (sd) => {
+          const sportObjectId = await getSportObjectId(sd.sport_id);
+          if (!sportObjectId) {
+            throw new ApiError(400, `Invalid sport ID: ${sd.sport_id}`);
+          }
+          return {
+            ...sd,
+            sport_id: sportObjectId
+          };
+        })
+      );
     }
 
     const updatedCenter = await CoachingCenterModel.findByIdAndUpdate(

@@ -8,6 +8,7 @@ import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
 import type { BatchCreateInput, BatchUpdateInput } from '../../validations/batch.validation';
 import { getUserObjectId } from '../../utils/userCache';
+import { getSportObjectId } from '../../utils/sportCache';
 import { config } from '../../config/env';
 
 /**
@@ -72,11 +73,12 @@ export const createBatch = async (data: BatchCreateInput, loggedInUserId: string
       throw new ApiError(404, t('batch.notFound'));
     }
 
-    // Validate sport exists
-    if (!Types.ObjectId.isValid(data.sportId)) {
+    // Validate sport exists - support both ObjectId and UUID
+    const sportObjectId = await getSportObjectId(data.sportId);
+    if (!sportObjectId) {
       throw new ApiError(400, t('validation.batch.sportId.invalid'));
     }
-    const sport = await SportModel.findById(data.sportId);
+    const sport = await SportModel.findById(sportObjectId);
     if (!sport || !sport.is_active) {
       throw new ApiError(404, t('batch.sportNotFound'));
     }
@@ -122,7 +124,7 @@ export const createBatch = async (data: BatchCreateInput, loggedInUserId: string
     }
 
     // Validate sport is available for this center
-    if (!center.sports || !center.sports.some((s: Types.ObjectId) => s.toString() === data.sportId)) {
+    if (!center.sports || !center.sports.some((s: Types.ObjectId) => s.toString() === sportObjectId.toString())) {
       throw new ApiError(400, 'Sport is not available for the selected center');
     }
 
@@ -149,7 +151,7 @@ export const createBatch = async (data: BatchCreateInput, loggedInUserId: string
       user: userObjectId,
       name: data.name,
       description: data.description || null,
-      sport: new Types.ObjectId(data.sportId),
+      sport: sportObjectId,
       center: new Types.ObjectId(data.centerId),
       coach: data.coach ? new Types.ObjectId(data.coach) : null,
       gender: data.gender,
@@ -434,12 +436,13 @@ export const updateBatch = async (id: string, data: BatchUpdateInput, loggedInUs
 
     // Note: Status can be changed from "published" to "draft" - this will automatically set is_active to false
 
-    // Validate sport if provided
+    // Validate sport if provided - support both ObjectId and UUID
     if (data.sportId) {
-      if (!Types.ObjectId.isValid(data.sportId)) {
+      const sportObjectId = await getSportObjectId(data.sportId);
+      if (!sportObjectId) {
         throw new ApiError(400, t('validation.batch.sportId.invalid'));
       }
-      const sport = await SportModel.findById(data.sportId);
+      const sport = await SportModel.findById(sportObjectId);
       if (!sport || !sport.is_active) {
         throw new ApiError(404, t('batch.sportNotFound'));
       }
@@ -482,7 +485,13 @@ export const updateBatch = async (id: string, data: BatchUpdateInput, loggedInUs
     const updateData: any = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description;
-    if (data.sportId !== undefined) updateData.sport = new Types.ObjectId(data.sportId);
+    if (data.sportId !== undefined) {
+      const sportObjectId = await getSportObjectId(data.sportId);
+      if (!sportObjectId) {
+        throw new ApiError(400, t('validation.batch.sportId.invalid'));
+      }
+      updateData.sport = sportObjectId;
+    }
     if (data.centerId !== undefined) updateData.center = new Types.ObjectId(data.centerId);
     if (data.coach !== undefined) updateData.coach = data.coach ? new Types.ObjectId(data.coach) : null;
     if (data.gender !== undefined) updateData.gender = data.gender;
