@@ -583,7 +583,32 @@ export const search = async (req: Request, res: Response): Promise<void> => {
               latitude: hit.latitude,
               longitude: hit.longitude,
               logo: hit.logo || null,
-              images: Array.isArray(hit.images) ? hit.images.slice(0, 2) : (hit.images ? [hit.images] : []),
+              images: (() => {
+                // Exclude logo from images array, but use logo as fallback if no images
+                const logoUrl = hit.logo || null;
+                let imageArray: any[] = [];
+                
+                if (Array.isArray(hit.images)) {
+                  imageArray = hit.images
+                    .filter((img: any) => {
+                      const imgUrl = typeof img === 'string' ? img : (img?.url || '');
+                      return logoUrl ? imgUrl !== logoUrl : true;
+                    })
+                    .slice(0, 2);
+                } else if (hit.images) {
+                  const imgUrl = typeof hit.images === 'string' ? hit.images : (hit.images?.url || '');
+                  if (!logoUrl || imgUrl !== logoUrl) {
+                    imageArray = [hit.images].slice(0, 2);
+                  }
+                }
+                
+                // If no images available, use logo as fallback
+                if (imageArray.length === 0 && logoUrl) {
+                  return [logoUrl];
+                }
+                
+                return imageArray;
+              })(),
               allowed_gender: hit.allowed_gender || [],
               sports_names: hit.sports_names || [],
               location_name: hit.location_name || null,
@@ -985,12 +1010,21 @@ export const search = async (req: Request, res: Response): Promise<void> => {
         }
 
         // Process images - limit to 2, prioritize is_banner
+        // If no images available, use logo as fallback
+        const logoUrl = hit.logo || null;
         let processedImages: string[] = [];
         if (Array.isArray(hit.images)) {
           const validImages = hit.images
             .filter((img: any) => {
-              if (typeof img === 'string') return true;
-              return img.is_active !== false && img.is_deleted !== true && !img.deletedAt;
+              if (typeof img === 'string') {
+                // Exclude if it matches the logo URL
+                return logoUrl ? img !== logoUrl : true;
+              }
+              const isActive = img.is_active !== false && img.is_deleted !== true && !img.deletedAt;
+              if (!isActive) return false;
+              // Exclude if image URL matches logo URL
+              const imgUrl = img.url || '';
+              return logoUrl ? imgUrl !== logoUrl : true;
             })
             .sort((a: any, b: any) => {
               const aIsBanner = typeof a === 'object' && a.is_banner === true ? 1 : 0;
@@ -1005,7 +1039,20 @@ export const search = async (req: Request, res: Response): Promise<void> => {
             .filter((url: string) => url && url.trim() !== '');
           processedImages = validImages;
         } else if (hit.images) {
-          processedImages = Array.isArray(hit.images) ? hit.images.slice(0, 2) : [hit.images];
+          // Handle non-array images and exclude logo
+          const imagesArray = Array.isArray(hit.images) ? hit.images : [hit.images];
+          processedImages = imagesArray
+            .filter((img: any) => {
+              const imgUrl = typeof img === 'string' ? img : (img?.url || '');
+              return logoUrl ? imgUrl !== logoUrl : true;
+            })
+            .slice(0, 2)
+            .map((img: any) => typeof img === 'string' ? img : (img?.url || ''));
+        }
+        
+        // If no images found and logo exists, use logo as fallback
+        if (processedImages.length === 0 && logoUrl) {
+          processedImages = [logoUrl];
         }
 
         const source: any = {

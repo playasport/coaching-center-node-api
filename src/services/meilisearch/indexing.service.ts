@@ -139,22 +139,28 @@ class MeilisearchIndexingService {
     }
 
     // Get images from sport_details - prioritize is_banner, limit to 2
+    // If no images available, use logo as fallback
     const allImages: any[] = [];
+    const logoUrl = center.logo || null;
+    
     if (Array.isArray(sportDetails)) {
       sportDetails.forEach((detail: any) => {
         if (Array.isArray(detail.images)) {
-          // Filter active, non-deleted images
+          // Filter active, non-deleted images and exclude logo if it matches
           const validImages = detail.images.filter((img: any) => {
-            if (typeof img === 'string') return true; // Simple URL string
-            return img.is_active !== false && img.is_deleted !== true && !img.deletedAt;
+            if (typeof img === 'string') {
+              // Exclude if it matches the logo URL
+              return logoUrl ? img !== logoUrl : true;
+            }
+            const isActive = img.is_active !== false && img.is_deleted !== true && !img.deletedAt;
+            if (!isActive) return false;
+            // Exclude if image URL matches logo URL
+            const imgUrl = img.url || '';
+            return logoUrl ? imgUrl !== logoUrl : true;
           });
           allImages.push(...validImages);
         }
       });
-    }
-    if (center.logo) {
-      // Add logo as first image (as string URL)
-      allImages.unshift(center.logo);
     }
 
     // Sort: is_banner=true first, then others, then take only 2
@@ -165,10 +171,15 @@ class MeilisearchIndexingService {
     });
 
     // Take only 2 images and convert to URL strings
-    const images: string[] = allImages.slice(0, 2).map((img: any) => {
+    let images: string[] = allImages.slice(0, 2).map((img: any) => {
       if (typeof img === 'string') return img;
       return img.url || '';
     }).filter((url: string) => url && url.trim() !== '');
+
+    // If no images found and logo exists, use logo as fallback
+    if (images.length === 0 && logoUrl) {
+      images = [logoUrl];
+    }
 
     const latitude = location.latitude || location.lat || null;
     const longitude = location.longitude || location.long || null;
