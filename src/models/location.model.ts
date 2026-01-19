@@ -116,14 +116,24 @@ const citySchema = new Schema<City>(
 );
 
 // Add indexes for better query performance
+// Country indexes
 countrySchema.index({ name: 1, isDeleted: 1 });
 countrySchema.index({ iso2: 1, isDeleted: 1 });
-stateSchema.index({ countryId: 1, name: 1, isDeleted: 1 });
-stateSchema.index({ countryCode: 1, name: 1, isDeleted: 1 });
-citySchema.index({ stateId: 1, name: 1, isDeleted: 1 });
-citySchema.index({ stateName: 1, name: 1, isDeleted: 1 });
-citySchema.index({ countryCode: 1, name: 1, isDeleted: 1 });
-citySchema.index({ countryId: 1, isDeleted: 1 });
+countrySchema.index({ isDeleted: 1, name: 1 }); // For sorted queries
+
+// State indexes - optimized for $or queries
+stateSchema.index({ countryCode: 1, isDeleted: 1, name: 1 }); // Compound index for countryCode queries
+stateSchema.index({ countryId: 1, isDeleted: 1, name: 1 }); // Compound index for countryId queries
+stateSchema.index({ _id: 1, isDeleted: 1 }); // For ObjectId lookups
+stateSchema.index({ isDeleted: 1, name: 1 }); // For sorted queries
+
+// City indexes - optimized for state lookups
+citySchema.index({ stateId: 1, isDeleted: 1, name: 1 }); // Primary lookup by stateId
+citySchema.index({ stateName: 1, isDeleted: 1, name: 1 }); // Fallback lookup by stateName
+citySchema.index({ _id: 1, isDeleted: 1 }); // For ObjectId lookups
+citySchema.index({ countryCode: 1, isDeleted: 1, name: 1 }); // For country-based queries
+citySchema.index({ countryId: 1, isDeleted: 1, name: 1 }); // For country-based queries
+citySchema.index({ isDeleted: 1, name: 1 }); // For sorted queries
 
 export const CountryModel = model<Country>('Country', countrySchema);
 export const StateModel = model<State>('State', stateSchema);

@@ -1,13 +1,35 @@
 import { CountryModel, StateModel, CityModel, Country, State } from '../../models/location.model';
 import { CoachingCenterModel } from '../../models/coachingCenter.model';
 import { logger } from '../../utils/logger';
+import {
+  getCachedCountries,
+  cacheCountries,
+  getCachedStates,
+  cacheStates,
+  getCachedCities,
+  cacheCities,
+} from '../../utils/locationCache';
+import { Types } from 'mongoose';
 
 export const getAllCountries = async (): Promise<Country[]> => {
   try {
+    // Check cache first
+    const cached = await getCachedCountries();
+    if (cached) {
+      return cached as Country[];
+    }
+
+    // Fetch from database
     const countries = await CountryModel.find({ isDeleted: false })
       .select('name code iso2 iso3 phoneCode currency currencySymbol region subregion latitude longitude')
       .sort({ name: 1 })
       .lean();
+
+    // Cache the result
+    if (countries.length > 0) {
+      await cacheCountries(countries);
+    }
+
     return countries as Country[];
   } catch (error) {
     logger.error('Failed to fetch countries', error);
@@ -17,13 +39,42 @@ export const getAllCountries = async (): Promise<Country[]> => {
 
 export const getStatesByCountry = async (countryCode: string): Promise<State[]> => {
   try {
-    const states = await StateModel.find({
-      $or: [{ countryCode: countryCode }, { countryId: countryCode }],
+    const trimmedCountryCode = countryCode.trim();
+
+    // Check cache first
+    const cached = await getCachedStates(trimmedCountryCode);
+    if (cached) {
+      return cached as State[];
+    }
+
+    // Optimized query with compound index support
+    // Try countryCode first (most common), then countryId
+    const query: any = {
       isDeleted: false,
-    })
+    };
+
+    // Check if it's a valid MongoDB ObjectId
+    if (Types.ObjectId.isValid(trimmedCountryCode)) {
+      query.$or = [
+        { countryCode: trimmedCountryCode },
+        { countryId: trimmedCountryCode },
+        { _id: new Types.ObjectId(trimmedCountryCode) },
+      ];
+    } else {
+      query.$or = [{ countryCode: trimmedCountryCode }, { countryId: trimmedCountryCode }];
+    }
+
+    // Fetch from database
+    const states = await StateModel.find(query)
       .select('name countryId countryCode countryName stateCode latitude longitude')
       .sort({ name: 1 })
       .lean();
+
+    // Cache the result
+    if (states.length > 0) {
+      await cacheStates(trimmedCountryCode, states);
+    }
+
     return states as State[];
   } catch (error) {
     logger.error('Failed to fetch states', { countryCode, error });
@@ -131,61 +182,98 @@ export const getCitiesByState = async (stateName: string, countryCode?: string):
 export const getCitiesByStateId = async (stateId: string): Promise<CityResponse[]> => {
   try {
     const trimmedStateId = stateId.trim();
+
+    // Check cache first
+    const cached = await getCachedCities(trimmedStateId);
+    if (cached) {
+      return cached as CityResponse[];
+    }
+
+    // Optimized query using aggregation for better performance
+    // This reduces multiple queries to a single aggregation pipeline
+    const isObjectId = Types.ObjectId.isValid(trimmedStateId);
     
-    // First, try to find cities by stateId field directly (excluding soft-deleted)
-    let cities = await CityModel.find({ stateId: trimmedStateId, isDeleted: false })
+    let query: any = {
+      isDeleted: false,
+    };
+
+    // Build optimized query - try multiple approaches in single query
+    if (isObjectId) {
+      // If it's a valid ObjectId, try all possible matches
+      query.$or = [
+        { stateId: trimmedStateId },
+        { _id: new Types.ObjectId(trimmedStateId) },
+      ];
+    } else {
+      query.stateId = trimmedStateId;
+    }
+
+    // First attempt: query by stateId
+    let cities = await CityModel.find(query)
       .select('name stateId stateName stateCode countryId countryCode countryName latitude longitude')
       .sort({ name: 1 })
       .lean();
-    
-    // If no results, try to find state by MongoDB _id, then get its stateId value
-    if (cities.length === 0) {
-      const state = await StateModel.findOne({ _id: trimmedStateId, isDeleted: false })
+
+    // If no results and it's an ObjectId, try to find state and query by stateName
+    if (cities.length === 0 && isObjectId) {
+      const state = await StateModel.findOne({ _id: new Types.ObjectId(trimmedStateId), isDeleted: false })
         .select('_id name')
         .lean();
-      
+
       if (state) {
-        // Try to find cities by stateName if we found the state (excluding soft-deleted)
-        cities = await CityModel.find({ stateName: state.name, isDeleted: false })
+        // Query cities by stateName
+        cities = await CityModel.find({
+          stateName: state.name,
+          isDeleted: false,
+        })
           .select('name stateId stateName stateCode countryId countryCode countryName latitude longitude')
           .sort({ name: 1 })
           .lean();
       }
     }
-    
+
     // Transform to nested structure
-    return cities.map((city: any) => {
-      const result: CityResponse = {
-        _id: city._id?.toString(),
-        name: city.name,
-      };
+    const transformedCities = cities
+      .map((city: any) => {
+        const result: CityResponse = {
+          _id: city._id?.toString(),
+          name: city.name,
+        };
 
-      // Add state object if state info exists
-      if (city.stateId || city.stateName || city.stateCode) {
-        result.state = {};
-        if (city.stateId) result.state.id = city.stateId;
-        if (city.stateName) result.state.name = city.stateName;
-        if (city.stateCode) result.state.code = city.stateCode;
-      }
+        // Add state object if state info exists
+        if (city.stateId || city.stateName || city.stateCode) {
+          result.state = {};
+          if (city.stateId) result.state.id = city.stateId;
+          if (city.stateName) result.state.name = city.stateName;
+          if (city.stateCode) result.state.code = city.stateCode;
+        }
 
-      // Add country object if country info exists
-      if (city.countryId || city.countryName || city.countryCode) {
-        result.country = {};
-        if (city.countryId) result.country.id = city.countryId;
-        if (city.countryName) result.country.name = city.countryName;
-        if (city.countryCode) result.country.code = city.countryCode;
-      }
+        // Add country object if country info exists
+        if (city.countryId || city.countryName || city.countryCode) {
+          result.country = {};
+          if (city.countryId) result.country.id = city.countryId;
+          if (city.countryName) result.country.name = city.countryName;
+          if (city.countryCode) result.country.code = city.countryCode;
+        }
 
-      // Add coordinates if they exist
-      if (city.latitude !== undefined && city.latitude !== null) {
-        result.latitude = city.latitude;
-      }
-      if (city.longitude !== undefined && city.longitude !== null) {
-        result.longitude = city.longitude;
-      }
+        // Add coordinates if they exist
+        if (city.latitude !== undefined && city.latitude !== null) {
+          result.latitude = city.latitude;
+        }
+        if (city.longitude !== undefined && city.longitude !== null) {
+          result.longitude = city.longitude;
+        }
 
-      return result;
-    }).filter(city => city.state && (city.state.id || city.state.name)); // Only include cities with state info
+        return result;
+      })
+      .filter((city) => city.state && (city.state.id || city.state.name)); // Only include cities with state info
+
+    // Cache the result
+    if (transformedCities.length > 0) {
+      await cacheCities(trimmedStateId, transformedCities);
+    }
+
+    return transformedCities;
   } catch (error) {
     logger.error('Failed to fetch cities by state ID', { stateId, error });
     throw error;

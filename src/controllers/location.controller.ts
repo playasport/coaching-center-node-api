@@ -30,6 +30,11 @@ export const getStates = async (
       throw new ApiError(400, t('location.states.countryCodeRequired'));
     }
 
+    // Validate countryCode length
+    if (countryCode.length > 50) {
+      throw new ApiError(400, 'Country code is too long');
+    }
+
     const states = await locationService.getStatesByCountry(countryCode);
     const response = new ApiResponse(200, { states }, t('location.states.success'));
     res.json(response);
@@ -50,8 +55,12 @@ export const getCities = async (
       throw new ApiError(400, t('location.cities.stateRequired'));
     }
 
-    const cities = await locationService.getCitiesByStateId(stateId);
+    // Validate stateId length
+    if (stateId.length > 100) {
+      throw new ApiError(400, 'State ID is too long');
+    }
 
+    const cities = await locationService.getCitiesByStateId(stateId);
     const response = new ApiResponse(200, { cities }, t('location.cities.success'));
     res.json(response);
   } catch (error) {
