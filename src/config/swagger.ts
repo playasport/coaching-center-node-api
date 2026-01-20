@@ -4318,35 +4318,36 @@ const options: swaggerJsdoc.Options = {
               example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
               description: 'Payout account UUID',
             },
-            razorpay_account_id: {
-              type: 'string',
-              example: 'acc_GRWKk7qQsLnDjX',
-              description: 'Razorpay Linked Account ID',
-            },
             kyc_details: {
               type: 'object',
               properties: {
                 legal_business_name: {
                   type: 'string',
-                  example: 'Elite Sports Academy',
+                  example: 'Indal Kumar Singh',
+                  minLength: 1,
+                  maxLength: 100,
                 },
                 business_type: {
                   type: 'string',
-                  enum: ['individual', 'partnership', 'private_limited', 'public_limited', 'llp', 'ngo', 'trust', 'society', 'huf'],
-                  example: 'partnership',
+                  enum: ['individual'],
+                  example: 'individual',
+                  description: 'Currently only individual business type is supported',
                 },
                 contact_name: {
                   type: 'string',
-                  example: 'John Doe',
+                  example: 'Indal Kumar Singh',
+                  minLength: 1,
+                  maxLength: 100,
                 },
                 email: {
                   type: 'string',
                   format: 'email',
-                  example: 'contact@elitesportsacademy.com',
+                  example: 'indalkuma@playasport.in',
                 },
                 phone: {
                   type: 'string',
-                  example: '9876543210',
+                  pattern: '^[6-9]\\d{9}$',
+                  example: '9546576177',
                 },
                 pan: {
                   type: 'string',
@@ -4360,12 +4361,12 @@ const options: swaggerJsdoc.Options = {
                 address: {
                   type: 'object',
                   properties: {
-                    street1: { type: 'string', example: '123 MG Road' },
-                    street2: { type: 'string', nullable: true, example: 'Near Metro Station' },
-                    city: { type: 'string', example: 'Bengaluru' },
-                    state: { type: 'string', example: 'KARNATAKA' },
-                    postal_code: { type: 'string', example: '560001' },
-                    country: { type: 'string', example: 'IN' },
+                    street1: { type: 'string', example: 'BD-357, sector-1, saltlake city', minLength: 1, maxLength: 100 },
+                    street2: { type: 'string', nullable: true, example: 'Kolkata, West Bengal', maxLength: 100 },
+                    city: { type: 'string', example: 'Kolkata', minLength: 1, maxLength: 100 },
+                    state: { type: 'string', example: 'West Bengal', minLength: 1, maxLength: 100 },
+                    postal_code: { type: 'string', example: '700064', minLength: 6, maxLength: 10 },
+                    country: { type: 'string', example: 'IN', minLength: 2, maxLength: 2, default: 'IN' },
                   },
                 },
               },
@@ -4385,12 +4386,15 @@ const options: swaggerJsdoc.Options = {
                 },
                 account_holder_name: {
                   type: 'string',
-                  example: 'Elite Sports Academy',
+                  example: 'Indal Kumar Singh',
+                  minLength: 1,
+                  maxLength: 100,
                 },
                 bank_name: {
                   type: 'string',
                   nullable: true,
-                  example: 'State Bank of India',
+                  example: 'Bank of Baroda',
+                  maxLength: 100,
                 },
               },
             },
@@ -4404,11 +4408,6 @@ const options: swaggerJsdoc.Options = {
               items: { type: 'string' },
               nullable: true,
               example: ['Additional documents required'],
-            },
-            stakeholder_id: {
-              type: 'string',
-              nullable: true,
-              example: 'stk_1234567890',
             },
             ready_for_payout: {
               type: 'string',
@@ -4452,13 +4451,15 @@ const options: swaggerJsdoc.Options = {
               properties: {
                 legal_business_name: {
                   type: 'string',
-                  example: 'Elite Sports Academy',
-                  maxLength: 255,
+                  example: 'Indal Kumar Singh',
+                  minLength: 1,
+                  maxLength: 100,
                 },
                 business_type: {
                   type: 'string',
-                  enum: ['individual', 'partnership', 'private_limited', 'public_limited', 'llp', 'ngo', 'trust', 'society', 'huf'],
-                  example: 'partnership',
+                  enum: ['individual'],
+                  example: 'individual',
+                  description: 'Currently only individual business type is supported',
                 },
                 contact_name: {
                   type: 'string',
@@ -4490,8 +4491,8 @@ const options: swaggerJsdoc.Options = {
                   type: 'object',
                   required: ['street1', 'city', 'state', 'postal_code', 'country'],
                   properties: {
-                    street1: { type: 'string', example: '123 MG Road', maxLength: 255 },
-                    street2: { type: 'string', nullable: true, example: 'Near Metro Station', maxLength: 255 },
+                    street1: { type: 'string', example: 'BD-357, sector-1, saltlake city', minLength: 1, maxLength: 100 },
+                    street2: { type: 'string', nullable: true, example: 'Kolkata, West Bengal', maxLength: 100 },
                     city: { type: 'string', example: 'Bengaluru', maxLength: 100 },
                     state: { type: 'string', example: 'KARNATAKA', maxLength: 100 },
                     postal_code: { type: 'string', example: '560001', minLength: 6, maxLength: 10 },
@@ -4526,49 +4527,6 @@ const options: swaggerJsdoc.Options = {
                   nullable: true,
                   example: 'State Bank of India',
                   maxLength: 100,
-                },
-              },
-            },
-            stakeholder: {
-              type: 'object',
-              nullable: true,
-              properties: {
-                name: {
-                  type: 'string',
-                  example: 'John Doe',
-                  maxLength: 100,
-                },
-                email: {
-                  type: 'string',
-                  format: 'email',
-                  example: 'john@example.com',
-                },
-                phone: {
-                  type: 'string',
-                  pattern: '^[6-9]\\d{9}$',
-                  example: '9876543210',
-                },
-                relationship: {
-                  type: 'string',
-                  enum: ['director', 'proprietor', 'partner', 'authorised_signatory'],
-                  example: 'director',
-                },
-                kyc: {
-                  type: 'object',
-                  properties: {
-                    pan: {
-                      type: 'string',
-                      pattern: '^[A-Z]{5}[0-9]{4}[A-Z]{1}$',
-                      nullable: true,
-                      example: 'ABCDE1234F',
-                    },
-                    aadhaar: {
-                      type: 'string',
-                      pattern: '^\\d{12}$',
-                      nullable: true,
-                      example: '123456789012',
-                    },
-                  },
                 },
               },
             },

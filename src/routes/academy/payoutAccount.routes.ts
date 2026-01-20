@@ -65,13 +65,13 @@ router.get(
  *       
  *       **Important:** Each academy user can create only one payout account.
  *       
- *       **KYC Requirements:**
- *       - Legal business name
- *       - Business type (individual, partnership, private_limited, etc.)
- *       - Contact name, email, and phone
- *       - PAN (required)
- *       - GST (optional)
- *       - Registered address
+     *       **KYC Requirements:**
+     *       - Legal business name (1-100 characters)
+     *       - Business type: `individual` (currently only individual is supported)
+     *       - Contact name, email, and phone
+     *       - PAN (required - format: ABCDE1234F)
+     *       - GST (optional)
+     *       - Registered address (street1 max 100 chars, street2 max 100 chars)
  *       
  *       **Bank Details:**
  *       - Can be provided during creation or updated later
