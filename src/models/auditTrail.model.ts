@@ -43,6 +43,13 @@ export enum ActionType {
   // Admin actions
   SETTINGS_UPDATED = 'settings_updated',
   ADMIN_ACTION = 'admin_action',
+  
+  // Payout account actions
+  PAYOUT_ACCOUNT_CREATED = 'payout_account_created',
+  PAYOUT_ACCOUNT_UPDATED = 'payout_account_updated',
+  PAYOUT_ACCOUNT_BANK_DETAILS_UPDATED = 'payout_account_bank_details_updated',
+  PAYOUT_ACCOUNT_ACTIVATED = 'payout_account_activated',
+  PAYOUT_ACCOUNT_STATUS_CHANGED = 'payout_account_status_changed',
 }
 
 // Audit Trail interface

@@ -10,6 +10,10 @@ import { mediaMoveQueue } from './queue/mediaMoveQueue';
 import { closeMediaMoveWorker } from './queue/mediaMoveWorker';
 import { meilisearchIndexingQueue } from './queue/meilisearchIndexingQueue';
 import { closeMeilisearchIndexingWorker } from './queue/meilisearchIndexingWorker';
+import { payoutBankDetailsQueue } from './queue/payoutBankDetailsQueue';
+import { closePayoutBankDetailsWorker } from './queue/payoutBankDetailsWorker';
+import { payoutStakeholderQueue } from './queue/payoutStakeholderQueue';
+import { closePayoutStakeholderWorker } from './queue/payoutStakeholderWorker';
 import { closeUserCache } from './utils/userCache';
 import { closeTokenBlacklist } from './utils/tokenBlacklist';
 import { closeRateLimit } from './middleware/rateLimit.middleware';
@@ -87,6 +91,22 @@ const gracefulShutdown = async (signal: string) => {
     // Close Meilisearch indexing queue
     await meilisearchIndexingQueue.close();
     logger.info('Meilisearch indexing queue closed');
+    
+    // Close payout bank details worker
+    await closePayoutBankDetailsWorker();
+    logger.info('Payout bank details worker closed');
+    
+    // Close payout bank details queue
+    await payoutBankDetailsQueue.close();
+    logger.info('Payout bank details queue closed');
+    
+    // Close payout stakeholder worker
+    await closePayoutStakeholderWorker();
+    logger.info('Payout stakeholder worker closed');
+    
+    // Close payout stakeholder queue
+    await payoutStakeholderQueue.close();
+    logger.info('Payout stakeholder queue closed');
     
     // Close user cache Redis connection
     await closeUserCache();

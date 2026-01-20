@@ -3723,6 +3723,120 @@
         }
       ],
       "description": "Academy notification endpoints for viewing and managing notifications. Requires ACADEMY role authentication."
+    },
+    {
+      "name": "Academy Payout Account",
+      "item": [
+        {
+          "name": "Get Payout Account",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/payout-account",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "payout-account"]
+            },
+            "description": "Get payout account details for the authenticated academy user. Each academy user can have only one payout account. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payout Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kyc_details\": {\n    \"legal_business_name\": \"Elite Sports Academy\",\n    \"business_type\": \"partnership\",\n    \"contact_name\": \"John Doe\",\n    \"email\": \"contact@elitesportsacademy.com\",\n    \"phone\": \"9876543210\",\n    \"pan\": \"ABCDE1234F\",\n    \"gst\": \"29ABCDE1234F1Z5\",\n    \"address\": {\n      \"street1\": \"123 MG Road\",\n      \"street2\": \"Near Metro Station\",\n      \"city\": \"Bengaluru\",\n      \"state\": \"KARNATAKA\",\n      \"postal_code\": \"560001\",\n      \"country\": \"IN\"\n    }\n  },\n  \"bank_information\": {\n    \"account_number\": \"1234567890123456\",\n    \"ifsc_code\": \"SBIN0001234\",\n    \"account_holder_name\": \"Elite Sports Academy\",\n    \"bank_name\": \"State Bank of India\"\n  },\n  \"stakeholder\": {\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"phone\": \"9876543210\",\n    \"relationship\": \"director\",\n    \"kyc\": {\n      \"pan\": \"ABCDE1234F\",\n      \"aadhaar\": \"123456789012\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/payout-account",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "payout-account"]
+            },
+            "description": "Create a new payout account (Linked Account) in Razorpay Route for the authenticated academy user. This will create a Linked Account in Razorpay with KYC details, create a stakeholder (if provided), request Route product configuration, and store the account details. Each academy user can create only one payout account. Bank details can be provided during creation or updated later. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Bank Details",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"account_number\": \"1234567890123456\",\n  \"ifsc_code\": \"SBIN0001234\",\n  \"account_holder_name\": \"Elite Sports Academy\",\n  \"bank_name\": \"State Bank of India\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/payout-account/bank-details",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "payout-account", "bank-details"]
+            },
+            "description": "Update bank account details for the payout account. This will update the bank details in Razorpay Route and in the database. The bank details will be verified by Razorpay. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Sync Account Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/payout-account/sync-status",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "payout-account", "sync-status"]
+            },
+            "description": "Manually sync the payout account status from Razorpay. This will fetch the latest status from Razorpay and update the database. Notifications will be sent if the status has changed. Requires ACADEMY role authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "Academy payout account management endpoints for creating and managing Razorpay Route Linked Accounts for receiving payouts. Each academy user can have only one payout account. Requires ACADEMY role authentication."
     }
   ]
 }

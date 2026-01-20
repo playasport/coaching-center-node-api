@@ -190,9 +190,8 @@ export const authorize = (...roles: string[]) => {
     // Check if user's role matches any of the required roles
     let hasPermission = roles.includes(req.user.role);
 
-    // Special handling: If role is "user" and we're checking for STUDENT/GUARDIAN,
-    // we need to check the userType from the database
-    if (!hasPermission && req.user.role === DefaultRoles.USER) {
+    // If permission not found, check database roles array for User model (academy, student, guardian, etc.)
+    if (!hasPermission) {
       try {
         const user = await UserModel.findOne({ id: req.user.id })
           .select('userType roles')
@@ -200,14 +199,20 @@ export const authorize = (...roles: string[]) => {
           .lean();
 
         if (user) {
-          // Check if userType matches any of the required roles (student/guardian)
-          if (user.userType && roles.includes(user.userType)) {
-            hasPermission = true;
-          }
-          // Also check if user has STUDENT or GUARDIAN role in roles array
           const userRoles = user.roles as any[];
+          
+          // Check if user has any of the required roles in roles array
           if (userRoles && userRoles.some((r: any) => roles.includes(r?.name))) {
             hasPermission = true;
+          }
+          
+          // Special handling: If role is "user" and we're checking for STUDENT/GUARDIAN,
+          // we need to check the userType from the database
+          if (!hasPermission && req.user.role === DefaultRoles.USER) {
+            // Check if userType matches any of the required roles (student/guardian)
+            if (user.userType && roles.includes(user.userType)) {
+              hasPermission = true;
+            }
           }
         }
       } catch (error) {

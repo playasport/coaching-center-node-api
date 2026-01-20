@@ -13,6 +13,7 @@ import academyBookingRoutes from './academy/booking.routes';
 import studentRoutes from './academy/student.routes';
 import academyUserRoutes from './academy/user.routes';
 import academyBannerRoutes from './academy/banner.routes';
+import payoutAccountRoutes from './academy/payoutAccount.routes';
 import roleRoutes from './role.routes';
 import participantRoutes from './participant.routes';
 import bookingRoutes from './booking.routes';
@@ -212,6 +213,7 @@ router.use('/academy/my-student', studentRoutes);
 router.use('/academy/user', academyUserRoutes);
 router.use('/academy/banners', academyBannerRoutes);
 router.use('/academy/notifications', academyNotificationRoutes);
+router.use('/academy/payout-account', payoutAccountRoutes);
 router.use('/role', roleRoutes);
 router.use('/webhook', webhookRoutes);
 router.use('/home', homeRoutes);
@@ -247,6 +249,11 @@ router.get('/demo/batch-create', (_req, res) => {
 
 router.get('/demo/booking-payment', (_req, res) => {
   const filePath = path.resolve(process.cwd(), 'docs', 'booking-payment-demo.html');
+  res.sendFile(filePath);
+});
+
+router.get('/demo/payout-account', (_req, res) => {
+  const filePath = path.resolve(process.cwd(), 'docs', 'payout-account-test-ui.html');
   res.sendFile(filePath);
 });
 

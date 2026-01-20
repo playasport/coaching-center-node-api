@@ -180,3 +180,85 @@ export const getPaymentVerifiedAcademyWhatsApp = (variables: NotificationMessage
 export const getOtpSms = (variables: { otp: string }): string => {
   return `Your Play A Sport OTP is ${variables.otp}. This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Sport Team Thank You.`;
 };
+
+/**
+ * Payout Account Created - Academy (SMS)
+ */
+export const getPayoutAccountCreatedAcademySms = (variables: NotificationMessageVariables): string => {
+  const template = `Your payout account has been created successfully. Account ID: {{accountId}}. Status: {{status}}. You will be notified once your account is activated. - Play A Sport`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payout Account Created - Academy (WhatsApp)
+ */
+export const getPayoutAccountCreatedAcademyWhatsApp = (variables: NotificationMessageVariables): string => {
+  const template = `*Payout Account Created*\n\nYour payout account has been created successfully!\n\n*Account ID:* {{accountId}}\n*Status:* {{status}}\n\nYou will be notified once your account is activated by our team.\n\n- Play A Sport`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payout Account Activated - Academy (SMS)
+ */
+export const getPayoutAccountActivatedAcademySms = (variables: NotificationMessageVariables): string => {
+  const template = `Great news! Your payout account has been activated. Account ID: {{accountId}}. You can now receive payouts. - Play A Sport`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payout Account Activated - Academy (WhatsApp)
+ */
+export const getPayoutAccountActivatedAcademyWhatsApp = (variables: NotificationMessageVariables): string => {
+  const template = `*Payout Account Activated! 🎉*\n\nGreat news! Your payout account has been activated.\n\n*Account ID:* {{accountId}}\n\nYou can now receive payouts from bookings.\n\n- Play A Sport`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payout Account Needs Clarification - Academy (SMS)
+ */
+export const getPayoutAccountNeedsClarificationAcademySms = (variables: NotificationMessageVariables): string => {
+  const template = `Your payout account requires additional information. Account ID: {{accountId}}. Please check your account and provide the required details. - Play A Sport`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payout Account Needs Clarification - Academy (WhatsApp)
+ */
+export const getPayoutAccountNeedsClarificationAcademyWhatsApp = (variables: NotificationMessageVariables): string => {
+  const template = `*Payout Account - Action Required*\n\nYour payout account requires additional information.\n\n*Account ID:* {{accountId}}\n*Requirements:* {{requirements}}\n\nPlease check your account and provide the required details to complete activation.\n\n- Play A Sport`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payout Account Rejected - Academy (SMS)
+ */
+export const getPayoutAccountRejectedAcademySms = (variables: NotificationMessageVariables): string => {
+  const reasonText = variables.reason ? ` Reason: ${variables.reason}` : '';
+  const template = `Your payout account has been rejected. Account ID: {{accountId}}.${reasonText} Please contact support for assistance. - Play A Sport`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payout Account Rejected - Academy (WhatsApp)
+ */
+export const getPayoutAccountRejectedAcademyWhatsApp = (variables: NotificationMessageVariables): string => {
+  const reasonText = variables.reason ? `\n\n*Reason:* ${variables.reason}` : '';
+  const template = `*Payout Account Rejected*\n\nYour payout account has been rejected.${reasonText}\n\n*Account ID:* {{accountId}}\n\nPlease contact support for assistance.\n\n- Play A Sport`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Bank Details Updated - Academy (SMS)
+ */
+export const getBankDetailsUpdatedAcademySms = (variables: NotificationMessageVariables): string => {
+  const template = `Your bank account details have been updated successfully. Account ID: {{accountId}}. The details are under verification. - Play A Sport`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Bank Details Updated - Academy (WhatsApp)
+ */
+export const getBankDetailsUpdatedAcademyWhatsApp = (variables: NotificationMessageVariables): string => {
+  const template = `*Bank Details Updated*\n\nYour bank account details have been updated successfully.\n\n*Account ID:* {{accountId}}\n\nYour bank details are under verification. You will be notified once verified.\n\n- Play A Sport`;
+  return replaceVariables(template, variables);
+};

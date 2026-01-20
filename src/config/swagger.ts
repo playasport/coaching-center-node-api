@@ -4310,6 +4310,299 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        AcademyPayoutAccount: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+              description: 'Payout account UUID',
+            },
+            razorpay_account_id: {
+              type: 'string',
+              example: 'acc_GRWKk7qQsLnDjX',
+              description: 'Razorpay Linked Account ID',
+            },
+            kyc_details: {
+              type: 'object',
+              properties: {
+                legal_business_name: {
+                  type: 'string',
+                  example: 'Elite Sports Academy',
+                },
+                business_type: {
+                  type: 'string',
+                  enum: ['individual', 'partnership', 'private_limited', 'public_limited', 'llp', 'ngo', 'trust', 'society', 'huf'],
+                  example: 'partnership',
+                },
+                contact_name: {
+                  type: 'string',
+                  example: 'John Doe',
+                },
+                email: {
+                  type: 'string',
+                  format: 'email',
+                  example: 'contact@elitesportsacademy.com',
+                },
+                phone: {
+                  type: 'string',
+                  example: '9876543210',
+                },
+                pan: {
+                  type: 'string',
+                  example: 'ABCDE1234F',
+                },
+                gst: {
+                  type: 'string',
+                  nullable: true,
+                  example: '29ABCDE1234F1Z5',
+                },
+                address: {
+                  type: 'object',
+                  properties: {
+                    street1: { type: 'string', example: '123 MG Road' },
+                    street2: { type: 'string', nullable: true, example: 'Near Metro Station' },
+                    city: { type: 'string', example: 'Bengaluru' },
+                    state: { type: 'string', example: 'KARNATAKA' },
+                    postal_code: { type: 'string', example: '560001' },
+                    country: { type: 'string', example: 'IN' },
+                  },
+                },
+              },
+            },
+            bank_information: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                account_number: {
+                  type: 'string',
+                  example: '****1234',
+                  description: 'Masked account number (last 4 digits visible)',
+                },
+                ifsc_code: {
+                  type: 'string',
+                  example: 'SBIN0001234',
+                },
+                account_holder_name: {
+                  type: 'string',
+                  example: 'Elite Sports Academy',
+                },
+                bank_name: {
+                  type: 'string',
+                  nullable: true,
+                  example: 'State Bank of India',
+                },
+              },
+            },
+            activation_status: {
+              type: 'string',
+              enum: ['pending', 'needs_clarification', 'activated', 'rejected'],
+              example: 'pending',
+            },
+            activation_requirements: {
+              type: 'array',
+              items: { type: 'string' },
+              nullable: true,
+              example: ['Additional documents required'],
+            },
+            stakeholder_id: {
+              type: 'string',
+              nullable: true,
+              example: 'stk_1234567890',
+            },
+            ready_for_payout: {
+              type: 'string',
+              enum: ['pending', 'ready', null],
+              nullable: true,
+              example: 'pending',
+              description: 'Route product configuration status - ready for payouts. "pending" = configuration in progress, "ready" = ready to receive payouts',
+            },
+            bank_details_status: {
+              type: 'string',
+              enum: ['pending', 'submitted', 'verified', null],
+              nullable: true,
+              example: 'pending',
+            },
+            rejection_reason: {
+              type: 'string',
+              nullable: true,
+              example: 'KYC verification failed',
+            },
+            is_active: {
+              type: 'boolean',
+              example: true,
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+          },
+        },
+        CreatePayoutAccountRequest: {
+          type: 'object',
+          required: ['kyc_details'],
+          properties: {
+            kyc_details: {
+              type: 'object',
+              required: ['legal_business_name', 'business_type', 'contact_name', 'email', 'phone', 'pan', 'address'],
+              properties: {
+                legal_business_name: {
+                  type: 'string',
+                  example: 'Elite Sports Academy',
+                  maxLength: 255,
+                },
+                business_type: {
+                  type: 'string',
+                  enum: ['individual', 'partnership', 'private_limited', 'public_limited', 'llp', 'ngo', 'trust', 'society', 'huf'],
+                  example: 'partnership',
+                },
+                contact_name: {
+                  type: 'string',
+                  example: 'John Doe',
+                  maxLength: 100,
+                },
+                email: {
+                  type: 'string',
+                  format: 'email',
+                  example: 'contact@elitesportsacademy.com',
+                },
+                phone: {
+                  type: 'string',
+                  pattern: '^[6-9]\\d{9}$',
+                  example: '9876543210',
+                },
+                pan: {
+                  type: 'string',
+                  pattern: '^[A-Z]{5}[0-9]{4}[A-Z]{1}$',
+                  example: 'ABCDE1234F',
+                },
+                gst: {
+                  type: 'string',
+                  pattern: '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$',
+                  nullable: true,
+                  example: '29ABCDE1234F1Z5',
+                },
+                address: {
+                  type: 'object',
+                  required: ['street1', 'city', 'state', 'postal_code', 'country'],
+                  properties: {
+                    street1: { type: 'string', example: '123 MG Road', maxLength: 255 },
+                    street2: { type: 'string', nullable: true, example: 'Near Metro Station', maxLength: 255 },
+                    city: { type: 'string', example: 'Bengaluru', maxLength: 100 },
+                    state: { type: 'string', example: 'KARNATAKA', maxLength: 100 },
+                    postal_code: { type: 'string', example: '560001', minLength: 6, maxLength: 10 },
+                    country: { type: 'string', example: 'IN', minLength: 2, maxLength: 2, default: 'IN' },
+                  },
+                },
+              },
+            },
+            bank_information: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                account_number: {
+                  type: 'string',
+                  example: '1234567890123456',
+                  minLength: 9,
+                  maxLength: 18,
+                  pattern: '^\\d+$',
+                },
+                ifsc_code: {
+                  type: 'string',
+                  pattern: '^[A-Z]{4}0[A-Z0-9]{6}$',
+                  example: 'SBIN0001234',
+                },
+                account_holder_name: {
+                  type: 'string',
+                  example: 'Elite Sports Academy',
+                  maxLength: 100,
+                },
+                bank_name: {
+                  type: 'string',
+                  nullable: true,
+                  example: 'State Bank of India',
+                  maxLength: 100,
+                },
+              },
+            },
+            stakeholder: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                name: {
+                  type: 'string',
+                  example: 'John Doe',
+                  maxLength: 100,
+                },
+                email: {
+                  type: 'string',
+                  format: 'email',
+                  example: 'john@example.com',
+                },
+                phone: {
+                  type: 'string',
+                  pattern: '^[6-9]\\d{9}$',
+                  example: '9876543210',
+                },
+                relationship: {
+                  type: 'string',
+                  enum: ['director', 'proprietor', 'partner', 'authorised_signatory'],
+                  example: 'director',
+                },
+                kyc: {
+                  type: 'object',
+                  properties: {
+                    pan: {
+                      type: 'string',
+                      pattern: '^[A-Z]{5}[0-9]{4}[A-Z]{1}$',
+                      nullable: true,
+                      example: 'ABCDE1234F',
+                    },
+                    aadhaar: {
+                      type: 'string',
+                      pattern: '^\\d{12}$',
+                      nullable: true,
+                      example: '123456789012',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        UpdateBankDetailsRequest: {
+          type: 'object',
+          required: ['account_number', 'ifsc_code', 'account_holder_name'],
+          properties: {
+            account_number: {
+              type: 'string',
+              example: '1234567890123456',
+              minLength: 9,
+              maxLength: 18,
+              pattern: '^\\d+$',
+            },
+            ifsc_code: {
+              type: 'string',
+              pattern: '^[A-Z]{4}0[A-Z0-9]{6}$',
+              example: 'SBIN0001234',
+            },
+            account_holder_name: {
+              type: 'string',
+              example: 'Elite Sports Academy',
+              maxLength: 100,
+            },
+            bank_name: {
+              type: 'string',
+              nullable: true,
+              example: 'State Bank of India',
+              maxLength: 100,
+            },
+          },
+        },
         Role: {
           type: 'object',
           properties: {
@@ -7728,6 +8021,10 @@ const options: swaggerJsdoc.Options = {
         name: 'Academy Notifications',
         description: 'Academy notification endpoints for viewing and managing notifications',
       },
+      {
+        name: 'Academy Payout Account',
+        description: 'Academy payout account management endpoints for creating and managing Razorpay Route Linked Accounts for receiving payouts',
+      },
     ],
     'x-tagGroups': [
       {
@@ -7746,6 +8043,7 @@ const options: swaggerJsdoc.Options = {
           'Academy Booking',
           'Academy Student',
           'Academy Banners',
+          'Academy Payout Account',
         ],
       },
       {
