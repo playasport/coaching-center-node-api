@@ -19,13 +19,13 @@ export const getPayoutAccount = async (req: Request, res: Response): Promise<voi
 
     if (!account) {
       res.status(404).json(
-        new ApiResponse(false, 'Payout account not found', null, 404)
+        new ApiResponse(404, null, 'Payout account not found')
       );
       return;
     }
 
     res.status(200).json(
-      new ApiResponse(true, 'Payout account retrieved successfully', account)
+      new ApiResponse(200, account, 'Payout account retrieved successfully')
     );
   } catch (error: any) {
     logger.error('Error in getPayoutAccount controller:', {
@@ -35,13 +35,13 @@ export const getPayoutAccount = async (req: Request, res: Response): Promise<voi
 
     if (error instanceof ApiError) {
       res.status(error.statusCode).json(
-        new ApiResponse(false, error.message, null, error.statusCode)
+        new ApiResponse(error.statusCode, null, error.message)
       );
       return;
     }
 
     res.status(500).json(
-      new ApiResponse(false, t('errors.internalServerError') || 'Internal server error', null, 500)
+      new ApiResponse(500, null, t('errors.internalServerError') || 'Internal server error')
     );
   }
 };
@@ -64,7 +64,7 @@ export const createPayoutAccount = async (req: Request, res: Response): Promise<
     });
 
     res.status(201).json(
-      new ApiResponse(true, 'Payout account created successfully', account, 201)
+      new ApiResponse(201, account, 'Payout account created successfully')
     );
   } catch (error: any) {
     logger.error('Error in createPayoutAccount controller:', {
@@ -74,13 +74,13 @@ export const createPayoutAccount = async (req: Request, res: Response): Promise<
 
     if (error instanceof ApiError) {
       res.status(error.statusCode).json(
-        new ApiResponse(false, error.message, null, error.statusCode)
+        new ApiResponse(error.statusCode, null, error.message)
       );
       return;
     }
 
     res.status(500).json(
-      new ApiResponse(false, t('errors.internalServerError') || 'Internal server error', null, 500)
+      new ApiResponse(500, null, t('errors.internalServerError') || 'Internal server error')
     );
   }
 };
@@ -103,7 +103,7 @@ export const updateBankDetails = async (req: Request, res: Response): Promise<vo
     });
 
     res.status(200).json(
-      new ApiResponse(true, 'Bank details updated successfully', account)
+      new ApiResponse(200, account, 'Bank details updated successfully')
     );
   } catch (error: any) {
     logger.error('Error in updateBankDetails controller:', {
@@ -113,13 +113,13 @@ export const updateBankDetails = async (req: Request, res: Response): Promise<vo
 
     if (error instanceof ApiError) {
       res.status(error.statusCode).json(
-        new ApiResponse(false, error.message, null, error.statusCode)
+        new ApiResponse(error.statusCode, null, error.message)
       );
       return;
     }
 
     res.status(500).json(
-      new ApiResponse(false, t('errors.internalServerError') || 'Internal server error', null, 500)
+      new ApiResponse(500, null, t('errors.internalServerError') || 'Internal server error')
     );
   }
 };
@@ -144,7 +144,7 @@ export const syncAccountStatus = async (req: Request, res: Response): Promise<vo
     const updatedAccount = await payoutAccountService.syncAccountStatus(account.id);
 
     res.status(200).json(
-      new ApiResponse(true, 'Account status synced successfully', updatedAccount)
+      new ApiResponse(200, updatedAccount, 'Account status synced successfully')
     );
   } catch (error: any) {
     logger.error('Error in syncAccountStatus controller:', {
@@ -154,13 +154,13 @@ export const syncAccountStatus = async (req: Request, res: Response): Promise<vo
 
     if (error instanceof ApiError) {
       res.status(error.statusCode).json(
-        new ApiResponse(false, error.message, null, error.statusCode)
+        new ApiResponse(error.statusCode, null, error.message)
       );
       return;
     }
 
     res.status(500).json(
-      new ApiResponse(false, t('errors.internalServerError') || 'Internal server error', null, 500)
+      new ApiResponse(500, null, t('errors.internalServerError') || 'Internal server error')
     );
   }
 };
