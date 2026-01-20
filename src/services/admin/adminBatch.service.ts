@@ -268,9 +268,10 @@ export const getAllBatches = async (
 
     if (filters.centerId) {
       const centerObjectId = await getCenterObjectId(filters.centerId);
-      if (centerObjectId) {
-        query.center = centerObjectId;
+      if (!centerObjectId) {
+        throw new ApiError(404, t('batch.centerNotFound'));
       }
+      query.center = centerObjectId;
     }
 
     if (filters.sportId) {

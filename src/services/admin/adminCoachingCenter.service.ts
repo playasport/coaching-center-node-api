@@ -17,6 +17,32 @@ import { EmployeeModel } from '../../models/employee.model';
 import { config } from '../../config/env';
 import { enqueueMediaMove } from '../../queue/mediaMoveQueue';
 import type { CreateNotificationInput } from '../common/notification.service';
+import { getCachedCoachingCentersList, cacheCoachingCentersList, invalidateCoachingCentersListCache } from '../../utils/coachingCenterCache';
+
+/**
+ * Helper to get center ObjectId from either custom ID (UUID) or MongoDB ObjectId
+ */
+const getCenterObjectId = async (centerId: string): Promise<Types.ObjectId | null> => {
+  try {
+    // If it's a valid ObjectId, use it directly
+    if (Types.ObjectId.isValid(centerId) && centerId.length === 24) {
+      const center = await CoachingCenterModel.findById(centerId).select('_id').lean();
+      if (center) {
+        return center._id as Types.ObjectId;
+      }
+    }
+
+    // Otherwise, try to find by custom ID (UUID)
+    const center = await CoachingCenterModel.findOne({ id: centerId, is_deleted: false })
+      .select('_id')
+      .lean();
+
+    return center ? (center._id as Types.ObjectId) : null;
+  } catch (error) {
+    logger.error('Failed to get center ObjectId:', error);
+    return null;
+  }
+};
 
 export interface AdminPaginatedResult<T> {
   coachingCenters: T[];
@@ -566,7 +592,16 @@ export const createCoachingCenterByAdmin = async (
       });
     }
 
-    return await commonService.getCoachingCenterById(coachingCenter._id.toString()) as CoachingCenter;
+    const result = await commonService.getCoachingCenterById(coachingCenter._id.toString()) as CoachingCenter;
+    
+    // Invalidate cache after creating a new coaching center (non-blocking)
+    invalidateCoachingCentersListCache().catch((cacheError) => {
+      logger.warn('Failed to invalidate coaching centers list cache after create (non-blocking)', {
+        error: cacheError instanceof Error ? cacheError.message : cacheError,
+      });
+    });
+    
+    return result;
   } catch (error) {
     if (error instanceof ApiError) throw error;
     logger.error('Admin failed to create coaching center:', {
@@ -670,7 +705,19 @@ export const updateCoachingCenterByAdmin = async (
       }
     }
 
-    return await commonService.getCoachingCenterById(id);
+    const result = await commonService.getCoachingCenterById(id);
+    
+    // Invalidate cache after updating a coaching center (non-blocking)
+    // Only invalidate if center_name or is_deleted changed (affects list)
+    if (data.center_name !== undefined || data.is_deleted !== undefined) {
+      invalidateCoachingCentersListCache().catch((cacheError) => {
+        logger.warn('Failed to invalidate coaching centers list cache after update (non-blocking)', {
+          error: cacheError instanceof Error ? cacheError.message : cacheError,
+        });
+      });
+    }
+    
+    return result;
   } catch (error) {
     if (error instanceof ApiError) throw error;
     logger.error('Admin failed to update coaching center:', error);
@@ -1140,3 +1187,175 @@ export const getEmployeesByCoachingCenterId = async (
     throw new ApiError(500, 'Failed to fetch employees');
   }
 };
+
+/**
+ * List coaching centers with search and pagination
+ * If centerId is provided, returns full details of that specific center with sports
+ * Otherwise, returns simple list (id and center_name only)
+ * Includes Redis caching for improved performance
+ */
+export const listCoachingCentersSimple = async (
+  page: number = 1,
+  limit: number = config.pagination.defaultLimit,
+  search?: string,
+  status?: string,
+  isActive?: boolean,
+  centerId?: string
+): Promise<AdminPaginatedResult<{ id: string; center_name: string } | { id: string; center_name: string; sport_details: Array<{ id: string; name: string }> }>> => {
+  try {
+    // If centerId is provided, return full details of that specific center
+    if (centerId) {
+      // Try to get from cache first
+      const cachedResult = await getCachedCoachingCentersList(1, 1, undefined, status, isActive, centerId);
+      if (cachedResult) {
+        logger.debug('Returning cached coaching center details', { centerId, status, isActive });
+        return cachedResult;
+      }
+
+      const centerObjectId = await getCenterObjectId(centerId);
+      if (!centerObjectId) {
+        throw new ApiError(404, t('coachingCenter.notFound'));
+      }
+
+      // Build query with filters
+      const query: any = {
+        _id: centerObjectId,
+        is_deleted: false,
+      };
+
+      // Add status filter if provided
+      if (status) {
+        query.status = status;
+      }
+
+      // Add isActive filter if provided
+      if (isActive !== undefined) {
+        query.is_active = isActive;
+      }
+
+      const coachingCenter = await CoachingCenterModel.findOne(query)
+        .populate('sport_details.sport_id', 'custom_id name _id')
+        .select('_id center_name sport_details')
+        .lean();
+
+      if (!coachingCenter) {
+        throw new ApiError(404, t('coachingCenter.notFound'));
+      }
+
+      // Transform response to only include: id, center_name, and sport_details (with name and id only)
+      const transformedCenter = {
+        id: (coachingCenter as any)._id.toString(), // MongoDB ObjectId as string
+        center_name: (coachingCenter as any).center_name,
+        sport_details: ((coachingCenter as any).sport_details || []).map((sportDetail: any) => {
+          const sport = sportDetail.sport_id;
+          return {
+            id: sport?._id?.toString() || sport?.custom_id || null,
+            name: sport?.name || null,
+          };
+        }).filter((sd: any) => sd.id && sd.name), // Filter out any invalid entries
+      };
+
+      const result = {
+        coachingCenters: [transformedCenter],
+        pagination: {
+          page: 1,
+          limit: 1,
+          total: 1,
+          totalPages: 1,
+        },
+      };
+
+      // Cache the result for centerId-specific requests (non-blocking)
+      cacheCoachingCentersList(1, 1, undefined, status, isActive, centerId, result).catch((cacheError) => {
+        logger.warn('Failed to cache coaching center details (non-blocking)', {
+          centerId,
+          status,
+          isActive,
+          error: cacheError instanceof Error ? cacheError.message : cacheError,
+        });
+      });
+
+      return result;
+    }
+
+    // Otherwise, return simple list
+    const pageNumber = Math.max(1, Math.floor(page));
+    const pageSize = Math.min(config.pagination.maxLimit, Math.max(1, Math.floor(limit)));
+    const skip = (pageNumber - 1) * pageSize;
+
+    // Try to get from cache first
+    const cachedResult = await getCachedCoachingCentersList(pageNumber, pageSize, search, status, isActive, centerId);
+    if (cachedResult) {
+      logger.debug('Returning cached coaching centers list', { page: pageNumber, limit: pageSize, search, status, isActive, centerId });
+      return cachedResult;
+    }
+
+    const query: any = { is_deleted: false };
+
+    // Add status filter if provided
+    if (status) {
+      query.status = status;
+    }
+
+    // Add isActive filter if provided
+    if (isActive !== undefined) {
+      query.is_active = isActive;
+    }
+
+    // Add search filter if provided
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      query.center_name = searchRegex;
+    }
+
+    // Execute count and find queries in parallel
+    const [total, coachingCenters] = await Promise.all([
+      CoachingCenterModel.countDocuments(query),
+      CoachingCenterModel.find(query)
+        .select('_id center_name')
+        .sort({ center_name: 1 })
+        .skip(skip)
+        .limit(pageSize)
+        .lean(),
+    ]);
+
+    const totalPages = Math.ceil(total / pageSize);
+
+    const result = {
+      coachingCenters: coachingCenters.map((center: any) => ({
+        id: center._id.toString(), // Return MongoDB ObjectId as string
+        center_name: center.center_name,
+      })),
+      pagination: {
+        page: pageNumber,
+        limit: pageSize,
+        total,
+        totalPages,
+      },
+    };
+
+    // Cache the result (non-blocking)
+    cacheCoachingCentersList(pageNumber, pageSize, search, status, isActive, centerId, result).catch((cacheError) => {
+      logger.warn('Failed to cache coaching centers list (non-blocking)', {
+        page: pageNumber,
+        limit: pageSize,
+        search,
+        status,
+        isActive,
+        centerId,
+        error: cacheError instanceof Error ? cacheError.message : cacheError,
+      });
+    });
+
+    return result;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Failed to list coaching centers:', error);
+    throw new ApiError(500, t('coachingCenter.list.failed'));
+  }
+};
+
+
+

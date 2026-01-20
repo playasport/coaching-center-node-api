@@ -425,5 +425,51 @@ router.delete(
   adminFacilityController.deleteFacility
 );
 
+/**
+ * @swagger
+ * /admin/facilities/{id}/restore:
+ *   patch:
+ *     summary: Restore soft-deleted facility (admin)
+ *     tags: [Admin Facilities]
+ *     security:
+ *       - bearerAuth: []
+ *     description: Restore a soft-deleted facility by setting isDeleted to false. Requires facility:update permission.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Facility ID (supports both MongoDB ObjectId format and custom_id UUID format)
+ *     responses:
+ *       200:
+ *         description: Facility restored successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Facility restored successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     facility:
+ *                       $ref: '#/components/schemas/Facility'
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       404:
+ *         description: Deleted facility not found
+ */
+router.patch(
+  '/:id/restore',
+  requirePermission(Section.FACILITY, Action.UPDATE),
+  adminFacilityController.restoreFacility
+);
+
 export default router;
 

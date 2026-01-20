@@ -102,6 +102,45 @@ export const getCoachingCentersByUserId = async (req: Request, res: Response, ne
 };
 
 /**
+ * List coaching centers with search and pagination
+ * If centerId is provided, returns full details of that specific center with sports
+ * Otherwise, returns simple list (id and center_name only) - no role permission required
+ */
+export const listCoachingCentersSimple = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // Get pagination and filter parameters from query
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const search = req.query.search as string | undefined;
+    const status = req.query.status as string | undefined;
+    const isActive = req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined;
+    const centerId = req.query.centerId as string | undefined;
+
+    const result = await adminCoachingCenterService.listCoachingCentersSimple(
+      page,
+      limit,
+      search,
+      status,
+      isActive,
+      centerId
+    );
+
+    const response = new ApiResponse(
+      200,
+      result,
+      t('coachingCenter.list.success')
+    );
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Create coaching center by admin
  * Allows admin to create center by providing academy owner details
  */

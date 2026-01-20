@@ -13,7 +13,10 @@ export interface FacilityListItem {
 
 export const getAllFacilities = async (): Promise<FacilityListItem[]> => {
   try {
-    const facilities = await FacilityModel.find({ is_active: true })
+    const facilities = await FacilityModel.find({ 
+      is_active: true,
+      isDeleted: { $ne: true } // Exclude soft-deleted facilities
+    })
       .select('_id custom_id name description icon')
       .sort({ name: 1 })
       .lean();
@@ -52,7 +55,10 @@ export const findOrCreateFacility = async (
       }
 
       const facilityId = new Types.ObjectId(facility);
-      const existingFacility = await FacilityModel.findById(facilityId);
+      const existingFacility = await FacilityModel.findOne({
+        _id: facilityId,
+        isDeleted: { $ne: true }, // Exclude soft-deleted facilities
+      });
 
       if (!existingFacility) {
         throw new ApiError(400, 'Facility not found');
@@ -68,10 +74,11 @@ export const findOrCreateFacility = async (
     // If facility is an object, find by name or create
     const facilityName = facility.name.trim();
     
-    // Check if facility with same name already exists
+    // Check if facility with same name already exists (excluding deleted)
     let existingFacility = await FacilityModel.findOne({
       name: { $regex: new RegExp(`^${facilityName}$`, 'i') }, // Case-insensitive match
       is_active: true,
+      isDeleted: { $ne: true }, // Exclude soft-deleted facilities
     });
 
     if (existingFacility) {

@@ -15,13 +15,14 @@ export const getAllFacilities = async (
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const { search, isActive, sortBy, sortOrder } = req.query;
+    const { search, isActive, includeDeleted, sortBy, sortOrder } = req.query;
 
     const params: adminFacilityService.GetAdminFacilitiesParams = {
       page,
       limit,
       search: search as string,
       isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      includeDeleted: includeDeleted === 'true',
       sortBy: sortBy as string,
       sortOrder: sortOrder as 'asc' | 'desc',
     };
@@ -117,6 +118,26 @@ export const deleteFacility = async (
     await adminFacilityService.deleteFacility(id);
 
     const response = new ApiResponse(200, null, 'Facility deleted successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Restore soft-deleted facility
+ */
+export const restoreFacility = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const facility = await adminFacilityService.restoreFacility(id);
+
+    const response = new ApiResponse(200, { facility }, 'Facility restored successfully');
     res.json(response);
   } catch (error) {
     next(error);

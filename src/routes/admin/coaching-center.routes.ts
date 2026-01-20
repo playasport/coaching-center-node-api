@@ -347,6 +347,136 @@ router.get(
 
 /**
  * @swagger
+ * /admin/coaching-centers/list:
+ *   get:
+ *     summary: List coaching centers (simple or detailed)
+ *     tags: [Admin Coaching Centers]
+ *     description: |
+ *       Retrieve a paginated list of coaching centers with search and filter functionality.
+ *       - If centerId is provided: Returns full details of that specific center with sports populated
+ *       - If centerId is not provided: Returns simple list with only id (MongoDB ObjectId) and center_name
+ *       Requires authentication but no role permission.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number (ignored if centerId is provided)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of records per page (ignored if centerId is provided)
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term to filter coaching centers by name
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [draft, published]
+ *         description: Filter by center status
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter by active status
+ *       - in: query
+ *         name: centerId
+ *         schema:
+ *           type: string
+ *         description: Coaching center ID (MongoDB ObjectId or UUID). If provided, returns id, center_name, and sport_details (with name and id only).
+ *     responses:
+ *       200:
+ *         description: Coaching centers retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Coaching centers retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     coachingCenters:
+ *                       type: array
+ *                       description: |
+ *                         If centerId is provided: Array with single object containing id, center_name, and sport_details (with name and id only).
+ *                         If centerId is not provided: Array of simple objects with id and center_name only.
+ *                       items:
+ *                         oneOf:
+ *                           - type: object
+ *                             description: Coaching center with sports (when centerId is provided)
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                                 description: MongoDB ObjectId
+ *                                 example: "507f1f77bcf86cd799439011"
+ *                               center_name:
+ *                                 type: string
+ *                                 example: "Elite Sports Academy"
+ *                               sport_details:
+ *                                 type: array
+ *                                 description: Array of sports with id and name only
+ *                                 items:
+ *                                   type: object
+ *                                   properties:
+ *                                     id:
+ *                                       type: string
+ *                                       description: Sport MongoDB ObjectId or custom_id
+ *                                       example: "507f1f77bcf86cd799439012"
+ *                                     name:
+ *                                       type: string
+ *                                       example: "Cricket"
+ *                           - type: object
+ *                             description: Simple list item (when centerId is not provided)
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                                 description: MongoDB ObjectId
+ *                                 example: "507f1f77bcf86cd799439011"
+ *                               center_name:
+ *                                 type: string
+ *                                 example: "Elite Sports Academy"
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 10
+ *                         total:
+ *                           type: integer
+ *                           example: 25
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 3
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       404:
+ *         description: Coaching center not found (when centerId is provided)
+ */
+router.get('/list', coachingCenterController.listCoachingCentersSimple);
+
+/**
+ * @swagger
  * /admin/coaching-centers:
  *   post:
  *     summary: Create coaching center (admin)

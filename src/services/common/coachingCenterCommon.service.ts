@@ -132,6 +132,14 @@ export const deleteCoachingCenter = async (id: string): Promise<void> => {
       { runValidators: true }
     );
 
+    // Invalidate cache after deleting a coaching center (non-blocking)
+    const { invalidateCoachingCentersListCache } = await import('../../utils/coachingCenterCache');
+    invalidateCoachingCentersListCache().catch((cacheError) => {
+      logger.warn('Failed to invalidate coaching centers list cache after delete (non-blocking)', {
+        error: cacheError instanceof Error ? cacheError.message : cacheError,
+      });
+    });
+
     logger.info('Coaching center soft deleted successfully', { coachingCenterId: id });
   } catch (error) {
     if (error instanceof ApiError) throw error;
@@ -562,7 +570,10 @@ export const resolveFacilities = async (facilityInput: any[]): Promise<Types.Obj
   const promises = facilityInput.map(async (input) => {
     if (typeof input === 'string') {
       if (!Types.ObjectId.isValid(input)) throw new ApiError(400, t('coachingCenter.facility.invalidId', { id: input }));
-      const exists = await FacilityModel.findById(input);
+      const exists = await FacilityModel.findOne({
+        _id: input,
+        isDeleted: { $ne: true }, // Exclude soft-deleted facilities
+      });
       if (!exists) throw new ApiError(400, t('coachingCenter.facility.notFound', { id: input }));
       return new Types.ObjectId(input);
     }
