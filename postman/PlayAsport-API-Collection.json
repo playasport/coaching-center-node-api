@@ -25,6 +25,11 @@
       "key": "accessToken",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "payoutId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -3837,6 +3842,123 @@
         }
       ],
       "description": "Academy payout account management endpoints for creating and managing Razorpay Route Linked Accounts for receiving payouts. Each academy user can have only one payout account. Requires ACADEMY role authentication."
+    },
+    {
+      "name": "Academy Payouts",
+      "item": [
+        {
+          "name": "Get Payouts List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/my-payouts?status=pending&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "my-payouts"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "description": "Filter by payout status: pending, processing, completed, failed, cancelled, refunded",
+                  "disabled": true
+                },
+                {
+                  "key": "dateFrom",
+                  "value": "",
+                  "description": "Filter from date (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "dateTo",
+                  "value": "",
+                  "description": "Filter to date (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items per page (default: 20, max: 100)"
+                }
+              ]
+            },
+            "description": "Get paginated list of payouts for the authenticated academy user with basic information. Returns only payouts belonging to the authenticated academy user. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payout Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/my-payouts/:payoutId",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "my-payouts", ":payoutId"],
+              "variable": [
+                {
+                  "key": "payoutId",
+                  "value": "payout-uuid-here",
+                  "description": "Payout ID (UUID)"
+                }
+              ]
+            },
+            "description": "Get detailed payout information for a specific payout ID. Only returns payout if it belongs to the authenticated academy user. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payout Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/my-payouts/stats?dateFrom=2026-01-01&dateTo=2026-01-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "my-payouts", "stats"],
+              "query": [
+                {
+                  "key": "dateFrom",
+                  "value": "2026-01-01",
+                  "description": "Filter from date (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "dateTo",
+                  "value": "2026-01-31",
+                  "description": "Filter to date (YYYY-MM-DD)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get aggregated payout statistics for the authenticated academy user including counts and amounts for pending, processing, completed, and failed payouts. Requires ACADEMY role authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "Academy payout viewing endpoints for viewing payout information. Academy users can view their payouts list, details, and statistics. Only returns payouts belonging to the authenticated academy user. Requires ACADEMY role authentication."
     }
   ]
 }

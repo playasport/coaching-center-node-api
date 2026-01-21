@@ -19,6 +19,7 @@ export enum Section {
   DASHBOARD = 'dashboard',
   TRANSACTION = 'transaction',
   PAYMENT = 'payment',
+  PAYOUT = 'payout',
   BANNER = 'banner',
   CMS_PAGE = 'cms_page',
   NOTIFICATION = 'notification',

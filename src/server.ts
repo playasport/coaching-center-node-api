@@ -14,6 +14,10 @@ import { payoutBankDetailsQueue } from './queue/payoutBankDetailsQueue';
 import { closePayoutBankDetailsWorker } from './queue/payoutBankDetailsWorker';
 import { payoutStakeholderQueue } from './queue/payoutStakeholderQueue';
 import { closePayoutStakeholderWorker } from './queue/payoutStakeholderWorker';
+import { payoutCreationQueue } from './queue/payoutCreationQueue';
+import { closePayoutCreationWorker } from './queue/payoutCreationWorker';
+import { payoutTransferQueue } from './queue/payoutTransferQueue';
+import { closePayoutTransferWorker } from './queue/payoutTransferWorker';
 import { closeUserCache } from './utils/userCache';
 import { closeTokenBlacklist } from './utils/tokenBlacklist';
 import { closeRateLimit } from './middleware/rateLimit.middleware';
@@ -107,6 +111,22 @@ const gracefulShutdown = async (signal: string) => {
     // Close payout stakeholder queue
     await payoutStakeholderQueue.close();
     logger.info('Payout stakeholder queue closed');
+    
+    // Close payout creation worker
+    await closePayoutCreationWorker();
+    logger.info('Payout creation worker closed');
+    
+    // Close payout creation queue
+    await payoutCreationQueue.close();
+    logger.info('Payout creation queue closed');
+    
+    // Close payout transfer worker
+    await closePayoutTransferWorker();
+    logger.info('Payout transfer worker closed');
+    
+    // Close payout transfer queue
+    await payoutTransferQueue.close();
+    logger.info('Payout transfer queue closed');
     
     // Close user cache Redis connection
     await closeUserCache();

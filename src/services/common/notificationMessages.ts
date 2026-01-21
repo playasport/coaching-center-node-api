@@ -262,3 +262,53 @@ export const getBankDetailsUpdatedAcademyWhatsApp = (variables: NotificationMess
   const template = `*Bank Details Updated*\n\nYour bank account details have been updated successfully.\n\n*Account ID:* {{accountId}}\n\nYour bank details are under verification. You will be notified once verified.\n\n- Play A Sport`;
   return replaceVariables(template, variables);
 };
+
+/**
+ * Payout Transfer Initiated - Academy (SMS)
+ */
+export const getPayoutTransferInitiatedAcademySms = (variables: NotificationMessageVariables): string => {
+  const template = `Your payout of ₹{{amount}} has been initiated. Transfer ID: {{transferId}}. You will be notified once the transfer is completed. - Play A Sport`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payout Transfer Initiated - Academy (WhatsApp)
+ */
+export const getPayoutTransferInitiatedAcademyWhatsApp = (variables: NotificationMessageVariables): string => {
+  const template = `*Payout Transfer Initiated*\n\nYour payout of ₹{{amount}} has been initiated.\n\n*Transfer ID:* {{transferId}}\n\nYou will be notified once the transfer is completed.\n\n- Play A Sport`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payout Transfer Completed - Academy (SMS)
+ */
+export const getPayoutTransferCompletedAcademySms = (variables: NotificationMessageVariables): string => {
+  const template = `Great news! Your payout of ₹{{amount}} has been successfully transferred to your account. Transfer ID: {{transferId}}. - Play A Sport`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payout Transfer Completed - Academy (WhatsApp)
+ */
+export const getPayoutTransferCompletedAcademyWhatsApp = (variables: NotificationMessageVariables): string => {
+  const template = `*Payout Transfer Completed! 🎉*\n\nGreat news! Your payout of ₹{{amount}} has been successfully transferred to your account.\n\n*Transfer ID:* {{transferId}}\n\nThank you for using Play A Sport!\n\n- Play A Sport`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payout Transfer Failed - Academy (SMS)
+ */
+export const getPayoutTransferFailedAcademySms = (variables: NotificationMessageVariables): string => {
+  const reasonText = variables.reason ? ` Reason: ${variables.reason}` : '';
+  const template = `Your payout transfer of ₹{{amount}} has failed.${reasonText} Please contact support for assistance. - Play A Sport`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payout Transfer Failed - Academy (WhatsApp)
+ */
+export const getPayoutTransferFailedAcademyWhatsApp = (variables: NotificationMessageVariables): string => {
+  const reasonText = variables.reason ? `\n\n*Reason:* ${variables.reason}` : '';
+  const template = `*Payout Transfer Failed*\n\nYour payout transfer of ₹{{amount}} has failed.${reasonText}\n\nPlease contact support for assistance.\n\n- Play A Sport`;
+  return replaceVariables(template, variables);
+};

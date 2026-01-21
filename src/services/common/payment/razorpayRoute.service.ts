@@ -693,6 +693,288 @@ export class RazorpayRouteService {
       throw new ApiError(500, 'Failed to fetch account details. Please try again.');
     }
   }
+
+  /**
+   * Create a transfer to academy's Razorpay account
+   * @param accountId Academy's Razorpay account ID
+   * @param amount Amount to transfer (in rupees, will be converted to paise)
+   * @param currency Currency (default: INR)
+   * @param notes Optional notes for the transfer
+   * @returns Transfer response from Razorpay
+   */
+  async createTransfer(
+    accountId: string,
+    amount: number,
+    currency: string = 'INR',
+    notes?: Record<string, any>
+  ): Promise<any> {
+    this.ensureInitialized();
+
+    try {
+      // Convert amount to paise (Razorpay expects amount in smallest currency unit)
+      const amountInPaise = Math.round(amount * 100);
+
+      if (amountInPaise <= 0) {
+        throw new ApiError(400, 'Transfer amount must be greater than 0');
+      }
+
+      const requestBody: any = {
+        account: accountId,
+        amount: amountInPaise,
+        currency: currency.toUpperCase(),
+      };
+
+      if (notes && Object.keys(notes).length > 0) {
+        requestBody.notes = notes;
+      }
+
+      logger.info('Creating transfer in Razorpay', {
+        accountId,
+        amount: amountInPaise,
+        currency: requestBody.currency,
+        notes: notes ? Object.keys(notes) : [],
+      });
+
+      const response = await fetch('https://api.razorpay.com/v2/transfers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${Buffer.from(`${config.razorpay.keyId}:${config.razorpay.keySecret}`).toString('base64')}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = (await response.json().catch(() => ({}))) as {
+          error?: { description?: string; code?: string; field?: string; reason?: string };
+        };
+
+        const errorMessage = errorData.error?.description || 'Failed to create transfer';
+        const errorCode = errorData.error?.code || 'TRANSFER_ERROR';
+
+        logger.error('Razorpay Transfer creation failed:', {
+          status: response.status,
+          error: errorData.error,
+          accountId,
+          amount: amountInPaise,
+        });
+
+        // Provide more specific error messages
+        if (errorCode === 'BAD_REQUEST_ERROR') {
+          if (errorData.error?.field) {
+            throw new ApiError(400, `Invalid ${errorData.error.field}: ${errorMessage}`);
+          }
+          throw new ApiError(400, errorMessage);
+        }
+
+        throw new ApiError(response.status || 500, errorMessage);
+      }
+
+      const transferData = (await response.json()) as {
+        id: string;
+        status: string;
+        amount: number;
+        currency: string;
+        account: string;
+        [key: string]: any;
+      };
+
+      logger.info('Razorpay Transfer created successfully', {
+        transferId: transferData.id,
+        accountId,
+        amount: amountInPaise,
+        status: transferData.status,
+      });
+
+      return transferData;
+    } catch (error: any) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      logger.error('Error creating transfer in Razorpay:', {
+        error: error.message || error,
+        accountId,
+        amount,
+      });
+      throw new ApiError(500, 'Failed to create transfer. Please try again.');
+    }
+  }
+
+  /**
+   * Get transfer details from Razorpay
+   * @param transferId Razorpay transfer ID
+   * @returns Transfer details
+   */
+  async getTransferDetails(transferId: string): Promise<any> {
+    this.ensureInitialized();
+
+    try {
+      const response = await fetch(`https://api.razorpay.com/v2/transfers/${transferId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${Buffer.from(`${config.razorpay.keyId}:${config.razorpay.keySecret}`).toString('base64')}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = (await response.json().catch(() => ({}))) as { error?: { description?: string } };
+        throw new ApiError(
+          response.status || 500,
+          errorData.error?.description || 'Failed to fetch transfer details'
+        );
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      logger.error('Error fetching transfer details:', {
+        error: error.message || error,
+        transferId,
+      });
+      throw new ApiError(500, 'Failed to fetch transfer details. Please try again.');
+    }
+  }
+
+  /**
+   * Create a refund for a payment
+   * @param paymentId Razorpay payment ID
+   * @param amount Amount to refund (in rupees, will be converted to paise). If not provided, full refund
+   * @param notes Optional notes for the refund
+   * @returns Refund response from Razorpay
+   */
+  async createRefund(
+    paymentId: string,
+    amount?: number,
+    notes?: Record<string, any>
+  ): Promise<any> {
+    this.ensureInitialized();
+
+    try {
+      const requestBody: any = {};
+
+      // If amount is provided, convert to paise and add to request
+      if (amount !== undefined && amount !== null) {
+        const amountInPaise = Math.round(amount * 100);
+        if (amountInPaise <= 0) {
+          throw new ApiError(400, 'Refund amount must be greater than 0');
+        }
+        requestBody.amount = amountInPaise;
+      }
+
+      if (notes && Object.keys(notes).length > 0) {
+        requestBody.notes = notes;
+      }
+
+      logger.info('Creating refund in Razorpay', {
+        paymentId,
+        amount: amount ? Math.round(amount * 100) : 'full',
+        notes: notes ? Object.keys(notes) : [],
+      });
+
+      const response = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}/refund`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${Buffer.from(`${config.razorpay.keyId}:${config.razorpay.keySecret}`).toString('base64')}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = (await response.json().catch(() => ({}))) as {
+          error?: { description?: string; code?: string; field?: string; reason?: string };
+        };
+
+        const errorMessage = errorData.error?.description || 'Failed to create refund';
+        const errorCode = errorData.error?.code || 'REFUND_ERROR';
+
+        logger.error('Razorpay Refund creation failed:', {
+          status: response.status,
+          error: errorData.error,
+          paymentId,
+          amount: amount ? Math.round(amount * 100) : 'full',
+        });
+
+        // Provide more specific error messages
+        if (errorCode === 'BAD_REQUEST_ERROR') {
+          if (errorData.error?.field) {
+            throw new ApiError(400, `Invalid ${errorData.error.field}: ${errorMessage}`);
+          }
+          throw new ApiError(400, errorMessage);
+        }
+
+        throw new ApiError(response.status || 500, errorMessage);
+      }
+
+      const refundData = (await response.json()) as {
+        id: string;
+        status: string;
+        amount?: number;
+        payment_id: string;
+        [key: string]: any;
+      };
+
+      logger.info('Razorpay Refund created successfully', {
+        refundId: refundData.id,
+        paymentId,
+        amount: refundData.amount ? refundData.amount / 100 : 'full',
+        status: refundData.status,
+      });
+
+      return refundData;
+    } catch (error: any) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      logger.error('Error creating refund in Razorpay:', {
+        error: error.message || error,
+        paymentId,
+        amount,
+      });
+      throw new ApiError(500, 'Failed to create refund. Please try again.');
+    }
+  }
+
+  /**
+   * Get refund details from Razorpay
+   * @param refundId Razorpay refund ID
+   * @returns Refund details
+   */
+  async getRefundDetails(refundId: string): Promise<any> {
+    this.ensureInitialized();
+
+    try {
+      const response = await fetch(`https://api.razorpay.com/v1/refunds/${refundId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${Buffer.from(`${config.razorpay.keyId}:${config.razorpay.keySecret}`).toString('base64')}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = (await response.json().catch(() => ({}))) as { error?: { description?: string } };
+        throw new ApiError(
+          response.status || 500,
+          errorData.error?.description || 'Failed to fetch refund details'
+        );
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      logger.error('Error fetching refund details:', {
+        error: error.message || error,
+        refundId,
+      });
+      throw new ApiError(500, 'Failed to fetch refund details. Please try again.');
+    }
+  }
 }
 
 // Export singleton instance

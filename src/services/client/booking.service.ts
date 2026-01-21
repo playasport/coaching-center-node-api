@@ -1227,6 +1227,59 @@ export const verifyPayment = async (
 
     logger.info(`Payment verified successfully for booking: ${booking.id}`);
 
+    // Note: payout_status will be set when payout is actually created/transferred
+    // Remains NOT_INITIATED during payment verification, will be updated when payout is created
+
+    // Create payout record (non-blocking - enqueue in background)
+    // Only create payout if commission and priceBreakdown exist and payoutAmount > 0
+    if (booking.commission && booking.commission.payoutAmount > 0 && booking.priceBreakdown) {
+      try {
+        // Get center to find academy owner
+        const center = await CoachingCenterModel.findById(booking.center)
+          .select('user')
+          .lean();
+
+        if (center?.user) {
+          const academyUser = await UserModel.findById(center.user).select('id').lean();
+          if (academyUser) {
+            // Get transaction ID
+            const transaction = await TransactionModel.findOne({
+              booking: booking._id,
+              razorpay_order_id: data.razorpay_order_id,
+            }).select('id').lean();
+
+            if (transaction) {
+              // Enqueue payout creation (non-blocking)
+              const { enqueuePayoutCreation } = await import('../../queue/payoutCreationQueue');
+              enqueuePayoutCreation({
+                bookingId: booking.id,
+                transactionId: transaction.id,
+                academyUserId: academyUser.id,
+                amount: booking.amount,
+                batchAmount: booking.priceBreakdown.batch_amount,
+                commissionRate: booking.commission.rate,
+                commissionAmount: booking.commission.amount,
+                payoutAmount: booking.commission.payoutAmount,
+                currency: booking.currency,
+              });
+
+              logger.info('Payout creation job enqueued', {
+                bookingId: booking.id,
+                transactionId: transaction.id,
+                payoutAmount: booking.commission.payoutAmount,
+              });
+            }
+          }
+        }
+      } catch (payoutError: any) {
+        // Log but don't fail payment verification
+        logger.error('Failed to enqueue payout creation (non-blocking)', {
+          error: payoutError.message || payoutError,
+          bookingId: booking.id,
+        });
+      }
+    }
+
     // Send confirmation emails/SMS asynchronously (non-blocking)
     // Don't await - let it run in background
     (async () => {

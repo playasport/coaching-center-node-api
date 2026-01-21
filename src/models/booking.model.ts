@@ -27,6 +27,17 @@ export enum BookingStatus {
   PENDING = 'pending', // Deprecated: Use PAYMENT_PENDING instead
 }
 
+// Booking payout status enum
+export enum BookingPayoutStatus {
+  NOT_INITIATED = 'not_initiated', // Payout not yet created
+  PENDING = 'pending', // Payout created, waiting for transfer
+  PROCESSING = 'processing', // Transfer initiated
+  COMPLETED = 'completed', // Transfer successful
+  FAILED = 'failed', // Transfer failed
+  CANCELLED = 'cancelled', // Payout cancelled
+  REFUNDED = 'refunded', // Payout refunded (booking refunded)
+}
+
 // Payment details interface
 export interface PaymentDetails {
   razorpay_order_id?: string | null;
@@ -88,6 +99,7 @@ export interface Booking {
   payment: PaymentDetails;
   commission?: CommissionDetails | null; // Commission details
   priceBreakdown?: PriceBreakdown | null; // Price breakdown details
+  payout_status?: BookingPayoutStatus | null; // Status of payout to academy
   notes?: string | null;
   cancellation_reason?: string | null; // Reason for cancellation
   cancelled_by?: 'user' | 'academy' | 'system' | null; // Who cancelled the booking
@@ -352,6 +364,12 @@ const bookingSchema = new Schema<Booking>(
     priceBreakdown: {
       type: priceBreakdownSchema,
       default: null,
+    },
+    payout_status: {
+      type: String,
+      enum: Object.values(BookingPayoutStatus),
+      default: BookingPayoutStatus.NOT_INITIATED,
+      index: true,
     },
     notes: {
       type: String,

@@ -1,5 +1,6 @@
-import { BookingModel, PaymentStatus, BookingStatus } from '../../models/booking.model';
+import { BookingModel, PaymentStatus, BookingStatus, BookingPayoutStatus } from '../../models/booking.model';
 import { TransactionModel, TransactionStatus, TransactionSource } from '../../models/transaction.model';
+import { ActionType, ActionScale } from '../../models/auditTrail.model';
 import { logger } from '../../utils/logger';
 
 export interface RazorpayWebhookPayload {
@@ -57,6 +58,32 @@ export interface RazorpayWebhookPayload {
         created_at: number;
       };
     };
+    transfer?: {
+      entity: {
+        id: string;
+        entity: string;
+        amount: number;
+        currency: string;
+        status: string;
+        account: string;
+        notes: Record<string, any>;
+        failure_reason?: string | null;
+        created_at: number;
+      };
+    };
+    refund?: {
+      entity: {
+        id: string;
+        entity: string;
+        amount: number;
+        currency: string;
+        payment_id: string;
+        status: string;
+        notes: Record<string, any>;
+        failure_reason?: string | null;
+        created_at: number;
+      };
+    };
   };
   created_at: number;
 }
@@ -84,6 +111,22 @@ export const handleWebhook = async (payload: RazorpayWebhookPayload): Promise<vo
     // Handle order.paid event
     else if (event === 'order.paid' && webhookPayload.order?.entity) {
       await handleOrderPaid(webhookPayload.order.entity, payload);
+    }
+    // Handle transfer.processed event
+    else if (event === 'transfer.processed' && webhookPayload.transfer?.entity) {
+      await handleTransferProcessed(webhookPayload.transfer.entity, payload);
+    }
+    // Handle transfer.failed event
+    else if (event === 'transfer.failed' && webhookPayload.transfer?.entity) {
+      await handleTransferFailed(webhookPayload.transfer.entity, payload);
+    }
+    // Handle refund.processed event
+    else if (event === 'refund.processed' && webhookPayload.refund?.entity) {
+      await handleRefundProcessed(webhookPayload.refund.entity, payload);
+    }
+    // Handle refund.failed event
+    else if (event === 'refund.failed' && webhookPayload.refund?.entity) {
+      await handleRefundFailed(webhookPayload.refund.entity, payload);
     }
     else {
       logger.info(`Unhandled webhook event: ${event}`);
@@ -293,6 +336,432 @@ const handleOrderPaid = async (
     logger.error('Error handling order.paid webhook:', {
       error: error instanceof Error ? error.message : error,
       orderId: order.id,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Handle transfer.processed event
+ */
+const handleTransferProcessed = async (
+  transfer: any,
+  _fullPayload: RazorpayWebhookPayload
+): Promise<void> => {
+  try {
+    const transferId = transfer.id;
+    const amount = transfer.amount ? transfer.amount / 100 : 0; // Convert from paise to rupees
+
+    logger.info('Processing transfer.processed webhook', {
+      transferId,
+      amount,
+      status: transfer.status,
+    });
+
+    // Find payout by transfer ID
+    const { PayoutModel, PayoutStatus } = await import('../../models/payout.model');
+    const payout = await PayoutModel.findOne({
+      razorpay_transfer_id: transferId,
+    });
+
+    if (!payout) {
+      logger.warn(`Payout not found for transfer: ${transferId}`);
+      return;
+    }
+
+    // Update payout status
+    payout.status = PayoutStatus.COMPLETED;
+    payout.processed_at = new Date();
+    payout.failure_reason = null;
+    await payout.save();
+
+    // Update booking payout_status to COMPLETED (transfer completed)
+    await BookingModel.findByIdAndUpdate(payout.booking, {
+      $set: {
+        payout_status: BookingPayoutStatus.COMPLETED,
+      },
+    }).catch((error) => {
+      logger.error('Failed to update booking payout_status after transfer completion', {
+        error: error instanceof Error ? error.message : error,
+        bookingId: payout.booking.toString(),
+      });
+    });
+
+    // Create audit trail
+    const { createAuditTrail } = await import('./auditTrail.service');
+    await createAuditTrail(
+      ActionType.PAYOUT_TRANSFER_COMPLETED,
+      ActionScale.CRITICAL,
+      `Transfer completed for payout ${payout.id}`,
+      'Payout',
+      payout._id,
+      {
+        metadata: {
+          payout_id: payout.id,
+          transfer_id: transferId,
+          amount,
+        },
+      }
+    ).catch((error) => {
+      logger.error('Failed to create audit trail for transfer completion', {
+        error,
+        payoutId: payout.id,
+      });
+    });
+
+    // Send notification to academy
+    const { UserModel } = await import('../../models/user.model');
+    const { createAndSendNotification } = await import('./notification.service');
+    const {
+      getPayoutTransferCompletedAcademySms,
+      getPayoutTransferCompletedAcademyWhatsApp,
+    } = await import('./notificationMessages');
+    const { queueSms, queueWhatsApp } = await import('./notificationQueue.service');
+    const academyUser = await UserModel.findById(payout.academy_user).lean();
+
+    if (academyUser) {
+      // Push notification
+      createAndSendNotification({
+        recipientType: 'academy',
+        recipientId: academyUser.id,
+        title: 'Payout Completed',
+        body: `Your payout of ₹${amount.toFixed(2)} has been successfully transferred. Transfer ID: ${transferId}`,
+        channels: ['push'],
+        priority: 'high',
+        data: {
+          type: 'payout_transfer_completed',
+          payoutId: payout.id,
+          transferId,
+          amount,
+        },
+      }).catch((error) => {
+        logger.error('Failed to send push notification for transfer completion', {
+          error,
+          payoutId: payout.id,
+        });
+      });
+
+      // SMS notification
+      if (academyUser.mobile) {
+        try {
+          const smsMessage = getPayoutTransferCompletedAcademySms({
+            amount: amount.toFixed(2),
+            transferId,
+          });
+          queueSms(academyUser.mobile, smsMessage, 'high', {
+            type: 'payout_transfer_completed',
+            payoutId: payout.id,
+            recipient: 'academy',
+          });
+        } catch (error: unknown) {
+          logger.error('Failed to queue SMS for transfer completion', { error, payoutId: payout.id });
+        }
+      }
+
+      // WhatsApp notification
+      if (academyUser.mobile) {
+        try {
+          const whatsappMessage = getPayoutTransferCompletedAcademyWhatsApp({
+            amount: amount.toFixed(2),
+            transferId,
+          });
+          queueWhatsApp(academyUser.mobile, whatsappMessage, 'high', {
+            type: 'payout_transfer_completed',
+            payoutId: payout.id,
+            recipient: 'academy',
+          });
+        } catch (error: unknown) {
+          logger.error('Failed to queue WhatsApp for transfer completion', { error, payoutId: payout.id });
+        }
+      }
+    }
+
+    logger.info(`Transfer processed via webhook for payout: ${payout.id}, transfer: ${transferId}`);
+  } catch (error) {
+    logger.error('Error handling transfer.processed webhook:', {
+      error: error instanceof Error ? error.message : error,
+      transferId: transfer.id,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Handle transfer.failed event
+ */
+const handleTransferFailed = async (
+  transfer: any,
+  _fullPayload: RazorpayWebhookPayload
+): Promise<void> => {
+  try {
+    const transferId = transfer.id;
+    const failureReason = transfer.failure_reason || 'Transfer failed';
+
+    logger.info('Processing transfer.failed webhook', {
+      transferId,
+      failureReason,
+    });
+
+    // Find payout by transfer ID
+    const { PayoutModel, PayoutStatus } = await import('../../models/payout.model');
+    const payout = await PayoutModel.findOne({
+      razorpay_transfer_id: transferId,
+    });
+
+    if (!payout) {
+      logger.warn(`Payout not found for failed transfer: ${transferId}`);
+      return;
+    }
+
+    // Update payout status
+    payout.status = PayoutStatus.FAILED;
+    payout.failure_reason = failureReason;
+    await payout.save();
+
+    // Update booking payout_status to FAILED
+    await BookingModel.findByIdAndUpdate(payout.booking, {
+      $set: {
+        payout_status: BookingPayoutStatus.FAILED,
+      },
+    }).catch((error) => {
+      logger.error('Failed to update booking payout_status after transfer failure', {
+        error: error instanceof Error ? error.message : error,
+        bookingId: payout.booking.toString(),
+      });
+    });
+
+    // Create audit trail
+    const { createAuditTrail } = await import('./auditTrail.service');
+    await createAuditTrail(
+      ActionType.PAYOUT_TRANSFER_FAILED,
+      ActionScale.HIGH,
+      `Transfer failed for payout ${payout.id}: ${failureReason}`,
+      'Payout',
+      payout._id,
+      {
+        metadata: {
+          payout_id: payout.id,
+          transfer_id: transferId,
+          failure_reason: failureReason,
+        },
+      }
+    ).catch((error) => {
+      logger.error('Failed to create audit trail for transfer failure', {
+        error,
+        payoutId: payout.id,
+      });
+    });
+
+    logger.info(`Transfer failed via webhook for payout: ${payout.id}, transfer: ${transferId}`);
+  } catch (error) {
+    logger.error('Error handling transfer.failed webhook:', {
+      error: error instanceof Error ? error.message : error,
+      transferId: transfer.id,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Handle refund.processed event
+ */
+const handleRefundProcessed = async (
+  refund: any,
+  _fullPayload: RazorpayWebhookPayload
+): Promise<void> => {
+  try {
+    const refundId = refund.id;
+    const paymentId = refund.payment_id;
+    const amount = refund.amount ? refund.amount / 100 : 0; // Convert from paise to rupees
+
+    logger.info('Processing refund.processed webhook', {
+      refundId,
+      paymentId,
+      amount,
+      status: refund.status,
+    });
+
+    // Find booking by payment ID
+    const booking = await BookingModel.findOne({
+      'payment.razorpay_payment_id': paymentId,
+      is_deleted: false,
+    }).lean();
+
+    if (!booking) {
+      logger.warn(`Booking not found for refund: ${refundId}, payment: ${paymentId}`);
+      return;
+    }
+
+    // Update transaction if exists
+    await TransactionModel.findOneAndUpdate(
+      {
+        booking: booking._id,
+        razorpay_payment_id: paymentId,
+        type: 'refund',
+      },
+      {
+        $set: {
+          razorpay_refund_id: refundId,
+          status: TransactionStatus.SUCCESS,
+          source: TransactionSource.WEBHOOK,
+          processed_at: new Date(),
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    // Update booking if needed
+    const isFullRefund = Math.abs(amount - booking.amount) < 0.01;
+    
+    // If full refund, set payout_status to REFUNDED (payout should be reversed/cancelled)
+    if (isFullRefund && booking.status !== BookingStatus.CANCELLED) {
+      await BookingModel.findByIdAndUpdate(booking._id, {
+        $set: {
+          status: BookingStatus.CANCELLED,
+          'payment.status': PaymentStatus.REFUNDED,
+          payout_status: BookingPayoutStatus.REFUNDED, // Full refund - payout reversed
+        },
+      });
+    }
+    // For partial refund, keep payout_status as is (payout was already done, just adjusted)
+
+    // Handle payout adjustment
+    const { PayoutModel, PayoutStatus } = await import('../../models/payout.model');
+    const payout = await PayoutModel.findOne({
+      booking: booking._id,
+    });
+
+    if (payout) {
+      if (isFullRefund) {
+        if (payout.status === PayoutStatus.PENDING) {
+          payout.status = PayoutStatus.CANCELLED;
+        } else if (payout.status === PayoutStatus.COMPLETED) {
+          payout.status = PayoutStatus.REFUNDED;
+        }
+      } else {
+        // Partial refund - adjust payout
+        const refundPercentage = amount / booking.amount;
+        payout.refund_amount = amount;
+        payout.adjusted_payout_amount = Math.max(0, payout.payout_amount * (1 - refundPercentage));
+        if (payout.status === PayoutStatus.COMPLETED) {
+          payout.status = PayoutStatus.REFUNDED;
+        }
+      }
+      payout.failure_reason = `Refund processed: ${refundId}`;
+      await payout.save();
+    }
+
+    // Create audit trail
+    const { createAuditTrail } = await import('./auditTrail.service');
+    await createAuditTrail(
+      ActionType.REFUND_COMPLETED,
+      ActionScale.CRITICAL,
+      `Refund processed for booking ${booking.booking_id || booking.id}`,
+      'Booking',
+      booking._id,
+      {
+        bookingId: booking._id,
+        metadata: {
+          booking_id: booking.id,
+          refund_id: refundId,
+          payment_id: paymentId,
+          amount,
+          is_full_refund: isFullRefund,
+        },
+      }
+    ).catch((error) => {
+      logger.error('Failed to create audit trail for refund completion', {
+        error,
+        bookingId: booking.id,
+      });
+    });
+
+    logger.info(`Refund processed via webhook for booking: ${booking.id}, refund: ${refundId}`);
+  } catch (error) {
+    logger.error('Error handling refund.processed webhook:', {
+      error: error instanceof Error ? error.message : error,
+      refundId: refund.id,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Handle refund.failed event
+ */
+const handleRefundFailed = async (
+  refund: any,
+  _fullPayload: RazorpayWebhookPayload
+): Promise<void> => {
+  try {
+    const refundId = refund.id;
+    const paymentId = refund.payment_id;
+    const failureReason = refund.failure_reason || 'Refund failed';
+
+    logger.info('Processing refund.failed webhook', {
+      refundId,
+      paymentId,
+      failureReason,
+    });
+
+    // Find booking by payment ID
+    const booking = await BookingModel.findOne({
+      'payment.razorpay_payment_id': paymentId,
+      is_deleted: false,
+    }).lean();
+
+    if (!booking) {
+      logger.warn(`Booking not found for failed refund: ${refundId}, payment: ${paymentId}`);
+      return;
+    }
+
+    // Update transaction if exists
+    await TransactionModel.findOneAndUpdate(
+      {
+        booking: booking._id,
+        razorpay_payment_id: paymentId,
+        type: 'refund',
+      },
+      {
+        $set: {
+          razorpay_refund_id: refundId,
+          status: TransactionStatus.FAILED,
+          source: TransactionSource.WEBHOOK,
+          failure_reason: failureReason,
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    // Create audit trail
+    const { createAuditTrail } = await import('./auditTrail.service');
+    await createAuditTrail(
+      ActionType.REFUND_FAILED,
+      ActionScale.HIGH,
+      `Refund failed for booking ${booking.booking_id || booking.id}: ${failureReason}`,
+      'Booking',
+      booking._id,
+      {
+        bookingId: booking._id,
+        metadata: {
+          booking_id: booking.id,
+          refund_id: refundId,
+          payment_id: paymentId,
+          failure_reason: failureReason,
+        },
+      }
+    ).catch((error) => {
+      logger.error('Failed to create audit trail for refund failure', {
+        error,
+        bookingId: booking.id,
+      });
+    });
+
+    logger.info(`Refund failed via webhook for booking: ${booking.id}, refund: ${refundId}`);
+  } catch (error) {
+    logger.error('Error handling refund.failed webhook:', {
+      error: error instanceof Error ? error.message : error,
+      refundId: refund.id,
     });
     throw error;
   }

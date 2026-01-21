@@ -50,6 +50,19 @@ export enum ActionType {
   PAYOUT_ACCOUNT_BANK_DETAILS_UPDATED = 'payout_account_bank_details_updated',
   PAYOUT_ACCOUNT_ACTIVATED = 'payout_account_activated',
   PAYOUT_ACCOUNT_STATUS_CHANGED = 'payout_account_status_changed',
+  
+  // Payout actions
+  PAYOUT_CREATED = 'payout_created',
+  PAYOUT_TRANSFER_INITIATED = 'payout_transfer_initiated',
+  PAYOUT_TRANSFER_COMPLETED = 'payout_transfer_completed',
+  PAYOUT_TRANSFER_FAILED = 'payout_transfer_failed',
+  PAYOUT_CANCELLED = 'payout_cancelled',
+  PAYOUT_REFUNDED = 'payout_refunded',
+  
+  // Refund actions
+  REFUND_INITIATED = 'refund_initiated',
+  REFUND_COMPLETED = 'refund_completed',
+  REFUND_FAILED = 'refund_failed',
 }
 
 // Audit Trail interface

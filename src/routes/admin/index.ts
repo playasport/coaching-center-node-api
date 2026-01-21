@@ -20,6 +20,7 @@ import reelRoutes from './reel.routes';
 import queueRoutes from './queue.routes';
 import facilityRoutes from './facility.routes';
 import locationRoutes from './location.routes';
+import payoutRoutes from './payout.routes';
 
 const router = Router();
 
@@ -45,5 +46,6 @@ router.use('/reels', reelRoutes);
 router.use('/queues', queueRoutes);
 router.use('/facilities', facilityRoutes);
 router.use('/locations', locationRoutes);
+router.use('/payouts', payoutRoutes);
 
 export default router;
