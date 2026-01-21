@@ -7,6 +7,40 @@ import * as commonService from '../../services/common/coachingCenterCommon.servi
 import * as exportService from '../../services/admin/coachingCenterExport.service';
 
 /**
+ * Helper function to get user role from database (more reliable than JWT token)
+ */
+const getUserRoleFromDatabase = async (userId?: string): Promise<string | undefined> => {
+  if (!userId) return undefined;
+  
+  try {
+    const { AdminUserModel } = await import('../../models/adminUser.model');
+    const { DefaultRoles } = await import('../../enums/defaultRoles.enum');
+    const adminUser = await AdminUserModel.findOne({ id: userId })
+      .select('roles')
+      .populate('roles', 'name')
+      .lean();
+    
+    if (adminUser && adminUser.roles) {
+      const userRoles = adminUser.roles as any[];
+      // Get the highest priority role (super_admin > admin > employee > agent)
+      if (userRoles.some((r: any) => r?.name === DefaultRoles.SUPER_ADMIN)) {
+        return DefaultRoles.SUPER_ADMIN;
+      } else if (userRoles.some((r: any) => r?.name === DefaultRoles.ADMIN)) {
+        return DefaultRoles.ADMIN;
+      } else if (userRoles.some((r: any) => r?.name === DefaultRoles.EMPLOYEE)) {
+        return DefaultRoles.EMPLOYEE;
+      } else if (userRoles.some((r: any) => r?.name === DefaultRoles.AGENT)) {
+        return DefaultRoles.AGENT;
+      }
+    }
+  } catch (error) {
+    // If error, fallback to undefined
+  }
+  
+  return undefined;
+};
+
+/**
  * Get all coaching centers (admin view)
  */
 export const getAllCoachingCenters = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -27,7 +61,7 @@ export const getAllCoachingCenters = async (req: Request, res: Response, next: N
     };
 
     const currentUserId = req.user?.id;
-    const currentUserRole = req.user?.role;
+    const currentUserRole = await getUserRoleFromDatabase(currentUserId) || req.user?.role;
 
     const result = await adminCoachingCenterService.getAllCoachingCenters(
       page,
@@ -78,7 +112,7 @@ export const getCoachingCentersByUserId = async (req: Request, res: Response, ne
     const { sortBy, sortOrder } = req.query;
 
     const currentUserId = req.user?.id;
-    const currentUserRole = req.user?.role;
+    const currentUserRole = await getUserRoleFromDatabase(currentUserId) || req.user?.role;
 
     const result = await adminCoachingCenterService.getCoachingCentersByUserId(
       userId, 
@@ -258,7 +292,7 @@ export const getCoachingCenterStats = async (req: Request, res: Response, next: 
     };
 
     const currentUserId = req.user?.id;
-    const currentUserRole = req.user?.role;
+    const currentUserRole = await getUserRoleFromDatabase(currentUserId) || req.user?.role;
 
     const stats = await adminCoachingCenterService.getCoachingCenterStats(params, currentUserId, currentUserRole);
 

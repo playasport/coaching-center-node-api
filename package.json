@@ -14,6 +14,7 @@
     "seed:super-admin": "tsx scripts/seed-super-admin.ts",
     "seed:fee-type-configs": "tsx scripts/seed-fee-type-configs.ts",
     "seed:batches-bookings": "tsx scripts/seed-batches-bookings.ts",
+    "seed:payouts": "tsx scripts/seed-payouts.ts",
     "drop:role-index": "tsx scripts/drop-role-id-index.ts",
     "ensure:user-indexes": "tsx scripts/ensure-user-indexes.ts",
     "sync:indexes": "tsx scripts/sync-all-indexes.ts",
