@@ -65,13 +65,26 @@ export class PaymentService {
         const credentials = await getPaymentCredentials();
         
         if (!credentials.keyId || !credentials.keySecret) {
-          throw new Error('Payment gateway credentials not configured');
+          logger.error('Payment gateway credentials not configured', {
+            hasKeyId: !!credentials.keyId,
+            hasKeySecret: !!credentials.keySecret,
+          });
+          throw new Error('Payment gateway credentials not configured. Please configure Razorpay credentials in settings.');
+        }
+        
+        // Trim credentials to remove any whitespace
+        const keyId = credentials.keyId.trim();
+        const keySecret = credentials.keySecret.trim();
+        
+        if (!keyId || !keySecret) {
+          logger.error('Payment gateway credentials are empty after trimming');
+          throw new Error('Payment gateway credentials are invalid. Please check your Razorpay configuration.');
         }
         
         this.gateway = new RazorpayGateway();
         this.gateway.initialize({
-          keyId: credentials.keyId,
-          keySecret: credentials.keySecret,
+          keyId,
+          keySecret,
         });
         break;
 

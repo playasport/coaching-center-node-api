@@ -123,7 +123,38 @@ export const academyRegisterSchema = z.object({
     mobile: mobileNumberSchema,
     gender: z.enum(['male', 'female', 'other']).optional(),
     otp: otpCodeSchema,
-  }).merge(deviceInfoSchema),
+  })
+    .merge(deviceInfoSchema)
+    .refine(
+      async (data) => {
+        // Check if mobile number already exists for a user with 'academy' role
+        const existingUser = await UserModel.findOne({ 
+          mobile: data.mobile,
+          isDeleted: false 
+        })
+          .populate('roles', 'name')
+          .lean();
+        
+        if (!existingUser) {
+          return true; // Mobile doesn't exist, validation passes
+        }
+        
+        // Check if user has 'academy' role
+        const roles = existingUser.roles as any[];
+        if (roles && roles.length > 0) {
+          const hasAcademyRole = roles.some((role: any) => role?.name === DefaultRoles.ACADEMY);
+          if (hasAcademyRole) {
+            return false; // Mobile exists with 'academy' role, validation fails
+          }
+        }
+        
+        return true; // Mobile exists but doesn't have 'academy' role, validation passes
+      },
+      {
+        message: t('auth.register.mobileExists') || 'Mobile number already exists',
+        path: ['mobile'],
+      }
+    ),
 });
 
 export const academyLoginSchema = z.object({
@@ -348,6 +379,54 @@ export const userRegisterSchema = z.object({
       {
         message: t('auth.register.emailExists') || 'Email already exists',
         path: ['email'],
+      }
+    )
+    .refine(
+      async (data) => {
+        // Only validate mobile if it's provided directly (legacy OTP flow), not when using tempToken
+        if (data.tempToken || !data.mobile) {
+          return true; // Skip validation when using tempToken or mobile not provided
+        }
+        
+        // First check if email user exists (to see if it's the same user)
+        const existingUserByEmail = await UserModel.findOne({ 
+          email: data.email.toLowerCase(),
+          isDeleted: false 
+        })
+          .populate('roles', 'name')
+          .lean();
+        
+        // Check if mobile number already exists for a user with 'user' role
+        const existingUserByMobile = await UserModel.findOne({ 
+          mobile: data.mobile,
+          isDeleted: false 
+        })
+          .populate('roles', 'name')
+          .lean();
+        
+        if (!existingUserByMobile) {
+          return true; // Mobile doesn't exist, validation passes
+        }
+        
+        // Allow if it's the same user (found by email) - they can update their own mobile
+        if (existingUserByEmail && existingUserByEmail.id === existingUserByMobile.id) {
+          return true; // Same user, validation passes
+        }
+        
+        // Check if user has 'user' role
+        const roles = existingUserByMobile.roles as any[];
+        if (roles && roles.length > 0) {
+          const hasUserRole = roles.some((role: any) => role?.name === DefaultRoles.USER);
+          if (hasUserRole) {
+            return false; // Mobile exists with 'user' role for a different user, validation fails
+          }
+        }
+        
+        return true; // Mobile exists but doesn't have 'user' role (e.g., academy), validation passes
+      },
+      {
+        message: t('auth.register.mobileExists') || 'Mobile number already exists',
+        path: ['mobile'],
       }
     )
     .refine(

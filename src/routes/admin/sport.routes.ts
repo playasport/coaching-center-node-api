@@ -421,7 +421,7 @@ router.delete('/:id', sportController.deleteSport);
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Sport activated successfully" or "Sport deactivated successfully"
+ *                   example: "Sport activated successfully or Sport deactivated successfully"
  *                 data:
  *                   type: object
  *                   properties:

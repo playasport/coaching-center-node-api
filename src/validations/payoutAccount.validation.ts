@@ -4,7 +4,7 @@ import { BusinessType } from '../models/academyPayoutAccount.model';
 // Address schema for KYC
 const kycAddressSchema = z.object({
   street1: z.string().min(1, 'Street address is required').max(100, 'Street address must be less than 100 characters'),
-  street2: z.string().max(100, 'Street 2 must be less than 100 characters').optional().nullable(),
+  street2: z.string().min(1, 'Street 2 is required').max(100, 'Street 2 must be less than 100 characters'),
   city: z.string().min(1, 'City is required').max(100, 'City must be less than 100 characters'),
   state: z.string().min(1, 'State is required').max(100, 'State must be less than 100 characters'),
   postal_code: z.string().min(6, 'Postal code must be at least 6 characters').max(10, 'Postal code must be less than 10 characters'),
@@ -51,7 +51,7 @@ const stakeholderSchema = z.object({
     message: 'Invalid relationship type',
   }),
   kyc: z.object({
-    pan: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'PAN must be in valid format').optional().nullable().transform((val) => (val ? val.toUpperCase() : null)),
+    pan: z.string().min(1, 'PAN is required').regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'PAN must be in valid format (e.g., ABCDE1234F)').transform((val) => val.toUpperCase()),
     aadhaar: z.string().regex(/^\d{12}$/, 'Aadhaar must be 12 digits').optional().nullable(),
   }),
 });

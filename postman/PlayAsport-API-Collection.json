@@ -3959,6 +3959,62 @@
         }
       ],
       "description": "Academy payout viewing endpoints for viewing payout information. Academy users can view their payouts list, details, and statistics. Only returns payouts belonging to the authenticated academy user. Requires ACADEMY role authentication."
+    },
+    {
+      "name": "Academy Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "dashboard"]
+            },
+            "description": "Get comprehensive dashboard statistics for the authenticated academy user including total users, students, bookings, active batches, total earnings, monthly earnings graph data (last 12 months), and recent 5 bookings with student names, batch names, sport names, and booking times. Data is cached for 5 minutes to optimize performance. Requires ACADEMY role authentication."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/dashboard",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "dashboard"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"statusCode\": 200,\n  \"data\": {\n    \"total_users\": 150,\n    \"total_students\": 250,\n    \"total_bookings\": 500,\n    \"total_active_batches\": 25,\n    \"total_earnings\": 500000,\n    \"monthly_earnings\": [\n      {\n        \"month\": \"2024-01\",\n        \"earnings\": 45000\n      },\n      {\n        \"month\": \"2024-02\",\n        \"earnings\": 52000\n      },\n      {\n        \"month\": \"2024-03\",\n        \"earnings\": 48000\n      }\n    ],\n    \"recent_bookings\": [\n      {\n        \"id\": \"booking-uuid-1\",\n        \"booking_id\": \"BK123456\",\n        \"student_name\": \"John Doe, Jane Smith\",\n        \"batch_name\": \"Morning Batch\",\n        \"sport_name\": \"Cricket\",\n        \"booking_time\": \"2024-01-15T10:30:00Z\"\n      },\n      {\n        \"id\": \"booking-uuid-2\",\n        \"booking_id\": \"BK123457\",\n        \"student_name\": \"Alice Johnson\",\n        \"batch_name\": \"Evening Batch\",\n        \"sport_name\": \"Football\",\n        \"booking_time\": \"2024-01-14T15:20:00Z\"\n      }\n    ]\n  },\n  \"message\": \"Dashboard statistics retrieved successfully\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Academy dashboard endpoints for viewing comprehensive statistics including total users, students, bookings, active batches, earnings, monthly earnings graph data, and recent bookings. Data is cached for 5 minutes to optimize performance. Requires ACADEMY role authentication."
     }
   ]
 }

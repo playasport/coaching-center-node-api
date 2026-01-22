@@ -23,6 +23,7 @@ export const getAcademyPayouts = async (
     currency: string;
     status: PayoutStatus;
     payout_status: string; // From booking model
+    students: string[]; // Array of student names only (e.g., ["John Doe", "Jane Smith"])
   }>;
   pagination: {
     page: number;
@@ -66,17 +67,35 @@ export const getAcademyPayouts = async (
     // Get total count
     const total = await PayoutModel.countDocuments(query);
 
-    // Get payouts with basic data
+    // Get payouts with basic data including participants
     const payouts = await PayoutModel.find(query)
-      .populate('booking', 'id booking_id payout_status')
+      .populate({
+        path: 'booking',
+        select: 'id booking_id payout_status',
+        populate: {
+          path: 'participants',
+          select: 'id firstName lastName gender dob profilePhoto',
+        },
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
 
-    // Format response with basic data
+    // Format response with basic data including student names only
     const formattedPayouts = payouts.map((payout) => {
       const booking = payout.booking as any;
+      const participants = Array.isArray(booking?.participants) 
+        ? booking.participants 
+        : booking?.participants ? [booking.participants] : [];
+
+      // Format students - only names for listing
+      const students = participants.map((participant: any) => {
+        const firstName = participant?.firstName || '';
+        const lastName = participant?.lastName || '';
+        return `${firstName} ${lastName}`.trim();
+      }).filter((name: string) => name.length > 0);
+
       return {
         id: payout.id,
         booking_id: booking?.booking_id || booking?.id || null,
@@ -84,6 +103,7 @@ export const getAcademyPayouts = async (
         currency: payout.currency,
         status: payout.status,
         payout_status: booking?.payout_status || 'not_initiated',
+        students: students, // Array of student names only
       };
     });
 
@@ -129,6 +149,15 @@ export const getAcademyPayoutById = async (
   status: PayoutStatus;
   failure_reason: string | null;
   processed_at: Date | null;
+  students: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    gender: string;
+    dob: Date | null;
+    profilePhoto: string | null;
+  }>;
 }> => {
   try {
     // Find academy user
@@ -137,12 +166,19 @@ export const getAcademyPayoutById = async (
       throw new ApiError(404, 'Academy user not found');
     }
 
-    // Find payout
+    // Find payout with participants
     const payout = await PayoutModel.findOne({
       id: payoutId,
       academy_user: academyUser._id,
     })
-      .populate('booking', 'id booking_id currency payout_status')
+      .populate({
+        path: 'booking',
+        select: 'id booking_id currency payout_status',
+        populate: {
+          path: 'participants',
+          select: 'id firstName lastName gender dob profilePhoto',
+        },
+      })
       .lean();
 
     if (!payout) {
@@ -150,6 +186,20 @@ export const getAcademyPayoutById = async (
     }
 
     const booking = payout.booking as any;
+    const participants = Array.isArray(booking?.participants) 
+      ? booking.participants 
+      : booking?.participants ? [booking.participants] : [];
+
+    // Format students/participants
+    const students = participants.map((participant: any) => ({
+      id: participant?.id || participant?._id?.toString() || '',
+      firstName: participant?.firstName || '',
+      lastName: participant?.lastName || '',
+      fullName: `${participant?.firstName || ''} ${participant?.lastName || ''}`.trim(),
+      gender: participant?.gender || '',
+      dob: participant?.dob || null,
+      profilePhoto: participant?.profilePhoto || null,
+    }));
 
     // Format response
     return {
@@ -165,6 +215,7 @@ export const getAcademyPayoutById = async (
       status: payout.status,
       failure_reason: payout.failure_reason || null,
       processed_at: payout.processed_at || null,
+      students: students,
     };
   } catch (error: any) {
     if (error instanceof ApiError) {

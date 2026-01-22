@@ -70,11 +70,43 @@ export class RazorpayGateway implements IPaymentGateway {
         attempts: razorpayOrder.attempts || 0,
       };
     } catch (error: any) {
-      logger.error('Razorpay order creation failed:', {
-        error: error.message || error,
-        orderData,
-      });
-      throw new ApiError(500, 'Failed to create payment order. Please try again.');
+      // Log detailed error information
+      const errorDetails = {
+        message: error.message || 'Unknown error',
+        description: error.description || error.error?.description,
+        field: error.field || error.error?.field,
+        code: error.code || error.error?.code,
+        statusCode: error.statusCode || error.statusCode,
+        error: error.error || error,
+        orderData: {
+          amount: orderData.amount,
+          currency: orderData.currency,
+          receipt: orderData.receipt,
+        },
+      };
+
+      logger.error('Razorpay order creation failed:', errorDetails);
+
+      // Provide more specific error messages based on error type
+      let errorMessage = 'Failed to create payment order. Please try again.';
+      let statusCode = 500;
+
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        errorMessage = 'Failed to create payment order. Please try again.';
+        statusCode = 500; // Don't expose auth issues to client
+      } else if (error.statusCode === 400) {
+        // Validation error from Razorpay
+        errorMessage = error.description || error.error?.description || 'Invalid payment order data.';
+        statusCode = 400;
+      } else if (error.code === 'BAD_REQUEST_ERROR') {
+        errorMessage = error.description || 'Invalid payment order request.';
+        statusCode = 400;
+      } else if (error.code === 'GATEWAY_ERROR' || error.code === 'SERVER_ERROR') {
+        errorMessage = 'Payment gateway is temporarily unavailable. Please try again later.';
+        statusCode = 503;
+      }
+
+      throw new ApiError(statusCode, errorMessage);
     }
   }
 

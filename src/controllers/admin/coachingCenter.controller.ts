@@ -88,7 +88,14 @@ export const getAllCoachingCenters = async (req: Request, res: Response, next: N
 export const getCoachingCenter = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
-    const coachingCenter = await commonService.getCoachingCenterById(id);
+    const currentUserId = req.user?.id;
+    const currentUserRole = await getUserRoleFromDatabase(currentUserId) || req.user?.role;
+    
+    const coachingCenter = await adminCoachingCenterService.getCoachingCenterByIdForAdmin(
+      id,
+      currentUserId,
+      currentUserRole
+    );
 
     if (!coachingCenter) {
       throw new ApiError(404, t('coachingCenter.notFound'));
@@ -154,13 +161,18 @@ export const listCoachingCentersSimple = async (
     const isActive = req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined;
     const centerId = req.query.centerId as string | undefined;
 
+    const currentUserId = req.user?.id;
+    const currentUserRole = await getUserRoleFromDatabase(currentUserId) || req.user?.role;
+
     const result = await adminCoachingCenterService.listCoachingCentersSimple(
       page,
       limit,
       search,
       status,
       isActive,
-      centerId
+      centerId,
+      currentUserId,
+      currentUserRole
     );
 
     const response = new ApiResponse(

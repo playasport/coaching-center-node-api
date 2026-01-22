@@ -1,12 +1,14 @@
 import { Types } from 'mongoose';
 import { BatchModel, Batch } from '../../models/batch.model';
 import { CoachingCenterModel } from '../../models/coachingCenter.model';
+import { AdminUserModel } from '../../models/adminUser.model';
 import { logger } from '../../utils/logger';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
 import { getUserObjectId } from '../../utils/userCache';
 import { getSportObjectId } from '../../utils/sportCache';
 import { config } from '../../config/env';
+import { DefaultRoles as DefaultRolesEnum } from '../../enums/defaultRoles.enum';
 import * as batchService from '../academy/batch.service';
 import type { BatchCreateInput, BatchUpdateInput } from '../../validations/batch.validation';
 
@@ -242,7 +244,9 @@ export const createBatchByAdmin = async (data: BatchCreateInput): Promise<Batch>
 export const getAllBatches = async (
   page: number = 1,
   limit: number = 10,
-  filters: GetAdminBatchesFilters = {}
+  filters: GetAdminBatchesFilters = {},
+  currentUserId?: string,
+  currentUserRole?: string
 ): Promise<AdminPaginatedResult<Batch>> => {
   try {
     const pageNumber = Math.max(1, Math.floor(page));
@@ -250,6 +254,57 @@ export const getAllBatches = async (
     const skip = (pageNumber - 1) * pageSize;
 
     const query: any = { is_deleted: false };
+
+    // If user is an agent, only show batches from centers added by them
+    let agentCenterIds: Types.ObjectId[] = [];
+    if (currentUserRole === DefaultRolesEnum.AGENT && currentUserId) {
+      // Get AdminUser ObjectId since addedBy references AdminUser model
+      const adminUser = await AdminUserModel.findOne({ id: currentUserId, isDeleted: false })
+        .select('_id')
+        .lean();
+      
+      if (adminUser && adminUser._id) {
+        // Find all coaching centers added by this agent
+        const centers = await CoachingCenterModel.find({
+          addedBy: adminUser._id,
+          is_deleted: false,
+        }).select('_id').lean();
+        
+        agentCenterIds = centers.map((c: any) => c._id as Types.ObjectId);
+        
+        if (agentCenterIds.length === 0) {
+          // Agent has no centers, return empty result
+          return {
+            batches: [],
+            pagination: {
+              page: pageNumber,
+              limit: pageSize,
+              total: 0,
+              totalPages: 0,
+            },
+          };
+        }
+        
+        logger.debug('Filtering batches for agent', {
+          agentId: currentUserId,
+          agentObjectId: adminUser._id.toString(),
+          centersFound: agentCenterIds.length,
+          role: currentUserRole,
+        });
+      } else {
+        logger.warn('Agent AdminUser not found', { agentId: currentUserId });
+        // Return empty result if agent not found
+        return {
+          batches: [],
+          pagination: {
+            page: pageNumber,
+            limit: pageSize,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+    }
 
     // Apply filters
     if (filters.userId) {
@@ -271,7 +326,27 @@ export const getAllBatches = async (
       if (!centerObjectId) {
         throw new ApiError(404, t('batch.centerNotFound'));
       }
+      
+      // If agent filtering is active, verify the requested center was added by the agent
+      if (currentUserRole === DefaultRolesEnum.AGENT && currentUserId && agentCenterIds.length > 0) {
+        if (!agentCenterIds.some(id => id.toString() === centerObjectId.toString())) {
+          // Requested center was not added by this agent, return empty result
+          return {
+            batches: [],
+            pagination: {
+              page: pageNumber,
+              limit: pageSize,
+              total: 0,
+              totalPages: 0,
+            },
+          };
+        }
+      }
+      
       query.center = centerObjectId;
+    } else if (currentUserRole === DefaultRolesEnum.AGENT && currentUserId && agentCenterIds.length > 0) {
+      // If no centerId filter but agent filtering is active, filter by agent's centers
+      query.center = { $in: agentCenterIds };
     }
 
     if (filters.sportId) {
@@ -330,11 +405,55 @@ export const getAllBatches = async (
 };
 
 /**
- * Get batch by ID (admin view)
+ * Get batch by ID (admin view) with agent filtering
  */
-export const getBatchById = async (id: string): Promise<Batch | null> => {
+export const getBatchById = async (
+  id: string,
+  currentUserId?: string,
+  currentUserRole?: string
+): Promise<Batch | null> => {
   try {
-    return await batchService.getBatchById(id);
+    // First get the batch to check its center
+    const batch = await batchService.getBatchById(id);
+    if (!batch) {
+      return null;
+    }
+
+    // If user is an agent, verify the batch's center was added by them
+    if (currentUserRole === DefaultRolesEnum.AGENT && currentUserId) {
+      // Get AdminUser ObjectId since addedBy references AdminUser model
+      const adminUser = await AdminUserModel.findOne({ id: currentUserId, isDeleted: false })
+        .select('_id')
+        .lean();
+      
+      if (adminUser && adminUser._id) {
+        // Check if the batch's center was added by this agent
+        const center = await CoachingCenterModel.findById(batch.center)
+          .select('addedBy')
+          .lean();
+        
+        if (!center || !center.addedBy || center.addedBy.toString() !== adminUser._id.toString()) {
+          // Batch's center was not added by this agent
+          logger.debug('Batch center not added by agent', {
+            agentId: currentUserId,
+            batchId: id,
+            centerId: batch.center,
+          });
+          return null;
+        }
+        
+        logger.debug('Batch access allowed for agent', {
+          agentId: currentUserId,
+          batchId: id,
+          role: currentUserRole,
+        });
+      } else {
+        logger.warn('Agent AdminUser not found for batch view', { agentId: currentUserId, batchId: id });
+        return null;
+      }
+    }
+
+    return batch;
   } catch (error) {
     logger.error('Admin failed to fetch batch:', error);
     throw error;
@@ -342,14 +461,16 @@ export const getBatchById = async (id: string): Promise<Batch | null> => {
 };
 
 /**
- * Get batches by user ID (admin view)
+ * Get batches by user ID (admin view) with agent filtering
  */
 export const getBatchesByUserId = async (
   userId: string,
   page: number = 1,
   limit: number = 10,
   sortBy?: string,
-  sortOrder?: 'asc' | 'desc'
+  sortOrder?: 'asc' | 'desc',
+  _currentUserId?: string,
+  _currentUserRole?: string
 ): Promise<AdminPaginatedResult<Batch>> => {
   try {
     const pageNumber = Math.max(1, Math.floor(page));
@@ -416,14 +537,16 @@ export const getBatchesByUserId = async (
 };
 
 /**
- * Get batches by center ID (admin view)
+ * Get batches by center ID (admin view) with agent filtering
  */
 export const getBatchesByCenterId = async (
   centerId: string,
   page: number = 1,
   limit: number = 10,
   sortBy?: string,
-  sortOrder?: 'asc' | 'desc'
+  sortOrder?: 'asc' | 'desc',
+  currentUserId?: string,
+  currentUserRole?: string
 ): Promise<AdminPaginatedResult<Batch>> => {
   try {
     const pageNumber = Math.max(1, Math.floor(page));
@@ -440,6 +563,49 @@ export const getBatchesByCenterId = async (
       center: centerObjectId,
       is_deleted: false,
     };
+
+    // If user is an agent, verify the center was added by them
+    if (currentUserRole === DefaultRolesEnum.AGENT && currentUserId) {
+      // Get AdminUser ObjectId since addedBy references AdminUser model
+      const adminUser = await AdminUserModel.findOne({ id: currentUserId, isDeleted: false })
+        .select('_id')
+        .lean();
+      
+      if (adminUser && adminUser._id) {
+        // Check if the center was added by this agent
+        const center = await CoachingCenterModel.findById(centerObjectId)
+          .select('addedBy')
+          .lean();
+        
+        if (!center || !center.addedBy || center.addedBy.toString() !== adminUser._id.toString()) {
+          // Center was not added by this agent, return empty result
+          logger.debug('Center not added by agent', {
+            agentId: currentUserId,
+            centerId,
+          });
+          return {
+            batches: [],
+            pagination: {
+              page: pageNumber,
+              limit: pageSize,
+              total: 0,
+              totalPages: 0,
+            },
+          };
+        }
+      } else {
+        logger.warn('Agent AdminUser not found', { agentId: currentUserId });
+        return {
+          batches: [],
+          pagination: {
+            page: pageNumber,
+            limit: pageSize,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+    }
 
     // Handle sorting
     const sortField = sortBy || 'createdAt';

@@ -192,6 +192,12 @@ export const registerAcademyUser = async (data: AcademyRegisterInput): Promise<R
     throw new ApiError(400, t('auth.register.emailExists'));
   }
 
+  // Check if mobile number already exists for ACADEMY role
+  const existingUserByMobile = await userService.findByMobile(mobile);
+  if (existingUserByMobile && hasRole(existingUserByMobile, DefaultRoles.ACADEMY)) {
+    throw new ApiError(400, t('auth.register.mobileExists'));
+  }
+
   const otpStatus = await otpService.verifyOtp(
     { channel: OtpChannel.MOBILE, identifier: mobile },
     otp,
@@ -1219,6 +1225,16 @@ export const registerUser = async (data: UserRegisterInput): Promise<RegisterRes
     verifiedMobile = mobile; // Use mobile from request for legacy flow
   } else {
     throw new ApiError(400, t('validation.otp.required') || 'Either tempToken or otp is required');
+  }
+
+  // Check if mobile number already exists for USER role
+  // Only throw error if it's a different user (not the same user found by email)
+  const existingUserByMobile = await userService.findByMobile(verifiedMobile);
+  if (existingUserByMobile && hasRole(existingUserByMobile, DefaultRoles.USER)) {
+    // Allow if it's the same user (found by email) - we'll just update that user
+    if (!existingUser || existingUserByMobile.id !== existingUser.id) {
+      throw new ApiError(400, t('auth.register.mobileExists'));
+    }
   }
 
   let user: User;

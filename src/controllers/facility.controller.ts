@@ -4,12 +4,13 @@ import { t } from '../utils/i18n';
 import * as facilityService from '../services/common/facility.service';
 
 export const getAllFacilities = async (
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const facilities = await facilityService.getAllFacilities();
+    const search = req.query.search as string | undefined;
+    const facilities = await facilityService.getAllFacilities(search);
     const response = new ApiResponse(200, { facilities }, t('facility.getAll.success'));
     res.json(response);
   } catch (error) {

@@ -661,12 +661,12 @@ export const bookSlot = async (
             priority: 'high',
             data: {
               type: 'booking_request',
-              bookingId: booking.id,
+              bookingId: booking.booking_id || booking.id,
               batchId: data.batchId,
               centerId: summary.batch.center.id,
             },
           }).catch((error) => {
-            logger.error('Failed to send push notification to academy owner', { error, bookingId: booking.id });
+            logger.error('Failed to send push notification to academy owner', { error, bookingId: booking.booking_id || booking.id });
           });
 
           // Email notification (async)
@@ -680,13 +680,13 @@ export const bookSlot = async (
                 batchName,
                 userName,
                 participants: participantNames,
-                bookingId: booking.id,
+                bookingId: booking.booking_id || booking.id,
                 year: new Date().getFullYear(),
               },
               priority: 'high',
               metadata: {
                 type: 'booking_request',
-                bookingId: booking.id,
+                bookingId: booking.booking_id || booking.id,
                 recipient: 'academy',
               },
             });
@@ -714,11 +714,11 @@ export const bookSlot = async (
               batchName,
               userName,
               participants: participantNames,
-              bookingId: booking.id,
+              bookingId: booking.booking_id || booking.id,
             });
             queueWhatsApp(academyMobile, whatsappMessage, 'high', {
               type: 'booking_request',
-              bookingId: booking.id,
+              bookingId: booking.booking_id || booking.id,
               recipient: 'academy',
             });
           }
@@ -741,11 +741,11 @@ export const bookSlot = async (
       priority: 'medium',
       data: {
         type: 'booking_request_sent',
-        bookingId: booking.id,
+        bookingId: booking.booking_id || booking.id,
         batchId: data.batchId,
       },
     }).catch((error) => {
-      logger.error('Failed to send push notification to user', { error, bookingId: booking.id });
+      logger.error('Failed to send push notification to user', { error, bookingId: booking.booking_id || booking.id });
     });
 
     // Email notification (async)
@@ -758,13 +758,13 @@ export const bookSlot = async (
           batchName,
           centerName,
           participants: participantNames,
-          bookingId: booking.id,
+          bookingId: booking.booking_id || booking.id,
           year: new Date().getFullYear(),
         },
         priority: 'medium',
         metadata: {
           type: 'booking_request_sent',
-          bookingId: booking.id,
+          bookingId: booking.booking_id || booking.id,
           recipient: 'user',
         },
       });
@@ -790,11 +790,11 @@ export const bookSlot = async (
         batchName,
         centerName,
         participants: participantNames,
-        bookingId: booking.id,
+        bookingId: booking.booking_id || booking.id,
       });
       queueWhatsApp(userDetails.mobile, whatsappMessage, 'medium', {
         type: 'booking_request_sent',
-        bookingId: booking.id,
+        bookingId: booking.booking_id || booking.id,
         recipient: 'user',
       });
     }
@@ -809,12 +809,12 @@ export const bookSlot = async (
       priority: 'medium',
       data: {
         type: 'booking_request_admin',
-        bookingId: booking.id,
+        bookingId: booking.booking_id || booking.id,
         batchId: data.batchId,
         centerId: summary.batch.center.id,
       },
     }).catch((error) => {
-      logger.error('Failed to send admin notification', { error, bookingId: booking.id });
+      logger.error('Failed to send admin notification', { error, bookingId: booking.booking_id || booking.id });
     });
 
     // Wait for audit trail (important for tracking), but don't block on notifications
@@ -900,14 +900,30 @@ export const createPaymentOrder = async (
       throw new ApiError(404, 'booking not found');
     }
 
+    // Validate booking amount
+    if (!booking.amount || booking.amount <= 0) {
+      throw new ApiError(400, 'Invalid booking amount. Cannot create payment order.');
+    }
+
+    if (!booking.currency || booking.currency.trim() === '') {
+      throw new ApiError(400, 'Booking currency is required.');
+    }
+
     // Create Razorpay order and prepare update data in parallel
     const currentInitiatedCount = booking.payment?.payment_initiated_count || 0;
     const receipt = `booking_${Date.now()}_${userObjectId.toString().slice(-6)}`;
     
+    // Convert amount to paise (smallest currency unit for INR)
+    const amountInPaise = Math.round(booking.amount * 100);
+    
+    if (amountInPaise <= 0 || amountInPaise < 100) {
+      throw new ApiError(400, 'Payment amount must be at least ₹1.00 (100 paise).');
+    }
+
     // Create order (this is the main external API call)
     const paymentOrder = await paymentService.createOrder({
-      amount: Math.round(booking.amount * 100), // Convert to paise
-      currency: booking.currency,
+      amount: amountInPaise,
+      currency: booking.currency.toUpperCase(),
       receipt,
       notes: {
         userId: userId,
@@ -1249,25 +1265,42 @@ export const verifyPayment = async (
             }).select('id').lean();
 
             if (transaction) {
-              // Enqueue payout creation (non-blocking)
-              const { enqueuePayoutCreation } = await import('../../queue/payoutCreationQueue');
-              enqueuePayoutCreation({
-                bookingId: booking.id,
-                transactionId: transaction.id,
-                academyUserId: academyUser.id,
-                amount: booking.amount,
-                batchAmount: booking.priceBreakdown.batch_amount,
-                commissionRate: booking.commission.rate,
-                commissionAmount: booking.commission.amount,
-                payoutAmount: booking.commission.payoutAmount,
-                currency: booking.currency,
-              });
+              // Create payout record directly (synchronous)
+              try {
+                const { createPayoutRecord } = await import('../common/payoutCreation.service');
+                const result = await createPayoutRecord({
+                  bookingId: booking.id,
+                  transactionId: transaction.id,
+                  academyUserId: academyUser.id,
+                  amount: booking.amount,
+                  batchAmount: booking.priceBreakdown.batch_amount,
+                  commissionRate: booking.commission.rate,
+                  commissionAmount: booking.commission.amount,
+                  payoutAmount: booking.commission.payoutAmount,
+                  currency: booking.currency,
+                });
 
-              logger.info('Payout creation job enqueued', {
-                bookingId: booking.id,
-                transactionId: transaction.id,
-                payoutAmount: booking.commission.payoutAmount,
-              });
+                if (result.success && !result.skipped) {
+                  logger.info('Payout record created successfully', {
+                    bookingId: booking.id,
+                    transactionId: transaction.id,
+                    payoutId: result.payoutId,
+                    payoutAmount: booking.commission.payoutAmount,
+                  });
+                } else if (result.skipped) {
+                  logger.info('Payout creation skipped', {
+                    bookingId: booking.id,
+                    reason: result.reason,
+                    payoutId: result.payoutId,
+                  });
+                }
+              } catch (payoutError: any) {
+                logger.error('Failed to create payout record', {
+                  error: payoutError.message || payoutError,
+                  bookingId: booking.id,
+                  transactionId: transaction.id,
+                });
+              }
             }
           }
         }
@@ -1376,12 +1409,12 @@ export const verifyPayment = async (
         if (userEmail) {
           queueEmail(userEmail, 'Booking Confirmed - PlayAsport', {
             template: 'booking-confirmation-user.html',
-            text: `Your booking ${updatedBooking.id} has been confirmed for ${batchName} at ${centerName}.`,
+            text: `Your booking ${updatedBooking.booking_id || updatedBooking.id} has been confirmed for ${batchName} at ${centerName}.`,
             templateVariables: emailTemplateVariables,
             priority: 'high',
             metadata: {
               type: 'booking_confirmation',
-              bookingId: updatedBooking.id,
+              bookingId: updatedBooking.booking_id || updatedBooking.id,
               recipient: 'user',
             },
             attachments: invoiceBuffer
@@ -1400,7 +1433,7 @@ export const verifyPayment = async (
         if (centerEmail) {
           queueEmail(centerEmail, 'New Booking Received - PlayAsport', {
             template: 'booking-confirmation-center.html',
-            text: `You have received a new booking ${updatedBooking.id} for ${batchName} from ${userName}.`,
+            text: `You have received a new booking ${updatedBooking.booking_id || updatedBooking.id} for ${batchName} from ${userName}.`,
             templateVariables: {
               ...emailTemplateVariables,
               userEmail: userEmail || 'N/A',
@@ -1408,7 +1441,7 @@ export const verifyPayment = async (
             priority: 'high',
             metadata: {
               type: 'booking_confirmation',
-              bookingId: updatedBooking.id,
+              bookingId: updatedBooking.booking_id || updatedBooking.id,
               recipient: 'coaching_center',
             },
           });
@@ -1418,7 +1451,7 @@ export const verifyPayment = async (
         if (config.admin.email) {
           queueEmail(config.admin.email, 'New Booking Notification - PlayAsport', {
             template: 'booking-confirmation-admin.html',
-            text: `A new booking ${updatedBooking.id} has been confirmed for ${batchName} at ${centerName}.`,
+            text: `A new booking ${updatedBooking.booking_id || updatedBooking.id} has been confirmed for ${batchName} at ${centerName}.`,
             templateVariables: {
               ...emailTemplateVariables,
               userEmail: userEmail || 'N/A',
@@ -1426,7 +1459,7 @@ export const verifyPayment = async (
             priority: 'high',
             metadata: {
               type: 'booking_confirmation',
-              bookingId: updatedBooking.id,
+              bookingId: updatedBooking.booking_id || updatedBooking.id,
               recipient: 'admin',
             },
           });
@@ -1435,7 +1468,7 @@ export const verifyPayment = async (
         // Prepare SMS messages using notification messages
         const userSmsMessage = getPaymentVerifiedUserSms({
           userName: userName || 'User',
-          bookingId: updatedBooking.id,
+          bookingId: updatedBooking.booking_id || updatedBooking.id,
           batchName,
           sportName,
           centerName,
@@ -1448,7 +1481,7 @@ export const verifyPayment = async (
         });
         
         const centerSmsMessage = getPaymentVerifiedAcademySms({
-          bookingId: updatedBooking.id,
+          bookingId: updatedBooking.booking_id || updatedBooking.id,
           batchName,
           sportName,
           userName: userName || 'N/A',
@@ -1465,12 +1498,12 @@ export const verifyPayment = async (
         if (userMobile) {
           queueSms(userMobile, userSmsMessage, 'high', {
             type: 'booking_confirmation',
-            bookingId: updatedBooking.id,
+            bookingId: updatedBooking.booking_id || updatedBooking.id,
             recipient: 'user',
           });
         } else {
           logger.warn('User mobile number not available for SMS', {
-            bookingId: booking.id,
+            bookingId: booking.booking_id || booking.id,
           });
         }
 
@@ -1490,7 +1523,7 @@ export const verifyPayment = async (
         // Prepare WhatsApp messages using notification messages
         const userWhatsAppMessage = getPaymentVerifiedUserWhatsApp({
           userName: userName || 'User',
-          bookingId: updatedBooking.id,
+          bookingId: updatedBooking.booking_id || updatedBooking.id,
           batchName,
           sportName,
           centerName,
@@ -1520,12 +1553,12 @@ export const verifyPayment = async (
         if (userMobile) {
           queueWhatsApp(userMobile, userWhatsAppMessage, 'high', {
             type: 'booking_confirmation',
-            bookingId: updatedBooking.id,
+            bookingId: updatedBooking.booking_id || updatedBooking.id,
             recipient: 'user',
           });
         } else {
           logger.warn('User mobile number not available for WhatsApp', {
-            bookingId: booking.id,
+            bookingId: booking.booking_id || booking.id,
           });
         }
 
@@ -1533,12 +1566,12 @@ export const verifyPayment = async (
         if (centerMobile) {
           queueWhatsApp(centerMobile, centerWhatsAppMessage, 'high', {
             type: 'booking_confirmation',
-            bookingId: updatedBooking.id,
+            bookingId: updatedBooking.booking_id || updatedBooking.id,
             recipient: 'coaching_center',
           });
         } else {
           logger.warn('Coaching center mobile number not available for WhatsApp', {
-            bookingId: booking.id,
+            bookingId: booking.booking_id || booking.id,
           });
         }
 
@@ -1549,12 +1582,12 @@ export const verifyPayment = async (
             recipientType: 'user',
             recipientId: user.id,
             title: 'Booking Confirmed! 🎉',
-            body: `Your booking ${updatedBooking.id} for "${batchName}" at "${centerName}" has been confirmed. Payment successful!`,
+            body: `Your booking ${updatedBooking.booking_id || updatedBooking.id} for "${batchName}" at "${centerName}" has been confirmed. Payment successful!`,
             channels: ['push'],
             priority: 'high',
             data: {
               type: 'booking_confirmation',
-              bookingId: updatedBooking.id,
+              bookingId: updatedBooking.booking_id || updatedBooking.id,
               batchId: booking.batch.toString(),
               centerId: booking.center.toString(),
             },
@@ -1575,12 +1608,12 @@ export const verifyPayment = async (
             recipientType: 'academy',
             recipientId: centerOwnerId,
             title: 'New Booking Received! 💰',
-            body: `New booking ${updatedBooking.id} received for "${batchName}" from ${userName}. Payment confirmed!`,
+            body: `New booking ${updatedBooking.booking_id || updatedBooking.id} received for "${batchName}" from ${userName}. Payment confirmed!`,
             channels: ['push'],
             priority: 'high',
             data: {
               type: 'booking_confirmation_academy',
-              bookingId: updatedBooking.id,
+              bookingId: updatedBooking.booking_id || updatedBooking.id,
               batchId: booking.batch.toString(),
               centerId: booking.center.toString(),
             },
@@ -1598,12 +1631,12 @@ export const verifyPayment = async (
           recipientType: 'role',
           roles: [DefaultRoles.ADMIN, DefaultRoles.SUPER_ADMIN],
           title: 'New Booking Confirmed',
-          body: `Booking ${updatedBooking.id} for "${batchName}" at "${centerName}" has been confirmed. Payment successful!`,
+          body: `Booking ${updatedBooking.booking_id || updatedBooking.id} for "${batchName}" at "${centerName}" has been confirmed. Payment successful!`,
           channels: ['push'],
           priority: 'high',
           data: {
             type: 'booking_confirmation_admin',
-            bookingId: updatedBooking.id,
+            bookingId: updatedBooking.booking_id || updatedBooking.id,
             batchId: booking.batch.toString(),
             centerId: booking.center.toString(),
           },
@@ -2407,7 +2440,7 @@ export const cancelBooking = async (
             priority: 'medium',
             data: {
               type: 'booking_cancelled',
-              bookingId: booking.id,
+              bookingId: booking.booking_id || booking.id,
               batchId: booking.batch.toString(),
               reason: reason || null,
             },
@@ -2422,14 +2455,14 @@ export const cancelBooking = async (
                 userName,
                 batchName,
                 centerName,
-                bookingId: booking.id,
+                bookingId: booking.booking_id || booking.id,
                 reason: reason || null,
                 year: new Date().getFullYear(),
               },
               priority: 'medium',
               metadata: {
                 type: 'booking_cancelled',
-                bookingId: booking.id,
+                bookingId: booking.booking_id || booking.id,
                 recipient: 'user',
               },
             });
@@ -2440,12 +2473,12 @@ export const cancelBooking = async (
             const smsMessage = getBookingCancelledUserSms({
               batchName,
               centerName,
-              bookingId: booking.id,
+              bookingId: booking.booking_id || booking.id,
               reason: reason || null,
             });
             queueSms(user.mobile, smsMessage, 'medium', {
               type: 'booking_cancelled',
-              bookingId: booking.id,
+              bookingId: booking.booking_id || booking.id,
               recipient: 'user',
             });
           }
@@ -2455,12 +2488,12 @@ export const cancelBooking = async (
             const whatsappMessage = getBookingCancelledUserWhatsApp({
               batchName,
               centerName,
-              bookingId: booking.id,
+              bookingId: booking.booking_id || booking.id,
               reason: reason || null,
             });
             queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
               type: 'booking_cancelled',
-              bookingId: booking.id,
+              bookingId: booking.booking_id || booking.id,
               recipient: 'user',
             });
           }
@@ -2475,12 +2508,12 @@ export const cancelBooking = async (
               recipientType: 'academy',
               recipientId: academyOwner.id,
               title: 'Booking Cancelled',
-              body: `Booking ${booking.id} for batch "${batchName}" has been cancelled by ${userName}.${reason ? ` Reason: ${reason}` : ''}`,
+              body: `Booking ${booking.booking_id || booking.id} for batch "${batchName}" has been cancelled by ${userName}.${reason ? ` Reason: ${reason}` : ''}`,
               channels: ['push'],
               priority: 'medium',
               data: {
                 type: 'booking_cancelled_academy',
-                bookingId: booking.id,
+                bookingId: booking.booking_id || booking.id,
                 batchId: booking.batch.toString(),
                 reason: reason || null,
               },
@@ -2491,20 +2524,20 @@ export const cancelBooking = async (
             if (academyEmail) {
               queueEmail(academyEmail, 'Booking Cancelled - PlayAsport', {
                 template: 'booking-cancelled-academy.html',
-                text: `Booking ${booking.id} for batch "${batchName}" has been cancelled by ${userName}.${reason ? ` Reason: ${reason}` : ''}`,
+                text: `Booking ${booking.booking_id || booking.id} for batch "${batchName}" has been cancelled by ${userName}.${reason ? ` Reason: ${reason}` : ''}`,
                 templateVariables: {
                   centerName,
                   batchName,
                   userName,
                   userEmail: user?.email || 'N/A',
-                  bookingId: booking.id,
+                  bookingId: booking.booking_id || booking.id,
                   reason: reason || null,
                   year: new Date().getFullYear(),
                 },
                 priority: 'medium',
                 metadata: {
                   type: 'booking_cancelled',
-                  bookingId: booking.id,
+                  bookingId: booking.booking_id || booking.id,
                   recipient: 'academy',
                 },
               });
@@ -2514,14 +2547,14 @@ export const cancelBooking = async (
             const academyMobile = (centerDetails as any)?.mobile_number || academyOwner.mobile;
             if (academyMobile) {
               const smsMessage = getBookingCancelledAcademySms({
-                bookingId: booking.id,
+                bookingId: booking.booking_id || booking.id,
                 batchName,
                 userName,
                 reason: reason || null,
               });
               queueSms(academyMobile, smsMessage, 'medium', {
                 type: 'booking_cancelled',
-                bookingId: booking.id,
+                bookingId: booking.booking_id || booking.id,
                 recipient: 'academy',
               });
             }
@@ -2547,20 +2580,20 @@ export const cancelBooking = async (
         if (config.admin.email) {
           queueEmail(config.admin.email, 'Booking Cancelled - PlayAsport', {
             template: 'booking-cancelled-admin.html',
-            text: `Booking ${booking.id} for batch "${batchName}" at "${centerName}" has been cancelled by ${userName}.${reason ? ` Reason: ${reason}` : ''}`,
+            text: `Booking ${booking.booking_id || booking.id} for batch "${batchName}" at "${centerName}" has been cancelled by ${userName}.${reason ? ` Reason: ${reason}` : ''}`,
             templateVariables: {
               userName,
               userEmail: user?.email || 'N/A',
               batchName,
               centerName,
-              bookingId: booking.id,
+              bookingId: booking.booking_id || booking.id,
               reason: reason || null,
               year: new Date().getFullYear(),
             },
             priority: 'medium',
             metadata: {
               type: 'booking_cancelled',
-              bookingId: booking.id,
+              bookingId: booking.booking_id || booking.id,
               recipient: 'admin',
             },
           });

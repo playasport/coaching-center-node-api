@@ -804,6 +804,7 @@ async function migrateSingleCoachingCenter(cc, mysqlConnection, agentRoleId, aca
     let operatingDays = [];
     let openingTime = null;
     let closingTime = null;
+    let trainingTiming = null; // For training_timing field
 
     // First, try to get times from coaching center fields
     if (cc.call_start_time) {
@@ -816,7 +817,7 @@ async function migrateSingleCoachingCenter(cc, mysqlConnection, agentRoleId, aca
       log(`   ✅ Closing time from call_end_time: ${closingTime}`);
     }
 
-    // Fetch batch timings for operating days and as fallback for times
+    // Fetch batch timings for operating days, training timing, and as fallback for times
     try {
       const [batchTimings] = await mysqlConnection.execute(
         'SELECT day, start_time, end_time FROM batch_timings WHERE coaching_center_id = ? ORDER BY day, start_time',
@@ -828,6 +829,8 @@ async function migrateSingleCoachingCenter(cc, mysqlConnection, agentRoleId, aca
         const uniqueDays = new Set();
         const allStartTimes = [];
         const allEndTimes = [];
+        // Map to store unique day-timing combinations for training_timing
+        const trainingTimingMap = new Map();
 
         for (const bt of batchTimings) {
           uniqueDays.add(bt.day);
@@ -844,6 +847,33 @@ async function migrateSingleCoachingCenter(cc, mysqlConnection, agentRoleId, aca
             const endTimeHHMM = endTimeStr.substring(0, 5); // Extract HH:MM from HH:MM:SS
             allEndTimes.push(endTimeHHMM);
           }
+
+          // Build training_timing from batch_timings
+          if (bt.day && bt.start_time && bt.end_time) {
+            const day = String(bt.day).toLowerCase();
+            const startTimeStr = String(bt.start_time);
+            const endTimeStr = String(bt.end_time);
+            const startTimeHHMM = startTimeStr.substring(0, 5); // Extract HH:MM from HH:MM:SS
+            const endTimeHHMM = endTimeStr.substring(0, 5); // Extract HH:MM from HH:MM:SS
+            
+            const key = `${day}_${startTimeHHMM}_${endTimeHHMM}`;
+            if (!trainingTimingMap.has(key)) {
+              trainingTimingMap.set(key, {
+                day: day,
+                start_time: startTimeHHMM,
+                end_time: endTimeHHMM,
+              });
+            }
+          }
+        }
+
+        // Convert training timing map to array
+        const trainingTimings = Array.from(trainingTimingMap.values());
+        if (trainingTimings.length > 0) {
+          trainingTiming = {
+            timings: trainingTimings,
+          };
+          log(`   ✅ Training timing from batch_timings: ${trainingTimings.length} day(s)`);
         }
 
         // Convert Set to sorted array for operating days
@@ -1048,6 +1078,20 @@ async function migrateSingleCoachingCenter(cc, mysqlConnection, agentRoleId, aca
         opening_time: openingTime,
         closing_time: closingTime,
       },
+      call_timing: (() => {
+        if (cc.call_start_time && cc.call_end_time) {
+          const startTime = convertTo24HourFormat(cc.call_start_time);
+          const endTime = convertTo24HourFormat(cc.call_end_time);
+          if (startTime && endTime) {
+            return {
+              start_time: startTime,
+              end_time: endTime,
+            };
+          }
+        }
+        return null;
+      })(),
+      training_timing: trainingTiming, // From MySQL batch_timings table
       documents: [],
       bank_information: bankInformation,
       status: cc.is_admin_approve === 'approved' ? 'published' : 'draft',
@@ -1222,6 +1266,141 @@ async function migrateCoachingCenters(mysqlConnection) {
     return { migratedCount: totalMigrated, skippedCount: totalSkipped, errorCount: totalErrors, total };
   } catch (error) {
     logError('Error in migrateCoachingCenters', error);
+    throw error;
+  }
+}
+
+/**
+ * Aggregate training timing from batches for a coaching center
+ * @param {string} centerId - Coaching center ID
+ * @returns {Object|null} Training timing object or null
+ */
+async function aggregateTrainingTimingFromBatches(centerId) {
+  try {
+    // Find the coaching center ObjectId
+    const center = await CoachingCenterModel.findOne({ id: centerId }).select('_id').lean();
+    if (!center) {
+      return null;
+    }
+    
+    // Find all batches for this center
+    const batches = await BatchModel.find({
+      center: center._id,
+      is_deleted: false,
+    })
+      .select('scheduled')
+      .lean();
+    
+    if (!batches || batches.length === 0) {
+      return null;
+    }
+    
+    // Map to store unique day-timing combinations
+    const timingMap = new Map();
+    
+    for (const batch of batches) {
+      const scheduled = batch.scheduled;
+      
+      if (!scheduled) continue;
+      
+      // Priority 1: Use individual_timings if available
+      if (scheduled.individual_timings && scheduled.individual_timings.length > 0) {
+        for (const timing of scheduled.individual_timings) {
+          const day = timing.day?.toLowerCase();
+          if (day && timing.start_time && timing.end_time) {
+            const key = `${day}_${timing.start_time}_${timing.end_time}`;
+            if (!timingMap.has(key)) {
+              timingMap.set(key, {
+                day: day,
+                start_time: timing.start_time,
+                end_time: timing.end_time,
+              });
+            }
+          }
+        }
+      }
+      // Priority 2: Use common timing with training_days
+      else if (scheduled.start_time && scheduled.end_time && scheduled.training_days && scheduled.training_days.length > 0) {
+        for (const day of scheduled.training_days) {
+          const dayLower = day?.toLowerCase();
+          if (dayLower) {
+            const key = `${dayLower}_${scheduled.start_time}_${scheduled.end_time}`;
+            if (!timingMap.has(key)) {
+              timingMap.set(key, {
+                day: dayLower,
+                start_time: scheduled.start_time,
+                end_time: scheduled.end_time,
+              });
+            }
+          }
+        }
+      }
+    }
+    
+    // Convert map to array
+    const timings = Array.from(timingMap.values());
+    
+    if (timings.length === 0) {
+      return null;
+    }
+    
+    return {
+      timings: timings,
+    };
+  } catch (error) {
+    logError(`Error aggregating training timing for center ${centerId}`, error);
+    return null;
+  }
+}
+
+/**
+ * Update training timing for all coaching centers from batches
+ */
+async function updateTrainingTimingFromBatches() {
+  try {
+    log('='.repeat(80));
+    log('STEP 2.5: UPDATING TRAINING TIMING FROM BATCHES');
+    log('='.repeat(80));
+    
+    // Get all coaching centers
+    const coachingCenters = await CoachingCenterModel.find({
+      is_deleted: false,
+    }).select('id').lean();
+    
+    log(`Found ${coachingCenters.length} coaching centers to update training timing\n`);
+    
+    let updatedCount = 0;
+    let skippedCount = 0;
+    let errorCount = 0;
+    
+    for (const center of coachingCenters) {
+      try {
+        const trainingTiming = await aggregateTrainingTimingFromBatches(center.id);
+        
+        if (trainingTiming && trainingTiming.timings && trainingTiming.timings.length > 0) {
+          await CoachingCenterModel.updateOne(
+            { id: center.id },
+            { $set: { training_timing: trainingTiming } }
+          );
+          updatedCount++;
+          log(`  ✅ Updated training timing for ${center.id}: ${trainingTiming.timings.length} day(s)`);
+        } else {
+          skippedCount++;
+          log(`  ⏭️  Skipped ${center.id} (no batch timing data found)`);
+        }
+      } catch (error) {
+        errorCount++;
+        logError(`  ❌ Error updating training timing for ${center.id}`, error);
+      }
+    }
+    
+    log(`\n📊 Training Timing Update Summary:`);
+    log(`   ✅ Updated: ${updatedCount}`);
+    log(`   ⏭️  Skipped: ${skippedCount}`);
+    log(`   ❌ Errors: ${errorCount}\n`);
+    
+  } catch (error) {
+    logError('Error in updateTrainingTimingFromBatches', error);
     throw error;
   }
 }
@@ -1432,6 +1611,17 @@ async function runMigration(skipCleanup = false) {
     log('='.repeat(80));
     await migrateCoachingCenters(mysqlConnection);
     log('');
+
+    // Step 2.5: Update Training Timing from Batches (if batches exist)
+    // This step aggregates training timing from MongoDB batches and updates coaching centers
+    // Note: This will only work if batches have already been migrated to MongoDB
+    try {
+      await updateTrainingTimingFromBatches();
+      log('');
+    } catch (error) {
+      logError('Warning: Could not update training timing from batches (batches may not be migrated yet)', error);
+      log('You can run this step later after batches are migrated.\n');
+    }
 
     // Step 3: Create Indexes
     await createIndexes();

@@ -13,7 +13,7 @@ const router = Router();
  *   post:
  *     summary: Create a new participant
  *     tags: [Participant]
- *     description: Create a new participant. Requires authentication. Users can only create participants for themselves. Supports profile photo upload via multipart/form-data (field name: 'profileImage'). If both file and profilePhoto URL are provided, the file takes precedence.
+ *     description: "Create a new participant. Requires authentication. Users can only create participants for themselves. Supports profile photo upload via multipart/form-data (field name: 'profileImage'). If both file and profilePhoto URL are provided, the file takes precedence."
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -218,7 +218,7 @@ router.get('/:id', authenticate, participantController.getParticipant);
  *   patch:
  *     summary: Update participant details
  *     tags: [Participant]
- *     description: Update participant details. All fields are optional. Users can only update their own participants. Requires authentication. Supports profile photo upload via multipart/form-data (field name: 'profileImage'). If a file is uploaded, the old profile photo will be automatically deleted from S3. If both file and profilePhoto URL are provided, the file takes precedence.
+ *     description: "Update participant details. All fields are optional. Users can only update their own participants. Requires authentication. Supports profile photo upload via multipart/form-data (field name: 'profileImage'). If a file is uploaded, the old profile photo will be automatically deleted from S3. If both file and profilePhoto URL are provided, the file takes precedence."
  *     security:
  *       - bearerAuth: []
  *     parameters:

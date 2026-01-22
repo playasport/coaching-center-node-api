@@ -470,7 +470,7 @@ router.post(
  * /admin/settings/fees:
  *   patch:
  *     summary: Update fee configuration
- *     description: Update fee-related settings including platform fee, GST percentage, GST enabled status, currency, and commission rate. Commission rate is used to calculate commission on batch bookings (admission fee + base fee) for academy payouts. Note: GST is applied only on platform_fee, not on the entire amount. All fields are optional. Requires settings:update permission.
+ *     description: "Update fee-related settings including platform fee, GST percentage, GST enabled status, currency, and commission rate. Commission rate is used to calculate commission on batch bookings (admission fee + base fee) for academy payouts. Note: GST is applied only on platform_fee, not on the entire amount. All fields are optional. Requires settings:update permission."
  *     tags: [Admin Settings]
  *     security:
  *       - bearerAuth: []
@@ -910,7 +910,7 @@ router.patch(
  * /admin/settings/reset:
  *   post:
  *     summary: Reset settings to default (admin only - Super Admin recommended)
- *     description: Reset all settings to default values (populated from environment variables). WARNING: This will delete all existing settings and recreate defaults. Use with caution. Requires settings:update permission.
+ *     description: "Reset all settings to default values (populated from environment variables). WARNING: This will delete all existing settings and recreate defaults. Use with caution. Requires settings:update permission."
  *     tags: [Admin Settings]
  *     security:
  *       - bearerAuth: []

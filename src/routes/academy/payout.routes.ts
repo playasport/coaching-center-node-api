@@ -84,6 +84,12 @@ const router = Router();
  *                             type: string
  *                             enum: [not_initiated, pending, processing, completed, failed, cancelled, refunded]
  *                             example: "pending"
+ *                           students:
+ *                             type: array
+ *                             description: List of student names in the booking (names only for listing)
+ *                             items:
+ *                               type: string
+ *                               example: "John Doe"
  *                     pagination:
  *                       type: object
  *                       properties:
@@ -243,6 +249,36 @@ router.get(
  *                       type: string
  *                       format: date-time
  *                       nullable: true
+ *                     students:
+ *                       type: array
+ *                       description: List of students/participants in the booking
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             example: "participant-uuid"
+ *                           firstName:
+ *                             type: string
+ *                             example: "John"
+ *                           lastName:
+ *                             type: string
+ *                             example: "Doe"
+ *                           fullName:
+ *                             type: string
+ *                             example: "John Doe"
+ *                           gender:
+ *                             type: string
+ *                             example: "male"
+ *                           dob:
+ *                             type: string
+ *                             format: date
+ *                             nullable: true
+ *                             example: "2010-05-15"
+ *                           profilePhoto:
+ *                             type: string
+ *                             nullable: true
+ *                             example: "https://example.com/photo.jpg"
  *                 message:
  *                   type: string
  *                   example: "Payout retrieved successfully"
@@ -255,6 +291,41 @@ router.get(
   '/:id',
   authenticate,
   payoutController.getPayoutById
+);
+
+/**
+ * @swagger
+ * /academy/my-payouts/{id}/invoice:
+ *   get:
+ *     summary: Download payout invoice as PDF
+ *     tags: [Academy Payouts]
+ *     description: Download invoice PDF for a payout. Only returns invoice if payout belongs to the authenticated academy user.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Payout ID
+ *     responses:
+ *       200:
+ *         description: Invoice PDF file successfully downloaded
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Payout not found or does not belong to you
+ */
+router.get(
+  '/:id/invoice',
+  authenticate,
+  payoutController.downloadPayoutInvoice
 );
 
 export default router;

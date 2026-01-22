@@ -37,6 +37,7 @@ export interface BookingListItem {
   status: BookingStatus; // Booking status
   status_message: string; // Custom message based on booking status and payment status
   payment_status: string;
+  payout_status: string; // Payout status (not_initiated, pending, processing, completed, failed, cancelled, refunded)
   can_accept_reject: boolean; // Flag to indicate if accept/reject actions should be shown
   rejection_reason?: string | null; // Rejection reason if status is REJECTED
   cancellation_reason?: string | null; // Cancellation reason if status is CANCELLED
@@ -236,7 +237,7 @@ export const getAcademyBookings = async (
       .populate('participants', 'firstName lastName')
       .populate('batch', 'name')
       .populate('center', 'center_name')
-      .select('booking_id id status amount priceBreakdown payment rejection_reason cancellation_reason user participants batch center createdAt')
+      .select('booking_id id status amount priceBreakdown payment payout_status rejection_reason cancellation_reason user participants batch center createdAt')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -284,6 +285,7 @@ export const getAcademyBookings = async (
         status: bookingStatus,
         status_message: statusMessage,
         payment_status: paymentStatus === PaymentStatus.SUCCESS ? 'paid' : (paymentStatus || 'pending'),
+        payout_status: booking.payout_status || 'not_initiated',
         can_accept_reject: canAcceptReject,
         rejection_reason: bookingStatus === BookingStatus.REJECTED ? booking.rejection_reason || null : null,
         cancellation_reason: bookingStatus === BookingStatus.CANCELLED ? booking.cancellation_reason || null : null,
@@ -350,7 +352,7 @@ export const getAcademyBookingById = async (
       .populate('batch', 'id name')
       .populate('center', 'id center_name email mobile_number logo')
       .populate('sport', 'id name logo')
-      .select('_id id booking_id user participants batch center sport amount currency status notes cancellation_reason rejection_reason payment priceBreakdown createdAt')
+      .select('_id id booking_id user participants batch center sport amount currency status notes cancellation_reason rejection_reason payment priceBreakdown payout_status createdAt')
       .lean();
 
     if (!booking) {
@@ -453,6 +455,7 @@ export const getAcademyBookingById = async (
       status: bookingData.status || '',
       status_message: status_message,
       payment_status: payment_status,
+      payout_status: bookingData.payout_status || 'not_initiated',
       can_accept_reject: can_accept_reject,
       notes: bookingData.notes || null,
       cancellation_reason: bookingData.cancellation_reason || null,
@@ -568,7 +571,7 @@ export const approveBookingRequest = async (
         priority: 'high',
         data: {
           type: 'booking_approved',
-          bookingId: booking.id,
+          bookingId: booking.booking_id || booking.id,
           batchId: booking.batch.toString(),
         },
       });
@@ -582,13 +585,13 @@ export const approveBookingRequest = async (
             userName,
             batchName,
             centerName,
-            bookingId: booking.id,
+            bookingId: booking.booking_id || booking.id,
             year: new Date().getFullYear(),
           },
           priority: 'high',
           metadata: {
             type: 'booking_approved',
-            bookingId: booking.id,
+            bookingId: booking.booking_id || booking.id,
             recipient: 'user',
           },
         });
@@ -599,11 +602,11 @@ export const approveBookingRequest = async (
         const smsMessage = getBookingApprovedUserSms({
           batchName,
           centerName,
-          bookingId: booking.id,
+          bookingId: booking.booking_id || booking.id,
         });
         queueSms(user.mobile, smsMessage, 'high', {
           type: 'booking_approved',
-          bookingId: booking.id,
+          bookingId: booking.booking_id || booking.id,
           recipient: 'user',
         });
       }
@@ -613,11 +616,11 @@ export const approveBookingRequest = async (
         const whatsappMessage = getBookingApprovedUserWhatsApp({
           batchName,
           centerName,
-          bookingId: booking.id,
+          bookingId: booking.booking_id || booking.id,
         });
         queueWhatsApp(user.mobile, whatsappMessage, 'high', {
           type: 'booking_approved',
-          bookingId: booking.id,
+          bookingId: booking.booking_id || booking.id,
           recipient: 'user',
         });
       }
@@ -766,7 +769,7 @@ export const rejectBookingRequest = async (
         priority: 'medium',
         data: {
           type: 'booking_rejected',
-          bookingId: booking.id,
+          bookingId: booking.booking_id || booking.id,
           batchId: booking.batch.toString(),
           reason: reason || null,
         },
@@ -781,14 +784,14 @@ export const rejectBookingRequest = async (
             userName,
             batchName,
             centerName,
-            bookingId: booking.id,
+            bookingId: booking.booking_id || booking.id,
             reason: reason || null,
             year: new Date().getFullYear(),
           },
           priority: 'medium',
           metadata: {
             type: 'booking_rejected',
-            bookingId: booking.id,
+            bookingId: booking.booking_id || booking.id,
             recipient: 'user',
           },
         });
@@ -799,12 +802,12 @@ export const rejectBookingRequest = async (
         const smsMessage = getBookingRejectedUserSms({
           batchName,
           centerName,
-          bookingId: booking.id,
+          bookingId: booking.booking_id || booking.id,
           reason: reason || null,
         });
         queueSms(user.mobile, smsMessage, 'medium', {
           type: 'booking_rejected',
-          bookingId: booking.id,
+          bookingId: booking.booking_id || booking.id,
           recipient: 'user',
         });
       }
@@ -814,12 +817,12 @@ export const rejectBookingRequest = async (
         const whatsappMessage = getBookingRejectedUserWhatsApp({
           batchName,
           centerName,
-          bookingId: booking.id,
+          bookingId: booking.booking_id || booking.id,
           reason: reason || null,
         });
         queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
           type: 'booking_rejected',
-          bookingId: booking.id,
+          bookingId: booking.booking_id || booking.id,
           recipient: 'user',
         });
       }

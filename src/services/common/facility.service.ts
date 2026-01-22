@@ -11,14 +11,27 @@ export interface FacilityListItem {
   icon: string | null;
 }
 
-export const getAllFacilities = async (): Promise<FacilityListItem[]> => {
+export const getAllFacilities = async (search?: string): Promise<FacilityListItem[]> => {
   try {
-    const facilities = await FacilityModel.find({ 
+    // Build query
+    const query: any = {
       is_active: true,
       isDeleted: { $ne: true } // Exclude soft-deleted facilities
-    })
+    };
+
+    // Add search filter if provided
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i'); // Case-insensitive search
+      query.$or = [
+        { name: searchRegex },
+        { description: searchRegex },
+        { custom_id: searchRegex }
+      ];
+    }
+
+    const facilities = await FacilityModel.find(query)
       .select('_id custom_id name description icon')
-      .sort({ name: 1 })
+      .sort({ createdAt: -1 }) // Sort by newest first
       .lean();
     
     return facilities.map((facility) => ({

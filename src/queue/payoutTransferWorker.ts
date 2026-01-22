@@ -5,7 +5,8 @@ import { logger } from '../utils/logger';
 import { PAYOUT_TRANSFER_QUEUE_NAME, PayoutTransferJobData } from './payoutTransferQueue';
 import { PayoutModel, PayoutStatus } from '../models/payout.model';
 import { razorpayRouteService } from '../services/common/payment/razorpayRoute.service';
-import { createAuditTrail, ActionType, ActionScale } from '../services/common/auditTrail.service';
+import { createAuditTrail } from '../services/common/auditTrail.service';
+import { ActionType, ActionScale } from '../models/auditTrail.model';
 import { createAndSendNotification } from '../services/common/notification.service';
 import { UserModel } from '../models/user.model';
 import {
@@ -16,12 +17,12 @@ import { queueSms, queueWhatsApp } from '../services/common/notificationQueue.se
 
 // Redis connection for BullMQ
 const connection = new Redis({
+  ...config.redis.connection,
   host: config.redis.host,
   port: config.redis.port,
   password: config.redis.password,
   db: config.redis.db.bullmq,
-  maxRetriesPerRequest: null, // Required by BullMQ for blocking operations
-  ...config.redis.connection,
+  maxRetriesPerRequest: null, // Required by BullMQ for blocking operations - must be after spread
 });
 
 const PAYOUT_TRANSFER_CONCURRENCY = Number(process.env.PAYOUT_TRANSFER_CONCURRENCY || 2);

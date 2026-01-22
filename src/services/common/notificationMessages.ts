@@ -76,7 +76,7 @@ export const getBookingRequestSentUserWhatsApp = (variables: NotificationMessage
  * Booking Approved - User (SMS)
  */
 export const getBookingApprovedUserSms = (variables: NotificationMessageVariables): string => {
-  const template = `Great news! Your booking request for "{{batchName}}" at "{{centerName}}" has been approved. Please proceed with payment. Booking ID: {{bookingId}}. - Play A Sport`;
+  const template = `Great news! Your booking request for "{{batchName}}" at "{{centerName}}" has been approved. Please proceed with payment. Booking ID: {{bookingId}}. View bookings: https://www.playasport.in/bookings - Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -84,7 +84,7 @@ export const getBookingApprovedUserSms = (variables: NotificationMessageVariable
  * Booking Approved - User (WhatsApp)
  */
 export const getBookingApprovedUserWhatsApp = (variables: NotificationMessageVariables): string => {
-  const template = `*Booking Approved*\n\nGreat news! Your booking request for *"{{batchName}}"* at *"{{centerName}}"* has been approved.\n\n*Booking ID:* {{bookingId}}\n\nPlease proceed with payment to confirm your booking.\n\n- Play A Sport`;
+  const template = `*Booking Approved*\n\nGreat news! Your booking request for *"{{batchName}}"* at *"{{centerName}}"* has been approved.\n\n*Booking ID:* {{bookingId}}\n\nPlease proceed with payment to confirm your booking.\n\nView your bookings: https://www.playasport.in/bookings\n\n- Play A Sport`;
   return replaceVariables(template, variables);
 };
 

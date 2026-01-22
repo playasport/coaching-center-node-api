@@ -493,23 +493,34 @@ export class RazorpayRouteService {
             
             // Check if requirements are only about bank details that we're about to submit
             // If all requirements are about settlements.* or tnc_accepted, we can proceed
+            // Also allow stakeholder requirements (name, etc.) as they are handled separately in background
             const bankDetailsFields = ['settlements.account_number', 'settlements.ifsc_code', 'settlements.beneficiary_name', 'tnc_accepted'];
-            const allRequirementsAreBankDetails = Array.isArray(requirements) && requirements.length > 0
+            const stakeholderFields = ['name', 'stakeholder', 'stakeholders']; // Stakeholder-related fields
+            
+            const allRequirementsAreAllowed = Array.isArray(requirements) && requirements.length > 0
               ? requirements.every((req: any) => {
                   const fieldRef = req.field_reference || '';
-                  return bankDetailsFields.some(field => fieldRef.includes(field) || fieldRef === field);
+                  // Check if requirement is about bank details we're submitting
+                  const isBankDetail = bankDetailsFields.some(field => fieldRef.includes(field) || fieldRef === field);
+                  // Check if requirement is about stakeholder (handled separately in background queue)
+                  const isStakeholder = stakeholderFields.some(field => 
+                    fieldRef.toLowerCase().includes(field.toLowerCase()) || 
+                    fieldRef.toLowerCase().includes('stakeholder')
+                  );
+                  return isBankDetail || isStakeholder;
                 })
               : false;
             
-            if (allRequirementsAreBankDetails) {
-              // All requirements are about bank details we're about to submit, so proceed
-              logger.info('Product configuration needs clarification but only for bank details we are submitting - proceeding with update', {
+            if (allRequirementsAreAllowed) {
+              // All requirements are about bank details we're submitting OR stakeholder (which is handled in background)
+              // Proceed with bank details update
+              logger.info('Product configuration needs clarification but only for bank details we are submitting or stakeholder (handled separately) - proceeding with bank update', {
                 accountId,
                 productId,
                 requirements,
               });
             } else {
-              // There are other clarifications needed beyond bank details
+              // There are other clarifications needed beyond bank details and stakeholder
               const requirementsText = Array.isArray(requirements) 
                 ? requirements.map((req: any) => req.description || req.field_reference || req).join(', ')
                 : (typeof requirements === 'string' ? requirements : 'Additional information required');

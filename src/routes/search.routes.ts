@@ -36,7 +36,7 @@ const router = Router();
  *           minimum: 1
  *           maximum: 50
  *           default: 5
- *         description: Number of results per index (default: 5)
+ *         description: "Number of results per index (default: 5)"
  *         example: 5
  *       - in: query
  *         name: index
@@ -68,7 +68,7 @@ const router = Router();
  *           minimum: 1
  *           maximum: 200
  *           default: 50
- *         description: Search radius in kilometers (default: 50km, only for coaching centers)
+ *         description: "Search radius in kilometers (default: 50km, only for coaching centers)"
  *         example: 50
  *     responses:
  *       200:
@@ -237,7 +237,7 @@ router.get('/autocomplete', autocomplete);
  *           minimum: 1
  *           maximum: 200
  *           default: 50
- *         description: Search radius in kilometers (default: 50km, only for coaching centers)
+ *         description: "Search radius in kilometers (default: 50km, only for coaching centers)"
  *         example: 50
  *     responses:
  *       200:

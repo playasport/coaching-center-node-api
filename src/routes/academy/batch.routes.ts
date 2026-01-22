@@ -492,7 +492,7 @@ router.get('/:id', authenticate, authorize(DefaultRoles.ACADEMY), batchControlle
  *       200:
  *         description: Batch updated successfully
  *       400:
- *         description: Validation error or invalid data. Possible errors: "Cannot update batch details while batch is active", "Cannot change status from 'published' to 'draft'"
+ *         description: "Validation error or invalid data. Possible errors: \"Cannot update batch details while batch is active\", \"Cannot change status from 'published' to 'draft'\""
  *       401:
  *         description: Unauthorized - Authentication required
  *       403:

@@ -5,12 +5,12 @@ import { logger } from '../utils/logger';
 
 // Redis connection for BullMQ
 const connection = new Redis({
+  ...config.redis.connection,
   host: config.redis.host,
   port: config.redis.port,
   password: config.redis.password,
   db: config.redis.db.bullmq,
-  maxRetriesPerRequest: null, // Required by BullMQ for blocking operations
-  ...config.redis.connection,
+  maxRetriesPerRequest: null, // Required by BullMQ for blocking operations - must be after spread
 });
 
 // Queue name for payout transfer processing

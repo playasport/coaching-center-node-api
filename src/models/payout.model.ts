@@ -16,7 +16,7 @@ export interface Payout {
   id: string;
   booking: Types.ObjectId; // Reference to Booking model
   transaction: Types.ObjectId; // Reference to Transaction model
-  academy_payout_account: Types.ObjectId; // Reference to AcademyPayoutAccount model
+  academy_payout_account?: Types.ObjectId | null; // Reference to AcademyPayoutAccount model (optional - can be null if account not created yet)
   academy_user: Types.ObjectId; // Reference to User model (academy owner)
   
   // Amount details
@@ -30,7 +30,6 @@ export interface Payout {
   // Status and processing
   status: PayoutStatus;
   razorpay_transfer_id?: string | null; // Razorpay transfer ID (after transfer created)
-  razorpay_account_id: string; // Academy's Razorpay account ID
   
   // Refund handling
   refund_amount?: number | null; // If refunded, amount refunded
@@ -74,7 +73,8 @@ const payoutSchema = new Schema<Payout>(
     academy_payout_account: {
       type: Schema.Types.ObjectId,
       ref: 'AcademyPayoutAccount',
-      required: true,
+      required: false,
+      default: null,
       index: true,
     },
     academy_user: {
@@ -125,11 +125,6 @@ const payoutSchema = new Schema<Payout>(
     razorpay_transfer_id: {
       type: String,
       default: null,
-      index: true,
-    },
-    razorpay_account_id: {
-      type: String,
-      required: true,
       index: true,
     },
     refund_amount: {
@@ -192,7 +187,6 @@ payoutSchema.index({ academy_user: 1, status: 1, createdAt: -1 });
 payoutSchema.index({ academy_payout_account: 1, status: 1 });
 payoutSchema.index({ status: 1, createdAt: -1 });
 payoutSchema.index({ razorpay_transfer_id: 1 });
-payoutSchema.index({ razorpay_account_id: 1 });
 payoutSchema.index({ scheduled_at: 1 }); // For scheduled payouts
 
 // Compound indexes

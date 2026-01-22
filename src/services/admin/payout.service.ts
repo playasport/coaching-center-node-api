@@ -1,16 +1,14 @@
-import { Types } from 'mongoose';
 import { PayoutModel, Payout, PayoutStatus } from '../../models/payout.model';
-import { BookingModel, BookingStatus, PaymentStatus } from '../../models/booking.model';
-import { TransactionModel, TransactionStatus } from '../../models/transaction.model';
+import { BookingModel } from '../../models/booking.model';
+import { TransactionModel } from '../../models/transaction.model';
 import { AcademyPayoutAccountModel } from '../../models/academyPayoutAccount.model';
 import { UserModel } from '../../models/user.model';
-import { razorpayRouteService } from '../common/payment/razorpayRoute.service';
+
 import { ApiError } from '../../utils/ApiError';
 import { logger } from '../../utils/logger';
-import { createAuditTrail, ActionType, ActionScale } from '../common/auditTrail.service';
+import { createAuditTrail } from '../common/auditTrail.service';
+import { ActionType, ActionScale } from '../../models/auditTrail.model';
 import { enqueuePayoutTransfer } from '../../queue/payoutTransferQueue';
-import { createAndSendNotification } from '../common/notification.service';
-import { t } from '../../utils/i18n';
 
 /**
  * Get all payouts with filters and pagination
@@ -122,7 +120,7 @@ export const getPayouts = async (filters: {
     const payouts = await PayoutModel.find(query)
       .populate('booking', 'id booking_id status amount')
       .populate('transaction', 'id razorpay_payment_id status amount')
-      .populate('academy_payout_account', 'id razorpay_account_id activation_status')
+      .populate('academy_payout_account', 'id razorpay_account_id activation_status ready_for_payout')
       .populate('academy_user', 'id firstName lastName email mobile')
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -200,10 +198,40 @@ export const createTransfer = async (
       throw new ApiError(400, `Cannot initiate transfer for payout in ${payout.status} status`);
     }
 
-    // Validate payout account
-    const payoutAccount = await AcademyPayoutAccountModel.findById(payout.academy_payout_account);
+    // Find payout account - first try from payout reference, then from academy_user
+    let payoutAccount = null;
+    
+    if (payout.academy_payout_account) {
+      // Try to find account from payout reference
+      payoutAccount = await AcademyPayoutAccountModel.findById(payout.academy_payout_account);
+    }
+    
+    // If account not found from reference, try to find by academy_user
+    if (!payoutAccount) {
+      logger.info('Payout account not found in payout reference, searching by academy_user', {
+        payoutId,
+        academyUserId: payout.academy_user,
+      });
+      
+      payoutAccount = await AcademyPayoutAccountModel.findOne({
+        user: payout.academy_user,
+        is_active: true,
+      });
+      
+      // If found, update the payout record with the account reference
+      if (payoutAccount) {
+        payout.academy_payout_account = payoutAccount._id;
+        await payout.save();
+        logger.info('Updated payout with academy_payout_account reference', {
+          payoutId,
+          accountId: payoutAccount.id,
+        });
+      }
+    }
+    
+    // Validate payout account (required for transfer initiation)
     if (!payoutAccount || !payoutAccount.is_active) {
-      throw new ApiError(400, 'Payout account not found or inactive');
+      throw new ApiError(400, 'Payout account not found or inactive. Please create and activate payout account first.');
     }
 
     if (payoutAccount.activation_status !== 'activated') {
@@ -224,10 +252,16 @@ export const createTransfer = async (
       throw new ApiError(400, 'Transfer already initiated for this payout');
     }
 
+    // Get razorpay_account_id from the populated account reference
+    const accountId = (payoutAccount as any)?.razorpay_account_id;
+    if (!accountId) {
+      throw new ApiError(400, 'Academy payout account does not have a Razorpay account ID. Account may not be activated.');
+    }
+
     // Enqueue transfer job (will be processed in background)
     await enqueuePayoutTransfer({
       payoutId: payout.id,
-      accountId: payoutAccount.razorpay_account_id,
+      accountId: accountId,
       amount: payout.payout_amount,
       currency: payout.currency,
       notes: {
@@ -256,7 +290,7 @@ export const createTransfer = async (
         metadata: {
           payout_id: payoutId,
           payout_amount: payout.payout_amount,
-          account_id: payoutAccount.razorpay_account_id,
+          account_id: accountId,
           ipAddress: options?.ipAddress,
           userAgent: options?.userAgent,
         },
@@ -271,7 +305,7 @@ export const createTransfer = async (
     logger.info('Payout transfer initiated', {
       payoutId,
       amount: payout.payout_amount,
-      accountId: payoutAccount.razorpay_account_id,
+      accountId: accountId,
       adminUserId,
     });
 
@@ -279,7 +313,7 @@ export const createTransfer = async (
     const updatedPayout = await PayoutModel.findOne({ id: payoutId })
       .populate('booking', 'id booking_id status amount')
       .populate('transaction', 'id razorpay_payment_id status amount')
-      .populate('academy_payout_account', 'id razorpay_account_id activation_status')
+      .populate('academy_payout_account', 'id razorpay_account_id activation_status ready_for_payout')
       .populate('academy_user', 'id firstName lastName email mobile')
       .lean();
 
@@ -398,7 +432,7 @@ export const cancelPayout = async (
     const updatedPayout = await PayoutModel.findOne({ id: payoutId })
       .populate('booking', 'id booking_id status amount')
       .populate('transaction', 'id razorpay_payment_id status amount')
-      .populate('academy_payout_account', 'id razorpay_account_id activation_status')
+      .populate('academy_payout_account', 'id razorpay_account_id activation_status ready_for_payout')
       .populate('academy_user', 'id firstName lastName email mobile')
       .lean();
 

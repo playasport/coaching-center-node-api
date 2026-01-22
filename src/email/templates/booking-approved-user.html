@@ -113,9 +113,27 @@
         text-align: center;
       }
       .action-box p {
-        margin: 0;
+        margin: 0 0 15px 0;
         font-size: 15px;
         font-weight: 600;
+      }
+      .cta-button {
+        display: inline-block;
+        background-color: #ffffff;
+        color: #FF6B35;
+        padding: 12px 28px;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 15px;
+        margin-top: 10px;
+        transition: all 0.3s ease;
+      }
+      .cta-button:hover {
+        background-color: #ffffff;
+        color: #FF8C42;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
       }
       .footer {
         background-color: #f8f9fa;
@@ -151,14 +169,14 @@
       <div class="email-container">
         <div class="header">
           <div class="logo-container">
-            {{logoImage}}
+            <img src="https://front.playasport.in/images/logo.webp" alt="Play A Sport Logo" style="max-width: 180px; height: auto; margin-bottom: 10px;" />
           </div>
-          <h1 class="header-title">Booking Approved</h1>
+          <h1 class="header-title">Your Booking Has Been Approved – Complete Payment</h1>
         </div>
         <div class="content">
           <p class="greeting">Dear {{userName}},</p>
           <p class="message">
-            Great news! Your booking request has been approved by the academy. You can now proceed with payment to confirm your booking.
+            Great news! <br> Your booking request has been approved by the academy. You can now proceed with payment to confirm your booking.
           </p>
 
           <div class="booking-details">
@@ -179,16 +197,16 @@
 
           <div class="info-box">
             <h4>Next Steps</h4>
-            <p>Please complete the payment to confirm your booking. Once payment is successful, your booking will be confirmed and you will receive a confirmation email with all the details.</p>
+            <p>Please complete the payment to confirm your booking. Once the payment is successful, your booking will be officially confirmed and you’ll receive a confirmation email with all the details.</p>
           </div>
 
           <div class="action-box">
-            <p>Please proceed with payment to confirm your booking.</p>
+            <a href="https://www.playasport.in/bookings" class="cta-button">Proceed to Payment</a>
           </div>
 
-          <p class="message">Thank you for choosing <strong>Play A Sport</strong>!</p>
+          <p class="message">Thank you for choosing <strong>Play A Sport</strong>. We’re excited to have you onboard!</p>
           <div class="signature">
-            <p>Best regards,<br /><strong>The Play A Sport Team</strong></p>
+            <p>Best regards,<br /><strong>Play A Sport</strong></p>
           </div>
         </div>
         <div class="footer">

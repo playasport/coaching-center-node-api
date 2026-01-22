@@ -6,6 +6,40 @@ import * as adminBatchService from '../../services/admin/adminBatch.service';
 import type { BatchCreateInput, BatchUpdateInput } from '../../validations/batch.validation';
 
 /**
+ * Helper function to get user role from database (more reliable than JWT token)
+ */
+const getUserRoleFromDatabase = async (userId?: string): Promise<string | undefined> => {
+  if (!userId) return undefined;
+  
+  try {
+    const { AdminUserModel } = await import('../../models/adminUser.model');
+    const { DefaultRoles } = await import('../../enums/defaultRoles.enum');
+    const adminUser = await AdminUserModel.findOne({ id: userId })
+      .select('roles')
+      .populate('roles', 'name')
+      .lean();
+    
+    if (adminUser && adminUser.roles) {
+      const userRoles = adminUser.roles as any[];
+      // Get the highest priority role (super_admin > admin > employee > agent)
+      if (userRoles.some((r: any) => r?.name === DefaultRoles.SUPER_ADMIN)) {
+        return DefaultRoles.SUPER_ADMIN;
+      } else if (userRoles.some((r: any) => r?.name === DefaultRoles.ADMIN)) {
+        return DefaultRoles.ADMIN;
+      } else if (userRoles.some((r: any) => r?.name === DefaultRoles.EMPLOYEE)) {
+        return DefaultRoles.EMPLOYEE;
+      } else if (userRoles.some((r: any) => r?.name === DefaultRoles.AGENT)) {
+        return DefaultRoles.AGENT;
+      }
+    }
+  } catch (error) {
+    // If error, fallback to undefined
+  }
+  
+  return undefined;
+};
+
+/**
  * Create batch (admin)
  */
 export const createBatch = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -46,7 +80,10 @@ export const getAllBatches = async (req: Request, res: Response, next: NextFunct
       sortOrder: sortOrder as 'asc' | 'desc',
     };
 
-    const result = await adminBatchService.getAllBatches(page, limit, filters);
+    const currentUserId = req.user?.id;
+    const currentUserRole = await getUserRoleFromDatabase(currentUserId) || req.user?.role;
+
+    const result = await adminBatchService.getAllBatches(page, limit, filters, currentUserId, currentUserRole);
 
     const response = new ApiResponse(200, result, t('admin.batches.listRetrieved'));
     res.json(response);
@@ -61,7 +98,10 @@ export const getAllBatches = async (req: Request, res: Response, next: NextFunct
 export const getBatch = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
-    const batch = await adminBatchService.getBatchById(id);
+    const currentUserId = req.user?.id;
+    const currentUserRole = await getUserRoleFromDatabase(currentUserId) || req.user?.role;
+    
+    const batch = await adminBatchService.getBatchById(id, currentUserId, currentUserRole);
 
     if (!batch) {
       throw new ApiError(404, t('admin.batches.notFound'));
@@ -84,12 +124,17 @@ export const getBatchesByUserId = async (req: Request, res: Response, next: Next
     const limit = parseInt(req.query.limit as string) || 10;
     const { sortBy, sortOrder } = req.query;
 
+    const currentUserId = req.user?.id;
+    const currentUserRole = await getUserRoleFromDatabase(currentUserId) || req.user?.role;
+
     const result = await adminBatchService.getBatchesByUserId(
       userId,
       page,
       limit,
       sortBy as string,
-      sortOrder as 'asc' | 'desc'
+      sortOrder as 'asc' | 'desc',
+      currentUserId,
+      currentUserRole
     );
 
     const response = new ApiResponse(200, result, t('admin.batches.listRetrieved'));
@@ -109,12 +154,17 @@ export const getBatchesByCenterId = async (req: Request, res: Response, next: Ne
     const limit = parseInt(req.query.limit as string) || 10;
     const { sortBy, sortOrder } = req.query;
 
+    const currentUserId = req.user?.id;
+    const currentUserRole = await getUserRoleFromDatabase(currentUserId) || req.user?.role;
+
     const result = await adminBatchService.getBatchesByCenterId(
       centerId,
       page,
       limit,
       sortBy as string,
-      sortOrder as 'asc' | 'desc'
+      sortOrder as 'asc' | 'desc',
+      currentUserId,
+      currentUserRole
     );
 
     const response = new ApiResponse(200, result, t('admin.batches.listRetrieved'));

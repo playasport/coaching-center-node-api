@@ -154,7 +154,7 @@ router.post(
  *         schema:
  *           type: string
  *           enum: [slot_booked, approved, rejected, payment_pending, confirmed, cancelled, completed, requested, pending]
- *         description: Filter by booking status (includes new statuses: slot_booked, approved, rejected)
+ *         description: "Filter by booking status (includes new statuses: slot_booked, approved, rejected)"
  *       - in: query
  *         name: paymentStatus
  *         schema:

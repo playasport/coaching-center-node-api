@@ -877,7 +877,7 @@ router.get(
  *                     batch:
  *                       $ref: '#/components/schemas/Batch'
  *       400:
- *         description: Validation error or invalid data. Possible errors: "Cannot update batch details while batch is active", "Cannot change status from 'published' to 'draft'"
+ *         description: "Validation error or invalid data. Possible errors: \"Cannot update batch details while batch is active\", \"Cannot change status from 'published' to 'draft'\""
  *       403:
  *         description: Forbidden - Insufficient permissions
  *       404:

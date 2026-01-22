@@ -141,7 +141,7 @@ const resolveTemplatePath = async (templateName: string): Promise<string | null>
   return null;
 };
 
-const loadTemplate = async (templateName: string): Promise<string> => {
+export const loadTemplate = async (templateName: string): Promise<string> => {
   if (templateCache.has(templateName)) {
     return templateCache.get(templateName) as string;
   }
@@ -157,7 +157,7 @@ const loadTemplate = async (templateName: string): Promise<string> => {
   return template;
 };
 
-const renderTemplate = async (template: string, variables: Record<string, unknown>): Promise<string> => {
+export const renderTemplate = async (template: string, variables: Record<string, unknown>): Promise<string> => {
   // Load logo and add to variables if not already present
   if (!variables.logoImage) {
     const logoBase64 = await loadLogoAsBase64();

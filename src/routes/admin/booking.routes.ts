@@ -48,13 +48,13 @@ router.use(requireAdmin);
  *         schema:
  *           type: string
  *           enum: [slot_booked, approved, rejected, payment_pending, confirmed, cancelled, completed, requested, pending]
- *         description: Filter by booking status (includes new statuses: slot_booked, approved, rejected)
+ *         description: "Filter by booking status (includes new statuses: slot_booked, approved, rejected)"
  *       - in: query
  *         name: paymentStatus
  *         schema:
  *           type: string
  *           enum: [not_initiated, initiated, pending, processing, success, failed, refunded, cancelled]
- *         description: Filter by payment status (includes new statuses: not_initiated, initiated)
+ *         description: "Filter by payment status (includes new statuses: not_initiated, initiated)"
  *       - in: query
  *         name: search
  *         schema:

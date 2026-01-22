@@ -8,6 +8,7 @@ import * as commonService from '../common/coachingCenterCommon.service';
 import type { AdminCoachingCenterCreateInput } from '../../validations/coachingCenter.validation';
 import { SportModel } from '../../models/sport.model';
 import { UserModel } from '../../models/user.model';
+import { AdminUserModel } from '../../models/adminUser.model';
 import { RoleModel, DefaultRoles } from '../../models/role.model';
 import { hashPassword } from '../../utils/password';
 import { v4 as uuidv4 } from 'uuid';
@@ -137,9 +138,20 @@ export const getAllCoachingCenters = async (
 
     // If user is an agent, only show centers added by them
     if (currentUserRole === DefaultRolesEnum.AGENT && currentUserId) {
-      const currentUserObjectId = await getUserObjectId(currentUserId);
-      if (currentUserObjectId) {
-        query.addedBy = currentUserObjectId;
+      // Get AdminUser ObjectId since addedBy references AdminUser model
+      const adminUser = await AdminUserModel.findOne({ id: currentUserId, isDeleted: false })
+        .select('_id')
+        .lean();
+      
+      if (adminUser && adminUser._id) {
+        query.addedBy = adminUser._id as Types.ObjectId;
+        logger.debug('Filtering coaching centers for agent', {
+          agentId: currentUserId,
+          agentObjectId: adminUser._id.toString(),
+          role: currentUserRole,
+        });
+      } else {
+        logger.warn('Agent AdminUser not found', { agentId: currentUserId });
       }
     }
 
@@ -297,9 +309,20 @@ export const getCoachingCentersByUserId = async (
 
     // If current user is an agent, only show centers added by them
     if (currentUserRole === DefaultRolesEnum.AGENT && currentUserId) {
-      const currentUserObjectId = await getUserObjectId(currentUserId);
-      if (currentUserObjectId) {
-        query.addedBy = currentUserObjectId;
+      // Get AdminUser ObjectId since addedBy references AdminUser model
+      const adminUser = await AdminUserModel.findOne({ id: currentUserId, isDeleted: false })
+        .select('_id')
+        .lean();
+      
+      if (adminUser && adminUser._id) {
+        query.addedBy = adminUser._id as Types.ObjectId;
+        logger.debug('Filtering coaching centers by userId for agent', {
+          agentId: currentUserId,
+          agentObjectId: adminUser._id.toString(),
+          role: currentUserRole,
+        });
+      } else {
+        logger.warn('Agent AdminUser not found', { agentId: currentUserId });
       }
     }
 
@@ -356,6 +379,69 @@ export const getCoachingCentersByUserId = async (
   } catch (error) {
     if (error instanceof ApiError) throw error;
     logger.error('Admin failed to fetch coaching centers by user ID:', error);
+    throw new ApiError(500, t('errors.internalServerError'));
+  }
+};
+
+/**
+ * Get coaching center by ID for admin with agent filtering
+ * @param centerId - Coaching center ID
+ * @param currentUserId - Current admin user ID (for agent filtering)
+ * @param currentUserRole - Current admin user role (for agent filtering)
+ */
+export const getCoachingCenterByIdForAdmin = async (
+  centerId: string,
+  currentUserId?: string,
+  currentUserRole?: string
+): Promise<CoachingCenter | null> => {
+  try {
+    const centerObjectId = await getCenterObjectId(centerId);
+    if (!centerObjectId) {
+      return null;
+    }
+
+    const query: any = {
+      _id: centerObjectId,
+      is_deleted: false,
+    };
+
+    // If user is an agent, only show centers added by them
+    if (currentUserRole === DefaultRolesEnum.AGENT && currentUserId) {
+      // Get AdminUser ObjectId since addedBy references AdminUser model
+      const adminUser = await AdminUserModel.findOne({ id: currentUserId, isDeleted: false })
+        .select('_id')
+        .lean();
+      
+      if (adminUser && adminUser._id) {
+        query.addedBy = adminUser._id as Types.ObjectId;
+        logger.debug('Filtering coaching center by ID for agent', {
+          agentId: currentUserId,
+          agentObjectId: adminUser._id.toString(),
+          centerId,
+          role: currentUserRole,
+        });
+      } else {
+        logger.warn('Agent AdminUser not found for center view', { agentId: currentUserId, centerId });
+        // Return null if agent not found - they shouldn't see this center
+        return null;
+      }
+    }
+
+    // First check if center exists and matches agent filter (if applicable)
+    const centerExists = await CoachingCenterModel.findOne(query).select('_id').lean();
+    if (!centerExists) {
+      // Center doesn't exist or doesn't match agent filter
+      return null;
+    }
+
+    // If center exists and passes filter, get full details using common service
+    // This will return the full coaching center with all populated fields
+    return await commonService.getCoachingCenterById(centerId);
+  } catch (error) {
+    logger.error('Admin failed to fetch coaching center by ID:', {
+      centerId,
+      error: error instanceof Error ? error.message : error,
+    });
     throw new ApiError(500, t('errors.internalServerError'));
   }
 };
@@ -418,9 +504,27 @@ export const createCoachingCenterByAdmin = async (
           lastName: academy_owner.lastName ?? null,
           password: hashedPassword,
           roles: [academyRole._id],
+          academyDetails: {
+            name: data.center_name, // Set academy name from coaching center name
+          },
           isActive: true,
           isDeleted: false,
         });
+      } else {
+        // If user exists, update academyDetails if not already set
+        // Note: We don't overwrite existing academyDetails.name as user might have multiple centers
+        // Only set if it's null/undefined
+        if (!user.academyDetails || !user.academyDetails.name) {
+          const academyName = data.center_name || 'Academy';
+          user.academyDetails = {
+            name: academyName,
+          };
+          await user.save();
+          logger.debug('Updated academyDetails for existing user', {
+            userId: user.id,
+            academyName: academyName,
+          });
+        }
       }
 
       userObjectId = user._id;
@@ -437,26 +541,35 @@ export const createCoachingCenterByAdmin = async (
     const facilityIds = data.facility ? await commonService.resolveFacilities(data.facility) : [];
 
     // 4. Get admin user ObjectId if provided (for addedBy field) and check if agent
+    // Note: addedBy references AdminUser model, so we need AdminUser ObjectId
     let addedByObjectId: Types.ObjectId | null = null;
     let approvalStatus: 'approved' | 'rejected' | 'pending_approval' = AdminApproveStatus.APPROVE;
     if (adminUserId) {
-      const adminUserObjectId = await getUserObjectId(adminUserId);
-      if (adminUserObjectId) {
-        addedByObjectId = adminUserObjectId;
+      // Get AdminUser ObjectId since addedBy references AdminUser model
+      const adminUser = await AdminUserModel.findOne({ id: adminUserId, isDeleted: false })
+        .select('_id roles')
+        .populate('roles', 'name')
+        .lean();
+      
+      if (adminUser && adminUser._id) {
+        addedByObjectId = adminUser._id as Types.ObjectId;
         
         // Check if admin user is an agent - if so, set approval_status to pending_approval
-        const adminUser = await UserModel.findOne({ _id: adminUserObjectId })
-          .select('roles')
-          .populate('roles', 'name')
-          .lean();
-        
-        if (adminUser && adminUser.roles) {
+        if (adminUser.roles) {
           const userRoles = adminUser.roles as any[];
           const isAgent = userRoles.some((r: any) => r?.name === DefaultRolesEnum.AGENT);
           if (isAgent) {
             approvalStatus = AdminApproveStatus.PENDING_APPROVAL; // Agent-created academies need approval
           }
         }
+        
+        logger.debug('Setting addedBy for coaching center', {
+          adminUserId,
+          adminUserObjectId: addedByObjectId.toString(),
+          approvalStatus,
+        });
+      } else {
+        logger.warn('AdminUser not found when creating coaching center', { adminUserId });
       }
     }
 
@@ -483,7 +596,35 @@ export const createCoachingCenterByAdmin = async (
     const coachingCenter = new CoachingCenterModel(coachingCenterData);
     await coachingCenter.save();
 
-    // 7. Handle media move if published (async - non-blocking)
+    // 7. Update user's academyDetails with coaching center name after center is created
+    // This ensures academyDetails is set even if it wasn't set during user creation
+    try {
+      const user = await UserModel.findById(userObjectId);
+      if (user) {
+        // Update academyDetails with center name if not already set
+        if (!user.academyDetails || !user.academyDetails.name) {
+          const academyName = data.center_name || 'Academy';
+          user.academyDetails = {
+            name: academyName,
+          };
+          await user.save();
+          logger.debug('Updated academyDetails after coaching center creation', {
+            userId: user.id,
+            centerId: coachingCenter.id,
+            academyName: academyName,
+          });
+        }
+      }
+    } catch (updateError) {
+      // Non-blocking: Log error but don't fail center creation
+      logger.warn('Failed to update user academyDetails after center creation (non-blocking)', {
+        error: updateError instanceof Error ? updateError.message : updateError,
+        userId: userObjectId.toString(),
+        centerId: coachingCenter.id,
+      });
+    }
+
+    // 8. Handle media move if published (async - non-blocking)
     if (data.status === 'published') {
       try {
         // Convert to plain object for media processing
@@ -1200,7 +1341,9 @@ export const listCoachingCentersSimple = async (
   search?: string,
   status?: string,
   isActive?: boolean,
-  centerId?: string
+  centerId?: string,
+  currentUserId?: string,
+  currentUserRole?: string
 ): Promise<AdminPaginatedResult<{ id: string; center_name: string } | { id: string; center_name: string; sport_details: Array<{ id: string; name: string }> }>> => {
   try {
     // If centerId is provided, return full details of that specific center
@@ -1222,6 +1365,21 @@ export const listCoachingCentersSimple = async (
         _id: centerObjectId,
         is_deleted: false,
       };
+
+      // If user is an agent, verify the center was added by them
+      if (currentUserRole === DefaultRolesEnum.AGENT && currentUserId) {
+        // Get AdminUser ObjectId since addedBy references AdminUser model
+        const adminUser = await AdminUserModel.findOne({ id: currentUserId, isDeleted: false })
+          .select('_id')
+          .lean();
+        
+        if (adminUser && adminUser._id) {
+          query.addedBy = adminUser._id as Types.ObjectId;
+        } else {
+          // Agent not found, return not found
+          throw new ApiError(404, t('coachingCenter.notFound'));
+        }
+      }
 
       // Add status filter if provided
       if (status) {
@@ -1291,6 +1449,35 @@ export const listCoachingCentersSimple = async (
     }
 
     const query: any = { is_deleted: false };
+
+    // If user is an agent, only show centers added by them
+    if (currentUserRole === DefaultRolesEnum.AGENT && currentUserId) {
+      // Get AdminUser ObjectId since addedBy references AdminUser model
+      const adminUser = await AdminUserModel.findOne({ id: currentUserId, isDeleted: false })
+        .select('_id')
+        .lean();
+      
+      if (adminUser && adminUser._id) {
+        query.addedBy = adminUser._id as Types.ObjectId;
+        logger.debug('Filtering coaching centers list for agent', {
+          agentId: currentUserId,
+          agentObjectId: adminUser._id.toString(),
+          role: currentUserRole,
+        });
+      } else {
+        logger.warn('Agent AdminUser not found for list', { agentId: currentUserId });
+        // Return empty result if agent not found
+        return {
+          coachingCenters: [],
+          pagination: {
+            page: pageNumber,
+            limit: pageSize,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+    }
 
     // Add status filter if provided
     if (status) {

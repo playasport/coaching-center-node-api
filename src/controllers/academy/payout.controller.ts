@@ -1,8 +1,9 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
 import * as payoutService from '../../services/academy/payout.service';
+import { generatePayoutInvoice } from '../../services/academy/payoutInvoice.service';
 import { logger } from '../../utils/logger';
 import { PayoutStatus } from '../../models/payout.model';
 
@@ -145,5 +146,37 @@ export const getPayoutStats = async (req: Request, res: Response): Promise<void>
     res.status(500).json(
       new ApiResponse(500, null, t('errors.internalServerError') || 'Internal server error')
     );
+  }
+};
+
+/**
+ * Download payout invoice as PDF
+ */
+export const downloadPayoutInvoice = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      throw new ApiError(401, t('auth.unauthorized') || 'Unauthorized');
+    }
+
+    const pdfBuffer = await generatePayoutInvoice(id, userId);
+
+    // Set response headers for PDF download
+    const fileName = `payout-invoice-${id}-${Date.now()}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Length', pdfBuffer.length.toString());
+
+    // Send PDF buffer
+    res.send(pdfBuffer);
+  } catch (error) {
+    next(error);
   }
 };

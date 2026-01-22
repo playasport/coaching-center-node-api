@@ -8002,6 +8002,8 @@ const options: swaggerJsdoc.Options = {
           'Academy Student',
           'Academy Banners',
           'Academy Payout Account',
+          'Academy Payouts',
+          'Academy Dashboard',
         ],
       },
       {

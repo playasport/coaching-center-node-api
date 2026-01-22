@@ -54,6 +54,24 @@ export interface OperationalTiming {
   closing_time: string; // e.g., '18:00'
 }
 
+// Call timing interface (for when center can be called)
+export interface CallTiming {
+  start_time: string; // e.g., '09:00'
+  end_time: string; // e.g., '18:00'
+}
+
+// Training timing per day interface
+export interface TrainingTimingDay {
+  day: string; // e.g., 'monday', 'tuesday', etc.
+  start_time: string; // e.g., '09:00'
+  end_time: string; // e.g., '18:00'
+}
+
+// Training timing interface (day-wise training schedule)
+export interface TrainingTiming {
+  timings: TrainingTimingDay[]; // Array of day-wise training timings
+}
+
 // Sport detail interface (NEW)
 export interface SportDetail {
   sport_id: Types.ObjectId; // Reference to Sport model
@@ -87,6 +105,8 @@ export interface CoachingCenter {
   location: CenterLocation;
   facility: Types.ObjectId[]; // Array of references to Facility model
   operational_timing: OperationalTiming;
+  call_timing?: CallTiming | null; // Call timing (start and end time)
+  training_timing?: TrainingTiming | null; // Training timing (day-wise start and end time)
   documents: MediaItem[]; // General documents (not sport-specific)
   bank_information: BankInformation;
   status: CoachingCenterStatus;
@@ -220,6 +240,57 @@ const operationalTimingSchema = new Schema<OperationalTiming>(
   { _id: false }
 );
 
+// Call timing schema
+const callTimingSchema = new Schema<CallTiming>(
+  {
+    start_time: {
+      type: String,
+      required: true,
+      match: /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, // HH:MM format
+    },
+    end_time: {
+      type: String,
+      required: true,
+      match: /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, // HH:MM format
+    },
+  },
+  { _id: false }
+);
+
+// Training timing day schema
+const trainingTimingDaySchema = new Schema<TrainingTimingDay>(
+  {
+    day: {
+      type: String,
+      required: true,
+      enum: Object.values(OperatingDays),
+    },
+    start_time: {
+      type: String,
+      required: true,
+      match: /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, // HH:MM format
+    },
+    end_time: {
+      type: String,
+      required: true,
+      match: /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, // HH:MM format
+    },
+  },
+  { _id: false }
+);
+
+// Training timing schema
+const trainingTimingSchema = new Schema<TrainingTiming>(
+  {
+    timings: {
+      type: [trainingTimingDaySchema],
+      required: true,
+      default: [],
+    },
+  },
+  { _id: false }
+);
+
 // Video item schema (with thumbnail)
 const videoItemSchema = new Schema<VideoItem>(
   {
@@ -326,7 +397,7 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
     },
     addedBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: 'AdminUser',
       default: null,
       index: true,
     },
@@ -381,6 +452,16 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
     operational_timing: {
       type: operationalTimingSchema,
       required: true,
+    },
+    call_timing: {
+      type: callTimingSchema,
+      required: false,
+      default: null,
+    },
+    training_timing: {
+      type: trainingTimingSchema,
+      required: false,
+      default: null,
     },
     documents: {
       type: [mediaItemSchema],

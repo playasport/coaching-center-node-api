@@ -74,6 +74,56 @@ export const payoutBankDetailsWorker = new Worker<PayoutBankDetailsJobData>(
         productConfigId,
       });
 
+      // Check if stakeholder exists before updating bank details
+      // Razorpay requires stakeholder to be created before bank details can be updated
+      let payoutAccount = await AcademyPayoutAccountModel.findOne({ id: payoutAccountId }).lean();
+      if (!payoutAccount) {
+        throw new Error(`Payout account not found: ${payoutAccountId}`);
+      }
+
+      // If stakeholder_id is not set yet, wait a bit and retry (stakeholder might be creating in background)
+      // Maximum wait: 30 seconds (6 retries with 5 second delay)
+      const maxRetries = 6;
+      const retryDelay = 5000; // 5 seconds
+      let retryCount = 0;
+      
+      while (!payoutAccount.stakeholder_id && retryCount < maxRetries) {
+        logger.info('Stakeholder not created yet, waiting before bank details update', {
+          payoutAccountId,
+          accountId,
+          retryCount: retryCount + 1,
+          maxRetries,
+        });
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        
+        // Re-fetch account to check if stakeholder was created
+        const updatedAccount = await AcademyPayoutAccountModel.findOne({ id: payoutAccountId }).lean();
+        if (updatedAccount) {
+          payoutAccount = updatedAccount;
+          if (payoutAccount.stakeholder_id) {
+            logger.info('Stakeholder created, proceeding with bank details update', {
+              payoutAccountId,
+              stakeholderId: payoutAccount.stakeholder_id,
+            });
+            break;
+          }
+        }
+        
+        retryCount++;
+      }
+
+      // If stakeholder still doesn't exist after retries, log warning but proceed
+      // (The updateBankDetails method will handle stakeholder requirements gracefully)
+      if (!payoutAccount.stakeholder_id) {
+        logger.warn('Stakeholder not created after waiting, proceeding with bank details update anyway', {
+          payoutAccountId,
+          accountId,
+          note: 'Razorpay API will handle stakeholder requirements check',
+        });
+      }
+
       // Update bank details in Razorpay product configuration
       // This will automatically submit the activation form
       await razorpayRouteService.updateBankDetails(accountId, productConfigId, bankDetails);
