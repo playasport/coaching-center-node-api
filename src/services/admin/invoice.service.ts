@@ -1,4 +1,4 @@
-import puppeteer, { Browser } from 'puppeteer';
+import { chromium, Browser } from 'playwright';
 import { Types } from 'mongoose';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -263,8 +263,8 @@ export const generateBookingInvoice = async (bookingId: string): Promise<Buffer>
       logoImage,
     });
 
-    // Launch Puppeteer browser
-    browser = await puppeteer.launch({
+    // Launch Playwright browser
+    browser = await chromium.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'], // Required for some environments
     });
@@ -272,7 +272,7 @@ export const generateBookingInvoice = async (bookingId: string): Promise<Buffer>
     const page = await browser.newPage();
     
     // Set content and wait for rendering
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setContent(html, { waitUntil: 'networkidle' });
     
     // Generate PDF
     const pdfBuffer = await page.pdf({
