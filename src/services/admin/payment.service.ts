@@ -32,10 +32,8 @@ export interface AdminPaymentListItem {
   status: string;
   payment_method: string | null;
   razorpay_order_id: string;
-  razorpay_payment_id: string | null;
   failure_reason: string | null;
   processed_at: Date | null;
-  created_at: Date;
 }
 
 export interface AdminPaginatedPaymentsResult {
@@ -157,9 +155,9 @@ export const getAllPayments = async (
       .filter((tx: any) => tx.booking)
       .map((transaction: any) => {
         return {
-          id: transaction.id,
-          payment_id: transaction.id,
-          booking_id: transaction.booking?.id || transaction.booking?.booking_id || 'N/A',
+          id: transaction.id || transaction._id,
+          payment_id: transaction.razorpay_payment_id || transaction.id,
+          booking_id: transaction.booking?.booking_id || transaction.booking?.id || 'N/A',
           user_name: transaction.user
             ? `${transaction.user.firstName || ''} ${transaction.user.lastName || ''}`.trim()
             : 'N/A',
@@ -169,10 +167,8 @@ export const getAllPayments = async (
           status: transaction.status,
           payment_method: transaction.payment_method || null,
           razorpay_order_id: transaction.razorpay_order_id,
-          razorpay_payment_id: transaction.razorpay_payment_id || null,
           failure_reason: transaction.failure_reason || null,
           processed_at: transaction.processed_at || null,
-          created_at: transaction.createdAt,
         };
       });
 
@@ -411,7 +407,7 @@ export const getPaymentById = async (id: string): Promise<Transaction | null> =>
       ...query,
       type: TransactionType.PAYMENT,
     })
-      .select('-razorpay_signature') // Exclude razorpay_signature from response
+      .select('-razorpay_signature -razorpay_webhook_data -source -metadata -updatedAt -createdAt')
       .populate('user', 'id firstName lastName email mobile profileImage')
       .populate({
         path: 'booking',
@@ -426,7 +422,29 @@ export const getPaymentById = async (id: string): Promise<Transaction | null> =>
       })
       .lean();
 
-    return payment as Transaction | null;
+    if (!payment) {
+      return null;
+    }
+
+    // Remove unwanted fields from payment
+    const paymentObj = payment as any;
+    delete paymentObj.razorpay_signature;
+    delete paymentObj.razorpay_webhook_data;
+    delete paymentObj.source;
+    delete paymentObj.metadata;
+    delete paymentObj.updatedAt;
+    delete paymentObj.createdAt;
+
+    // Remove unwanted payment fields from booking
+    if (paymentObj.booking && paymentObj.booking.payment) {
+      const bookingPayment = paymentObj.booking.payment;
+      delete bookingPayment.razorpay_signature;
+      delete bookingPayment.payment_initiated_count;
+      delete bookingPayment.payment_cancelled_count;
+      delete bookingPayment.payment_failed_count;
+    }
+
+    return paymentObj as Transaction | null;
   } catch (error) {
     logger.error('Admin failed to get payment by ID:', error);
     throw new ApiError(500, t('errors.internalServerError'));

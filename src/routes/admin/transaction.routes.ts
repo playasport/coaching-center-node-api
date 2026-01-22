@@ -388,111 +388,101 @@ router.use(requireAdmin);
  *                   example: "Transaction not found"
  *       403:
  *         description: Forbidden - Insufficient permissions
- *   patch:
- *     summary: Update transaction status (manual update by admin)
- *     tags: [Admin Transactions]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [status]
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [pending, processing, success, failed, cancelled, refunded]
- *               notes:
- *                 type: string
- *                 description: Optional admin notes about the status update
- *     responses:
- *       200:
- *         description: Transaction status updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Transaction status updated successfully"
- *                 data:
- *                   type: object
- *                   properties:
- *                     transaction:
- *                       type: object
- *                       example:
- *                         id: "550e8400-e29b-41d4-a716-446655440000"
- *                         booking:
- *                           id: "507f1f77bcf86cd799439011"
- *                           booking_id: "BK123456"
- *                         user:
- *                           id: "507f1f77bcf86cd799439016"
- *                           firstName: "John"
- *                           lastName: "Doe"
- *                           email: "john.doe@example.com"
- *                           mobile: "+919876543210"
- *                         razorpay_order_id: "order_MNOP1234567890"
- *                         razorpay_payment_id: "pay_ABCD1234567890"
- *                         razorpay_refund_id: null
- *                         type: "payment"
- *                         status: "success"
- *                         source: "manual"
- *                         amount: 5000
- *                         currency: "INR"
- *                         payment_method: "card"
- *                         failure_reason: null
- *                         metadata:
- *                           adminUpdatedBy: "admin-user-id"
- *                           adminUpdatedAt: "2024-01-15T11:00:00.000Z"
- *                           adminNotes: "Manually verified payment"
- *                         processed_at: "2024-01-15T10:30:00.000Z"
- *                         created_at: "2024-01-15T10:25:00.000Z"
- *                         updatedAt: "2024-01-15T11:00:00.000Z"
- *       400:
- *         description: Bad request - Invalid status value
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: "Invalid transaction status"
- *       404:
- *         description: Transaction not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: "Transaction not found"
- *       403:
- *         description: Forbidden - Insufficient permissions
  */
 
 router.get('/stats', 
   requirePermission(Section.TRANSACTION, Action.VIEW),
   adminTransactionController.getTransactionStats
+);
+
+/**
+ * @swagger
+ * /admin/transactions/export:
+ *   get:
+ *     summary: Export transactions to Excel, CSV, or PDF
+ *     tags: [Admin Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: format
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [excel, csv, pdf]
+ *         description: Export format (excel, csv, or pdf)
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Filter by user ID
+ *       - in: query
+ *         name: bookingId
+ *         schema:
+ *           type: string
+ *         description: Filter by booking ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, processing, success, failed, cancelled, refunded]
+ *         description: Filter by transaction status
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [payment, refund, partial_refund]
+ *         description: Filter by transaction type
+ *       - in: query
+ *         name: source
+ *         schema:
+ *           type: string
+ *           enum: [user_verification, webhook, manual]
+ *         description: Filter by transaction source
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by transaction ID, Razorpay order ID, payment ID, or refund ID
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter transactions from this date (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter transactions until this date (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: File downloaded successfully
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *             description: Excel file (when format=excel)
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *             description: CSV file (when format=csv)
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *             description: PDF file (when format=pdf)
+ *       400:
+ *         description: Bad request - Invalid format parameter
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ */
+router.get('/export', 
+  requirePermission(Section.TRANSACTION, Action.VIEW),
+  adminTransactionController.exportTransactions
 );
 
 router.get('/', 
@@ -503,11 +493,6 @@ router.get('/',
 router.get('/:id', 
   requirePermission(Section.TRANSACTION, Action.VIEW),
   adminTransactionController.getTransactionById
-);
-
-router.patch('/:id', 
-  requirePermission(Section.TRANSACTION, Action.UPDATE),
-  adminTransactionController.updateTransactionStatus
 );
 
 export default router;

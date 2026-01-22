@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 import { BookingModel, PaymentStatus, BookingStatus } from '../../models/booking.model';
-import { TransactionModel, TransactionStatus, TransactionSource } from '../../models/transaction.model';
+import { TransactionModel, TransactionStatus, TransactionSource, TransactionType } from '../../models/transaction.model';
 import { BatchModel } from '../../models/batch.model';
 import { ParticipantModel } from '../../models/participant.model';
 import { CoachingCenterModel } from '../../models/coachingCenter.model';
@@ -1224,6 +1224,16 @@ export const verifyPayment = async (
           source: TransactionSource.USER_VERIFICATION,
           payment_method: razorpayPayment.method || null,
           processed_at: new Date(),
+        },
+        $setOnInsert: {
+          user: booking.user,
+          booking: booking._id,
+          razorpay_order_id: data.razorpay_order_id,
+          amount: booking.amount,
+          currency: booking.currency,
+          type: TransactionType.PAYMENT,
+          status: TransactionStatus.SUCCESS,
+          source: TransactionSource.USER_VERIFICATION,
         },
       },
       { upsert: true, new: true }

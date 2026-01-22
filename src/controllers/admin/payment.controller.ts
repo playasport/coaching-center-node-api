@@ -47,28 +47,6 @@ export const getAllPayments = async (req: Request, res: Response, next: NextFunc
 };
 
 /**
- * Update payment status by admin
- */
-export const updatePaymentStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { status, notes } = req.body;
-
-    if (!status || !Object.values(TransactionStatus).includes(status)) {
-      throw new ApiError(400, 'Invalid payment status');
-    }
-
-    const adminId = req.user?.id;
-    const payment = await adminPaymentService.updatePaymentStatus(id, status, adminId, notes);
-
-    const response = new ApiResponse(200, { payment }, 'Payment status updated successfully');
-    res.json(response);
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
  * Get payment by ID for admin
  */
 export const getPaymentById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

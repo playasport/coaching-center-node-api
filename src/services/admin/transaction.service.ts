@@ -29,13 +29,8 @@ export interface AdminTransactionListItem {
   user_email: string;
   amount: number;
   currency: string;
-  type: string;
   status: string;
-  source: string;
   payment_method: string | null;
-  razorpay_order_id: string;
-  razorpay_payment_id: string | null;
-  razorpay_refund_id: string | null;
   failure_reason: string | null;
   processed_at: Date | null;
   created_at: Date;
@@ -159,6 +154,7 @@ export const getAllTransactions = async (
 
     // Get transactions with population
     const transactions = await TransactionModel.find(query)
+      .select('-razorpay_signature')
       .populate('user', 'firstName lastName email mobile')
       .populate({
         path: 'booking',
@@ -174,22 +170,17 @@ export const getAllTransactions = async (
       .filter((tx: any) => tx.booking) // Filter out transactions with deleted bookings
       .map((transaction: any) => {
         return {
-          id: transaction.id,
-          transaction_id: transaction.id,
-          booking_id: transaction.booking?.id || transaction.booking?.booking_id || 'N/A',
+          id: transaction.id || transaction._id,
+          transaction_id: transaction.razorpay_payment_id || transaction.id,
+          booking_id: transaction.booking?.booking_id || transaction.booking?.id || 'N/A',
           user_name: transaction.user
             ? `${transaction.user.firstName || ''} ${transaction.user.lastName || ''}`.trim()
             : 'N/A',
           user_email: transaction.user?.email || 'N/A',
           amount: transaction.amount,
           currency: transaction.currency,
-          type: transaction.type,
           status: transaction.status,
-          source: transaction.source,
           payment_method: transaction.payment_method || null,
-          razorpay_order_id: transaction.razorpay_order_id,
-          razorpay_payment_id: transaction.razorpay_payment_id || null,
-          razorpay_refund_id: transaction.razorpay_refund_id || null,
           failure_reason: transaction.failure_reason || null,
           processed_at: transaction.processed_at || null,
           created_at: transaction.createdAt,
@@ -218,6 +209,7 @@ export const getTransactionById = async (id: string): Promise<Transaction | null
   try {
     const query = Types.ObjectId.isValid(id) ? { _id: id } : { id: id };
     const transaction = await TransactionModel.findOne(query)
+      .select('-razorpay_signature -updatedAt -createdAt')
       .populate('user', 'id firstName lastName email mobile profileImage')
       .populate({
         path: 'booking',
@@ -232,7 +224,26 @@ export const getTransactionById = async (id: string): Promise<Transaction | null
       })
       .lean();
 
-    return transaction as Transaction | null;
+    if (!transaction) {
+      return null;
+    }
+
+    // Remove unwanted fields from transaction
+    const transactionObj = transaction as any;
+    delete transactionObj.razorpay_signature;
+    delete transactionObj.updatedAt;
+    delete transactionObj.createdAt;
+
+    // Remove unwanted payment fields from booking
+    if (transactionObj.booking && transactionObj.booking.payment) {
+      const payment = transactionObj.booking.payment;
+      delete payment.payment_initiated_count;
+      delete payment.payment_cancelled_count;
+      delete payment.payment_failed_count;
+      delete payment.razorpay_signature;
+    }
+
+    return transactionObj as Transaction | null;
   } catch (error) {
     logger.error('Admin failed to get transaction by ID:', error);
     throw new ApiError(500, t('errors.internalServerError'));

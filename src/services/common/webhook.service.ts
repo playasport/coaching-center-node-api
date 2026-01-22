@@ -1,5 +1,5 @@
 import { BookingModel, PaymentStatus, BookingStatus, BookingPayoutStatus } from '../../models/booking.model';
-import { TransactionModel, TransactionStatus, TransactionSource } from '../../models/transaction.model';
+import { TransactionModel, TransactionStatus, TransactionSource, TransactionType } from '../../models/transaction.model';
 import { ActionType, ActionScale } from '../../models/auditTrail.model';
 import { logger } from '../../utils/logger';
 
@@ -185,6 +185,16 @@ const handlePaymentCaptured = async (
             processed_at: new Date(),
             razorpay_webhook_data: fullPayload,
           },
+          $setOnInsert: {
+            user: booking.user,
+            booking: booking._id,
+            razorpay_order_id: orderId,
+            amount: booking.amount,
+            currency: booking.currency,
+            type: TransactionType.PAYMENT,
+            status: TransactionStatus.SUCCESS,
+            source: TransactionSource.WEBHOOK,
+          },
         },
         { upsert: true, new: true }
       );
@@ -226,6 +236,16 @@ const handlePaymentCaptured = async (
           payment_method: payment.method || null,
           processed_at: new Date(),
           razorpay_webhook_data: fullPayload,
+        },
+        $setOnInsert: {
+          user: booking.user,
+          booking: booking._id,
+          razorpay_order_id: orderId,
+          amount: booking.amount,
+          currency: booking.currency,
+          type: TransactionType.PAYMENT,
+          status: TransactionStatus.SUCCESS,
+          source: TransactionSource.WEBHOOK,
         },
       },
       { upsert: true, new: true }
@@ -347,6 +367,16 @@ const handlePaymentFailed = async (
           source: TransactionSource.WEBHOOK,
           failure_reason: payment.error_description || payment.error_reason || 'Payment failed',
           razorpay_webhook_data: fullPayload,
+        },
+        $setOnInsert: {
+          user: booking.user,
+          booking: booking._id,
+          razorpay_order_id: orderId,
+          amount: booking.amount,
+          currency: booking.currency,
+          type: TransactionType.PAYMENT,
+          status: TransactionStatus.FAILED,
+          source: TransactionSource.WEBHOOK,
         },
       },
       { upsert: true, new: true }
@@ -669,6 +699,17 @@ const handleRefundProcessed = async (
           source: TransactionSource.WEBHOOK,
           processed_at: new Date(),
         },
+        $setOnInsert: {
+          user: booking.user,
+          booking: booking._id,
+          razorpay_order_id: booking.payment.razorpay_order_id || '',
+          razorpay_payment_id: paymentId,
+          amount: amount,
+          currency: booking.currency,
+          type: TransactionType.REFUND,
+          status: TransactionStatus.SUCCESS,
+          source: TransactionSource.WEBHOOK,
+        },
       },
       { upsert: true, new: true }
     );
@@ -791,6 +832,17 @@ const handleRefundFailed = async (
           status: TransactionStatus.FAILED,
           source: TransactionSource.WEBHOOK,
           failure_reason: failureReason,
+        },
+        $setOnInsert: {
+          user: booking.user,
+          booking: booking._id,
+          razorpay_order_id: booking.payment.razorpay_order_id || '',
+          razorpay_payment_id: paymentId,
+          amount: booking.amount, // Use booking amount as fallback (refund amount not available in failed webhook)
+          currency: booking.currency,
+          type: TransactionType.REFUND,
+          status: TransactionStatus.FAILED,
+          source: TransactionSource.WEBHOOK,
         },
       },
       { upsert: true, new: true }

@@ -1489,6 +1489,8 @@ export const listCoachingCentersSimple = async (
       query.is_active = isActive;
     }
 
+    // Note: No approval_status filter - includes all centers (approved, rejected, pending_approval)
+
     // Add search filter if provided
     if (search && search.trim()) {
       const searchRegex = new RegExp(search.trim(), 'i');

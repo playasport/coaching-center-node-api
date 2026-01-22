@@ -123,26 +123,6 @@ POST /api/v1/webhooks/razorpay
 
 **File**: `src/services/common/webhook.service.ts`
 
-### 4. Admin Manual Update
-
-Admins can manually update transaction statuses:
-
-```typescript
-PATCH /api/v1/admin/transactions/:id
-{
-  "status": "success",
-  "notes": "Manually verified after customer confirmation"
-}
-
-// System updates:
-//    - Transaction status: <current> → <new_status>
-//    - Transaction source: <current> → MANUAL
-//    - Transaction metadata.adminUpdatedBy: <admin_id>
-//    - Transaction metadata.adminNotes: <notes>
-```
-
-**File**: `src/services/admin/transaction.service.ts` → `updateTransactionStatus()`
-
 ## API Routes
 
 ### Transaction Management (`/admin/transactions`)
@@ -175,20 +155,15 @@ Get all transactions with advanced filtering.
   "data": {
     "transactions": [
       {
-        "id": "txn-uuid",
-        "transaction_id": "txn-uuid",
-        "booking_id": "booking-id",
+        "id": "pay_xxx",
+        "transaction_id": "pay_xxx",
+        "booking_id": "BK123456",
         "user_name": "John Doe",
         "user_email": "john@example.com",
         "amount": 5000,
         "currency": "INR",
-        "type": "payment",
         "status": "success",
-        "source": "webhook",
         "payment_method": "card",
-        "razorpay_order_id": "order_xxx",
-        "razorpay_payment_id": "pay_xxx",
-        "razorpay_refund_id": null,
         "failure_reason": null,
         "processed_at": "2024-01-15T10:30:00.000Z",
         "created_at": "2024-01-15T10:25:00.000Z"
@@ -203,6 +178,11 @@ Get all transactions with advanced filtering.
   }
 }
 ```
+
+**Note**: 
+- `id` and `transaction_id` return `razorpay_payment_id` if available, otherwise fallback to transaction `id`
+- `booking_id` returns `booking.booking_id` (booking display ID)
+- Fields `source`, `type`, `razorpay_order_id`, `razorpay_payment_id`, and `razorpay_refund_id` are excluded from list response (available in detail endpoint)
 
 **Permission Required**: `transaction:view`
 
@@ -241,6 +221,45 @@ Get transaction statistics for dashboard.
     }
   }
 }
+```
+
+**Permission Required**: `transaction:view`
+
+#### GET `/admin/transactions/export`
+Export transactions to Excel, CSV, or PDF format.
+
+**Query Parameters**:
+- `format` (required, enum): Export format - `excel`, `csv`, or `pdf`
+- `userId` (string, optional): Filter by user ID
+- `bookingId` (string, optional): Filter by booking ID
+- `status` (enum, optional): Filter by status
+  - Values: `pending`, `processing`, `success`, `failed`, `cancelled`, `refunded`
+- `type` (enum, optional): Filter by transaction type
+  - Values: `payment`, `refund`, `partial_refund`
+- `source` (enum, optional): Filter by transaction source
+  - Values: `user_verification`, `webhook`, `manual`
+- `search` (string, optional): Search by transaction ID, Razorpay order ID, payment ID, or refund ID
+- `startDate` (date, optional, YYYY-MM-DD): Filter transactions from this date
+- `endDate` (date, optional, YYYY-MM-DD): Filter transactions until this date
+
+**Response**: File download (Excel, CSV, or PDF)
+
+**Export Columns**:
+1. Transaction ID (razorpay_payment_id or transaction id)
+2. Booking ID
+3. User Name
+4. User Email
+5. Amount
+6. Currency
+7. Status
+8. Payment Method
+9. Failure Reason
+10. Processed At
+11. Created At
+
+**Example**:
+```
+GET /admin/transactions/export?format=excel&startDate=2024-01-01&endDate=2024-12-31&status=success
 ```
 
 **Permission Required**: `transaction:view`
@@ -287,37 +306,13 @@ Get detailed transaction information by ID.
       "metadata": {
         "adminUpdatedBy": "admin-id",
         "adminNotes": "Manually verified"
-      },
-      "created_at": "2024-01-15T10:25:00.000Z",
-      "updatedAt": "2024-01-15T10:30:00.000Z"
+      }
     }
   }
 }
 ```
 
 **Permission Required**: `transaction:view`
-
-#### PATCH `/admin/transactions/:id`
-Manually update transaction status (admin override).
-
-**Request Body**:
-```json
-{
-  "status": "success",
-  "notes": "Manually verified after customer confirmation call"
-}
-```
-
-**Status Values**: `pending`, `processing`, `success`, `failed`, `cancelled`, `refunded`
-
-**Response**: Updated transaction object
-
-**Permission Required**: `transaction:update`
-
-**Notes**:
-- Updates transaction `source` to `MANUAL`
-- Stores admin ID and notes in `metadata`
-- Does NOT automatically update booking payment status (use payment update endpoint for that)
 
 ---
 
@@ -369,17 +364,6 @@ Get detailed payment information by ID.
 
 **Permission Required**: `payment:view`
 
-#### PATCH `/admin/payments/:id`
-Manually update payment status.
-
-**Request Body**: Same as transaction update
-
-**Permission Required**: `payment:update`
-
-**Special Behavior**:
-- If status is set to `success`, also updates the related booking's payment status to `SUCCESS`
-- This ensures booking and payment records stay synchronized
-
 ---
 
 ## Permission System
@@ -390,12 +374,10 @@ The transaction and payment routes use the permission-based access control (RBAC
 
 #### Transaction Routes
 - **View**: Requires `transaction:view` permission
-- **Update**: Requires `transaction:update` permission
 - **Section**: `Section.TRANSACTION`
 
 #### Payment Routes
 - **View**: Requires `payment:view` permission
-- **Update**: Requires `payment:update` permission
 - **Section**: `Section.PAYMENT`
 
 ### Setting Up Permissions
@@ -403,7 +385,7 @@ The transaction and payment routes use the permission-based access control (RBAC
 1. Login as Super Admin
 2. Navigate to Permissions section
 3. Create permissions for roles:
-   - For Admin role: Add `transaction:view`, `transaction:update`, `payment:view`, `payment:update`
+   - For Admin role: Add `transaction:view`, `payment:view`
    - For Employee/Agent roles: Add only `transaction:view` and `payment:view` (read-only)
 
 ### Super Admin Bypass
@@ -439,14 +421,9 @@ GET /admin/transactions?search=pay_abc123xyz
 ### 4. Manual Payment Verification
 **Scenario**: Webhook failed, but customer confirms payment was successful.
 
-**Solution**:
-```
-PATCH /admin/payments/:id
-{
-  "status": "success",
-  "notes": "Customer confirmed payment. Verified with bank statement."
-}
-```
+**Solution**: Payment status updates are handled automatically through webhooks. For manual verification, contact the development team or use database-level updates with proper audit trails.
+
+**Note**: Payment status updates are read-only through the API. All status changes should be handled through the payment gateway webhooks or verified through the transaction records.
 
 ### 5. Dashboard Statistics
 **Scenario**: Management needs transaction statistics for reporting.
@@ -456,6 +433,16 @@ PATCH /admin/payments/:id
 GET /admin/transactions/stats?startDate=2024-01-01&endDate=2024-01-31
 GET /admin/payments/stats?startDate=2024-01-01&endDate=2024-01-31
 ```
+
+### 6. Exporting Transactions for Accounting
+**Scenario**: Finance team needs to export all transactions for a specific period to Excel for accounting purposes.
+
+**Solution**:
+```
+GET /admin/transactions/export?format=excel&startDate=2024-01-01&endDate=2024-01-31&status=success
+```
+
+**Supported Formats**: `excel`, `csv`, `pdf`
 
 ## Data Model
 
@@ -527,18 +514,21 @@ GET /admin/payments/stats?startDate=2024-01-01&endDate=2024-01-31
 
 2. **Use Transaction Routes for Complete Audit**: Use `/admin/transactions` when you need to see all financial activities including refunds.
 
-3. **Manual Updates Should Include Notes**: Always include notes when manually updating transaction status for audit trail.
+3. **Payment Status Updates**: Payment statuses are automatically updated through webhooks. Manual updates should be handled through the payment gateway or database with proper audit trails.
 
-4. **Verify Before Manual Updates**: Always verify with payment gateway records before manually updating transaction status.
+4. **Monitor Payment Gateway**: Regularly check payment gateway records to ensure webhooks are processing correctly.
 
 5. **Use Date Filters for Performance**: Always use date filters when querying large datasets to improve performance.
 
 6. **Monitor Failed Transactions**: Regularly check failed transactions to identify payment gateway issues.
 
+7. **Export for Accounting**: Use the export endpoint (`/admin/transactions/export`) to download transaction data in Excel, CSV, or PDF format for accounting and reporting purposes. Always use date filters when exporting to limit the dataset size.
+
 ## Related Files
 
 - **Models**: `src/models/transaction.model.ts`
 - **Transaction Service**: `src/services/admin/transaction.service.ts`
+- **Transaction Export Service**: `src/services/admin/transactionExport.service.ts`
 - **Payment Service**: `src/services/admin/payment.service.ts`
 - **Transaction Controller**: `src/controllers/admin/transaction.controller.ts`
 - **Payment Controller**: `src/controllers/admin/payment.controller.ts`
@@ -552,10 +542,11 @@ GET /admin/payments/stats?startDate=2024-01-01&endDate=2024-01-31
 Potential improvements for future versions:
 
 1. **Refund Management**: Dedicated refund creation and management endpoints
-2. **Export Functionality**: Export transactions to CSV/Excel for accounting
-3. **Bulk Operations**: Bulk status updates for multiple transactions
-4. **Advanced Analytics**: More detailed analytics and reporting
-5. **Transaction Disputes**: Handle payment disputes and chargebacks
-6. **Multi-Currency Support**: Enhanced currency handling and conversion
-7. **Notification System**: Alerts for failed transactions or payment issues
+2. **Bulk Operations**: Bulk status updates for multiple transactions
+3. **Advanced Analytics**: More detailed analytics and reporting
+4. **Transaction Disputes**: Handle payment disputes and chargebacks
+5. **Multi-Currency Support**: Enhanced currency handling and conversion
+6. **Notification System**: Alerts for failed transactions or payment issues
+7. **Scheduled Exports**: Automated scheduled exports via email
+8. **Custom Export Columns**: Allow admins to select which columns to include in exports
 

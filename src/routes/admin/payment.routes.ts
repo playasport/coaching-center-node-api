@@ -238,107 +238,6 @@ router.use(requireAdmin);
  *                           upi: 250
  *                           wallet: 100
  * 
- * /admin/payments/{id}:
- *   patch:
- *     summary: Update payment status (manual update by admin)
- *     tags: [Admin Payments]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [status]
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [pending, processing, success, failed, cancelled]
- *               notes:
- *                 type: string
- *                 description: Optional admin notes about the status update
- *     responses:
- *       200:
- *         description: Payment status updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Payment status updated successfully"
- *                 data:
- *                   type: object
- *                   properties:
- *                     payment:
- *                       type: object
- *                       example:
- *                         id: "550e8400-e29b-41d4-a716-446655440000"
- *                         booking:
- *                           id: "507f1f77bcf86cd799439011"
- *                           booking_id: "BK123456"
- *                         user:
- *                           id: "507f1f77bcf86cd799439016"
- *                           firstName: "John"
- *                           lastName: "Doe"
- *                           email: "john.doe@example.com"
- *                           mobile: "+919876543210"
- *                         razorpay_order_id: "order_MNOP1234567890"
- *                         razorpay_payment_id: "pay_ABCD1234567890"
- *                         razorpay_refund_id: null
- *                         type: "payment"
- *                         status: "success"
- *                         source: "manual"
- *                         amount: 5000
- *                         currency: "INR"
- *                         payment_method: "card"
- *                         failure_reason: null
- *                         metadata:
- *                           adminUpdatedBy: "admin-user-id"
- *                           adminUpdatedAt: "2024-01-15T11:00:00.000Z"
- *                           adminNotes: "Manually verified payment"
- *                         processed_at: "2024-01-15T10:30:00.000Z"
- *                         created_at: "2024-01-15T10:25:00.000Z"
- *                         updatedAt: "2024-01-15T11:00:00.000Z"
- *       400:
- *         description: Bad request - Invalid status value
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: "Invalid payment status"
- *       404:
- *         description: Payment not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: "Payment not found"
- *       403:
- *         description: Forbidden - Insufficient permissions
  */
 
 router.get('/stats', 
@@ -511,11 +410,6 @@ router.get('/',
 router.get('/:id', 
   requirePermission(Section.PAYMENT, Action.VIEW),
   adminPaymentController.getPaymentById
-);
-
-router.patch('/:id', 
-  requirePermission(Section.PAYMENT, Action.UPDATE),
-  adminPaymentController.updatePaymentStatus
 );
 
 export default router;
