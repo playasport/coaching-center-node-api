@@ -530,6 +530,9 @@
       "failed": "Failed to get nearby academies"
     }
   },
+  "sitemap": {
+    "getSuccess": "Sitemap data retrieved successfully"
+  },
   "notification": {
     "send": {
       "success": "Notification sent successfully"
