@@ -312,3 +312,98 @@ export const getPayoutTransferFailedAcademyWhatsApp = (variables: NotificationMe
   const template = `*Payout Transfer Failed*\n\nYour payout transfer of ₹{{amount}} has failed.${reasonText}\n\nPlease contact support for assistance.\n\n- Play A Sport`;
   return replaceVariables(template, variables);
 };
+
+/**
+ * Email Template Names
+ */
+export const EmailTemplates = {
+  BOOKING_REQUEST_ACADEMY: 'booking-request-academy.html',
+  BOOKING_REQUEST_SENT_USER: 'booking-request-sent-user.html',
+  BOOKING_CONFIRMATION_USER: 'booking-confirmation-user.html',
+  BOOKING_CONFIRMATION_CENTER: 'booking-confirmation-center.html',
+  BOOKING_CONFIRMATION_ADMIN: 'booking-confirmation-admin.html',
+  BOOKING_CANCELLED_USER: 'booking-cancelled-user.html',
+  BOOKING_CANCELLED_ACADEMY: 'booking-cancelled-academy.html',
+  BOOKING_CANCELLED_ADMIN: 'booking-cancelled-admin.html',
+} as const;
+
+/**
+ * Email Subject Lines
+ */
+export const EmailSubjects = {
+  BOOKING_REQUEST_ACADEMY: 'New Booking Request - PlayAsport',
+  BOOKING_REQUEST_SENT_USER: 'Booking Request Sent - PlayAsport',
+  BOOKING_CONFIRMATION_USER: 'Booking Confirmed - Play A Sport',
+  BOOKING_CONFIRMATION_CENTER: 'New Booking Received - Play A Sport',
+  BOOKING_CONFIRMATION_ADMIN: 'New Booking Notification - Play A Sport',
+  BOOKING_CANCELLED_USER: 'Booking Cancelled - PlayAsport',
+  BOOKING_CANCELLED_ACADEMY: 'Booking Cancelled - PlayAsport',
+  BOOKING_CANCELLED_ADMIN: 'Booking Cancelled - PlayAsport',
+} as const;
+
+/**
+ * Booking Request - Academy Owner (Email Text)
+ */
+export const getBookingRequestAcademyEmailText = (variables: NotificationMessageVariables): string => {
+  const template = `You have a new booking request for batch "{{batchName}}" from {{userName}}. Participants: {{participants}}.`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Booking Request Sent - User (Email Text)
+ */
+export const getBookingRequestSentUserEmailText = (variables: NotificationMessageVariables): string => {
+  const template = `Your booking request for "{{batchName}}" at "{{centerName}}" has been sent to the academy. You will be notified once the academy responds.`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Booking Confirmation - User (Email Text)
+ */
+export const getBookingConfirmationUserEmailText = (variables: NotificationMessageVariables): string => {
+  const template = `Your booking {{bookingId}} has been confirmed for {{batchName}} at {{centerName}}.`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Booking Confirmation - Center (Email Text)
+ */
+export const getBookingConfirmationCenterEmailText = (variables: NotificationMessageVariables): string => {
+  const template = `You have received a new booking {{bookingId}} for {{batchName}} from {{userName}}.`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Booking Confirmation - Admin (Email Text)
+ */
+export const getBookingConfirmationAdminEmailText = (variables: NotificationMessageVariables): string => {
+  const template = `A new booking {{bookingId}} has been confirmed for {{batchName}} at {{centerName}}.`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Booking Cancelled - User (Email Text)
+ */
+export const getBookingCancelledUserEmailText = (variables: NotificationMessageVariables): string => {
+  const reasonText = variables.reason ? ` Reason: ${variables.reason}` : '';
+  const template = `Your booking for "{{batchName}}" at "{{centerName}}" has been cancelled.${reasonText}`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Booking Cancelled - Academy (Email Text)
+ */
+export const getBookingCancelledAcademyEmailText = (variables: NotificationMessageVariables): string => {
+  const reasonText = variables.reason ? ` Reason: ${variables.reason}` : '';
+  const template = `Booking {{bookingId}} for batch "{{batchName}}" has been cancelled by {{userName}}.${reasonText}`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Booking Cancelled - Admin (Email Text)
+ */
+export const getBookingCancelledAdminEmailText = (variables: NotificationMessageVariables): string => {
+  const reasonText = variables.reason ? ` Reason: ${variables.reason}` : '';
+  const template = `Booking {{bookingId}} for batch "{{batchName}}" at "{{centerName}}" has been cancelled by {{userName}}.${reasonText}`;
+  return replaceVariables(template, variables);
+};

@@ -191,8 +191,10 @@ export const getEmployeesByUser = async (
 
     // Filter by role name if provided
     if (roleName) {
+      // Escape special regex characters to prevent regex injection
+      const escapedRoleName = roleName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const role = await RoleModel.findOne({
-        name: { $regex: new RegExp(`^${roleName}$`, 'i') }, // Case-insensitive exact match
+        name: { $regex: new RegExp(`^${escapedRoleName}$`, 'i') }, // Case-insensitive exact match
       });
       
       if (!role) {

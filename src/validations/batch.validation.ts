@@ -176,15 +176,15 @@ const capacitySchema = z
       .min(1, 'Minimum capacity must be at least 1')
       .max(1000, 'Minimum capacity cannot exceed 1000'),
     max: z
-      .number({ message: 'Maximum capacity is required' })
+      .number({ message: 'Maximum capacity must be a number' })
       .int('Maximum capacity must be an integer')
       .min(1, 'Maximum capacity must be at least 1')
       .max(1000, 'Maximum capacity cannot exceed 1000')
-      .optional(),
+      .nullish(),
   })
   .refine(
     (data) => {
-      if (data.max == null) return true;
+      if (data.max == null || data.max === undefined) return true;
       return data.max >= data.min;
     },
     {

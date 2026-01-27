@@ -30,6 +30,16 @@ import {
   getPaymentVerifiedAcademySms,
   getPaymentVerifiedUserWhatsApp,
   getPaymentVerifiedAcademyWhatsApp,
+  EmailTemplates,
+  EmailSubjects,
+  getBookingRequestAcademyEmailText,
+  getBookingRequestSentUserEmailText,
+  getBookingConfirmationUserEmailText,
+  getBookingConfirmationCenterEmailText,
+  getBookingConfirmationAdminEmailText,
+  getBookingCancelledUserEmailText,
+  getBookingCancelledAcademyEmailText,
+  getBookingCancelledAdminEmailText,
 } from '../common/notificationMessages';
 // Import helper functions
 import {
@@ -672,9 +682,13 @@ export const bookSlot = async (
           // Email notification (async)
           const academyEmail = (centerDetails as any)?.email || academyOwner.email;
           if (academyEmail) {
-            queueEmail(academyEmail, 'New Booking Request - PlayAsport', {
-              template: 'booking-request-academy.html',
-              text: `You have a new booking request for batch "${batchName}" from ${userName}. Participants: ${participantNames}.`,
+            queueEmail(academyEmail, EmailSubjects.BOOKING_REQUEST_ACADEMY, {
+              template: EmailTemplates.BOOKING_REQUEST_ACADEMY,
+              text: getBookingRequestAcademyEmailText({
+                batchName,
+                userName,
+                participants: participantNames,
+              }),
               templateVariables: {
                 centerName,
                 batchName,
@@ -750,9 +764,12 @@ export const bookSlot = async (
 
     // Email notification (async)
     if (userDetails?.email) {
-      queueEmail(userDetails.email, 'Booking Request Sent - PlayAsport', {
-        template: 'booking-request-sent-user.html',
-        text: `Your booking request for "${batchName}" at "${centerName}" has been sent to the academy. You will be notified once the academy responds.`,
+      queueEmail(userDetails.email, EmailSubjects.BOOKING_REQUEST_SENT_USER, {
+        template: EmailTemplates.BOOKING_REQUEST_SENT_USER,
+        text: getBookingRequestSentUserEmailText({
+          batchName,
+          centerName,
+        }),
         templateVariables: {
           userName,
           batchName,
@@ -1417,9 +1434,13 @@ export const verifyPayment = async (
         // Queue emails using notification queue (non-blocking)
         // Send email to user with invoice attachment
         if (userEmail) {
-          queueEmail(userEmail, 'Booking Confirmed - PlayAsport', {
-            template: 'booking-confirmation-user.html',
-            text: `Your booking ${updatedBooking.booking_id || updatedBooking.id} has been confirmed for ${batchName} at ${centerName}.`,
+          queueEmail(userEmail, EmailSubjects.BOOKING_CONFIRMATION_USER, {
+            template: EmailTemplates.BOOKING_CONFIRMATION_USER,
+            text: getBookingConfirmationUserEmailText({
+              bookingId: updatedBooking.booking_id || updatedBooking.id,
+              batchName,
+              centerName,
+            }),
             templateVariables: emailTemplateVariables,
             priority: 'high',
             metadata: {
@@ -1441,9 +1462,13 @@ export const verifyPayment = async (
 
         // Send email to coaching center
         if (centerEmail) {
-          queueEmail(centerEmail, 'New Booking Received - PlayAsport', {
-            template: 'booking-confirmation-center.html',
-            text: `You have received a new booking ${updatedBooking.booking_id || updatedBooking.id} for ${batchName} from ${userName}.`,
+          queueEmail(centerEmail, EmailSubjects.BOOKING_CONFIRMATION_CENTER, {
+            template: EmailTemplates.BOOKING_CONFIRMATION_CENTER,
+            text: getBookingConfirmationCenterEmailText({
+              bookingId: updatedBooking.booking_id || updatedBooking.id,
+              batchName,
+              userName,
+            }),
             templateVariables: {
               ...emailTemplateVariables,
               userEmail: userEmail || 'N/A',
@@ -1459,9 +1484,13 @@ export const verifyPayment = async (
 
         // Send email to admin
         if (config.admin.email) {
-          queueEmail(config.admin.email, 'New Booking Notification - PlayAsport', {
-            template: 'booking-confirmation-admin.html',
-            text: `A new booking ${updatedBooking.booking_id || updatedBooking.id} has been confirmed for ${batchName} at ${centerName}.`,
+          queueEmail(config.admin.email, EmailSubjects.BOOKING_CONFIRMATION_ADMIN, {
+            template: EmailTemplates.BOOKING_CONFIRMATION_ADMIN,
+            text: getBookingConfirmationAdminEmailText({
+              bookingId: updatedBooking.booking_id || updatedBooking.id,
+              batchName,
+              centerName,
+            }),
             templateVariables: {
               ...emailTemplateVariables,
               userEmail: userEmail || 'N/A',
@@ -1617,7 +1646,7 @@ export const verifyPayment = async (
           createAndSendNotification({
             recipientType: 'academy',
             recipientId: centerOwnerId,
-            title: 'New Booking Received! 💰',
+            title: 'New Booking Received!',
             body: `New booking ${updatedBooking.booking_id || updatedBooking.id} received for "${batchName}" from ${userName}. Payment confirmed!`,
             channels: ['push'],
             priority: 'high',
@@ -2458,9 +2487,13 @@ export const cancelBooking = async (
 
           // Email notification (async)
           if (user.email) {
-            queueEmail(user.email, 'Booking Cancelled - PlayAsport', {
-              template: 'booking-cancelled-user.html',
-              text: `Your booking for "${batchName}" at "${centerName}" has been cancelled.${reason ? ` Reason: ${reason}` : ''}`,
+            queueEmail(user.email, EmailSubjects.BOOKING_CANCELLED_USER, {
+              template: EmailTemplates.BOOKING_CANCELLED_USER,
+              text: getBookingCancelledUserEmailText({
+                batchName,
+                centerName,
+                reason: reason || null,
+              }),
               templateVariables: {
                 userName,
                 batchName,
@@ -2532,9 +2565,14 @@ export const cancelBooking = async (
             // Email notification (async)
             const academyEmail = (centerDetails as any)?.email || academyOwner.email;
             if (academyEmail) {
-              queueEmail(academyEmail, 'Booking Cancelled - PlayAsport', {
-                template: 'booking-cancelled-academy.html',
-                text: `Booking ${booking.booking_id || booking.id} for batch "${batchName}" has been cancelled by ${userName}.${reason ? ` Reason: ${reason}` : ''}`,
+              queueEmail(academyEmail, EmailSubjects.BOOKING_CANCELLED_ACADEMY, {
+                template: EmailTemplates.BOOKING_CANCELLED_ACADEMY,
+                text: getBookingCancelledAcademyEmailText({
+                  bookingId: booking.booking_id || booking.id,
+                  batchName,
+                  userName,
+                  reason: reason || null,
+                }),
                 templateVariables: {
                   centerName,
                   batchName,
@@ -2588,9 +2626,15 @@ export const cancelBooking = async (
 
         // Notification to Admin (Email only, async)
         if (config.admin.email) {
-          queueEmail(config.admin.email, 'Booking Cancelled - PlayAsport', {
-            template: 'booking-cancelled-admin.html',
-            text: `Booking ${booking.booking_id || booking.id} for batch "${batchName}" at "${centerName}" has been cancelled by ${userName}.${reason ? ` Reason: ${reason}` : ''}`,
+          queueEmail(config.admin.email, EmailSubjects.BOOKING_CANCELLED_ADMIN, {
+            template: EmailTemplates.BOOKING_CANCELLED_ADMIN,
+            text: getBookingCancelledAdminEmailText({
+              bookingId: booking.booking_id || booking.id,
+              batchName,
+              centerName,
+              userName,
+              reason: reason || null,
+            }),
             templateVariables: {
               userName,
               userEmail: user?.email || 'N/A',
