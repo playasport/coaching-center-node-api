@@ -35,16 +35,16 @@ const deviceInfoSchema = z.object({
 const addressInputSchema = z.object({
   line1: z
     .string()
-    .max(255)
+    .max(100)
     .optional()
     .transform((val) => (val === '' ? undefined : val)),
   line2: z
     .string({ message: validationMessages.address.line2Required() })
     .min(1, validationMessages.address.line2Required())
-    .max(255),
+    .max(100),
   area: z
     .string()
-    .max(255)
+    .max(100)
     .optional()
     .transform((val) => (val === '' ? undefined : val)),
   city: z

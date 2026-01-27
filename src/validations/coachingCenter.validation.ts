@@ -22,7 +22,7 @@ const ageRangeSchema = z.object({
 
 const centerAddressSchema = z.object({
   line1: z.string().max(255).optional().nullable(),
-  line2: z.string({ message: validationMessages.address.line2Required() }).min(1).max(255),
+  line2: z.string({ message: validationMessages.address.line2Required() }).min(1).max(100),
   city: z.string({ message: validationMessages.address.cityRequired() }).min(1).max(100),
   state: z.string({ message: validationMessages.address.stateRequired() }).min(1).max(100),
   country: z.string().max(100).optional().nullable(),
