@@ -2,6 +2,7 @@ import { Schema, model, HydratedDocument, Types } from 'mongoose';
 import { BatchStatus } from '../enums/batchStatus.enum';
 import { DurationType } from '../enums/durationType.enum';
 import { OperatingDays } from '../enums/operatingDays.enum';
+import { Gender } from '../enums/gender.enum';
 
 // Individual timing interface
 export interface IndividualTiming {
@@ -46,7 +47,7 @@ export interface Batch {
   sport: Types.ObjectId; // Reference to Sport model
   center: Types.ObjectId; // Reference to CoachingCenter model
   coach?: Types.ObjectId | null; // Reference to Employee model (optional)
-  gender: string[]; // Array of allowed genders: ['male', 'female', 'others']
+  gender: Gender[]; // Array of allowed genders using Gender enum
   certificate_issued: boolean; // Whether certificate will be issued
   scheduled: Scheduled;
   duration: Duration;
@@ -267,16 +268,13 @@ const batchSchema = new Schema<Batch>(
     },
     gender: {
       type: [String],
+      enum: Object.values(Gender),
       required: [true, 'Gender is required'],
       validate: {
-        validator: function (value: string[]) {
-          if (!value || value.length === 0) {
-            return false;
-          }
-          const validGenders = ['male', 'female', 'others'];
-          return value.every((g) => validGenders.includes(g.toLowerCase()));
+        validator: function (v: string[]) {
+          return Array.isArray(v) && v.length > 0;
         },
-        message: 'Gender must be one or more of: male, female, others',
+        message: 'At least one gender must be selected',
       },
     },
     certificate_issued: {

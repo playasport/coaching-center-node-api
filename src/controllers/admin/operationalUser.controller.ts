@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Types } from 'mongoose';
 import { DefaultRoles } from '../../enums/defaultRoles.enum';
 import type { CreateOperationalUserInput, UpdateOperationalUserInput } from '../../validations/operationalUser.validation';
+import * as agentCoachingStatsService from '../../services/admin/agentCoachingStats.service';
 
 /**
  * Check if address object has all required fields for Mongoose schema
@@ -322,14 +323,27 @@ export const getOperationalUser = async (req: Request, res: Response): Promise<v
     if (!user) {
       throw new ApiError(404, 'Operational user not found');
     }
-    
+
     const formattedUser = {
       ...user,
       id: user.id || (user._id ? user._id.toString() : null),
     };
     delete formattedUser._id;
 
-    const response = new ApiResponse(200, { user: formattedUser }, 'Operational user retrieved successfully');
+    const roles = (user.roles || []) as any[];
+    const isAgent = roles.some((r: any) => r?.name === DefaultRoles.AGENT);
+
+    const payload: { user: any; agent_coaching_stats?: any } = { user: formattedUser };
+    if (isAgent && user._id) {
+      try {
+        const agentObjectId = user._id instanceof Types.ObjectId ? user._id : new Types.ObjectId(user._id);
+        payload.agent_coaching_stats = await agentCoachingStatsService.getAgentCoachingStats(agentObjectId);
+      } catch (e) {
+        logger.warn('Failed to fetch agent coaching stats', { userId: user.id, error: e });
+      }
+    }
+
+    const response = new ApiResponse(200, payload, 'Operational user retrieved successfully');
     res.json(response);
   } catch (error) {
     if (error instanceof ApiError) {
@@ -605,6 +619,88 @@ export const deleteOperationalUser = async (req: Request, res: Response): Promis
     }
     logger.error('Delete operational user error:', error);
     throw new ApiError(500, t('errors.internalServerError'));
+  }
+};
+
+const PERIODS = ['today', 'this_week', 'this_month', 'last_month', 'all_time', 'custom'] as const;
+
+/**
+ * Export agent coaching centres to Excel.
+ * GET /admin/operational-users/:id/agent-coaching-export?period=...&startDate=&endDate=
+ * Only for users with agent role. period: today | this_week | this_month | last_month | all_time | custom.
+ * For custom, startDate and endDate (YYYY-MM-DD) required.
+ */
+export const exportAgentCoachingExcel = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const period = (req.query.period as string) || 'all_time';
+    const startDate = req.query.startDate as string | undefined;
+    const endDate = req.query.endDate as string | undefined;
+
+    if (!PERIODS.includes(period as any)) {
+      throw new ApiError(400, `Invalid period. Use one of: ${PERIODS.join(', ')}`);
+    }
+    if (period === 'custom' && (!startDate || !endDate)) {
+      throw new ApiError(400, 'For custom period, both startDate and endDate (YYYY-MM-DD) are required');
+    }
+
+    const disallowedRoleNames = [DefaultRoles.USER, DefaultRoles.ACADEMY, DefaultRoles.SUPER_ADMIN];
+    const allRoles = await RoleModel.find({ name: { $nin: disallowedRoleNames } }).lean();
+    const allowedRoleIds: Types.ObjectId[] = allRoles.map((r: any) => new Types.ObjectId(r._id));
+
+    let findQuery: any;
+    if (Types.ObjectId.isValid(id) && id.length === 24) {
+      findQuery = {
+        $or: [
+          { _id: new Types.ObjectId(id), isDeleted: false, roles: { $in: allowedRoleIds } },
+          { id, isDeleted: false, roles: { $in: allowedRoleIds } },
+        ],
+      };
+    } else {
+      findQuery = { id, isDeleted: false, roles: { $in: allowedRoleIds } };
+    }
+
+    const user = await AdminUserModel.findOne(findQuery)
+      .select('_id roles firstName lastName email mobile')
+      .populate('roles', 'name')
+      .lean();
+
+    if (!user) {
+      throw new ApiError(404, 'Operational user not found');
+    }
+
+    const roles = (user.roles || []) as any[];
+    const isAgent = roles.some((r: any) => r?.name === DefaultRoles.AGENT);
+    if (!isAgent) {
+      throw new ApiError(400, 'Agent coaching export is only available for users with agent role');
+    }
+
+    const agentObjectId = user._id instanceof Types.ObjectId ? user._id : new Types.ObjectId(user._id);
+    const u = user as { firstName?: string; lastName?: string; email?: string; mobile?: string };
+    const agentName = [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || undefined;
+    const buffer = await agentCoachingStatsService.exportAgentCoachingToExcel(agentObjectId, {
+      period: period as any,
+      startDate,
+      endDate,
+      agentName: agentName || undefined,
+      agentEmail: u.email || undefined,
+      agentMobile: u.mobile || undefined,
+    });
+
+    const filename = `agent-coaching-centres-${id}-${new Date().toISOString().split('T')[0]}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return next(error);
+    }
+    logger.error('Export agent coaching Excel error:', error);
+    next(new ApiError(500, t('errors.internalServerError')));
   }
 };
 

@@ -163,7 +163,8 @@ export const getEmployeeById = async (id: string): Promise<Employee | null> => {
 export const getEmployeesByUser = async (
   userId: string,
   page: number = 1,
-  limit: number = config.pagination.defaultLimit
+  limit: number = config.pagination.defaultLimit,
+  roleName?: string
 ): Promise<PaginatedResult<Employee>> => {
   try {
     // Validate pagination parameters
@@ -183,10 +184,34 @@ export const getEmployeesByUser = async (
     }
 
     // Build query - only get non-deleted employees for the user
-    const query = {
+    const query: any = {
       userId: userObjectId,
       is_deleted: false,
     };
+
+    // Filter by role name if provided
+    if (roleName) {
+      const role = await RoleModel.findOne({
+        name: { $regex: new RegExp(`^${roleName}$`, 'i') }, // Case-insensitive exact match
+      });
+      
+      if (!role) {
+        // If role not found, return empty results
+        return {
+          data: [],
+          pagination: {
+            page: pageNumber,
+            limit: pageSize,
+            total: 0,
+            totalPages: 0,
+            hasNextPage: false,
+            hasPrevPage: false,
+          },
+        };
+      }
+      
+      query.role = role._id;
+    }
 
     // Get total count
     const total = await EmployeeModel.countDocuments(query);
@@ -209,6 +234,7 @@ export const getEmployeesByUser = async (
       userId,
       page: pageNumber,
       limit: pageSize,
+      roleName,
       total,
       totalPages,
     });

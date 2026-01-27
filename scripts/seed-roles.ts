@@ -23,7 +23,7 @@ const defaultRoles = [
   {
     name: DefaultRoles.ACADEMY,
     description: 'Academy user with coaching center management permissions',
-    visibleToRoles: [DefaultRoles.SUPER_ADMIN, DefaultRoles.ADMIN, DefaultRoles.ACADEMY], // Can be viewed by SUPER_ADMIN, ADMIN, and ACADEMY
+    visibleToRoles: [DefaultRoles.SUPER_ADMIN, DefaultRoles.ADMIN], // Can be viewed by SUPER_ADMIN, ADMIN, and ACADEMY
   },
   {
     name: DefaultRoles.STUDENT,

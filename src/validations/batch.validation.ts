@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { t } from '../utils/i18n';
+import { Gender } from '../enums/gender.enum';
 
 // Training days enum
 const trainingDaysEnum = z.enum(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']);
@@ -35,8 +36,8 @@ const ageRangeSchema = z
 // ==================== COMMON BATCH VALIDATION SCHEMAS ====================
 // Note: These schemas are used by both admin and academy routes
 
-// Gender enum
-const genderEnum = z.enum(['male', 'female', 'others']);
+// Gender enum - using Gender enum values
+const genderEnum = z.enum(Object.values(Gender) as [string, ...string[]]);
 
 // Individual timing schema
 const individualTimingSchema = z.object({
@@ -178,10 +179,12 @@ const capacitySchema = z
       .number({ message: 'Maximum capacity is required' })
       .int('Maximum capacity must be an integer')
       .min(1, 'Maximum capacity must be at least 1')
-      .max(1000, 'Maximum capacity cannot exceed 1000'),
+      .max(1000, 'Maximum capacity cannot exceed 1000')
+      .optional(),
   })
   .refine(
     (data) => {
+      if (data.max == null) return true;
       return data.max >= data.min;
     },
     {

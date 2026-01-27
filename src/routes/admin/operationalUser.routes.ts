@@ -165,6 +165,52 @@ router.get('/', requirePermission(Section.OPERATIONAL_USER, Action.VIEW), operat
 
 /**
  * @swagger
+ * /admin/operational-users/{id}/agent-coaching-export:
+ *   get:
+ *     summary: Export agent coaching centres to Excel
+ *     description: |
+ *       Download Excel of coaching centres added by this agent, with stats. Only available for users with agent role.
+ *       **period**: today | this_week | this_month | last_month | all_time | custom
+ *       **custom**: requires startDate and endDate (YYYY-MM-DD).
+ *     tags: [Admin Operational Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *         description: Operational user ID (agent)
+ *       - in: query
+ *         name: period
+ *         schema: { type: string, enum: [today, this_week, this_month, last_month, all_time, custom] }
+ *         description: Report period
+ *       - in: query
+ *         name: startDate
+ *         schema: { type: string, format: date }
+ *         description: For custom period (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema: { type: string, format: date }
+ *         description: For custom period (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Excel file
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: {}
+ *       400:
+ *         description: Invalid period or not an agent
+ *       404:
+ *         description: Operational user not found
+ */
+router.get(
+  '/:id/agent-coaching-export',
+  requirePermission(Section.OPERATIONAL_USER, Action.VIEW),
+  operationalUserController.exportAgentCoachingExcel
+);
+
+/**
+ * @swagger
  * /admin/operational-users/{id}:
  *   get:
  *     summary: Get operational user by ID (admin)

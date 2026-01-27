@@ -176,11 +176,13 @@ export const getMyEmployees = async (
     // Get pagination parameters from query
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const roleName = req.query.roleName as string | undefined;
 
     const result = await employeeService.getEmployeesByUser(
       req.user.id,
       page,
-      limit
+      limit,
+      roleName
     );
 
     const response = new ApiResponse(
