@@ -116,26 +116,7 @@ const facilityInputSchema = z.array(
   ])
 ).optional().nullable();
 
-const bankInformationSchema = z.object({
-  bank_name: z.string({ message: validationMessages.coachingCenter.bankInformation.bankNameRequired() }).min(1).max(100, validationMessages.coachingCenter.bankInformation.bankNameMaxLength()),
-  account_number: z
-    .string({ message: validationMessages.coachingCenter.bankInformation.accountNumberRequired() })
-    .min(9, validationMessages.coachingCenter.bankInformation.accountNumberMinLength())
-    .max(18, validationMessages.coachingCenter.bankInformation.accountNumberMaxLength())
-    .regex(/^\d+$/, validationMessages.coachingCenter.bankInformation.accountNumberDigits()),
-  ifsc_code: z
-    .string({ message: validationMessages.coachingCenter.bankInformation.ifscCodeRequired() })
-    .regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, validationMessages.coachingCenter.bankInformation.ifscCodeFormat()),
-  account_holder_name: z
-    .string({ message: validationMessages.coachingCenter.bankInformation.accountHolderNameRequired() })
-    .min(1)
-    .max(100, validationMessages.coachingCenter.bankInformation.accountHolderNameMaxLength()),
-  gst_number: z
-    .string()
-    .regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, validationMessages.coachingCenter.bankInformation.gstNumberFormat())
-    .optional()
-    .nullable(),
-});
+
 
 /**
  * BASE SCHEMAS
@@ -200,32 +181,26 @@ const commonSuperRefine = (data: any, ctx: z.RefinementCtx) => {
  * ACADEMY SCHEMAS (Has Bank Info)
  */
 export const academyCoachingCenterCreateSchema = z.object({
-  body: z.object({
-    ...coachingCenterBaseSchema,
-    bank_information: bankInformationSchema.optional(),
-  }).superRefine((data, ctx) => {
-    commonSuperRefine(data, ctx);
-    if (data.status === 'published' && !data.bank_information) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: validationMessages.coachingCenter.bankInformation.bankNameRequired(), path: ['bank_information'] });
-    }
-  })
+  body: z
+    .object({
+      ...coachingCenterBaseSchema,
+    })
+    .superRefine((data, ctx) => {
+      commonSuperRefine(data, ctx);
+    }),
 });
 
 export const academyCoachingCenterUpdateSchema = z.object({
-  body: z.object({
-    ...coachingCenterBaseSchema,
-    bank_information: bankInformationSchema.optional(),
-    status: z.enum(['draft', 'published']).optional(),
-  }).superRefine((data, ctx) => {
-    if (data.status === 'published') {
-      commonSuperRefine(data, ctx);
-      // For update, we might not have all fields in the body, but commonService.validatePublishStatus handles that.
-      // Here we just validate what's provided.
-      if (data.bank_information === null) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: validationMessages.coachingCenter.bankInformation.bankNameRequired(), path: ['bank_information'] });
+  body: z
+    .object({
+      ...coachingCenterBaseSchema,
+      status: z.enum(['draft', 'published']).optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (data.status === 'published') {
+        commonSuperRefine(data, ctx);
       }
-    }
-  })
+    }),
 });
 
 /**

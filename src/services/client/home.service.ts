@@ -1,7 +1,7 @@
 import { SportModel } from '../../models/sport.model';
 import { CoachingCenterModel} from '../../models/coachingCenter.model';
 import { logger } from '../../utils/logger';
-import { calculateDistances } from '../../utils/distance';
+import { calculateDistances, getBoundingBox } from '../../utils/distance';
 import { Types } from 'mongoose';
 import { getUserObjectId } from '../../utils/userCache';
 import { UserModel } from '../../models/user.model';
@@ -124,9 +124,14 @@ export const getNearbyAcademies = async (
       approval_status: 'approved',
     };
 
-    // Don't use bounding box filter - fetch records and calculate distances directly
-    // This ensures we don't miss nearby records (even with 0.0 distance)
     const searchRadius = radius ?? config.location.defaultRadius;
+
+    // Use bounding box to fetch academies in user's geographic area (same as getAllAcademies).
+    // Previously we fetched newest N globally by createdAt—academies near the user were often
+    // excluded, so nearby returned empty while getAllAcademies showed data.
+    const bbox = getBoundingBox(userLocation.latitude, userLocation.longitude, searchRadius);
+    query['location.latitude'] = { $gte: bbox.minLat, $lte: bbox.maxLat };
+    query['location.longitude'] = { $gte: bbox.minLon, $lte: bbox.maxLon };
 
     // Get user's favorite sports if logged in
     let favoriteSportIds: Types.ObjectId[] = [];
@@ -146,9 +151,7 @@ export const getNearbyAcademies = async (
       }
     }
 
-    // Fetch records without location filtering - we'll filter by distance after calculation
-    // Fetch enough records to ensure we have enough after distance filtering
-    // For nearby academies, we fetch more records to get accurate results
+    // Fetch academies within bounding box; then filter by exact radius after distance calc
     const fetchLimit = Math.min(limit * 10, 500);
     let academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo is_popular')

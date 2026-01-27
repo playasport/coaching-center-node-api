@@ -59,12 +59,6 @@ const router = Router();
    *               operating_days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
    *               opening_time: "09:00"
    *               closing_time: "18:00"
-   *             bank_information:
-   *               bank_name: "State Bank of India"
-   *               account_number: "1234567890123456"
-   *               ifsc_code: "SBIN0001234"
-   *               account_holder_name: "Elite Sports Academy"
-   *               gst_number: "07AABCU9603R1ZX"
    *             allowed_genders: ["male", "female"]
    *             allowed_disabled: false
    *             is_only_for_disabled: false
@@ -285,12 +279,6 @@ router.get('/:id', authenticate, authorize(DefaultRoles.ACADEMY), coachingCenter
    *               operating_days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
    *               opening_time: "07:00"
    *               closing_time: "10:00"
-   *             bank_information:
-   *               bank_name: "State Bank of India"
-   *               account_number: "1234567890123456"
-   *               ifsc_code: "SBIN0001234"
-   *               account_holder_name: "Elite Sports Academy"
-   *               gst_number: "07AABCU9603R1ZX"
    *             allowed_genders: ["male", "female", "other"]
    *             allowed_disabled: true
    *             is_only_for_disabled: false

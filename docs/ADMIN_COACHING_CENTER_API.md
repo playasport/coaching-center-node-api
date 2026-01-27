@@ -541,6 +541,8 @@ Create a new coaching center on behalf of an academy user. Admin can create cent
 
 *Required if `status` is `published`
 
+**Bank information:** `bank_information` is **not** accepted in create or update requests (admin or academy). Bank details are managed via the payout account API.
+
 #### Response (201 Created)
 
 ```json
@@ -580,7 +582,7 @@ Update an existing coaching center. Supports partial updates.
 
 #### Request Body
 
-All fields are optional. Only provide fields you want to update.
+All fields are optional. Only provide fields you want to update. `bank_information` is not accepted.
 
 ```json
 {
@@ -908,7 +910,7 @@ curl -X POST "http://localhost:3001/api/v1/admin/coaching-centers/media" \
     closing_time: string;         // "HH:MM" format
   };
   documents: MediaItem[];         // General documents
-  bank_information?: {
+  bank_information?: {            // Not accepted in create/update (admin or academy). May appear in GET responses (legacy). Use payout account for bank details.
     bank_name: string;
     account_number: string;       // 9-18 digits
     ifsc_code: string;           // Format: AAAA0XXXXX

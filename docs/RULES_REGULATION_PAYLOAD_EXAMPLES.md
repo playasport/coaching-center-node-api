@@ -137,12 +137,6 @@ The `rules_regulation` field is an optional array of strings that allows coachin
     "opening_time": "09:00",
     "closing_time": "18:00"
   },
-  "bank_information": {
-    "bank_name": "ABC Bank",
-    "account_number": "1234567890",
-    "ifsc_code": "ABCD1234567",
-    "account_holder_name": "ABC Academy"
-  },
   "allowed_genders": ["male", "female"],
   "allowed_disabled": false,
   "is_only_for_disabled": false,
@@ -257,6 +251,8 @@ or
 
 - **POST** `/api/v1/academy/coaching-center` - Create coaching center
 - **PATCH** `/api/v1/academy/coaching-center/:id` - Update coaching center
+
+**Note:** Academy create and update do **not** accept `bank_information`. Bank details are managed separately (e.g. via payout account).
 
 ## Response Format
 

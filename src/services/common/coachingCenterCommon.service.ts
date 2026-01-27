@@ -538,7 +538,7 @@ export const moveMediaFilesToPermanent = async (coachingCenter: CoachingCenter):
 /**
  * Validate required fields for publishing
  */
-export const validatePublishStatus = (data: any, isAdmin: boolean = false) => {
+export const validatePublishStatus = (data: any, _isAdmin: boolean = false) => {
   if (!data.center_name?.trim()) throw new ApiError(400, t('coachingCenter.centerName.required'));
   if (!data.mobile_number || !/^[6-9]\d{9}$/.test(data.mobile_number)) throw new ApiError(400, t('validation.mobileNumber.required'));
   if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) throw new ApiError(400, t('validation.email.required'));
@@ -554,13 +554,7 @@ export const validatePublishStatus = (data: any, isAdmin: boolean = false) => {
   if (!data.age?.min || !data.age?.max) throw new ApiError(400, t('coachingCenter.age.minRequired'));
   if (!data.location?.latitude || !data.location?.longitude || !data.location?.address) throw new ApiError(400, t('coachingCenter.location.latitudeRequired'));
 
-  // Banking info mandatory for academy, optional for admin
-  if (!isAdmin) {
-    if (!data.bank_information?.bank_name) throw new ApiError(400, t('coachingCenter.bankInformation.bankNameRequired'));
-    if (!data.bank_information?.account_number) throw new ApiError(400, t('coachingCenter.bankInformation.accountNumberRequired'));
-    if (!data.bank_information?.ifsc_code) throw new ApiError(400, t('coachingCenter.bankInformation.ifscCodeRequired'));
-    if (!data.bank_information?.account_holder_name) throw new ApiError(400, t('coachingCenter.bankInformation.accountHolderNameRequired'));
-  }
+  // Bank information is optional for both academy and admin.
 };
 
 /**

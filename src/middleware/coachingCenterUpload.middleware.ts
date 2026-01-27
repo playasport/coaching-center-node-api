@@ -8,6 +8,9 @@ import { config } from '../config/env';
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo'];
 const ALLOWED_DOCUMENT_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -119,7 +122,7 @@ export const uploadMedia = (
     if (files.documents) {
       for (const docFile of files.documents) {
         if (!ALLOWED_DOCUMENT_TYPES.includes(docFile.mimetype)) {
-          return next(new ApiError(400, 'All documents must be document files (PDF, DOC, DOCX, XLS, XLSX)'));
+          return next(new ApiError(400, 'All documents must be document files (PDF, DOC, DOCX, XLS, XLSX, JPEG, JPG, PNG)'));
         }
         if (docFile.size > config.media.maxDocumentSize) {
           const maxSizeMB = config.media.maxDocumentSize / (1024 * 1024);

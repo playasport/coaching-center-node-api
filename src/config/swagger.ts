@@ -2553,7 +2553,6 @@ const options: swaggerJsdoc.Options = {
             'age',
             'location',
             'operational_timing',
-            'bank_information',
             'allowed_genders',
             'allowed_disabled',
             'is_only_for_disabled',
@@ -2794,33 +2793,6 @@ const options: swaggerJsdoc.Options = {
                 },
               },
               description: 'General documents (not sport-specific). Sport-specific images and videos are in sport_details.',
-            },
-            bank_information: {
-              type: 'object',
-              required: ['bank_name', 'account_number', 'ifsc_code', 'account_holder_name'],
-              properties: {
-                bank_name: {
-                  type: 'string',
-                  example: 'State Bank of India',
-                },
-                account_number: {
-                  type: 'string',
-                  example: '1234567890123456',
-                },
-                ifsc_code: {
-                  type: 'string',
-                  example: 'SBIN0001234',
-                },
-                account_holder_name: {
-                  type: 'string',
-                  example: 'Elite Sports Academy',
-                },
-                gst_number: {
-                  type: 'string',
-                  example: '07AABCU9603R1ZX',
-                  description: 'GST number (optional)',
-                },
-              },
             },
             status: {
               type: 'string',
@@ -3111,34 +3083,6 @@ const options: swaggerJsdoc.Options = {
                 },
               },
               description: 'General documents (not sport-specific)',
-            },
-            bank_information: {
-              type: 'object',
-              properties: {
-                bank_name: {
-                  type: 'string',
-                  example: 'State Bank of India',
-                },
-                account_number: {
-                  type: 'string',
-                  example: '1234567890123456',
-                },
-                ifsc_code: {
-                  type: 'string',
-                  example: 'SBIN0001234',
-                },
-                account_holder_name: {
-                  type: 'string',
-                  example: 'Elite Sports Academy',
-                },
-                gst_number: {
-                  type: 'string',
-                  example: '07AABCU9603R1ZX',
-                  description: 'GST number (optional)',
-                  nullable: true,
-                },
-              },
-              description: 'Bank information. Required if status is "published".',
             },
             status: {
               type: 'string',

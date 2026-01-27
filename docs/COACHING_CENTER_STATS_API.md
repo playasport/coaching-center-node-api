@@ -243,6 +243,8 @@ Track administrative completeness:
 - Centers with bank information (payment ready)
 - Centers without bank information (needs attention)
 
+**Note:** Coaching center create/update no longer accept `bank_information`. Bank details are managed via the payout account API. "Centers without bank information" may include newer centers.
+
 ### 5. Accessibility Analysis
 
 Monitor disability access:

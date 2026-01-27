@@ -436,8 +436,8 @@ export const updateCoachingCenter = async (
 
     // Handle other fields
     const fields = [
-      'email', 'mobile_number', 'center_name', 'rules_regulation', 'logo', 'age', 
-      'location', 'operational_timing', 'documents', 'bank_information', 
+      'email', 'mobile_number', 'center_name', 'rules_regulation', 'logo', 'age',
+      'location', 'operational_timing', 'documents',
       'allowed_genders', 'allowed_disabled', 'is_only_for_disabled', 'experience', 'status'
     ];
     fields.forEach(f => { if ((data as any)[f] !== undefined) updates[f] = (data as any)[f]; });
