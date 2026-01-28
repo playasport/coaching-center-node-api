@@ -220,28 +220,30 @@ export const getCoachingCentersByUser = async (
 
     const totalPages = Math.ceil(total / pageSize);
 
-    // Filter deleted media from each coaching center
+    // Filter and remove unwanted fields from each coaching center
     const filteredCenters = coachingCenters.map((center: any) => {
-      // Filter deleted documents
-      if (center.documents && Array.isArray(center.documents)) {
-        center.documents = center.documents.filter((doc: any) => !doc.is_deleted);
-      }
+      // Remove specified fields from response
+      const {
+        addedBy,
+        rules_regulation,
+        sport_details,
+        age,
+        facility,
+        operational_timing,
+        call_timing,
+        training_timing,
+        bank_information,
+        is_deleted,
+        deletedAt,
+        documents,
+        createdAt,
+        updatedAt,
+        user,
+        experience,
+        ...filteredCenter
+      } = center;
       
-      // Filter deleted images and videos from sport_details
-      if (center.sport_details && Array.isArray(center.sport_details)) {
-        center.sport_details = center.sport_details.map((sportDetail: any) => {
-          const filteredDetail: any = { ...sportDetail };
-          if (sportDetail.images && Array.isArray(sportDetail.images)) {
-            filteredDetail.images = sportDetail.images.filter((img: any) => !img.is_deleted);
-          }
-          if (sportDetail.videos && Array.isArray(sportDetail.videos)) {
-            filteredDetail.videos = sportDetail.videos.filter((vid: any) => !vid.is_deleted);
-          }
-          return filteredDetail;
-        });
-      }
-      
-      return center;
+      return filteredCenter;
     });
 
     return {
@@ -438,7 +440,7 @@ export const updateCoachingCenter = async (
     const fields = [
       'email', 'mobile_number', 'center_name', 'rules_regulation', 'logo', 'age',
       'location', 'operational_timing', 'documents',
-      'allowed_genders', 'allowed_disabled', 'is_only_for_disabled', 'experience', 'status'
+      'allowed_genders', 'allowed_disabled', 'is_only_for_disabled', 'experience','user','experience'
     ];
     fields.forEach(f => { if ((data as any)[f] !== undefined) updates[f] = (data as any)[f]; });
 

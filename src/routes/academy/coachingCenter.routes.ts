@@ -125,7 +125,7 @@ router.post(
  *         description: Number of records per page
  *     responses:
  *       200:
- *         description: Coaching centers retrieved successfully
+ *         description: Coaching centers retrieved successfully. Note: The response excludes the following fields - addedBy, rules_regulation, sport_details, age, facility, operational_timing, call_timing, training_timing, bank_information, status, is_deleted, deletedAt, documents, createdAt, updatedAt.
  *         content:
  *           application/json:
  *             schema:
@@ -144,6 +144,7 @@ router.post(
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/CoachingCenter'
+ *                       description: 'Array of coaching centers (excludes: addedBy, rules_regulation, sport_details, age, facility, operational_timing, call_timing, training_timing, bank_information, status, is_deleted, deletedAt, documents, createdAt, updatedAt)'
  *                     pagination:
  *                       type: object
  *                       properties:
@@ -197,7 +198,7 @@ router.get(
  *         description: Coaching center ID
  *     responses:
  *       200:
- *         description: Coaching center retrieved successfully
+ *         description: Coaching center retrieved successfully. Note: The response excludes the following fields - is_deleted, deletedAt, updatedAt.
  *         content:
  *           application/json:
  *             schema:
@@ -214,6 +215,7 @@ router.get(
  *                   properties:
  *                     coachingCenter:
  *                       $ref: '#/components/schemas/CoachingCenter'
+ *                       description: 'Coaching center object (excludes: is_deleted, deletedAt, updatedAt)'
  *       401:
  *         description: Unauthorized - Authentication required
  *       404:

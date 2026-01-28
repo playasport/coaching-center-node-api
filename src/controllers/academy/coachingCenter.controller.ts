@@ -48,9 +48,17 @@ export const getCoachingCenter = async (
       throw new ApiError(404, t('coachingCenter.notFound'));
     }
 
+    // Remove unwanted fields from response
+    const {
+      is_deleted,
+      deletedAt,
+      updatedAt,
+      ...filteredCoachingCenter
+    } = coachingCenter as any;
+
     const response = new ApiResponse(
       200,
-      { coachingCenter },
+      { coachingCenter: filteredCoachingCenter },
       t('coachingCenter.get.success')
     );
     res.json(response);
