@@ -189,32 +189,32 @@ class MongodbFallbackService {
         };
       });
 
-      // Filter by radius if location provided
-      let filtered = transformed;
-      if (latitude !== null && longitude !== null) {
-        filtered = transformed.filter((item) => {
-          if (item.distance === null || item.distance === undefined) return false;
-          return item.distance <= radius;
-        });
-      }
-
-      // Sort: sport matches first, then by distance
-      filtered.sort((a: any, b: any) => {
+      // No radius filtering - return all matching results
+      // Sort: sport matches first, then by distance (if location provided)
+      transformed.sort((a: any, b: any) => {
         if (a._priority !== b._priority) {
           return a._priority - b._priority;
         }
+        // Sort by distance if both have distance values
         if (a.distance !== null && b.distance !== null) {
           return a.distance - b.distance;
+        }
+        // Items with distance come before items without distance
+        if (a.distance !== null && b.distance === null) {
+          return -1;
+        }
+        if (a.distance === null && b.distance !== null) {
+          return 1;
         }
         return 0;
       });
 
       // Paginate
-      const paginated = filtered.slice(from, from + size);
+      const paginated = transformed.slice(from, from + size);
 
       return {
         hits: paginated,
-        estimatedTotalHits: filtered.length,
+        estimatedTotalHits: transformed.length,
         processingTimeMs: 0,
       };
     } catch (error) {

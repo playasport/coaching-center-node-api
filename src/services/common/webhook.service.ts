@@ -192,8 +192,7 @@ const handlePaymentCaptured = async (
             amount: booking.amount,
             currency: booking.currency,
             type: TransactionType.PAYMENT,
-            status: TransactionStatus.SUCCESS,
-            source: TransactionSource.WEBHOOK,
+            // Note: status and source are in $set above, so they will be set for both insert and update
           },
         },
         { upsert: true, new: true }
@@ -244,8 +243,7 @@ const handlePaymentCaptured = async (
           amount: booking.amount,
           currency: booking.currency,
           type: TransactionType.PAYMENT,
-          status: TransactionStatus.SUCCESS,
-          source: TransactionSource.WEBHOOK,
+          // Note: status and source are in $set above, so they will be set for both insert and update
         },
       },
       { upsert: true, new: true }
@@ -375,8 +373,7 @@ const handlePaymentFailed = async (
           amount: booking.amount,
           currency: booking.currency,
           type: TransactionType.PAYMENT,
-          status: TransactionStatus.FAILED,
-          source: TransactionSource.WEBHOOK,
+          // Note: status and source are in $set above, so they will be set for both insert and update
         },
       },
       { upsert: true, new: true }
@@ -712,8 +709,7 @@ const handleRefundProcessed = async (
           amount: amount,
           currency: booking.currency,
           type: TransactionType.REFUND,
-          status: TransactionStatus.SUCCESS,
-          source: TransactionSource.WEBHOOK,
+          // Note: status and source are in $set above, so they will be set for both insert and update
         },
       },
       { upsert: true, new: true }
@@ -846,8 +842,7 @@ const handleRefundFailed = async (
           amount: booking.amount, // Use booking amount as fallback (refund amount not available in failed webhook)
           currency: booking.currency,
           type: TransactionType.REFUND,
-          status: TransactionStatus.FAILED,
-          source: TransactionSource.WEBHOOK,
+          // Note: status and source are in $set above, so they will be set for both insert and update
         },
       },
       { upsert: true, new: true }

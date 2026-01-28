@@ -83,8 +83,9 @@ const getRecipientObjectId = async (
         userObjectId = await getUserObjectId(recipientId);
       }
       
-      // If we found a user, verify they own at least one academy
+      // If we found a user, verify they own at least one academy or are associated with one
       if (userObjectId) {
+        // Check if user owns an academy
         const userAcademies = await CoachingCenterModel.findOne({
           user: userObjectId,
           is_deleted: false
@@ -92,6 +93,48 @@ const getRecipientObjectId = async (
         
         if (userAcademies) {
           return userObjectId;
+        }
+        
+        // If user doesn't own an academy, check if they are an employee of an academy
+        // This allows academy employees to access notifications
+        const EmployeeModel = (await import('../../models/employee.model')).EmployeeModel;
+        const employee = await EmployeeModel.findOne({
+          user: userObjectId,
+          is_deleted: false
+        }).select('_id center').lean();
+        
+        if (employee) {
+          // Verify the center exists and is not deleted
+          const center = await CoachingCenterModel.findOne({
+            _id: employee.center,
+            is_deleted: false
+          }).select('_id').lean();
+          
+          if (center) {
+            return userObjectId;
+          }
+        }
+        
+        // If still not found, check user's role - if they have academy role, allow access
+        // This handles cases where academy might not be fully set up yet
+        const user = await UserModel.findById(userObjectId)
+          .select('role roles')
+          .populate('roles', 'name')
+          .lean();
+        
+        if (user) {
+          // Check if user has academy role in JWT role or in roles array
+          const userRoles = user.roles as any[];
+          const hasAcademyRole = userRoles?.some((r: any) => r?.name === 'academy') || 
+                                  (user as any).role === 'academy';
+          
+          if (hasAcademyRole) {
+            logger.info('Allowing academy user access to notifications without coaching center', {
+              userId: recipientId,
+              userObjectId: userObjectId.toString(),
+            });
+            return userObjectId;
+          }
         }
       }
       

@@ -990,6 +990,49 @@ export const createPaymentOrder = async (
       throw new ApiError(500, 'Failed to update booking with payment order');
     }
 
+    // Create transaction record when payment is initiated
+    try {
+      await TransactionModel.findOneAndUpdate(
+        {
+          booking: booking._id,
+          razorpay_order_id: paymentOrder.id,
+        },
+        {
+          $set: {
+            // Only update fields that should be updated if transaction already exists
+            razorpay_payment_id: null, // Will be set when payment is verified
+            razorpay_signature: null, // Will be set when payment is verified
+            payment_method: null, // Will be set when payment is verified
+            processed_at: null, // Will be set when payment is verified
+          },
+          $setOnInsert: {
+            // Only set these fields when creating a new document
+            user: booking.user,
+            booking: booking._id,
+            razorpay_order_id: paymentOrder.id,
+            amount: booking.amount,
+            currency: booking.currency,
+            type: TransactionType.PAYMENT,
+            status: TransactionStatus.PENDING, // Set status only on insert
+            source: TransactionSource.USER_VERIFICATION, // Set source only on insert
+          },
+        },
+        { upsert: true, new: true, lean: true }
+      );
+      logger.info('Transaction record created/updated for payment initiation', {
+        bookingId: booking.id,
+        razorpay_order_id: paymentOrder.id,
+      });
+    } catch (transactionError: any) {
+      // Log but don't fail payment order creation
+      logger.error('Failed to create transaction record for payment initiation', {
+        bookingId: booking.id,
+        razorpay_order_id: paymentOrder.id,
+        error: transactionError instanceof Error ? transactionError.message : transactionError,
+        stack: transactionError instanceof Error ? transactionError.stack : undefined,
+      });
+    }
+
     // Create audit trail asynchronously (non-blocking) - don't await
     createAuditTrail(
       ActionType.PAYMENT_INITIATED,
@@ -1257,33 +1300,27 @@ export const verifyPayment = async (
       },
       {
         $set: {
+          // Update these fields when transaction exists (or set for new document)
           razorpay_payment_id: data.razorpay_payment_id,
           razorpay_signature: data.razorpay_signature,
           status: TransactionStatus.SUCCESS,
-          source: TransactionSource.USER_VERIFICATION,
           payment_method: razorpayPayment.method || null,
           processed_at: new Date(),
         },
         $setOnInsert: {
+          // Only set these fields when creating a new document (shouldn't happen, but safety)
           user: booking.user,
           booking: booking._id,
           razorpay_order_id: data.razorpay_order_id,
           amount: booking.amount,
           currency: booking.currency,
           type: TransactionType.PAYMENT,
-          status: TransactionStatus.SUCCESS,
           source: TransactionSource.USER_VERIFICATION,
+          // Note: status is in $set above, so it will be set for both insert and update
         },
       },
       { upsert: true, new: true, lean: true }
-    ).catch((error) => {
-      // Log but don't fail the payment verification
-      logger.error('Failed to update transaction record', {
-        bookingId: booking.id,
-        error: error instanceof Error ? error.message : error,
-      });
-      return null;
-    });
+    );
 
     const updatedBooking = await bookingUpdatePromise;
 
@@ -1292,14 +1329,87 @@ export const verifyPayment = async (
     }
 
     // Wait for transaction to be created/updated before creating payout
-    const transaction = await transactionUpdatePromise;
-
-    if (!transaction) {
-      logger.error('Transaction not found or failed to create', {
+    let transaction: any = null;
+    try {
+      transaction = await transactionUpdatePromise;
+      if (!transaction) {
+        logger.error('Transaction not found or failed to create', {
+          bookingId: booking.id,
+          razorpay_order_id: data.razorpay_order_id,
+        });
+        // Try to fetch transaction from database as fallback
+        transaction = await TransactionModel.findOne({
+          booking: booking._id,
+          razorpay_order_id: data.razorpay_order_id,
+        }).select('id').lean();
+        if (transaction) {
+          logger.info('Transaction found in database after update failed', {
+            bookingId: booking.id,
+            transactionId: transaction.id,
+          });
+        }
+      } else {
+        logger.info('Transaction created/updated successfully', {
+          bookingId: booking.id,
+          transactionId: transaction.id,
+          razorpay_order_id: data.razorpay_order_id,
+        });
+      }
+    } catch (transactionError: any) {
+      // Log error but don't fail the payment verification
+      logger.error('Failed to update/create transaction record', {
         bookingId: booking.id,
         razorpay_order_id: data.razorpay_order_id,
+        error: transactionError instanceof Error ? transactionError.message : transactionError,
+        stack: transactionError instanceof Error ? transactionError.stack : undefined,
       });
+      // Try to fetch existing transaction as fallback
+      try {
+        transaction = await TransactionModel.findOne({
+          booking: booking._id,
+          razorpay_order_id: data.razorpay_order_id,
+        }).select('id').lean();
+        if (transaction) {
+          logger.info('Found existing transaction after update error', {
+            bookingId: booking.id,
+            transactionId: transaction.id,
+          });
+        }
+      } catch (fetchError) {
+        logger.error('Failed to fetch transaction as fallback', {
+          bookingId: booking.id,
+          error: fetchError instanceof Error ? fetchError.message : fetchError,
+        });
+      }
     }
+
+    // Create audit trail for successful payment verification
+    await createAuditTrail(
+      ActionType.PAYMENT_SUCCESS,
+      ActionScale.CRITICAL,
+      `Payment verified successfully for booking ${updatedBooking.booking_id || updatedBooking.id}`,
+      'Booking',
+      booking._id,
+      {
+        userId: userObjectId,
+        academyId: booking.center,
+        bookingId: booking._id,
+        metadata: {
+          razorpay_order_id: data.razorpay_order_id,
+          razorpay_payment_id: data.razorpay_payment_id,
+          payment_method: razorpayPayment.method || null,
+          amount: booking.amount,
+          currency: booking.currency,
+          transaction_id: transaction?.id || null,
+        },
+      }
+    ).catch((error) => {
+      // Log but don't fail payment verification
+      logger.error('Failed to create audit trail for payment verification', {
+        bookingId: booking.id,
+        error: error instanceof Error ? error.message : error,
+      });
+    });
 
     logger.info(`Payment verified successfully for booking: ${booking.id}`);
 
