@@ -43,7 +43,7 @@ class MongodbFallbackService {
       radius?: number;
     } = {}
   ): Promise<any> {
-    const { size = 10, from = 0, latitude, longitude, radius = 50 } = options;
+    const { size = 10, from = 0, latitude: userLatitude, longitude: userLongitude } = options;
 
     try {
       // Build search query
@@ -150,10 +150,10 @@ class MongodbFallbackService {
 
         // Calculate distance if location provided
         let distance: number | null = null;
-        if (latitude && longitude && options.latitude && options.longitude) {
+        if (latitude && longitude && userLatitude && userLongitude) {
           distance = calculateDistanceKm(
-            options.latitude,
-            options.longitude,
+            userLatitude,
+            userLongitude,
             latitude,
             longitude
           );
