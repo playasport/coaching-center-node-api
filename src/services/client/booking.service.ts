@@ -684,7 +684,7 @@ export const bookSlot = async (
             priority: 'high',
             data: {
               type: 'booking_request',
-              bookingId: booking.booking_id || booking.id,
+              bookingId: booking.id || booking.booking_id,
               batchId: data.batchId,
               centerId: summary.batch.center.id,
             },
@@ -2780,7 +2780,7 @@ export const cancelBooking = async (
               priority: 'medium',
               data: {
                 type: 'booking_cancelled_academy',
-                bookingId: booking.booking_id || booking.id,
+                bookingId: booking.id || booking.booking_id,
                 batchId: booking.batch.toString(),
                 reason: reason || null,
               },
