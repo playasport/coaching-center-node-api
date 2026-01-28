@@ -44,7 +44,7 @@ const replaceVariables = (template: string, variables: NotificationMessageVariab
  * Booking Request - Academy Owner (SMS)
  */
 export const getBookingRequestAcademySms = (variables: NotificationMessageVariables): string => {
-  const template = `New booking request for batch "{{batchName}}" from {{userName}}. Participants: {{participants}}. Booking ID: {{bookingId}}. - Play A Sport`;
+  const template = `You have received a new booking request for batch "{{batchName}}" from {{userName}}. Participants: {{participants}}. Booking ID: {{bookingId}}. - Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -52,7 +52,7 @@ export const getBookingRequestAcademySms = (variables: NotificationMessageVariab
  * Booking Request - Academy Owner (WhatsApp)
  */
 export const getBookingRequestAcademyWhatsApp = (variables: NotificationMessageVariables): string => {
-  const template = `*New Booking Request*\n\nYou have a new booking request for batch *"{{batchName}}"* from {{userName}}.\n\n*Participants:* {{participants}}\n*Booking ID:* {{bookingId}}\n\nPlease review and respond.\n\n- Play A Sport`;
+  const template = `*Booking Request Received*\n\nA new booking request has been submitted for batch *"{{batchName}}"* from {{userName}}.\n\n*Participants:* {{participants}}\n*Booking ID:* {{bookingId}}\n\nPlease review and respond.\n\n- Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -68,7 +68,7 @@ export const getBookingRequestSentUserSms = (variables: NotificationMessageVaria
  * Booking Request Sent - User (WhatsApp)
  */
 export const getBookingRequestSentUserWhatsApp = (variables: NotificationMessageVariables): string => {
-  const template = `*Booking Request Sent*\n\nYour booking request for *"{{batchName}}"* at *"{{centerName}}"* has been sent to the academy.\n\n*Participants:* {{participants}}\n*Booking ID:* {{bookingId}}\n\nYou will be notified once the academy responds.\n\n- Play A Sport`;
+  const template = `*Booking Request Sent*\n\nWe’ve sent your booking request for *"{{batchName}}"* at *"{{centerName}}"*.\n\n*Participants:* {{participants}}\n*Booking ID:* {{bookingId}}\n\nYou will receive an update once the academy responds.\n\n- Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -76,7 +76,7 @@ export const getBookingRequestSentUserWhatsApp = (variables: NotificationMessage
  * Booking Approved - User (SMS)
  */
 export const getBookingApprovedUserSms = (variables: NotificationMessageVariables): string => {
-  const template = `Great news! Your booking request for "{{batchName}}" at "{{centerName}}" has been approved. Please proceed with payment. Booking ID: {{bookingId}}. View bookings: https://www.playasport.in/bookings - Play A Sport`;
+  const template = `Great news! Your booking request for "{{batchName}}" at "{{centerName}}" has been approved. Please complete payment to confirm. Booking ID: {{bookingId}}. View bookings: https://www.playasport.in/bookings - Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -84,7 +84,7 @@ export const getBookingApprovedUserSms = (variables: NotificationMessageVariable
  * Booking Approved - User (WhatsApp)
  */
 export const getBookingApprovedUserWhatsApp = (variables: NotificationMessageVariables): string => {
-  const template = `*Booking Approved*\n\nGreat news! Your booking request for *"{{batchName}}"* at *"{{centerName}}"* has been approved.\n\n*Booking ID:* {{bookingId}}\n\nPlease proceed with payment to confirm your booking.\n\nView your bookings: https://www.playasport.in/bookings\n\n- Play A Sport`;
+  const template = `*Booking Approved!*\n\nGreat news! Your booking request for *"{{batchName}}"* at *"{{centerName}}"* has been approved.\n\n*Booking ID:* {{bookingId}}\n\nComplete the payment now to confirm your booking.\n\nView your bookings: https://www.playasport.in/bookings\n\n- Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -102,7 +102,7 @@ export const getBookingRejectedUserSms = (variables: NotificationMessageVariable
  */
 export const getBookingRejectedUserWhatsApp = (variables: NotificationMessageVariables): string => {
   const reasonText = variables.reason ? `\n\n*Reason:* ${variables.reason}` : '';
-  const template = `*Booking Request Rejected*\n\nYour booking request for *"{{batchName}}"* at *"{{centerName}}"* has been rejected.${reasonText}\n\n*Booking ID:* {{bookingId}}\n\nWe're sorry for any inconvenience. Please feel free to book another slot.\n\n- Play A Sport`;
+  const template = `*Booking Not Approved*\n\nThis center couldn’t accept your booking at the moment for *"{{batchName}}"* at *"{{centerName}}"*.${reasonText}\n\n*Booking ID:* {{bookingId}}\n\nYou can try booking with another center that suits you.\n\n- Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -111,7 +111,7 @@ export const getBookingRejectedUserWhatsApp = (variables: NotificationMessageVar
  */
 export const getBookingCancelledUserSms = (variables: NotificationMessageVariables): string => {
   const reasonText = variables.reason ? ` Reason: ${variables.reason}` : '';
-  const template = `Your booking for "{{batchName}}" at "{{centerName}}" has been cancelled.${reasonText} Booking ID: {{bookingId}}. - Play A Sport`;
+  const template = `Your booking for "{{batchName}}" at "{{centerName}}" has been cancelled successfully.${reasonText} Booking ID: {{bookingId}}. - Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -129,7 +129,7 @@ export const getBookingCancelledUserWhatsApp = (variables: NotificationMessageVa
  */
 export const getBookingCancelledAcademySms = (variables: NotificationMessageVariables): string => {
   const reasonText = variables.reason ? ` Reason: ${variables.reason}` : '';
-  const template = `Booking {{bookingId}} for batch "{{batchName}}" has been cancelled by {{userName}}.${reasonText} - Play A Sport`;
+  const template = `The Booking {{bookingId}} for batch "{{batchName}}" has been cancelled by {{userName}}.${reasonText} - Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -138,7 +138,7 @@ export const getBookingCancelledAcademySms = (variables: NotificationMessageVari
  */
 export const getBookingCancelledAcademyWhatsApp = (variables: NotificationMessageVariables): string => {
   const reasonText = variables.reason ? `\n\n*Reason:* ${variables.reason}` : '';
-  const template = `*Booking Cancelled*\n\nBooking *{{bookingId}}* for batch *"{{batchName}}"* has been cancelled by {{userName}}.${reasonText}\n\n- Play A Sport`;
+  const template = `*Booking Cancelled by {{userName}}*\n\n{{userName}} has cancelled their booking *{{bookingId}}* for batch *"{{batchName}}"*.\n\nThe slot is now available for other bookings.${reasonText}\n\n- Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -146,7 +146,7 @@ export const getBookingCancelledAcademyWhatsApp = (variables: NotificationMessag
  * Payment Verified - User (SMS)
  */
 export const getPaymentVerifiedUserSms = (variables: NotificationMessageVariables): string => {
-  const template = `Dear {{userName}}, your booking {{bookingId}} for {{batchName}} ({{sportName}}) at {{centerName}} has been confirmed. Participants: {{participants}}. Start Date: {{startDate}}, Time: {{startTime}}-{{endTime}}. Amount Paid: {{currency}} {{amount}}. Thank you for choosing Play A Sport!`;
+  const template = `Dear {{userName}}, Your payment is successful and your booking {{bookingId}} for {{batchName}} ({{sportName}}) at {{centerName}} has been confirmed. Participants: {{participants}}. Start Date: {{startDate}}, Time: {{startTime}}-{{endTime}}. Amount Paid: {{currency}} {{amount}}. Thank you for choosing Play A Sport!`;
   return replaceVariables(template, variables);
 };
 
@@ -154,7 +154,7 @@ export const getPaymentVerifiedUserSms = (variables: NotificationMessageVariable
  * Payment Verified - Academy (SMS)
  */
 export const getPaymentVerifiedAcademySms = (variables: NotificationMessageVariables): string => {
-  const template = `New booking {{bookingId}} received for {{batchName}} ({{sportName}}). Customer: {{userName}}. Participants: {{participants}}. Start Date: {{startDate}}, Time: {{startTime}}-{{endTime}}. Amount: {{currency}} {{amount}}. - Play A Sport`;
+  const template = `Payment successfully received. Booking {{bookingId}} for {{batchName}} ({{sportName}}). Customer: {{userName}}. Participants: {{participants}}. Start Date: {{startDate}}, Time: {{startTime}}-{{endTime}}. Amount: {{currency}} {{amount}}. - Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -162,7 +162,7 @@ export const getPaymentVerifiedAcademySms = (variables: NotificationMessageVaria
  * Payment Verified - User (WhatsApp)
  */
 export const getPaymentVerifiedUserWhatsApp = (variables: NotificationMessageVariables): string => {
-  const template = `*Booking Confirmed! 🎉*\n\nDear {{userName}}, your booking has been confirmed!\n\n*Booking ID:* {{bookingId}}\n*Batch:* {{batchName}} ({{sportName}})\n*Center:* {{centerName}}\n*Participants:* {{participants}}\n*Start Date:* {{startDate}}\n*Time:* {{startTime}} - {{endTime}}\n*Amount Paid:* {{currency}} {{amount}}\n\nThank you for choosing Play A Sport!\n\n- Play A Sport Team`;
+  const template = `*Payment Successful & Verified!*\n\nDear {{userName}}, Your payment is successful and your booking is confirmed.\n\n*Booking ID:* {{bookingId}}\n*Batch:* {{batchName}} ({{sportName}})\n*Center:* {{centerName}}\n*Participants:* {{participants}}\n*Start Date:* {{startDate}}\n*Time:* {{startTime}} - {{endTime}}\n*Amount Paid:* {{currency}} {{amount}}\n\nThank you for choosing Play A Sport!\n\n- Play A Sport Team`;
   return replaceVariables(template, variables);
 };
 
@@ -170,7 +170,7 @@ export const getPaymentVerifiedUserWhatsApp = (variables: NotificationMessageVar
  * Payment Verified - Academy (WhatsApp)
  */
 export const getPaymentVerifiedAcademyWhatsApp = (variables: NotificationMessageVariables): string => {
-  const template = `*New Booking Received! 💰*\n\nYou have received a new booking!\n\n*Booking ID:* {{bookingId}}\n*Batch:* {{batchName}} ({{sportName}})\n*Customer:* {{userName}}\n*Participants:* {{participants}}\n*Start Date:* {{startDate}}\n*Time:* {{startTime}} - {{endTime}}\n*Amount:* {{currency}} {{amount}}\n\n- Play A Sport`;
+  const template = `*Payment Confirmation – Booking!*\n\nA booking payment has been successfully completed and verified.\n\n*Booking ID:* {{bookingId}}\n*Batch:* {{batchName}} ({{sportName}})\n*Customer:* {{userName}}\n*Participants:* {{participants}}\n*Start Date:* {{startDate}}\n*Time:* {{startTime}} - {{endTime}}\n*Amount:* {{currency}} {{amount}}\n\n- Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -178,7 +178,7 @@ export const getPaymentVerifiedAcademyWhatsApp = (variables: NotificationMessage
  * OTP - SMS (Generic - used for login, registration, password reset, profile update)
  */
 export const getOtpSms = (variables: { otp: string }): string => {
-  return `Your Play A Sport OTP is ${variables.otp}. This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Sport Team Thank You.`;
+  return `Your Play A Sport OTP is ${variables.otp}. This OTP will expire in 5 minutes. Do not share this OTP with anyone. Thank You.`;
 };
 
 /**
@@ -201,7 +201,7 @@ export const getPayoutAccountCreatedAcademyWhatsApp = (variables: NotificationMe
  * Payout Account Activated - Academy (SMS)
  */
 export const getPayoutAccountActivatedAcademySms = (variables: NotificationMessageVariables): string => {
-  const template = `Great news! Your payout account has been activated. Account ID: {{accountId}}. You can now receive payouts. - Play A Sport`;
+  const template = `Great news! Your payout account has been successfully activated. Account ID: {{accountId}}. You can now start receiving payouts. - Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -209,7 +209,7 @@ export const getPayoutAccountActivatedAcademySms = (variables: NotificationMessa
  * Payout Account Activated - Academy (WhatsApp)
  */
 export const getPayoutAccountActivatedAcademyWhatsApp = (variables: NotificationMessageVariables): string => {
-  const template = `*Payout Account Activated! 🎉*\n\nGreat news! Your payout account has been activated.\n\n*Account ID:* {{accountId}}\n\nYou can now receive payouts from bookings.\n\n- Play A Sport`;
+  const template = `*Payout account activated.*\n\nGreat news! Your payout account has been activated.\n\n*Account ID:* {{accountId}}\n\nYou can now receive payouts from bookings.\n\n- Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -217,7 +217,7 @@ export const getPayoutAccountActivatedAcademyWhatsApp = (variables: Notification
  * Payout Account Needs Clarification - Academy (SMS)
  */
 export const getPayoutAccountNeedsClarificationAcademySms = (variables: NotificationMessageVariables): string => {
-  const template = `Your payout account requires additional information. Account ID: {{accountId}}. Please check your account and provide the required details. - Play A Sport`;
+  const template = `Your payout account requires additional information. Account ID: {{accountId}}. Please update the required details to enable payouts. - Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -243,7 +243,7 @@ export const getPayoutAccountRejectedAcademySms = (variables: NotificationMessag
  */
 export const getPayoutAccountRejectedAcademyWhatsApp = (variables: NotificationMessageVariables): string => {
   const reasonText = variables.reason ? `\n\n*Reason:* ${variables.reason}` : '';
-  const template = `*Payout Account Rejected*\n\nYour payout account has been rejected.${reasonText}\n\n*Account ID:* {{accountId}}\n\nPlease contact support for assistance.\n\n- Play A Sport`;
+  const template = `*Payout Account Rejected!*\n\nYour payout account could not be approved.${reasonText}\n\n*Account ID:* {{accountId}}\n\nPlease contact support for assistance.\n\n- Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -291,7 +291,7 @@ export const getPayoutTransferCompletedAcademySms = (variables: NotificationMess
  * Payout Transfer Completed - Academy (WhatsApp)
  */
 export const getPayoutTransferCompletedAcademyWhatsApp = (variables: NotificationMessageVariables): string => {
-  const template = `*Payout Transfer Completed! 🎉*\n\nGreat news! Your payout of ₹{{amount}} has been successfully transferred to your account.\n\n*Transfer ID:* {{transferId}}\n\nThank you for using Play A Sport!\n\n- Play A Sport`;
+  const template = `*Payout Transfer Completed!*\n\nGreat news! Your payout of ₹{{amount}} has been successfully transferred to your account.\n\n*Transfer ID:* {{transferId}}\n\nThank you for using Play A Sport!\n\n- Play A Sport`;
   return replaceVariables(template, variables);
 };
 
@@ -528,8 +528,8 @@ export const getBookingRequestAdminPush = (variables: NotificationMessageVariabl
  */
 export const getBookingConfirmationUserPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
   return {
-    title: 'Booking Confirmed! 🎉',
-    body: replaceVariables(`Your booking {{bookingId}} for "{{batchName}}" at "{{centerName}}" has been confirmed. Payment successful!`, variables),
+    title: 'Booking Confirmed!',
+    body: replaceVariables(`Your payment was successful & booking {{bookingId}} for "{{batchName}}" at "{{centerName}}" has been confirmed. Thank you for choosing Play A Sport.`, variables),
   };
 };
 
@@ -538,8 +538,8 @@ export const getBookingConfirmationUserPush = (variables: NotificationMessageVar
  */
 export const getBookingConfirmationAcademyPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
   return {
-    title: 'New Booking Received! 💰',
-    body: replaceVariables(`New booking {{bookingId}} received for "{{batchName}}" from {{userName}}. Payment confirmed!`, variables),
+    title: 'New Confirmed Booking',
+    body: replaceVariables(`Payment has been verified, and the booking {{bookingId}} for "{{batchName}}" by {{userName}} is now confirmed.`, variables),
   };
 };
 
@@ -549,7 +549,7 @@ export const getBookingConfirmationAcademyPush = (variables: NotificationMessage
 export const getBookingConfirmationAdminPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
   return {
     title: 'New Booking Confirmed',
-    body: replaceVariables(`Booking {{bookingId}} for "{{batchName}}" at "{{centerName}}" has been confirmed. Payment successful!`, variables),
+    body: replaceVariables(`Payment successful! Booking {{bookingId}} for "{{batchName}}" at "{{centerName}}" has been confirmed.`, variables),
   };
 };
 
@@ -642,7 +642,7 @@ export const getBankDetailsUpdatedAcademyPush = (variables: NotificationMessageV
 export const getPayoutAccountActivatedAcademyPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
   return {
     title: 'Payout Account Activated! 🎉',
-    body: replaceVariables(`Great news! Your payout account has been activated. You can now receive payouts.`, variables),
+    body: replaceVariables(`Great news! Your payout account has been activated. You can now start receiving payouts.`, variables),
   };
 };
 
