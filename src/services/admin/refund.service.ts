@@ -9,6 +9,11 @@ import { ActionType, ActionScale } from '../../models/auditTrail.model';
 import { UserModel } from '../../models/user.model';
 import { createAndSendNotification } from '../common/notification.service';
 import { queueEmail, queueSms } from '../common/notificationQueue.service';
+import {
+  EmailSubjects,
+  getBookingRefundedUserEmailText,
+  getBookingRefundedAcademyPush,
+} from '../common/notificationMessages';
 
 /**
  * Create refund for a booking
@@ -245,9 +250,15 @@ export const createRefund = async (
       try {
         queueEmail(
           user.email,
-          'Booking Refunded - Play A Sport',
+          EmailSubjects.BOOKING_REFUNDED_USER,
           {
-            text: `Dear ${user.firstName || 'User'},\n\nYour booking ${booking.booking_id || bookingId} has been refunded.\n\nRefund Amount: ₹${refundAmountInRupees.toFixed(2)}\nReason: ${refundData.reason}\n\nRefund ID: ${razorpayRefund.id}\n\nThe refund will be processed to your original payment method within 5-7 business days.\n\nIf you have any questions, please contact support.\n\nBest regards,\nPlay A Sport Team`,
+            text: getBookingRefundedUserEmailText({
+              userName: user.firstName || 'User',
+              bookingId: booking.booking_id || bookingId,
+              amount: refundAmountInRupees.toFixed(2),
+              reason: refundData.reason,
+              refundId: razorpayRefund.id,
+            }),
             priority: 'high',
             metadata: {
               type: 'booking_refunded',
@@ -282,11 +293,15 @@ export const createRefund = async (
 
     // Notify academy
     if (centerOwner) {
+      const academyPushNotification = getBookingRefundedAcademyPush({
+        bookingId: booking.booking_id || bookingId,
+        amount: refundAmountInRupees.toFixed(2),
+      });
       createAndSendNotification({
         recipientType: 'academy',
         recipientId: centerOwner.id,
-        title: 'Booking Refunded',
-        body: `Booking ${booking.booking_id || bookingId} has been refunded. Amount: ₹${refundAmountInRupees.toFixed(2)}`,
+        title: academyPushNotification.title,
+        body: academyPushNotification.body,
         channels: ['push'],
         priority: 'high',
         data: {

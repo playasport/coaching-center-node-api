@@ -19,6 +19,18 @@ import {
   getPayoutAccountRejectedAcademyWhatsApp,
   getBankDetailsUpdatedAcademySms,
   getBankDetailsUpdatedAcademyWhatsApp,
+  EmailTemplates,
+  EmailSubjects,
+  getPayoutAccountCreatedAcademyEmailText,
+  getBankDetailsUpdatedAcademyEmailText,
+  getPayoutAccountActivatedAcademyEmailText,
+  getPayoutAccountActionRequiredAcademyEmailText,
+  getPayoutAccountRejectedAcademyEmailText,
+  getPayoutAccountCreatedAcademyPush,
+  getBankDetailsUpdatedAcademyPush,
+  getPayoutAccountActivatedAcademyPush,
+  getPayoutAccountActionRequiredAcademyPush,
+  getPayoutAccountRejectedAcademyPush,
 } from '../common/notificationMessages';
 import { UserModel } from '../../models/user.model';
 
@@ -458,11 +470,14 @@ export const createPayoutAccount = async (
     const accountId = payoutAccount.id;
 
     // Push notification
+    const pushNotification = getPayoutAccountCreatedAcademyPush({
+      status: activationStatus,
+    });
     createAndSendNotification({
       recipientType: 'academy',
       recipientId: userId,
-      title: 'Payout Account Created',
-      body: `Your payout account has been created successfully. Status: ${activationStatus}. You will be notified once your account is activated.`,
+      title: pushNotification.title,
+      body: pushNotification.body,
       channels: ['push'],
       priority: 'high',
       data: {
@@ -479,9 +494,14 @@ export const createPayoutAccount = async (
       try {
         queueEmail(
           user.email,
-          'Payout Account Created - Play A Sport',
+          EmailSubjects.PAYOUT_ACCOUNT_CREATED,
           {
-            template: 'payout-account-created.html',
+            template: EmailTemplates.PAYOUT_ACCOUNT_CREATED,
+            text: getPayoutAccountCreatedAcademyEmailText({
+              userName,
+              accountId,
+              status: activationStatus,
+            }),
             templateVariables: {
               userName: userName,
               accountId: accountId,
@@ -491,7 +511,6 @@ export const createPayoutAccount = async (
               website: 'playasport.in',
               year: new Date().getFullYear(),
             },
-            text: `Dear ${userName},\n\nYour payout account has been created successfully.\n\nAccount ID: ${accountId}\nStatus: ${activationStatus}\n\nYou will be notified once your account is activated by our team.\n\nIf you have any questions, please contact support.\n\nBest regards,\nPlay A Sport Team`,
             priority: 'high',
             metadata: {
               type: 'payout_account_created',
@@ -767,11 +786,12 @@ export const updateBankDetails = async (
     const accountId = account.id;
 
     // Push notification
+    const bankUpdatePushNotification = getBankDetailsUpdatedAcademyPush({});
     createAndSendNotification({
       recipientType: 'academy',
       recipientId: userId,
-      title: 'Bank Details Updated',
-      body: 'Your bank account details have been updated successfully. The details are under verification.',
+      title: bankUpdatePushNotification.title,
+      body: bankUpdatePushNotification.body,
       channels: ['push'],
       priority: 'high',
       data: {
@@ -787,9 +807,12 @@ export const updateBankDetails = async (
       try {
         queueEmail(
           user.email,
-          'Bank Details Updated - Play A Sport',
+          EmailSubjects.BANK_DETAILS_UPDATED,
           {
-            text: `Dear ${userName},\n\nYour bank account details have been updated successfully.\n\nAccount ID: ${accountId}\n\nYour bank details are under verification. You will be notified once verified.\n\nBest regards,\nPlay A Sport Team`,
+            text: getBankDetailsUpdatedAcademyEmailText({
+              userName,
+              accountId,
+            }),
             priority: 'high',
             metadata: {
               type: 'bank_details_updated',
@@ -982,11 +1005,12 @@ export const syncAccountStatus = async (accountId: string): Promise<AcademyPayou
           });
 
           // Push notification
+          const activatedPushNotification = getPayoutAccountActivatedAcademyPush({});
           createAndSendNotification({
             recipientType: 'academy',
             recipientId: userId,
-            title: 'Payout Account Activated',
-            body: 'Great news! Your payout account has been activated. You can now receive payouts.',
+            title: activatedPushNotification.title,
+            body: activatedPushNotification.body,
             channels: ['push'],
             priority: 'high',
             data: {
@@ -1002,9 +1026,13 @@ export const syncAccountStatus = async (accountId: string): Promise<AcademyPayou
             try {
               queueEmail(
                 user.email,
-                'Payout Account Activated - Play A Sport',
+                EmailSubjects.PAYOUT_ACCOUNT_ACTIVATED,
                 {
-                  template: 'payout-account-activated.html',
+                  template: EmailTemplates.PAYOUT_ACCOUNT_ACTIVATED,
+                  text: getPayoutAccountActivatedAcademyEmailText({
+                    userName,
+                    accountId: account.id,
+                  }),
                   templateVariables: {
                     userName: userName,
                     accountId: account.id,
@@ -1013,7 +1041,6 @@ export const syncAccountStatus = async (accountId: string): Promise<AcademyPayou
                     website: 'playasport.in',
                     year: new Date().getFullYear(),
                   },
-                  text: `Dear ${userName},\n\nGreat news! Your payout account has been activated.\n\nAccount ID: ${account.id}\n\nYou can now receive payouts from bookings.\n\nBest regards,\nPlay A Sport Team`,
                   priority: 'high',
                   metadata: {
                     type: 'payout_account_activated',
@@ -1063,11 +1090,14 @@ export const syncAccountStatus = async (accountId: string): Promise<AcademyPayou
           const requirementsText = requirements ? requirements.join(', ') : 'Additional information';
 
           // Push notification
+          const actionRequiredPushNotification = getPayoutAccountActionRequiredAcademyPush({
+            requirementsText,
+          });
           createAndSendNotification({
             recipientType: 'academy',
             recipientId: userId,
-            title: 'Payout Account - Action Required',
-            body: `Your payout account requires additional information: ${requirementsText}. Please check your account.`,
+            title: actionRequiredPushNotification.title,
+            body: actionRequiredPushNotification.body,
             channels: ['push'],
             priority: 'high',
             data: {
@@ -1084,9 +1114,13 @@ export const syncAccountStatus = async (accountId: string): Promise<AcademyPayou
             try {
               queueEmail(
                 user.email,
-                'Payout Account - Action Required - Play A Sport',
+                EmailSubjects.PAYOUT_ACCOUNT_ACTION_REQUIRED,
                 {
-                  text: `Dear ${userName},\n\nYour payout account requires additional information.\n\nAccount ID: ${account.id}\nRequirements: ${requirementsText}\n\nPlease check your account and provide the required details to complete activation.\n\nBest regards,\nPlay A Sport Team`,
+                  text: getPayoutAccountActionRequiredAcademyEmailText({
+                    userName,
+                    accountId: account.id,
+                    requirementsText,
+                  }),
                   priority: 'high',
                   metadata: {
                     type: 'payout_account_needs_clarification',
@@ -1137,11 +1171,14 @@ export const syncAccountStatus = async (accountId: string): Promise<AcademyPayou
           const rejectionReason = account.rejection_reason || 'Account verification failed';
 
           // Push notification
+          const rejectedPushNotification = getPayoutAccountRejectedAcademyPush({
+            reason: rejectionReason,
+          });
           createAndSendNotification({
             recipientType: 'academy',
             recipientId: userId,
-            title: 'Payout Account Rejected',
-            body: `Your payout account has been rejected. Reason: ${rejectionReason}. Please contact support.`,
+            title: rejectedPushNotification.title,
+            body: rejectedPushNotification.body,
             channels: ['push'],
             priority: 'high',
             data: {
@@ -1158,9 +1195,13 @@ export const syncAccountStatus = async (accountId: string): Promise<AcademyPayou
             try {
               queueEmail(
                 user.email,
-                'Payout Account Rejected - Play A Sport',
+                EmailSubjects.PAYOUT_ACCOUNT_REJECTED,
                 {
-                  text: `Dear ${userName},\n\nYour payout account has been rejected.\n\nAccount ID: ${account.id}\nReason: ${rejectionReason}\n\nPlease contact support for assistance.\n\nBest regards,\nPlay A Sport Team`,
+                  text: getPayoutAccountRejectedAcademyEmailText({
+                    userName,
+                    accountId: account.id,
+                    reason: rejectionReason,
+                  }),
                   priority: 'high',
                   metadata: {
                     type: 'payout_account_rejected',

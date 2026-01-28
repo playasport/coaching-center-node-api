@@ -9,7 +9,7 @@ import { comparePassword } from '../../utils';
 import { generateTokenPair, verifyRefreshToken, generateTempRegistrationToken, verifyTempRegistrationToken } from '../../utils/jwt';
 import { blacklistToken, blacklistUserTokens, clearUserBlacklist } from '../../utils/tokenBlacklist';
 import { queueSms, queueEmail } from '../common/notificationQueue.service';
-import { getOtpSms } from '../common/notificationMessages';
+import { getOtpSms, getNewAcademyRegistrationAdminPush, getNewUserRegistrationAdminPush } from '../common/notificationMessages';
 import { sendPasswordResetEmail } from '../common/email.service';
 import { otpService } from '../common/otp.service';
 import { ApiError } from '../../utils/ApiError';
@@ -311,11 +311,15 @@ export const registerAcademyUser = async (data: AcademyRegisterInput): Promise<R
     const { createAndSendNotification } = await import('../common/notification.service');
     const fullName = lastName ? `${firstName} ${lastName}` : firstName;
     
+    const pushNotification = getNewAcademyRegistrationAdminPush({
+      userName: fullName,
+      userEmail: email,
+    });
     await createAndSendNotification({
       recipientType: 'role',
       roles: [DefaultRoles.ADMIN, DefaultRoles.SUPER_ADMIN],
-      title: 'New Academy Registration',
-      body: `${fullName} (${email}) has registered as an academy.`,
+      title: pushNotification.title,
+      body: pushNotification.body,
       channels: ['push'],
       priority: 'medium',
       data: {
@@ -1347,11 +1351,16 @@ export const registerUser = async (data: UserRegisterInput): Promise<RegisterRes
         const { createAndSendNotification } = await import('../common/notification.service');
         const fullName = lastName ? `${firstName} ${lastName}` : firstName;
         
+        const pushNotification = getNewUserRegistrationAdminPush({
+          userName: fullName,
+          userEmail: email,
+          userType: type || 'user',
+        });
         await createAndSendNotification({
           recipientType: 'role',
           roles: [DefaultRoles.ADMIN, DefaultRoles.SUPER_ADMIN],
-          title: 'New User Registration',
-          body: `${fullName} (${email}) has registered as a ${type || 'user'}.`,
+          title: pushNotification.title,
+          body: pushNotification.body,
           channels: ['push'],
           priority: 'medium',
           data: {

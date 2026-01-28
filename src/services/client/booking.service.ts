@@ -40,6 +40,14 @@ import {
   getBookingCancelledUserEmailText,
   getBookingCancelledAcademyEmailText,
   getBookingCancelledAdminEmailText,
+  getBookingRequestAcademyPush,
+  getBookingRequestSentUserPush,
+  getBookingRequestAdminPush,
+  getBookingConfirmationUserPush,
+  getBookingConfirmationAcademyPush,
+  getBookingConfirmationAdminPush,
+  getBookingCancelledUserPush,
+  getBookingCancelledAcademyPush,
 } from '../common/notificationMessages';
 // Import helper functions
 import {
@@ -662,11 +670,16 @@ export const bookSlot = async (
       (async () => {
         try {
           // Push notification (fire-and-forget)
+          const academyPushNotification = getBookingRequestAcademyPush({
+            batchName,
+            userName,
+            participants: participantNames,
+          });
           createAndSendNotification({
             recipientType: 'academy',
             recipientId: academyOwner.id,
-            title: 'New Booking Request',
-            body: `You have a new booking request for batch "${batchName}" from ${userName}. Participants: ${participantNames}.`,
+            title: academyPushNotification.title,
+            body: academyPushNotification.body,
             channels: ['push'],
             priority: 'high',
             data: {
@@ -746,11 +759,14 @@ export const bookSlot = async (
 
     // Notification to User (Push + Email + SMS + WhatsApp)
     // Push notification (fire-and-forget)
+    const userPushNotification = getBookingRequestSentUserPush({
+      batchName,
+    });
     const userNotificationPromise = createAndSendNotification({
       recipientType: 'user',
       recipientId: userId,
-      title: 'Booking Request Sent',
-      body: `Your booking request for "${batchName}" has been sent to the academy. You will be notified once the academy responds.`,
+      title: userPushNotification.title,
+      body: userPushNotification.body,
       channels: ['push'],
       priority: 'medium',
       data: {
@@ -817,11 +833,16 @@ export const bookSlot = async (
     }
 
     // Notification to Admin (role-based) - fire-and-forget
+    const adminPushNotification = getBookingRequestAdminPush({
+      userName: userDetails?.firstName || 'User',
+      batchName,
+      centerName,
+    });
     const adminNotificationPromise = createAndSendNotification({
       recipientType: 'role',
       roles: [DefaultRoles.ADMIN, DefaultRoles.SUPER_ADMIN],
-      title: 'New Booking Request',
-      body: `New booking request created: ${userDetails?.firstName || 'User'} requested booking for "${batchName}" at "${centerName}".`,
+      title: adminPushNotification.title,
+      body: adminPushNotification.body,
       channels: ['push'],
       priority: 'medium',
       data: {
@@ -1227,8 +1248,9 @@ export const verifyPayment = async (
       .select('id booking_id status amount currency payment batch center sport updatedAt')
       .lean();
 
-    // Transaction update - fire and forget (don't block response)
-    TransactionModel.findOneAndUpdate(
+    // Update transaction record - MUST await this before creating payout
+    // Payout creation needs the transaction to exist
+    const transactionUpdatePromise = TransactionModel.findOneAndUpdate(
       {
         booking: booking._id,
         razorpay_order_id: data.razorpay_order_id,
@@ -1253,19 +1275,30 @@ export const verifyPayment = async (
           source: TransactionSource.USER_VERIFICATION,
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true, lean: true }
     ).catch((error) => {
       // Log but don't fail the payment verification
       logger.error('Failed to update transaction record', {
         bookingId: booking.id,
         error: error instanceof Error ? error.message : error,
       });
+      return null;
     });
 
     const updatedBooking = await bookingUpdatePromise;
 
     if (!updatedBooking) {
       throw new ApiError(500, 'Failed to update booking');
+    }
+
+    // Wait for transaction to be created/updated before creating payout
+    const transaction = await transactionUpdatePromise;
+
+    if (!transaction) {
+      logger.error('Transaction not found or failed to create', {
+        bookingId: booking.id,
+        razorpay_order_id: data.razorpay_order_id,
+      });
     }
 
     logger.info(`Payment verified successfully for booking: ${booking.id}`);
@@ -1282,22 +1315,51 @@ export const verifyPayment = async (
           .select('user')
           .lean();
 
-        if (center?.user) {
+        if (!center) {
+          logger.warn('Center not found for payout creation', {
+            bookingId: booking.id,
+            centerId: booking.center?.toString(),
+          });
+        } else if (!center.user) {
+          logger.warn('Center has no user (academy owner) for payout creation', {
+            bookingId: booking.id,
+            centerId: center._id?.toString(),
+          });
+        } else {
           const academyUser = await UserModel.findById(center.user).select('id').lean();
-          if (academyUser) {
-            // Get transaction ID
-            const transaction = await TransactionModel.findOne({
-              booking: booking._id,
-              razorpay_order_id: data.razorpay_order_id,
-            }).select('id').lean();
+          if (!academyUser) {
+            logger.warn('Academy user not found for payout creation', {
+              bookingId: booking.id,
+              centerUserId: center.user.toString(),
+            });
+          } else {
+            // Get transaction ID - use transaction from above if available, otherwise fetch it
+            let transactionForPayout: any = null;
+            if (transaction && transaction.id) {
+              transactionForPayout = transaction;
+              logger.info('Using transaction from update for payout creation', {
+                bookingId: booking.id,
+                transactionId: transaction.id,
+              });
+            } else {
+              // Try to find transaction if it wasn't created/updated above
+              logger.info('Transaction not available from update, fetching from database', {
+                bookingId: booking.id,
+                razorpay_order_id: data.razorpay_order_id,
+              });
+              transactionForPayout = await TransactionModel.findOne({
+                booking: booking._id,
+                razorpay_order_id: data.razorpay_order_id,
+              }).select('id').lean();
+            }
 
-            if (transaction) {
+            if (transactionForPayout && transactionForPayout.id) {
               // Create payout record directly (synchronous)
               try {
                 const { createPayoutRecord } = await import('../common/payoutCreation.service');
                 const result = await createPayoutRecord({
                   bookingId: booking.id,
-                  transactionId: transaction.id,
+                  transactionId: transactionForPayout.id,
                   academyUserId: academyUser.id,
                   amount: booking.amount,
                   batchAmount: booking.priceBreakdown.batch_amount,
@@ -1310,33 +1372,60 @@ export const verifyPayment = async (
                 if (result.success && !result.skipped) {
                   logger.info('Payout record created successfully', {
                     bookingId: booking.id,
-                    transactionId: transaction.id,
+                    transactionId: transactionForPayout.id,
                     payoutId: result.payoutId,
                     payoutAmount: booking.commission.payoutAmount,
+                    commissionRate: booking.commission.rate,
+                    commissionAmount: booking.commission.amount,
+                    batchAmount: booking.priceBreakdown.batch_amount,
                   });
                 } else if (result.skipped) {
                   logger.info('Payout creation skipped', {
                     bookingId: booking.id,
                     reason: result.reason,
                     payoutId: result.payoutId,
+                    payoutAmount: booking.commission.payoutAmount,
                   });
                 }
               } catch (payoutError: any) {
                 logger.error('Failed to create payout record', {
                   error: payoutError.message || payoutError,
                   bookingId: booking.id,
-                  transactionId: transaction.id,
+                  transactionId: transactionForPayout?.id,
+                  academyUserId: academyUser.id,
+                  stack: payoutError.stack,
                 });
               }
+            } else {
+              logger.error('Transaction not found for payout creation', {
+                bookingId: booking.id,
+                razorpay_order_id: data.razorpay_order_id,
+                centerId: center._id?.toString(),
+                academyUserId: academyUser.id,
+                transactionFromUpdate: transaction ? (transaction.id ? 'has id' : 'exists but no id') : 'null',
+              });
             }
           }
         }
       } catch (payoutError: any) {
         // Log but don't fail payment verification
-        logger.error('Failed to enqueue payout creation (non-blocking)', {
+        logger.error('Failed to create payout record (outer catch)', {
           error: payoutError.message || payoutError,
           bookingId: booking.id,
+          stack: payoutError.stack,
         });
+      }
+    } else {
+      // Log why payout creation was skipped
+      if (!booking.commission) {
+        logger.warn('Payout creation skipped: commission not found', { bookingId: booking.id });
+      } else if (!booking.commission.payoutAmount || booking.commission.payoutAmount <= 0) {
+        logger.warn('Payout creation skipped: payoutAmount is 0 or negative', {
+          bookingId: booking.id,
+          payoutAmount: booking.commission.payoutAmount,
+        });
+      } else if (!booking.priceBreakdown) {
+        logger.warn('Payout creation skipped: priceBreakdown not found', { bookingId: booking.id });
       }
     }
 
@@ -1617,11 +1706,16 @@ export const verifyPayment = async (
         // Push notifications (fire-and-forget)
         // Push notification to User
         if (user?.id) {
+          const userPushNotification = getBookingConfirmationUserPush({
+            bookingId: updatedBooking.booking_id || updatedBooking.id,
+            batchName,
+            centerName,
+          });
           createAndSendNotification({
             recipientType: 'user',
             recipientId: user.id,
-            title: 'Booking Confirmed! 🎉',
-            body: `Your booking ${updatedBooking.booking_id || updatedBooking.id} for "${batchName}" at "${centerName}" has been confirmed. Payment successful!`,
+            title: userPushNotification.title,
+            body: userPushNotification.body,
             channels: ['push'],
             priority: 'high',
             data: {
@@ -1643,16 +1737,21 @@ export const verifyPayment = async (
         // Get center owner ID
         const centerOwnerId = (centerDetails as any)?.user?.toString();
         if (centerOwnerId) {
+          const academyPushNotification = getBookingConfirmationAcademyPush({
+            bookingId: updatedBooking.booking_id || updatedBooking.id,
+            batchName,
+            userName,
+          });
           createAndSendNotification({
             recipientType: 'academy',
             recipientId: centerOwnerId,
-            title: 'New Booking Received!',
-            body: `New booking ${updatedBooking.booking_id || updatedBooking.id} received for "${batchName}" from ${userName}. Payment confirmed!`,
+            title: academyPushNotification.title,
+            body: academyPushNotification.body,
             channels: ['push'],
             priority: 'high',
             data: {
               type: 'booking_confirmation_academy',
-              bookingId: updatedBooking.booking_id || updatedBooking.id,
+              bookingId: updatedBooking.id || updatedBooking.booking_id,
               batchId: booking.batch.toString(),
               centerId: booking.center.toString(),
             },
@@ -1666,11 +1765,16 @@ export const verifyPayment = async (
         }
 
         // Push notification to Admin (role-based)
+        const adminPushNotification = getBookingConfirmationAdminPush({
+          bookingId: updatedBooking.booking_id || updatedBooking.id,
+          batchName,
+          centerName,
+        });
         createAndSendNotification({
           recipientType: 'role',
           roles: [DefaultRoles.ADMIN, DefaultRoles.SUPER_ADMIN],
-          title: 'New Booking Confirmed',
-          body: `Booking ${updatedBooking.booking_id || updatedBooking.id} for "${batchName}" at "${centerName}" has been confirmed. Payment successful!`,
+          title: adminPushNotification.title,
+          body: adminPushNotification.body,
           channels: ['push'],
           priority: 'high',
           data: {
@@ -2470,11 +2574,15 @@ export const cancelBooking = async (
         // Notification to User (Push + Email + SMS + WhatsApp)
         if (user?.id) {
           // Push notification
+          const userPushNotification = getBookingCancelledUserPush({
+            batchName,
+            reason: reason || null,
+          });
           await createAndSendNotification({
             recipientType: 'user',
             recipientId: user.id,
-            title: 'Booking Cancelled',
-            body: `Your booking for "${batchName}" has been cancelled.${reason ? ` Reason: ${reason}` : ''}`,
+            title: userPushNotification.title,
+            body: userPushNotification.body,
             channels: ['push'],
             priority: 'medium',
             data: {
@@ -2547,11 +2655,17 @@ export const cancelBooking = async (
           const academyOwner = await UserModel.findById(centerOwnerId).select('id email mobile').lean();
           if (academyOwner) {
             // Push notification
+            const academyPushNotification = getBookingCancelledAcademyPush({
+              bookingId: booking.booking_id || booking.id,
+              batchName,
+              userName,
+              reason: reason || null,
+            });
             await createAndSendNotification({
               recipientType: 'academy',
               recipientId: academyOwner.id,
-              title: 'Booking Cancelled',
-              body: `Booking ${booking.booking_id || booking.id} for batch "${batchName}" has been cancelled by ${userName}.${reason ? ` Reason: ${reason}` : ''}`,
+              title: academyPushNotification.title,
+              body: academyPushNotification.body,
               channels: ['push'],
               priority: 'medium',
               data: {

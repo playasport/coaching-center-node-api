@@ -12,6 +12,7 @@ import { UserModel } from '../models/user.model';
 import {
   getPayoutTransferInitiatedAcademySms,
   getPayoutTransferInitiatedAcademyWhatsApp,
+  getPayoutTransferInitiatedAcademyPush,
 } from '../services/common/notificationMessages';
 import { queueSms, queueWhatsApp } from '../services/common/notificationQueue.service';
 
@@ -125,11 +126,15 @@ export const payoutTransferWorker = new Worker<PayoutTransferJobData>(
       const academyUser = await UserModel.findById(payout.academy_user).lean();
       if (academyUser) {
         // Push notification
+        const pushNotification = getPayoutTransferInitiatedAcademyPush({
+          amount: amount.toFixed(2),
+          transferId: transfer.id,
+        });
         createAndSendNotification({
           recipientType: 'academy',
           recipientId: academyUser.id,
-          title: 'Payout Transfer Initiated',
-          body: `Your payout of ₹${amount.toFixed(2)} has been initiated. Transfer ID: ${transfer.id}`,
+          title: pushNotification.title,
+          body: pushNotification.body,
           channels: ['push'],
           priority: 'high',
           data: {

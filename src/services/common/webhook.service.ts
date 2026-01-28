@@ -508,17 +508,22 @@ const handleTransferProcessed = async (
     const {
       getPayoutTransferCompletedAcademySms,
       getPayoutTransferCompletedAcademyWhatsApp,
+      getPayoutTransferCompletedAcademyPush,
     } = await import('./notificationMessages');
     const { queueSms, queueWhatsApp } = await import('./notificationQueue.service');
     const academyUser = await UserModel.findById(payout.academy_user).lean();
 
     if (academyUser) {
       // Push notification
+      const pushNotification = getPayoutTransferCompletedAcademyPush({
+        amount: amount.toFixed(2),
+        transferId,
+      });
       createAndSendNotification({
         recipientType: 'academy',
         recipientId: academyUser.id,
-        title: 'Payout Completed',
-        body: `Your payout of ₹${amount.toFixed(2)} has been successfully transferred. Transfer ID: ${transferId}`,
+        title: pushNotification.title,
+        body: pushNotification.body,
         channels: ['push'],
         priority: 'high',
         data: {

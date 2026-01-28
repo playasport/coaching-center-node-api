@@ -14,6 +14,12 @@ import {
   getBookingApprovedUserWhatsApp,
   getBookingRejectedUserSms,
   getBookingRejectedUserWhatsApp,
+  EmailTemplates,
+  EmailSubjects,
+  getBookingApprovedUserEmailText,
+  getBookingRejectedUserEmailText,
+  getBookingApprovedUserPush,
+  getBookingRejectedUserPush,
 } from '../common/notificationMessages';
 
 export interface GetAcademyBookingsParams {
@@ -562,11 +568,14 @@ export const approveBookingRequest = async (
     
     if (user?.id) {
       // Push notification
+      const pushNotification = getBookingApprovedUserPush({
+        batchName,
+      });
       await createAndSendNotification({
         recipientType: 'user',
         recipientId: user.id,
-        title: 'Booking Approved',
-        body: `Your booking request for "${batchName}" has been approved. Please proceed with payment.`,
+        title: pushNotification.title,
+        body: pushNotification.body,
         channels: ['push'],
         priority: 'high',
         data: {
@@ -578,9 +587,12 @@ export const approveBookingRequest = async (
 
       // Email notification (async)
       if (user.email) {
-        queueEmail(user.email, 'Booking Approved - PlayAsport', {
-          template: 'booking-approved-user.html',
-          text: `Your booking request for "${batchName}" at "${centerName}" has been approved. Please proceed with payment.`,
+        queueEmail(user.email, EmailSubjects.BOOKING_APPROVED_USER, {
+          template: EmailTemplates.BOOKING_APPROVED_USER,
+          text: getBookingApprovedUserEmailText({
+            batchName,
+            centerName,
+          }),
           templateVariables: {
             userName,
             batchName,
@@ -756,15 +768,18 @@ export const rejectBookingRequest = async (
     const batchName = (booking.batch as any)?.name || 'batch';
     const centerName = (booking.center as any)?.center_name || 'Academy';
     const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'User' : 'User';
-    const rejectionReason = reason ? ` Reason: ${reason}` : '';
     
     if (user?.id) {
       // Push notification
+      const pushNotification = getBookingRejectedUserPush({
+        batchName,
+        reason: reason || null,
+      });
       await createAndSendNotification({
         recipientType: 'user',
         recipientId: user.id,
-        title: 'Booking Request Rejected',
-        body: `Your booking request for "${batchName}" has been rejected.${rejectionReason}`,
+        title: pushNotification.title,
+        body: pushNotification.body,
         channels: ['push'],
         priority: 'medium',
         data: {
@@ -777,9 +792,13 @@ export const rejectBookingRequest = async (
 
       // Email notification (async)
       if (user.email) {
-        queueEmail(user.email, 'Booking Request Rejected - PlayAsport', {
-          template: 'booking-rejected-user.html',
-          text: `Your booking request for "${batchName}" at "${centerName}" has been rejected.${rejectionReason}`,
+        queueEmail(user.email, EmailSubjects.BOOKING_REJECTED_USER, {
+          template: EmailTemplates.BOOKING_REJECTED_USER,
+          text: getBookingRejectedUserEmailText({
+            batchName,
+            centerName,
+            reason: reason || null,
+          }),
           templateVariables: {
             userName,
             batchName,

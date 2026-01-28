@@ -319,12 +319,16 @@ export const getPayoutTransferFailedAcademyWhatsApp = (variables: NotificationMe
 export const EmailTemplates = {
   BOOKING_REQUEST_ACADEMY: 'booking-request-academy.html',
   BOOKING_REQUEST_SENT_USER: 'booking-request-sent-user.html',
+  BOOKING_APPROVED_USER: 'booking-approved-user.html',
+  BOOKING_REJECTED_USER: 'booking-rejected-user.html',
   BOOKING_CONFIRMATION_USER: 'booking-confirmation-user.html',
   BOOKING_CONFIRMATION_CENTER: 'booking-confirmation-center.html',
   BOOKING_CONFIRMATION_ADMIN: 'booking-confirmation-admin.html',
   BOOKING_CANCELLED_USER: 'booking-cancelled-user.html',
   BOOKING_CANCELLED_ACADEMY: 'booking-cancelled-academy.html',
   BOOKING_CANCELLED_ADMIN: 'booking-cancelled-admin.html',
+  PAYOUT_ACCOUNT_CREATED: 'payout-account-created.html',
+  PAYOUT_ACCOUNT_ACTIVATED: 'payout-account-activated.html',
 } as const;
 
 /**
@@ -333,12 +337,20 @@ export const EmailTemplates = {
 export const EmailSubjects = {
   BOOKING_REQUEST_ACADEMY: 'New Booking Request - PlayAsport',
   BOOKING_REQUEST_SENT_USER: 'Booking Request Sent - PlayAsport',
+  BOOKING_APPROVED_USER: 'Booking Approved - PlayAsport',
+  BOOKING_REJECTED_USER: 'Booking Request Rejected - PlayAsport',
   BOOKING_CONFIRMATION_USER: 'Booking Confirmed - Play A Sport',
   BOOKING_CONFIRMATION_CENTER: 'New Booking Received - Play A Sport',
   BOOKING_CONFIRMATION_ADMIN: 'New Booking Notification - Play A Sport',
   BOOKING_CANCELLED_USER: 'Booking Cancelled - PlayAsport',
   BOOKING_CANCELLED_ACADEMY: 'Booking Cancelled - PlayAsport',
   BOOKING_CANCELLED_ADMIN: 'Booking Cancelled - PlayAsport',
+  BOOKING_REFUNDED_USER: 'Booking Refunded - Play A Sport',
+  PAYOUT_ACCOUNT_CREATED: 'Payout Account Created - Play A Sport',
+  PAYOUT_ACCOUNT_ACTIVATED: 'Payout Account Activated - Play A Sport',
+  PAYOUT_ACCOUNT_ACTION_REQUIRED: 'Payout Account - Action Required - Play A Sport',
+  PAYOUT_ACCOUNT_REJECTED: 'Payout Account Rejected - Play A Sport',
+  BANK_DETAILS_UPDATED: 'Bank Details Updated - Play A Sport',
 } as const;
 
 /**
@@ -406,4 +418,290 @@ export const getBookingCancelledAdminEmailText = (variables: NotificationMessage
   const reasonText = variables.reason ? ` Reason: ${variables.reason}` : '';
   const template = `Booking {{bookingId}} for batch "{{batchName}}" at "{{centerName}}" has been cancelled by {{userName}}.${reasonText}`;
   return replaceVariables(template, variables);
+};
+
+/**
+ * Booking Approved - User (Email Text)
+ */
+export const getBookingApprovedUserEmailText = (variables: NotificationMessageVariables): string => {
+  const template = `Your booking request for "{{batchName}}" at "{{centerName}}" has been approved. Please proceed with payment.`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Booking Rejected - User (Email Text)
+ */
+export const getBookingRejectedUserEmailText = (variables: NotificationMessageVariables): string => {
+  const reasonText = variables.reason ? ` Reason: ${variables.reason}` : '';
+  const template = `Your booking request for "{{batchName}}" at "{{centerName}}" has been rejected.${reasonText}`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Booking Refunded - User (Email Text)
+ */
+export const getBookingRefundedUserEmailText = (variables: NotificationMessageVariables): string => {
+  const template = `Dear {{userName}},\n\nYour booking {{bookingId}} has been refunded.\n\nRefund Amount: ₹{{amount}}\nReason: {{reason}}\n\nRefund ID: {{refundId}}\n\nThe refund will be processed to your original payment method within 5-7 business days.\n\nIf you have any questions, please contact support.\n\nBest regards,\nPlay A Sport Team`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payout Account Created - Academy (Email Text)
+ */
+export const getPayoutAccountCreatedAcademyEmailText = (variables: NotificationMessageVariables): string => {
+  const template = `Dear {{userName}},\n\nYour payout account has been created successfully.\n\nAccount ID: {{accountId}}\nStatus: {{status}}\n\nYou will be notified once your account is activated.\n\nBest regards,\nPlay A Sport Team`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Bank Details Updated - Academy (Email Text)
+ */
+export const getBankDetailsUpdatedAcademyEmailText = (variables: NotificationMessageVariables): string => {
+  const template = `Dear {{userName}},\n\nYour bank account details have been updated successfully.\n\nAccount ID: {{accountId}}\n\nYour bank details are under verification. You will be notified once verified.\n\nBest regards,\nPlay A Sport Team`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payout Account Activated - Academy (Email Text)
+ */
+export const getPayoutAccountActivatedAcademyEmailText = (variables: NotificationMessageVariables): string => {
+  const template = `Dear {{userName}},\n\nGreat news! Your payout account has been activated.\n\nAccount ID: {{accountId}}\n\nYou can now receive payouts.\n\nBest regards,\nPlay A Sport Team`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payout Account - Action Required - Academy (Email Text)
+ */
+export const getPayoutAccountActionRequiredAcademyEmailText = (variables: NotificationMessageVariables): string => {
+  const template = `Dear {{userName}},\n\nYour payout account requires additional information.\n\nAccount ID: {{accountId}}\nRequirements: {{requirementsText}}\n\nPlease check your account and provide the required details to complete activation.\n\nBest regards,\nPlay A Sport Team`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payout Account Rejected - Academy (Email Text)
+ */
+export const getPayoutAccountRejectedAcademyEmailText = (variables: NotificationMessageVariables): string => {
+  const template = `Dear {{userName}},\n\nYour payout account has been rejected.\n\nAccount ID: {{accountId}}\nReason: {{reason}}\n\nPlease contact support for assistance.\n\nBest regards,\nPlay A Sport Team`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Push Notification Templates
+ */
+export interface PushNotificationTemplate {
+  title: string;
+  body: string;
+}
+
+/**
+ * Booking Request - Academy Owner (Push Notification)
+ */
+export const getBookingRequestAcademyPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'New Booking Request',
+    body: replaceVariables(`You have a new booking request for batch "{{batchName}}" from {{userName}}. Participants: {{participants}}.`, variables),
+  };
+};
+
+/**
+ * Booking Request Sent - User (Push Notification)
+ */
+export const getBookingRequestSentUserPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'Booking Request Sent',
+    body: replaceVariables(`Your booking request for "{{batchName}}" has been sent to the academy. You will be notified once the academy responds.`, variables),
+  };
+};
+
+/**
+ * Booking Request - Admin (Push Notification)
+ */
+export const getBookingRequestAdminPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'New Booking Request',
+    body: replaceVariables(`New booking request created: {{userName}} requested booking for "{{batchName}}" at "{{centerName}}".`, variables),
+  };
+};
+
+/**
+ * Booking Confirmation - User (Push Notification)
+ */
+export const getBookingConfirmationUserPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'Booking Confirmed! 🎉',
+    body: replaceVariables(`Your booking {{bookingId}} for "{{batchName}}" at "{{centerName}}" has been confirmed. Payment successful!`, variables),
+  };
+};
+
+/**
+ * Booking Confirmation - Academy (Push Notification)
+ */
+export const getBookingConfirmationAcademyPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'New Booking Received! 💰',
+    body: replaceVariables(`New booking {{bookingId}} received for "{{batchName}}" from {{userName}}. Payment confirmed!`, variables),
+  };
+};
+
+/**
+ * Booking Confirmation - Admin (Push Notification)
+ */
+export const getBookingConfirmationAdminPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'New Booking Confirmed',
+    body: replaceVariables(`Booking {{bookingId}} for "{{batchName}}" at "{{centerName}}" has been confirmed. Payment successful!`, variables),
+  };
+};
+
+/**
+ * Booking Cancelled - User (Push Notification)
+ */
+export const getBookingCancelledUserPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  const reasonText = variables.reason ? ` Reason: ${variables.reason}` : '';
+  return {
+    title: 'Booking Cancelled',
+    body: replaceVariables(`Your booking for "{{batchName}}" has been cancelled.${reasonText}`, variables),
+  };
+};
+
+/**
+ * Booking Cancelled - Academy (Push Notification)
+ */
+export const getBookingCancelledAcademyPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  const reasonText = variables.reason ? ` Reason: ${variables.reason}` : '';
+  return {
+    title: 'Booking Cancelled',
+    body: replaceVariables(`Booking {{bookingId}} for batch "{{batchName}}" has been cancelled by {{userName}}.${reasonText}`, variables),
+  };
+};
+
+/**
+ * Booking Approved - User (Push Notification)
+ */
+export const getBookingApprovedUserPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'Booking Approved! ✅',
+    body: replaceVariables(`Your booking request for "{{batchName}}" has been approved. Please proceed with payment.`, variables),
+  };
+};
+
+/**
+ * Booking Rejected - User (Push Notification)
+ */
+export const getBookingRejectedUserPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  const reasonText = variables.reason ? ` Reason: ${variables.reason}` : '';
+  return {
+    title: 'Booking Request Rejected',
+    body: replaceVariables(`Your booking request for "{{batchName}}" has been rejected.${reasonText}`, variables),
+  };
+};
+
+/**
+ * Booking Refunded - User (Push Notification)
+ */
+export const getBookingRefundedUserPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'Booking Refunded',
+    body: replaceVariables(`Your booking {{bookingId}} has been refunded. Amount: ₹{{amount}}`, variables),
+  };
+};
+
+/**
+ * Booking Refunded - Academy (Push Notification)
+ */
+export const getBookingRefundedAcademyPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'Booking Refunded',
+    body: replaceVariables(`Booking {{bookingId}} has been refunded. Amount: ₹{{amount}}`, variables),
+  };
+};
+
+/**
+ * Payout Account Created - Academy (Push Notification)
+ */
+export const getPayoutAccountCreatedAcademyPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'Payout Account Created',
+    body: replaceVariables(`Your payout account has been created successfully. Status: {{status}}. You will be notified once your account is activated.`, variables),
+  };
+};
+
+/**
+ * Bank Details Updated - Academy (Push Notification)
+ */
+export const getBankDetailsUpdatedAcademyPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'Bank Details Updated',
+    body: replaceVariables(`Your bank account details have been updated successfully. The details are under verification.`, variables),
+  };
+};
+
+/**
+ * Payout Account Activated - Academy (Push Notification)
+ */
+export const getPayoutAccountActivatedAcademyPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'Payout Account Activated! 🎉',
+    body: replaceVariables(`Great news! Your payout account has been activated. You can now receive payouts.`, variables),
+  };
+};
+
+/**
+ * Payout Account - Action Required - Academy (Push Notification)
+ */
+export const getPayoutAccountActionRequiredAcademyPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'Payout Account - Action Required',
+    body: replaceVariables(`Your payout account requires additional information: {{requirementsText}}. Please check your account.`, variables),
+  };
+};
+
+/**
+ * Payout Account Rejected - Academy (Push Notification)
+ */
+export const getPayoutAccountRejectedAcademyPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'Payout Account Rejected',
+    body: replaceVariables(`Your payout account has been rejected. Reason: {{reason}}. Please contact support.`, variables),
+  };
+};
+
+/**
+ * Payout Transfer Initiated - Academy (Push Notification)
+ */
+export const getPayoutTransferInitiatedAcademyPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'Payout Transfer Initiated',
+    body: replaceVariables(`Your payout of ₹{{amount}} has been initiated. Transfer ID: {{transferId}}`, variables),
+  };
+};
+
+/**
+ * Payout Completed - Academy (Push Notification)
+ */
+export const getPayoutTransferCompletedAcademyPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'Payout Completed! 💰',
+    body: replaceVariables(`Your payout of ₹{{amount}} has been successfully transferred. Transfer ID: {{transferId}}`, variables),
+  };
+};
+
+/**
+ * New Academy Registration - Admin (Push Notification)
+ */
+export const getNewAcademyRegistrationAdminPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'New Academy Registration',
+    body: replaceVariables(`{{userName}} ({{userEmail}}) has registered as an academy.`, variables),
+  };
+};
+
+/**
+ * New User Registration - Admin (Push Notification)
+ */
+export const getNewUserRegistrationAdminPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'New User Registration',
+    body: replaceVariables(`{{userName}} ({{userEmail}}) has registered as a {{userType}}.`, variables),
+  };
 };
