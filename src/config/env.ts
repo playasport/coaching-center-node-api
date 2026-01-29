@@ -20,10 +20,19 @@ const parseBoolean = (value: string | undefined, defaultValue = true): boolean =
   return defaultValue;
 };
 
+const trimUrl = (url: string | undefined) => url?.trim().replace(/\/+$/, '') || '';
+
 export const config = {
   port: process.env.PORT || 3000,
   nodeEnv: process.env.NODE_ENV || 'development',
   defaultLocale: (process.env.DEFAULT_LOCALE || 'en') as 'en' | 'hi',
+  cors: {
+    allowedOrigins: (() => {
+      if (process.env.NODE_ENV !== 'production') return true;
+      const origins = [trimUrl(process.env.MAIN_SITE_URL), trimUrl(process.env.ACADEMY_SITE_URL), trimUrl(process.env.ADMIN_PANEL_URL)].filter(Boolean);
+      return origins.length > 0 ? origins : true;
+    })(),
+  },
   jwt: {
     secret: process.env.JWT_SECRET || 'your-secret-key',
     refreshSecret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'your-refresh-secret-key',

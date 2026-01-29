@@ -21,9 +21,9 @@ const app: Application = express();
 // }));
 
 app.use(cors({
-  origin: true, // Allow all origins
+  origin: config.cors.allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  credentials: true
+  credentials: true,
 }));
 
 // Raw body middleware for webhooks (must be before express.json())
