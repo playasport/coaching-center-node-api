@@ -410,11 +410,12 @@ export const getBookingSummary = async (
     // Calculate amount
     const admissionFeePerParticipant = batch.admission_fee || 0;
     
-    // Use discounted_price if available, otherwise use base_price
+    // Use discounted_price if available and > 0, otherwise use base_price
     // discounted_price should be <= base_price (validated in batch model)
-    const perParticipantFee = batch.discounted_price !== null && batch.discounted_price !== undefined 
-      ? batch.discounted_price 
-      : batch.base_price;
+    const perParticipantFee =
+      batch.discounted_price != null && batch.discounted_price > 0
+        ? batch.discounted_price
+        : batch.base_price;
     const participantCount = participants.length;
 
     // Calculate base amount: (admission fee + base fee) * participant count
