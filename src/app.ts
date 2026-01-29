@@ -1,6 +1,5 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
-import path from 'path';
 import routes from './routes';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import { localeMiddleware } from './middleware/locale.middleware';
@@ -59,18 +58,10 @@ if (config.nodeEnv !== 'production') {
   });
 }
 
-// Serve Admin Panel Demo (if exists)
-app.get('/admin-panel', (_req: Request, res: Response) => {
-  const adminPanelPath = path.join(process.cwd(), 'admin-panel-demo', 'index.html');
-  res.sendFile(adminPanelPath, (err) => {
-    if (err) {
-      res.status(404).json({ message: 'Admin panel demo not found' });
-    }
-  });
+// Root welcome message
+app.get('/', (_req: Request, res: Response) => {
+  res.json({ message: 'Welcome to Play A Sport.' });
 });
-
-// Serve static files from admin-panel-demo
-app.use('/admin-panel-demo', express.static(path.join(process.cwd(), 'admin-panel-demo')));
 
 // Routes
 app.use('/api/v1', routes);
