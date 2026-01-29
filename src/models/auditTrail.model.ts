@@ -125,7 +125,6 @@ const auditTrailSchema = new Schema<AuditTrail>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       default: null,
-      index: true,
     },
     academyId: {
       type: Schema.Types.ObjectId,

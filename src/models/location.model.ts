@@ -68,8 +68,8 @@ const countrySchema = new Schema<Country>(
     subregion: { type: String, trim: true },
     latitude: { type: Number },
     longitude: { type: Number },
-    isDeleted: { type: Boolean, default: false, index: true },
-    deletedAt: { type: Date, default: null, index: true },
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date, default: null },
   },
   {
     timestamps: true,
@@ -79,15 +79,15 @@ const countrySchema = new Schema<Country>(
 
 const stateSchema = new Schema<State>(
   {
-    name: { type: String, required: true, trim: true, index: true },
-    countryId: { type: String, trim: true, index: true },
-    countryCode: { type: String, trim: true, index: true },
+    name: { type: String, required: true, trim: true },
+    countryId: { type: String, trim: true },
+    countryCode: { type: String, trim: true },
     countryName: { type: String, trim: true },
     stateCode: { type: String, trim: true },
     latitude: { type: Number },
     longitude: { type: Number },
-    isDeleted: { type: Boolean, default: false, index: true },
-    deletedAt: { type: Date, default: null, index: true },
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date, default: null },
   },
   {
     timestamps: true,
@@ -97,17 +97,17 @@ const stateSchema = new Schema<State>(
 
 const citySchema = new Schema<City>(
   {
-    name: { type: String, required: true, trim: true, index: true },
-    stateId: { type: String, trim: true, index: true },
-    stateName: { type: String, trim: true, index: true },
+    name: { type: String, required: true, trim: true },
+    stateId: { type: String, trim: true },
+    stateName: { type: String, trim: true },
     stateCode: { type: String, trim: true },
-    countryId: { type: String, trim: true, index: true },
-    countryCode: { type: String, trim: true, index: true },
+    countryId: { type: String, trim: true },
+    countryCode: { type: String, trim: true },
     countryName: { type: String, trim: true },
     latitude: { type: Number },
     longitude: { type: Number },
-    isDeleted: { type: Boolean, default: false, index: true },
-    deletedAt: { type: Date, default: null, index: true },
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date, default: null },
   },
   {
     timestamps: true,

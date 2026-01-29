@@ -62,26 +62,22 @@ const payoutSchema = new Schema<Payout>(
       type: Schema.Types.ObjectId,
       ref: 'Booking',
       required: true,
-      index: true,
     },
     transaction: {
       type: Schema.Types.ObjectId,
       ref: 'Transaction',
       required: true,
-      index: true,
     },
     academy_payout_account: {
       type: Schema.Types.ObjectId,
       ref: 'AcademyPayoutAccount',
       required: false,
       default: null,
-      index: true,
     },
     academy_user: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true,
     },
     amount: {
       type: Number,
@@ -120,12 +116,10 @@ const payoutSchema = new Schema<Payout>(
       enum: Object.values(PayoutStatus),
       required: true,
       default: PayoutStatus.PENDING,
-      index: true,
     },
     razorpay_transfer_id: {
       type: String,
       default: null,
-      index: true,
     },
     refund_amount: {
       type: Number,
@@ -188,9 +182,6 @@ payoutSchema.index({ academy_payout_account: 1, status: 1 });
 payoutSchema.index({ status: 1, createdAt: -1 });
 payoutSchema.index({ razorpay_transfer_id: 1 });
 payoutSchema.index({ scheduled_at: 1 }); // For scheduled payouts
-
-// Compound indexes
-payoutSchema.index({ academy_user: 1, status: 1, createdAt: -1 });
 payoutSchema.index({ status: 1, scheduled_at: 1 });
 
 export const PayoutModel = model<Payout>('Payout', payoutSchema);

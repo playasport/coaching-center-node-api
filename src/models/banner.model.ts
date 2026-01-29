@@ -182,7 +182,6 @@ const bannerSchema = new Schema<Banner>(
     deletedAt: {
       type: Date,
       default: null,
-      index: true,
     },
   },
   {

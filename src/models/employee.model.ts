@@ -66,7 +66,6 @@ const employeeSchema = new Schema<Employee>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true,
     },
     fullName: {
       type: String,
@@ -76,13 +75,11 @@ const employeeSchema = new Schema<Employee>(
         validator: validateFullName,
         message: 'Full name must contain only letters and spaces (no numbers or special characters)',
       },
-      index: true,
     },
     role: {
       type: Schema.Types.ObjectId,
       ref: 'Role',
       required: [true, 'Role is required'],
-      index: true,
     },
     mobileNo: {
       type: String,
@@ -92,7 +89,6 @@ const employeeSchema = new Schema<Employee>(
         validator: validateMobileNo,
         message: 'Mobile number must contain only digits',
       },
-      index: true,
     },
     email: {
       type: String,
@@ -113,13 +109,11 @@ const employeeSchema = new Schema<Employee>(
       type: Schema.Types.ObjectId,
       ref: 'Sport',
       default: null,
-      index: true,
     },
     center: {
       type: Schema.Types.ObjectId,
       ref: 'CoachingCenter',
       default: null,
-      index: true,
     },
     experience: {
       type: Number,
@@ -148,12 +142,10 @@ const employeeSchema = new Schema<Employee>(
     is_active: {
       type: Boolean,
       default: true,
-      index: true,
     },
     is_deleted: {
       type: Boolean,
       default: false,
-      index: true,
     },
     deletedAt: {
       type: Date,

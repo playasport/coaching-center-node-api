@@ -72,19 +72,16 @@ const streamHighlightSchema = new Schema<StreamHighlight>(
       type: Schema.Types.ObjectId,
       ref: 'StreamSession',
       default: null,
-      index: true,
     },
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true,
     },
     coachingCenterId: {
       type: Schema.Types.ObjectId,
       ref: 'CoachingCenter',
       default: null,
-      index: true,
     },
     title: {
       type: String,
@@ -145,14 +142,12 @@ const streamHighlightSchema = new Schema<StreamHighlight>(
       enum: Object.values(HighlightStatus),
       required: true,
       default: HighlightStatus.PUBLISHED,
-      index: true,
     },
     videoProcessingStatus: {
       type: String,
       enum: Object.values(VideoProcessingStatus),
       required: true,
       default: VideoProcessingStatus.NOT_STARTED,
-      index: true,
     },
     originalStreamStartTime: {
       type: Date,
@@ -176,7 +171,6 @@ const streamHighlightSchema = new Schema<StreamHighlight>(
     deletedAt: {
       type: Date,
       default: null,
-      index: true,
     },
   },
   {

@@ -119,7 +119,6 @@ const paymentDetailsSchema = new Schema<PaymentDetails>(
     razorpay_order_id: {
       type: String,
       default: null,
-      index: true,
     },
     razorpay_payment_id: {
       type: String,
@@ -303,7 +302,6 @@ const bookingSchema = new Schema<Booking>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true,
     },
     participants: {
       type: [Schema.Types.ObjectId],
@@ -315,25 +313,21 @@ const bookingSchema = new Schema<Booking>(
         },
         message: 'At least one participant is required',
       },
-      index: true,
     },
     batch: {
       type: Schema.Types.ObjectId,
       ref: 'Batch',
       required: true,
-      index: true,
     },
     center: {
       type: Schema.Types.ObjectId,
       ref: 'CoachingCenter',
       required: true,
-      index: true,
     },
     sport: {
       type: Schema.Types.ObjectId,
       ref: 'Sport',
       required: true,
-      index: true,
     },
     amount: {
       type: Number,
@@ -351,7 +345,6 @@ const bookingSchema = new Schema<Booking>(
       enum: Object.values(BookingStatus),
       required: true,
       default: BookingStatus.PAYMENT_PENDING, // Default for new bookings
-      index: true,
     },
     payment: {
       type: paymentDetailsSchema,
@@ -369,7 +362,6 @@ const bookingSchema = new Schema<Booking>(
       type: String,
       enum: Object.values(BookingPayoutStatus),
       default: BookingPayoutStatus.NOT_INITIATED,
-      index: true,
     },
     notes: {
       type: String,
@@ -394,12 +386,10 @@ const bookingSchema = new Schema<Booking>(
     is_active: {
       type: Boolean,
       default: true,
-      index: true,
     },
     is_deleted: {
       type: Boolean,
       default: false,
-      index: true,
     },
     deletedAt: {
       type: Date,
