@@ -1,8 +1,8 @@
 import { Schema } from 'mongoose';
 
 export interface Address {
-  line1: string;
-  line2?: string | null;
+  line1?: string | null;
+  line2: string;
   area?: string | null;
   city: string;
   state: string;
@@ -15,12 +15,12 @@ export interface Address {
 
 export const addressSchema = new Schema<Address>(
   {
-    line1: { type: String, required: true },
-    line2: { type: String, default: null },
+    line1: { type: String, default: null },
+    line2: { type: String, required: true },
     area: { type: String, default: null },
     city: { type: String, required: true },
     state: { type: String, required: true },
-    country: { type: String, required: true },
+    country: { type: String, required: true, default: 'India' },
     pincode: { type: String, required: true },
     isDeleted: { type: Boolean, default: false },
   },

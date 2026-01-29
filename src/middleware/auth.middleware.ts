@@ -2,8 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/jwt';
 import { isTokenBlacklisted } from '../utils/tokenBlacklist';
 import { UserModel } from '../models/user.model';
+import { AdminUserModel } from '../models/adminUser.model';
 import { t } from '../utils/i18n';
 import { logger } from '../utils/logger';
+import { DefaultRoles } from '../enums/defaultRoles.enum';
 
 /**
  * Validate user status and existence
@@ -29,13 +31,25 @@ const validateUserStatus = async (
     }
 
     // Check user exists, is active, and not deleted
-    const user = await UserModel.findOne({
+    // First check AdminUser table (for admin users), then User table (for client/academy users)
+    let user = await AdminUserModel.findOne({
       id: sanitizedUserId,
       isDeleted: false,
       isActive: true,
     })
       .select('_id isActive isDeleted')
       .lean();
+
+    // If not found in AdminUser, check User table
+    if (!user) {
+      user = await UserModel.findOne({
+        id: sanitizedUserId,
+        isDeleted: false,
+        isActive: true,
+      })
+        .select('_id isActive isDeleted')
+        .lean();
+    }
 
     if (!user) {
       logger.warn('User validation failed - user not found, deleted, or inactive', {
@@ -164,7 +178,7 @@ export const authenticate = async (
 };
 
 export const authorize = (...roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -173,7 +187,43 @@ export const authorize = (...roles: string[]) => {
       return;
     }
 
-    if (!roles.includes(req.user.role)) {
+    // Check if user's role matches any of the required roles
+    let hasPermission = roles.includes(req.user.role);
+
+    // If permission not found, check database roles array for User model (academy, student, guardian, etc.)
+    if (!hasPermission) {
+      try {
+        const user = await UserModel.findOne({ id: req.user.id })
+          .select('userType roles')
+          .populate('roles', 'name')
+          .lean();
+
+        if (user) {
+          const userRoles = user.roles as any[];
+          
+          // Check if user has any of the required roles in roles array
+          if (userRoles && userRoles.some((r: any) => roles.includes(r?.name))) {
+            hasPermission = true;
+          }
+          
+          // Special handling: If role is "user" and we're checking for STUDENT/GUARDIAN,
+          // we need to check the userType from the database
+          if (!hasPermission && req.user.role === DefaultRoles.USER) {
+            // Check if userType matches any of the required roles (student/guardian)
+            if (user.userType && roles.includes(user.userType)) {
+              hasPermission = true;
+            }
+          }
+        }
+      } catch (error) {
+        logger.error('Error checking user permissions:', {
+          userId: req.user.id,
+          error: error instanceof Error ? error.message : error,
+        });
+      }
+    }
+
+    if (!hasPermission) {
       res.status(403).json({
         success: false,
         message: t('auth.authorization.forbidden'),
@@ -183,5 +233,64 @@ export const authorize = (...roles: string[]) => {
 
     next();
   };
+};
+
+/**
+ * Optional authentication middleware for public routes
+ * Sets req.user if token is valid, but doesn't fail if token is missing or invalid
+ * Useful for routes that work both with and without authentication
+ */
+export const optionalAuthenticate = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    // If no auth header, continue without setting user
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      next();
+      return;
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    // Check if token is blacklisted
+    const isBlacklisted = await isTokenBlacklisted(token);
+    if (isBlacklisted) {
+      next();
+      return;
+    }
+
+    // Verify JWT access token signature and expiration
+    let decoded;
+    try {
+      decoded = verifyAccessToken(token);
+    } catch (error) {
+      // Invalid token, continue without user
+      next();
+      return;
+    }
+
+    // Validate user status
+    const userValidation = await validateUserStatus(decoded.id);
+    if (!userValidation.valid) {
+      next();
+      return;
+    }
+
+    // Set user info if valid
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      role: decoded.role,
+    };
+
+    next();
+  } catch (error) {
+    // On any error, continue without user
+    next();
+  }
 };
 

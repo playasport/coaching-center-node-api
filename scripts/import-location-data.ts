@@ -1,4 +1,4 @@
-import { importLocationData, getLocationDataCounts } from '../src/services/location-import.service';
+import { importLocationData, getLocationDataCounts } from '../src/services/common/location-import.service';
 import { disconnectDatabase } from '../src/config/database';
 import { logger } from '../src/utils/logger';
 

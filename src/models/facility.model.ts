@@ -7,6 +7,8 @@ export interface Facility {
   description?: string | null;
   icon?: string | null;
   is_active: boolean;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,6 +42,15 @@ const facilitySchema = new Schema<Facility>(
       type: Boolean,
       default: true,
       index: true,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
     },
   },
   {

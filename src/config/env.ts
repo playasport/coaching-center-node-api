@@ -28,7 +28,8 @@ export const config = {
     secret: process.env.JWT_SECRET || 'your-secret-key',
     refreshSecret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'your-refresh-secret-key',
     accessTokenExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
-    refreshTokenExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+    refreshTokenExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d', // Default for web
+    mobileRefreshTokenExpiresIn: process.env.JWT_MOBILE_REFRESH_EXPIRES_IN || '90d', // Longer for mobile apps (30d, 60d, 90d, 180d)
   },
   rateLimit: {
     windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000), // 15 minutes
@@ -96,10 +97,53 @@ export const config = {
       userCache: Number(process.env.REDIS_DB_USER_CACHE || 1), // DB 1: User cache
       tokenBlacklist: Number(process.env.REDIS_DB_TOKEN_BLACKLIST || 2), // DB 2: Token blacklist
       rateLimit: Number(process.env.REDIS_DB_RATE_LIMIT || 3), // DB 3: Rate limiting
+      permissionCache: Number(process.env.REDIS_DB_PERMISSION_CACHE || 4), // DB 4: Permission cache
     },
   },
   pagination: {
     defaultLimit: Number(process.env.PAGINATION_DEFAULT_LIMIT || 10),
     maxLimit: Number(process.env.PAGINATION_MAX_LIMIT || 100),
+  },
+  razorpay: {
+    keyId: process.env.RAZORPAY_KEY_ID || '',
+    keySecret: process.env.RAZORPAY_KEY_SECRET || '',
+  },
+  payment: {
+    gateway: (process.env.PAYMENT_GATEWAY || 'razorpay') as 'razorpay' | 'stripe' | 'payu' | 'cashfree',
+    // Add other payment gateway configs here in the future
+    // stripe: {
+    //   apiKey: process.env.STRIPE_API_KEY || '',
+    //   secretKey: process.env.STRIPE_SECRET_KEY || '',
+    // },
+  },
+  booking: {
+    platformFee: Number(process.env.PLATFORM_FEE || 200), // Default platform fee
+    gstPercentage: Number(process.env.GST_PERCENTAGE || 18), // Default GST percentage
+  },
+  location: {
+    defaultRadius: Number(process.env.DEFAULT_SEARCH_RADIUS_KM || 50), // Default search radius in kilometers
+    maxRadius: Number(process.env.MAX_SEARCH_RADIUS_KM || 200), // Maximum allowed search radius in kilometers
+  },
+  notification: {
+    enabled: parseBoolean(process.env.NOTIFICATION_ENABLED, true),
+    maxRetries: Number(process.env.NOTIFICATION_MAX_RETRIES || 3),
+    whatsapp: {
+      enabled: parseBoolean(process.env.WHATSAPP_ENABLED, true),
+    },
+    push: {
+      enabled: parseBoolean(process.env.PUSH_NOTIFICATION_ENABLED, true),
+    },
+  },
+  admin: {
+    email: process.env.ADMIN_EMAIL || '',
+  },
+  videoProcessing: {
+    concurrency: Number(process.env.VIDEO_PROCESSING_CONCURRENCY || 2), // Number of videos to process simultaneously
+  },
+  meilisearch: {
+    enabled: parseBoolean(process.env.MEILISEARCH_ENABLED, false), // Enable/disable Meilisearch indexing
+    host: process.env.MEILISEARCH_HOST || 'http://localhost:7700',
+    apiKey: process.env.MEILISEARCH_KEY || 'DevLOpemNTmasterKey123',
+    indexingConcurrency: Number(process.env.MEILISEARCH_INDEXING_CONCURRENCY || 5), // Number of indexing jobs to process concurrently
   },
 };

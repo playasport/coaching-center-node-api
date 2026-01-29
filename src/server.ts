@@ -4,10 +4,26 @@ import { connectDatabase, disconnectDatabase } from './config/database';
 import { setLocale } from './utils/i18n';
 import { logger } from './utils/logger';
 import { thumbnailWorker, thumbnailQueue } from './queue/thumbnailQueue';
+import { videoProcessingQueue } from './queue/videoProcessingQueue';
+import { closeVideoProcessingWorker } from './queue/videoProcessingWorker';
+import { mediaMoveQueue } from './queue/mediaMoveQueue';
+import { closeMediaMoveWorker } from './queue/mediaMoveWorker';
+import { meilisearchIndexingQueue } from './queue/meilisearchIndexingQueue';
+import { closeMeilisearchIndexingWorker } from './queue/meilisearchIndexingWorker';
+import { payoutBankDetailsQueue } from './queue/payoutBankDetailsQueue';
+import { closePayoutBankDetailsWorker } from './queue/payoutBankDetailsWorker';
+import { payoutStakeholderQueue } from './queue/payoutStakeholderQueue';
+import { closePayoutStakeholderWorker } from './queue/payoutStakeholderWorker';
+import { payoutTransferQueue } from './queue/payoutTransferQueue';
+import { closePayoutTransferWorker } from './queue/payoutTransferWorker';
 import { closeUserCache } from './utils/userCache';
 import { closeTokenBlacklist } from './utils/tokenBlacklist';
 import { closeRateLimit } from './middleware/rateLimit.middleware';
+import { closePermissionCache } from './services/admin/permission.service';
 import { startMediaCleanupJob } from './jobs/mediaCleanup.job';
+import { startPermanentDeleteJob } from './jobs/permanentDelete.job';
+import { preloadRoleCache } from './services/admin/role.service';
+import { closeAcademyDashboardCache } from './utils/academyDashboardCache';
 
 const startServer = async (): Promise<void> => {
   try {
@@ -19,8 +35,14 @@ const startServer = async (): Promise<void> => {
     await connectDatabase();
     logger.info('MongoDB connected successfully');
 
+    // Pre-load role cache for faster API responses
+    await preloadRoleCache();
+
     // Start media cleanup cron job (runs daily at 2 AM)
     startMediaCleanupJob();
+
+    // Start permanent deletion cron job (runs monthly on the 1st at 3 AM)
+    startPermanentDeleteJob();
 
     // Start server
     app.listen(config.port, () => {
@@ -49,6 +71,54 @@ const gracefulShutdown = async (signal: string) => {
     await thumbnailQueue.close();
     logger.info('Thumbnail queue closed');
     
+    // Close video processing worker
+    await closeVideoProcessingWorker();
+    logger.info('Video processing worker closed');
+    
+    // Close video processing queue
+    await videoProcessingQueue.close();
+    logger.info('Video processing queue closed');
+    
+    // Close media move worker
+    await closeMediaMoveWorker();
+    logger.info('Media move worker closed');
+    
+    // Close media move queue
+    await mediaMoveQueue.close();
+    logger.info('Media move queue closed');
+    
+    // Close Meilisearch indexing worker
+    await closeMeilisearchIndexingWorker();
+    logger.info('Meilisearch indexing worker closed');
+    
+    // Close Meilisearch indexing queue
+    await meilisearchIndexingQueue.close();
+    logger.info('Meilisearch indexing queue closed');
+    
+    // Close payout bank details worker
+    await closePayoutBankDetailsWorker();
+    logger.info('Payout bank details worker closed');
+    
+    // Close payout bank details queue
+    await payoutBankDetailsQueue.close();
+    logger.info('Payout bank details queue closed');
+    
+    // Close payout stakeholder worker
+    await closePayoutStakeholderWorker();
+    logger.info('Payout stakeholder worker closed');
+    
+    // Close payout stakeholder queue
+    await payoutStakeholderQueue.close();
+    logger.info('Payout stakeholder queue closed');
+    
+    // Close payout transfer worker
+    await closePayoutTransferWorker();
+    logger.info('Payout transfer worker closed');
+    
+    // Close payout transfer queue
+    await payoutTransferQueue.close();
+    logger.info('Payout transfer queue closed');
+    
     // Close user cache Redis connection
     await closeUserCache();
     
@@ -57,6 +127,12 @@ const gracefulShutdown = async (signal: string) => {
     
     // Close rate limit Redis connection
     await closeRateLimit();
+    
+    // Close permission cache Redis connection
+    await closePermissionCache();
+    
+    // Close academy dashboard cache Redis connection
+    await closeAcademyDashboardCache();
     
     // Disconnect database
     await disconnectDatabase();

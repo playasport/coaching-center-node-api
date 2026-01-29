@@ -17,6 +17,14 @@ export const compressImage = async (
   mimetype: string
 ): Promise<Buffer> => {
   try {
+    // GIF files cannot be compressed with Sharp, return as-is
+    if (mimetype === 'image/gif') {
+      logger.info('GIF file detected, skipping compression (Sharp does not support GIF)', {
+        size: `${(buffer.length / 1024).toFixed(2)} KB`,
+      });
+      return buffer;
+    }
+
     // Check if it's an image type that sharp can process
     const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!supportedTypes.includes(mimetype)) {
@@ -186,6 +194,13 @@ export const compressImage = async (
  * Check if file is an image
  */
 export const isImage = (mimetype: string): boolean => {
+  return ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'].includes(mimetype);
+};
+
+/**
+ * Check if image can be compressed (Sharp supports JPEG, PNG, WebP but not GIF)
+ */
+export const canCompressImage = (mimetype: string): boolean => {
   return ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(mimetype);
 };
 

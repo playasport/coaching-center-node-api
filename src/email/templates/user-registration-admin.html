@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>New User Registration - Play A Sport</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background-color: #f5f7fa;
+        margin: 0;
+        padding: 0;
+        line-height: 1.6;
+      }
+      .email-wrapper {
+        width: 100%;
+        padding: 40px 20px;
+      }
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(10, 37, 64, 0.1);
+      }
+      .header {
+        background: linear-gradient(135deg, #0A2540 0%, #1F3C88 100%);
+        padding: 40px 30px;
+        text-align: center;
+      }
+      .logo-container {
+        margin-bottom: 20px;
+      }
+      .header-title {
+        color: #ffffff;
+        font-size: 24px;
+        font-weight: 600;
+        margin: 0;
+        letter-spacing: 0.5px;
+      }
+      .content {
+        padding: 40px 30px;
+        color: #333333;
+      }
+      .greeting {
+        font-size: 16px;
+        color: #333333;
+        margin-bottom: 20px;
+      }
+      .message {
+        font-size: 15px;
+        color: #555555;
+        margin-bottom: 30px;
+      }
+      .info-box {
+        background: linear-gradient(135deg, #F0F4FF 0%, #E8F0FF 100%);
+        border-left: 4px solid #0A2540;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 8px;
+      }
+      .info-box p {
+        margin: 10px 0;
+        font-size: 15px;
+        color: #333333;
+      }
+      .info-box strong {
+        color: #0A2540;
+        font-weight: 600;
+        min-width: 140px;
+        display: inline-block;
+      }
+      .status-section {
+        background-color: #E8F5E9;
+        border-left: 4px solid #4CAF50;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 8px;
+      }
+      .status-section h2 {
+        color: #0A2540;
+        font-size: 18px;
+        margin-top: 0;
+        margin-bottom: 15px;
+      }
+      .status-section p {
+        margin: 8px 0;
+        font-size: 14px;
+        color: #555555;
+      }
+      .footer {
+        background-color: #f8f9fa;
+        padding: 30px;
+        text-align: center;
+        border-top: 1px solid #e9ecef;
+      }
+      .footer-text {
+        font-size: 13px;
+        color: #666666;
+        margin: 5px 0;
+      }
+      .footer-link {
+        color: #0A2540;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .footer-link:hover {
+        color: #FF6B35;
+      }
+      .signature {
+        margin-top: 30px;
+        color: #333333;
+        font-size: 15px;
+      }
+      .signature strong {
+        color: #0A2540;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-wrapper">
+      <div class="email-container">
+        <div class="header">
+          <div class="logo-container">
+            <img src="https://front.playasport.in/images/logo-light1.png" alt="Play A Sport Logo" style="max-width: 180px; height: auto; margin-bottom: 10px;" />
+          </div>
+          <h1 class="header-title">New User Registration – Review Required</h1>
+        </div>
+        <div class="content">
+          <p class="greeting">Hello Admin,</p>
+          <p class="message">
+            A new user has been successfully registered on the <strong>Play A Sport</strong> platform. Please find the registration details below:
+          </p>
+
+          <div class="info-box">
+            <p><strong>User Name:</strong> {{name}}</p>
+            <p><strong>Email:</strong> {{email}}</p>
+            <p><strong>Mobile:</strong> {{mobile}}</p>
+            <p><strong>User Type:</strong> {{userType}}</p>
+            <p><strong>Gender:</strong> {{gender}}</p>
+            <p><strong>Registration Date:</strong> {{registrationDate}}</p>
+          </div>
+
+          <div class="status-section">
+            <h2>User Information</h2>
+            <p>
+              The user has completed the registration process and now has access to platform features based on their account type.
+            </p>
+            <p>
+              You can review this user and view additional details from the admin dashboard.
+            </p>
+          </div>
+
+          <div class="signature">
+            <p>Best regards,<br /><strong>Play A Sport</strong></p>
+          </div>
+        </div>
+        <div class="footer">
+          <p class="footer-text">
+            <a href="{{websiteUrl}}" class="footer-link">{{companyName}}</a> | <a href="{{websiteUrl}}" class="footer-link">{{website}}</a>
+          </p>
+          <p class="footer-text">© {{year}} {{companyName}}. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

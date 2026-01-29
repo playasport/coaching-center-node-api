@@ -1,0 +1,166 @@
+{
+  "profile": {
+    "retrieved": "Admin profile retrieved successfully",
+    "updated": "Admin profile updated successfully"
+  },
+  "users": {
+    "created": "User created successfully",
+    "retrieved": "Users retrieved successfully",
+    "updated": "User updated successfully",
+    "deleted": "User deleted successfully",
+    "notFound": "User not found",
+    "emailExists": "Email already exists",
+    "mobileExists": "Mobile number already exists",
+    "invalidRoles": "One or more roles are invalid",
+    "invalidRolesFormat": "Invalid roles format",
+    "createFailed": "User was created but could not be retrieved",
+    "onlySuperAdminCanUpdateEmail": "Only super admin can update email",
+    "onlySuperAdminCanUpdatePassword": "Only super admin can update password"
+  },
+  "permissions": {
+    "retrieved": "Permissions retrieved successfully",
+    "notFound": "Permission not found",
+    "created": "Permission created successfully",
+    "updated": "Permission updated successfully",
+    "deleted": "Permission deleted successfully",
+    "bulkUpdated": "Permissions updated successfully in bulk"
+  },
+  "sections": {
+    "retrieved": "Available sections retrieved successfully"
+  },
+  "actions": {
+    "retrieved": "Available actions retrieved successfully"
+  },
+  "coachingCenters": {
+    "retrieved": "Coaching centers retrieved successfully",
+    "updated": "Coaching center status updated successfully",
+    "deleted": "Coaching center deleted successfully",
+    "created": "Coaching center created successfully",
+    "notFound": "Coaching center not found",
+    "statsRetrieved": "Coaching center statistics retrieved successfully",
+    "bannerImageSet": "Banner image set successfully",
+    "videoThumbnailUploaded": "Video thumbnail uploaded successfully",
+    "exportedToExcel": "Coaching centers exported to Excel successfully",
+    "exportedToPDF": "Coaching centers exported to PDF successfully",
+    "exportedToCSV": "Coaching centers exported to CSV successfully",
+    "approved": "Academy approved successfully",
+    "rejected": "Academy rejected successfully",
+    "employeesRetrieved": "Employees retrieved successfully",
+    "isApprovedRequired": "isApproved must be a boolean value",
+    "sportIdAndImageUniqueIdRequired": "sportId and imageUniqueId are required",
+    "sportIdAndVideoUniqueIdRequired": "sportId and videoUniqueId are required",
+    "thumbnailFileRequired": "Thumbnail image file is required"
+  },
+  "dashboard": {
+    "statsRetrieved": "Dashboard statistics retrieved successfully"
+  },
+  "batches": {
+    "created": "Batch created successfully",
+    "retrieved": "Batch retrieved successfully",
+    "listRetrieved": "Batches retrieved successfully",
+    "updated": "Batch updated successfully",
+    "deleted": "Batch deleted successfully",
+    "statusToggled": "Batch status toggled successfully",
+    "notFound": "Batch not found",
+    "centerIdRequired": "Center ID is required"
+  },
+  "bookings": {
+    "retrieved": "Bookings retrieved successfully",
+    "notFound": "Booking not found",
+    "updated": "Booking updated successfully",
+    "deleted": "Booking deleted successfully",
+    "statusUpdated": "Booking status updated successfully"
+  },
+  "roles": {
+    "retrieved": "Roles retrieved successfully",
+    "created": "Role created successfully",
+    "updated": "Role updated successfully",
+    "deleted": "Role deleted successfully",
+    "notFound": "Role not found"
+  },
+  "sports": {
+    "retrieved": "Sports retrieved successfully",
+    "created": "Sport created successfully",
+    "updated": "Sport updated successfully",
+    "deleted": "Sport deleted successfully",
+    "notFound": "Sport not found"
+  },
+  "transactions": {
+    "retrieved": "Transactions retrieved successfully",
+    "notFound": "Transaction not found",
+    "detailsRetrieved": "Transaction details retrieved successfully"
+  },
+  "payments": {
+    "retrieved": "Payments retrieved successfully",
+    "notFound": "Payment not found",
+    "updated": "Payment updated successfully"
+  },
+  "banners": {
+    "retrieved": "Banners retrieved successfully",
+    "created": "Banner created successfully",
+    "updated": "Banner updated successfully",
+    "deleted": "Banner deleted successfully",
+    "notFound": "Banner not found",
+    "statusUpdated": "Banner status updated successfully"
+  },
+  "cmsPages": {
+    "retrieved": "CMS pages retrieved successfully",
+    "created": "CMS page created successfully",
+    "updated": "CMS page updated successfully",
+    "deleted": "CMS page deleted successfully",
+    "notFound": "CMS page not found"
+  },
+  "notifications": {
+    "sent": "Notification sent successfully",
+    "retrieved": "Notifications retrieved successfully",
+    "testSent": "Test notification sent successfully",
+    "notFound": "Notification not found"
+  },
+  "settings": {
+    "retrieved": "Settings retrieved successfully",
+    "updated": "Settings updated successfully",
+    "reset": "Settings reset successfully"
+  },
+  "highlights": {
+    "retrieved": "Highlights retrieved successfully",
+    "created": "Highlight created successfully",
+    "updated": "Highlight updated successfully",
+    "deleted": "Highlight deleted successfully",
+    "notFound": "Highlight not found"
+  },
+  "reels": {
+    "retrieved": "Reels retrieved successfully",
+    "created": "Reel created successfully",
+    "updated": "Reel updated successfully",
+    "deleted": "Reel deleted successfully",
+    "notFound": "Reel not found"
+  },
+  "facilities": {
+    "retrieved": "Facilities retrieved successfully",
+    "created": "Facility created successfully",
+    "updated": "Facility updated successfully",
+    "deleted": "Facility deleted successfully",
+    "notFound": "Facility not found"
+  },
+  "locations": {
+    "retrieved": "Locations retrieved successfully",
+    "created": "Location created successfully",
+    "updated": "Location updated successfully",
+    "deleted": "Location deleted successfully",
+    "notFound": "Location not found"
+  },
+  "employees": {
+    "retrieved": "Employees retrieved successfully",
+    "created": "Employee created successfully",
+    "updated": "Employee updated successfully",
+    "deleted": "Employee deleted successfully",
+    "notFound": "Employee not found"
+  },
+  "queues": {
+    "retrieved": "Queue jobs retrieved successfully",
+    "processed": "Queue job processed successfully",
+    "failed": "Queue job failed",
+    "notFound": "Queue job not found"
+  }
+}
+

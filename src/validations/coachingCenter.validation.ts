@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { validationMessages } from '../utils/validationMessages';
+import { Gender } from '../enums/gender.enum';
 
 // Mobile number and email validation will be done in superRefine
 
@@ -21,7 +22,7 @@ const ageRangeSchema = z.object({
 
 const centerAddressSchema = z.object({
   line1: z.string().max(255).optional().nullable(),
-  line2: z.string({ message: validationMessages.address.line2Required() }).min(1).max(255),
+  line2: z.string({ message: validationMessages.address.line2Required() }).min(1).max(100),
   city: z.string({ message: validationMessages.address.cityRequired() }).min(1).max(100),
   state: z.string({ message: validationMessages.address.stateRequired() }).min(1).max(100),
   country: z.string().max(100).optional().nullable(),
@@ -115,547 +116,126 @@ const facilityInputSchema = z.array(
   ])
 ).optional().nullable();
 
-const bankInformationSchema = z.object({
-  bank_name: z.string({ message: validationMessages.coachingCenter.bankInformation.bankNameRequired() }).min(1).max(100, validationMessages.coachingCenter.bankInformation.bankNameMaxLength()),
-  account_number: z
-    .string({ message: validationMessages.coachingCenter.bankInformation.accountNumberRequired() })
-    .min(9, validationMessages.coachingCenter.bankInformation.accountNumberMinLength())
-    .max(18, validationMessages.coachingCenter.bankInformation.accountNumberMaxLength())
-    .regex(/^\d+$/, validationMessages.coachingCenter.bankInformation.accountNumberDigits()),
-  ifsc_code: z
-    .string({ message: validationMessages.coachingCenter.bankInformation.ifscCodeRequired() })
-    .regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, validationMessages.coachingCenter.bankInformation.ifscCodeFormat()),
-  account_holder_name: z
-    .string({ message: validationMessages.coachingCenter.bankInformation.accountHolderNameRequired() })
-    .min(1)
-    .max(100, validationMessages.coachingCenter.bankInformation.accountHolderNameMaxLength()),
-  gst_number: z
-    .string()
-    .regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, validationMessages.coachingCenter.bankInformation.gstNumberFormat())
-    .optional()
-    .nullable(),
-});
 
-// Main schema with conditional validation based on status
-export const coachingCenterCreateSchema = z
-  .object({
-    body: z
-      .object({
-        center_name: z.string().max(255, validationMessages.coachingCenter.centerName.maxLength()).optional(),
-        mobile_number: z.string().optional(),
-        email: z.string().optional(),
-        rules_regulation: z.array(z.string().max(500, validationMessages.coachingCenter.rulesRegulation.maxLength())).optional().nullable(),
-        logo: z.string().url(validationMessages.coachingCenter.logo.invalidUrl()).optional(),
-        sports: z.array(z.string()).optional(),
-        sport_details: z.array(sportDetailSchema).optional(), // NEW: Sport-specific data
-        age: ageRangeSchema.optional(),
-        location: locationSchema.optional(),
-        facility: facilityInputSchema.optional().nullable(),
-        operational_timing: operationalTimingSchema.optional(),
-        documents: z.array(mediaItemSchema).optional().default([]), // General documents (not sport-specific)
-        bank_information: bankInformationSchema.optional(),
-        status: z.enum(['draft', 'published'], { message: validationMessages.coachingCenter.status.invalid() }).default('draft'),
-      })
-      .superRefine((data, ctx) => {
-        // If status is 'published', validate all required fields
-        if (data.status === 'published') {
-          // Center name required
-          if (!data.center_name || data.center_name.trim().length === 0) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.coachingCenter.centerName.required(),
-              path: ['center_name'],
-            });
-          }
 
-          // Mobile number required
-          if (!data.mobile_number) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.mobileNumber.required(),
-              path: ['mobile_number'],
-            });
-          } else if (data.mobile_number.length !== 10) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.mobileNumber.minLength(),
-              path: ['mobile_number'],
-            });
-          } else if (!/^[6-9]\d{9}$/.test(data.mobile_number)) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.mobileNumber.invalidPattern(),
-              path: ['mobile_number'],
-            });
-          }
+/**
+ * BASE SCHEMAS
+ */
+const coachingCenterBaseSchema = {
+  center_name: z.string().max(100, validationMessages.coachingCenter.centerName.maxLength()).optional(),
+  mobile_number: z.string().optional(),
+email: z.string().optional(),
+  rules_regulation: z.array(z.string().max(500, validationMessages.coachingCenter.rulesRegulation.maxLength())).optional().nullable(),
+  logo: z.string().url(validationMessages.coachingCenter.logo.invalidUrl()).optional(),
+  sports: z.array(z.string()).optional(),
+  sport_details: z.array(sportDetailSchema).optional(),
+  age: ageRangeSchema.optional(),
+  location: locationSchema.optional(),
+  facility: facilityInputSchema.optional().nullable(),
+  operational_timing: operationalTimingSchema.optional(),
+  documents: z.array(mediaItemSchema).optional().default([]),
+  status: z.enum(['draft', 'published'], { message: validationMessages.coachingCenter.status.invalid() }).default('draft'),
+  allowed_genders: z.array(z.nativeEnum(Gender)).min(1, 'At least one gender must be selected'),
+  allowed_disabled: z.boolean(),
+  is_only_for_disabled: z.boolean(),
+  experience: z.number().int().min(0),
+};
 
-          // Email required
-          if (!data.email) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.email.required(),
-              path: ['email'],
-            });
-          } else {
-            // Validate email format
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(data.email)) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: validationMessages.email.invalid(),
-                path: ['email'],
-              });
-            }
-          }
+const commonSuperRefine = (data: any, ctx: z.RefinementCtx) => {
+  if (data.status === 'published') {
+    if (!data.center_name?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: validationMessages.coachingCenter.centerName.required(), path: ['center_name'] });
+    }
+    if (!data.mobile_number) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: validationMessages.mobileNumber.required(), path: ['mobile_number'] });
+    } else if (data.mobile_number.length !== 10 || !/^[6-9]\d{9}$/.test(data.mobile_number)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: validationMessages.mobileNumber.invalidPattern(), path: ['mobile_number'] });
+    }
+    if (!data.email) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: validationMessages.email.required(), path: ['email'] });
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: validationMessages.email.invalid(), path: ['email'] });
+    }
+    if (!data.sport_details?.length) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: validationMessages.coachingCenter.sports.minOne(), path: ['sport_details'] });
+    }
+    if (!data.logo) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: validationMessages.coachingCenter.logo.required(), path: ['logo'] });
+    }
+    if (!data.sports?.length) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: validationMessages.coachingCenter.sports.minOne(), path: ['sports'] });
+    }
+    if (!data.age) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: validationMessages.coachingCenter.age.minRequired(), path: ['age'] });
+    }
+    if (!data.location?.latitude || !data.location?.longitude || !data.location?.address?.line2) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: validationMessages.coachingCenter.location.latitudeRequired(), path: ['location'] });
+    }
+    if (!data.operational_timing) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: validationMessages.coachingCenter.operationalTiming.openingTimeRequired(), path: ['operational_timing'] });
+    }
+  }
+};
 
-          // Sport details required (at least one sport with description)
-          if (!data.sport_details || data.sport_details.length === 0) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.coachingCenter.sports.minOne(),
-              path: ['sport_details'],
-            });
-          } else {
-            // Validate each sport detail
-            data.sport_details.forEach((sportDetail, index) => {
-              if (!sportDetail.sport_id || sportDetail.sport_id.trim().length === 0) {
-                ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: validationMessages.coachingCenter.sports.required(),
-                  path: ['sport_details', index, 'sport_id'],
-                });
-              }
-              if (!sportDetail.description || sportDetail.description.trim().length === 0) {
-                ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: validationMessages.coachingCenter.description.required(),
-                  path: ['sport_details', index, 'description'],
-                });
-              } else if (sportDetail.description.length < 5) {
-                ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: validationMessages.coachingCenter.description.minLength(),
-                  path: ['sport_details', index, 'description'],
-                });
-              }
-            });
-          }
-
-          // Logo required
-          if (!data.logo) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.coachingCenter.logo.required(),
-              path: ['logo'],
-            });
-          }
-
-          // Sports required
-          if (!data.sports || data.sports.length === 0) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.coachingCenter.sports.minOne(),
-              path: ['sports'],
-            });
-          }
-
-          // Age required
-          if (!data.age) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.coachingCenter.age.minRequired(),
-              path: ['age'],
-            });
-          }
-
-          // Location required
-          if (!data.location) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.coachingCenter.location.latitudeRequired(),
-              path: ['location'],
-            });
-          } else {
-            // Validate location fields if provided
-            if (data.location.latitude === undefined || data.location.latitude === null) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: validationMessages.coachingCenter.location.latitudeRequired(),
-                path: ['location', 'latitude'],
-              });
-            }
-            if (data.location.longitude === undefined || data.location.longitude === null) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: validationMessages.coachingCenter.location.longitudeRequired(),
-                path: ['location', 'longitude'],
-              });
-            }
-            if (!data.location.address) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: validationMessages.address.line2Required(),
-                path: ['location', 'address'],
-              });
-            } else {
-              if (!data.location.address.line2) {
-                ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: validationMessages.address.line2Required(),
-                  path: ['location', 'address', 'line2'],
-                });
-              }
-              if (!data.location.address.city) {
-                ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: validationMessages.address.cityRequired(),
-                  path: ['location', 'address', 'city'],
-                });
-              }
-              if (!data.location.address.state) {
-                ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: validationMessages.address.stateRequired(),
-                  path: ['location', 'address', 'state'],
-                });
-              }
-              if (!data.location.address.pincode) {
-                ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: validationMessages.address.pincodeRequired(),
-                  path: ['location', 'address', 'pincode'],
-                });
-              }
-            }
-          }
-
-          // Operational timing required
-          if (!data.operational_timing) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.coachingCenter.operationalTiming.openingTimeRequired(),
-              path: ['operational_timing'],
-            });
-          }
-
-          // Bank information required
-          if (!data.bank_information) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.coachingCenter.bankInformation.bankNameRequired(),
-              path: ['bank_information'],
-            });
-          }
-        }
-        // If status is 'draft', all fields are optional (no additional validation needed)
-        // But if fields are provided, they should still be validated for format
-        if (data.status === 'draft') {
-          // Validate mobile number format if provided
-          if (data.mobile_number && !/^[6-9]\d{9}$/.test(data.mobile_number)) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.mobileNumber.invalidPattern(),
-              path: ['mobile_number'],
-            });
-          }
-
-          // Validate email format if provided
-          if (data.email) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(data.email)) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: validationMessages.email.invalid(),
-                path: ['email'],
-              });
-            }
-          }
-
-          // Validate sport_details if provided
-          if (data.sport_details && data.sport_details.length > 0) {
-            data.sport_details.forEach((sportDetail, index) => {
-              if (sportDetail.description && sportDetail.description.length < 5) {
-                ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: validationMessages.coachingCenter.description.minLength(),
-                  path: ['sport_details', index, 'description'],
-                });
-              }
-            });
-          }
-        }
-      }),
-  });
-
-export type CoachingCenterCreateInput = z.infer<typeof coachingCenterCreateSchema>['body'];
-
-// Update schema - all fields optional, but if provided should be validated
-// If status is being set to 'published', all required fields must be present
-export const coachingCenterUpdateSchema = z.object({
+/**
+ * ACADEMY SCHEMAS (Has Bank Info)
+ */
+export const academyCoachingCenterCreateSchema = z.object({
   body: z
     .object({
-      center_name: z.string().max(255, validationMessages.coachingCenter.centerName.maxLength()).optional(),
-      mobile_number: z.string().optional(),
-      email: z.string().optional(),
-      rules_regulation: z.array(z.string().max(500, validationMessages.coachingCenter.rulesRegulation.maxLength())).optional().nullable(),
-      logo: z.string().url(validationMessages.coachingCenter.logo.invalidUrl()).optional().nullable(),
-      sports: z.array(z.string()).optional(),
-      sport_details: z.array(sportDetailSchema).optional(), // NEW: Sport-specific data
-      age: ageRangeSchema.optional(),
-      location: locationSchema.optional(),
-      facility: facilityInputSchema.optional().nullable(),
-      operational_timing: operationalTimingSchema.optional(),
-      documents: z.array(mediaItemSchema).optional().default([]), // General documents (not sport-specific)
-      bank_information: bankInformationSchema.optional(),
-      status: z.enum(['draft', 'published'], { message: validationMessages.coachingCenter.status.invalid() }).optional(),
+      ...coachingCenterBaseSchema,
     })
     .superRefine((data, ctx) => {
-      // At least one field should be provided for update
-      if (Object.keys(data).length === 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'At least one field is required for update',
-          path: [],
-        });
-        return;
-      }
+      commonSuperRefine(data, ctx);
+    }),
+});
 
-      // If status is being set to 'published', validate required fields
-      // Note: We can only validate fields provided in the update request
-      // Missing fields should be checked in the service layer against existing data
+export const academyCoachingCenterUpdateSchema = z.object({
+  body: z
+    .object({
+      ...coachingCenterBaseSchema,
+      status: z.enum(['draft', 'published']).optional(),
+    })
+    .superRefine((data, ctx) => {
       if (data.status === 'published') {
-        // Center name - required if provided
-        if (data.center_name !== undefined && (!data.center_name || data.center_name.trim().length === 0)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: validationMessages.coachingCenter.centerName.required(),
-            path: ['center_name'],
-          });
-        }
-
-        // Mobile number - validate format if provided
-        if (data.mobile_number !== undefined) {
-          if (!data.mobile_number) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.mobileNumber.required(),
-              path: ['mobile_number'],
-            });
-          } else if (data.mobile_number.length !== 10) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.mobileNumber.minLength(),
-              path: ['mobile_number'],
-            });
-          } else if (!/^[6-9]\d{9}$/.test(data.mobile_number)) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.mobileNumber.invalidPattern(),
-              path: ['mobile_number'],
-            });
-          }
-        }
-
-        // Email - validate format if provided
-        if (data.email !== undefined) {
-          if (!data.email) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.email.required(),
-              path: ['email'],
-            });
-          } else {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(data.email)) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: validationMessages.email.invalid(),
-                path: ['email'],
-              });
-            }
-          }
-        }
-
-        // Sport details - validate if provided
-        if (data.sport_details !== undefined) {
-          if (!data.sport_details || data.sport_details.length === 0) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.coachingCenter.sports.minOne(),
-              path: ['sport_details'],
-            });
-          } else {
-            data.sport_details.forEach((sportDetail, index) => {
-              if (!sportDetail.sport_id || sportDetail.sport_id.trim().length === 0) {
-                ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: validationMessages.coachingCenter.sports.required(),
-                  path: ['sport_details', index, 'sport_id'],
-                });
-              }
-              if (!sportDetail.description || sportDetail.description.trim().length === 0) {
-                ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: validationMessages.coachingCenter.description.required(),
-                  path: ['sport_details', index, 'description'],
-                });
-              } else if (sportDetail.description.length < 5) {
-                ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: validationMessages.coachingCenter.description.minLength(),
-                  path: ['sport_details', index, 'description'],
-                });
-              }
-            });
-          }
-        }
-
-        // Logo - required if provided
-        if (data.logo !== undefined && !data.logo) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: validationMessages.coachingCenter.logo.required(),
-            path: ['logo'],
-          });
-        }
-
-        // Sports - validate if provided
-        if (data.sports !== undefined && (!data.sports || data.sports.length === 0)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: validationMessages.coachingCenter.sports.minOne(),
-            path: ['sports'],
-          });
-        }
-
-        // Age - validate if provided
-        if (data.age !== undefined && !data.age) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: validationMessages.coachingCenter.age.minRequired(),
-            path: ['age'],
-          });
-        }
-
-        // Location - validate if provided
-        if (data.location !== undefined) {
-          if (!data.location) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.coachingCenter.location.latitudeRequired(),
-              path: ['location'],
-            });
-          } else {
-            if (data.location.latitude === undefined || data.location.latitude === null) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: validationMessages.coachingCenter.location.latitudeRequired(),
-                path: ['location', 'latitude'],
-              });
-            }
-            if (data.location.longitude === undefined || data.location.longitude === null) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: validationMessages.coachingCenter.location.longitudeRequired(),
-                path: ['location', 'longitude'],
-              });
-            }
-            if (!data.location.address) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: validationMessages.address.line2Required(),
-                path: ['location', 'address'],
-              });
-            } else {
-              if (!data.location.address.line2) {
-                ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: validationMessages.address.line2Required(),
-                  path: ['location', 'address', 'line2'],
-                });
-              }
-              if (!data.location.address.city) {
-                ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: validationMessages.address.cityRequired(),
-                  path: ['location', 'address', 'city'],
-                });
-              }
-              if (!data.location.address.state) {
-                ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: validationMessages.address.stateRequired(),
-                  path: ['location', 'address', 'state'],
-                });
-              }
-              if (!data.location.address.pincode) {
-                ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: validationMessages.address.pincodeRequired(),
-                  path: ['location', 'address', 'pincode'],
-                });
-              }
-            }
-          }
-        }
-
-        // Operational timing - validate if provided
-        if (data.operational_timing !== undefined && !data.operational_timing) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: validationMessages.coachingCenter.operationalTiming.openingTimeRequired(),
-            path: ['operational_timing'],
-          });
-        }
-
-        // Bank information - validate if provided
-        if (data.bank_information !== undefined && !data.bank_information) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: validationMessages.coachingCenter.bankInformation.bankNameRequired(),
-            path: ['bank_information'],
-          });
-        }
-      }
-
-      // If status is 'draft' or not being changed, validate format of provided fields
-      if (data.status === 'draft' || data.status === undefined) {
-        // Validate mobile number format if provided
-        if (data.mobile_number && !/^[6-9]\d{9}$/.test(data.mobile_number)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: validationMessages.mobileNumber.invalidPattern(),
-            path: ['mobile_number'],
-          });
-        }
-
-        // Validate email format if provided
-        if (data.email) {
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!emailRegex.test(data.email)) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: validationMessages.email.invalid(),
-              path: ['email'],
-            });
-          }
-        }
-
-        // Validate sport_details if provided
-        if (data.sport_details && data.sport_details.length > 0) {
-          data.sport_details.forEach((sportDetail, index) => {
-            if (sportDetail.description && sportDetail.description.length < 5) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: validationMessages.coachingCenter.description.minLength(),
-                path: ['sport_details', index, 'description'],
-              });
-            }
-          });
-        }
+        commonSuperRefine(data, ctx);
       }
     }),
 });
 
-export type CoachingCenterUpdateInput = z.infer<typeof coachingCenterUpdateSchema>['body'];
+/**
+ * ADMIN SCHEMAS (No Bank Info, Always Published, Minimal Validation)
+ */
+export const adminCoachingCenterCreateSchema = z.object({
+  body: z.object({
+    ...coachingCenterBaseSchema,
+    status: z.literal('published').default('published'),
+    owner_id: z.string().optional(),
+    academy_owner: z.object({
+      firstName: z.string({ message: 'First name is required' }).min(1),
+      lastName: z.string().optional(),
+      email: z.string({ message: 'Email is required' }).email('Invalid email address'),
+      mobile: z.string({ message: 'Mobile number is required' }).regex(/^[6-9]\d{9}$/, 'Invalid mobile number'),
+    }).optional(),
+  }).refine((data) => data.owner_id || data.academy_owner, {
+    message: 'Either owner_id or academy_owner must be provided',
+    path: ['owner_id'],
+  })
+});
 
+export const adminCoachingCenterUpdateSchema = z.object({
+  body: z.object({
+    ...coachingCenterBaseSchema,
+    status: z.literal('published').optional(),
+    userId: z.string().optional(),
+  })
+});
+
+// Legacy exports for backward compatibility (defaults to academy)
+export const coachingCenterCreateSchema = academyCoachingCenterCreateSchema;
+export const coachingCenterUpdateSchema = academyCoachingCenterUpdateSchema;
+
+export type CoachingCenterCreateInput = z.infer<typeof coachingCenterCreateSchema>['body'];
+export type CoachingCenterUpdateInput = z.infer<typeof coachingCenterUpdateSchema>['body'];
+export type AdminCoachingCenterCreateInput = z.infer<typeof adminCoachingCenterCreateSchema>['body'];
+export type AdminCoachingCenterUpdateInput = z.infer<typeof adminCoachingCenterUpdateSchema>['body'];

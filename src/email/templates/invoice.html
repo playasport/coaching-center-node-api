@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Invoice - {{invoiceNumber}}</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 0;
+      }
+      
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Arial', 'Helvetica', sans-serif;
+        font-size: 12px;
+        color: #333;
+        background-color: #ffffff;
+        padding: 40px;
+        line-height: 1.6;
+      }
+
+      .invoice-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: #fff;
+      }
+
+      /* Header */
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 40px;
+        padding-bottom: 20px;
+        border-bottom: 3px solid #0A2540;
+      }
+
+      .inpany-info {
+        flex: 1;
+      }
+
+      .inpany-logo {
+        max-width: 150px;
+        max-height: 60px;
+        margin-bottom: 15px;
+        object-fit: contain;
+      }
+
+      .inpany-info h1 {
+        color: #0A2540;
+        font-size: 32px;
+        margin-bottom: 10px;
+        font-weight: bold;
+      }
+
+      .inpany-info p {
+        color: #666;
+        font-size: 11px;
+        margin: 3px 0;
+      }
+
+      .invoice-details {
+        text-align: right;
+      }
+
+      .invoice-details h2 {
+        color: #0A2540;
+        font-size: 24px;
+        margin-bottom: 15px;
+        font-weight: bold;
+      }
+
+      .invoice-details .detail-row {
+        margin: 5px 0;
+        font-size: 11px;
+      }
+
+      .invoice-details .label {
+        font-weight: bold;
+        color: #666;
+        display: inline-block;
+        min-width: 80px;
+      }
+
+      /* Billing Section */
+      .billing-section {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+      }
+
+      .bill-to {
+        flex: 1;
+      }
+
+      .bill-to h3 {
+        color: #0A2540;
+        font-size: 14px;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        border-bottom: 2px solid #0A2540;
+        padding-bottom: 5px;
+      }
+
+      .bill-to p {
+        margin: 5px 0;
+        font-size: 11px;
+      }
+
+      /* Booking Details */
+      .booking-details {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 5px;
+        margin-bottom: 30px;
+        border-left: 4px solid #0A2540;
+      }
+
+      .booking-details h3 {
+        color: #0A2540;
+        font-size: 16px;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 15px;
+      }
+
+      .detail-item {
+        margin-bottom: 10px;
+      }
+
+      .detail-item .label {
+        font-weight: bold;
+        color: #666;
+        font-size: 10px;
+        text-transform: uppercase;
+        display: block;
+        margin-bottom: 3px;
+      }
+
+      .detail-item .value {
+        color: #333;
+        font-size: 11px;
+      }
+
+      /* Participants */
+      .participants-section {
+        margin-bottom: 30px;
+      }
+
+      .participants-section h3 {
+        color: #0A2540;
+        font-size: 14px;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        border-bottom: 2px solid #0A2540;
+        padding-bottom: 5px;
+      }
+
+      .participants-list {
+        list-style: none;
+        padding-left: 0;
+      }
+
+      .participants-list li {
+        padding: 8px 0;
+        border-bottom: 1px solid #e0e0e0;
+        font-size: 11px;
+      }
+
+      .participants-list li:last-child {
+        border-bottom: none;
+      }
+
+      /* Payment Table */
+      .payment-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      .payment-table thead {
+        background-color: #0A2540;
+        color: #fff;
+      }
+
+      .payment-table th {
+        padding: 8px 10px;
+        text-align: left;
+        font-size: 11px;
+        text-transform: uppercase;
+        font-weight: bold;
+      }
+
+      .payment-table td {
+        padding: 6px 10px;
+        border-bottom: 1px solid #e0e0e0;
+        font-size: 11px;
+      }
+
+      .payment-table tbody tr:last-child td {
+        border-bottom: 2px solid #0A2540;
+      }
+
+      .payment-table .text-right {
+        text-align: right;
+      }
+
+      .payment-table .text-bold {
+        font-weight: bold;
+      }
+
+      /* Payment Info */
+      .payment-info {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+      }
+
+      .payment-info h3 {
+        color: #0A2540;
+        font-size: 14px;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+      }
+
+      .payment-info p {
+        margin: 5px 0;
+        font-size: 11px;
+      }
+
+      .payment-info .status {
+        display: inline-block;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 10px;
+        text-transform: uppercase;
+        margin-top: 5px;
+      }
+
+      .payment-info .status.success {
+        background-color: #28a745;
+        color: #fff;
+      }
+
+      .payment-info .status.pending {
+        background-color: #ffc107;
+        color: #333;
+      }
+
+      /* Total Section */
+      .total-section {
+        text-align: right;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 2px solid #0A2540;
+      }
+
+      .total-row {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .total-label {
+        font-size: 14px;
+        font-weight: bold;
+        color: #333;
+        margin-right: 20px;
+        min-width: 150px;
+        text-align: right;
+      }
+
+      .total-amount {
+        font-size: 20px;
+        font-weight: bold;
+        color: #0A2540;
+        min-width: 120px;
+        text-align: right;
+      }
+
+      /* Footer */
+      .footer {
+        margin-top: 50px;
+        padding-top: 20px;
+        border-top: 1px solid #e0e0e0;
+        text-align: center;
+        color: #999;
+        font-size: 10px;
+      }
+
+      .footer p {
+        margin: 5px 0;
+      }
+
+      /* Print Styles */
+      @media print {
+        body {
+          padding: 20px;
+        }
+        
+        .invoice-container {
+          max-width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="invoice-container">
+      <!-- Header -->
+      <div class="header">
+        <div class="inpany-info">
+          {{logoImage}}
+          <h1>Play A Sport</h1>
+          <p>Coaching Center Platform</p>
+          <p>Email: support@playasport.in</p>
+          <p>Website: https://www.playasport.in</p>
+        </div>
+        <div class="invoice-details">
+          <h2>INVOICE</h2>
+          <div class="detail-row">
+            <span class="label">Invoice #:</span>
+            <span>{{invoiceNumber}}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Invoice Date:</span>
+            <span>{{invoiceDate}}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Billing Section -->
+      <div class="billing-section">
+        <div class="bill-to">
+          <h3>Bill To:</h3>
+          <p><strong>{{userName}}</strong></p>
+          <p>Email: {{userEmail}}</p>
+          <p>Mobile: {{userMobile}}</p>
+          <p>Address: {{userAddress}}</p>
+        </div>
+      </div>
+
+      <!-- Booking Details -->
+      <div class="booking-details">
+        <h3>Booking Details</h3>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="label">Sport</span>
+            <span class="value">{{sportName}}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Coaching Center</span>
+            <span class="value">{{centerName}}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Batch Name</span>
+            <span class="value">{{batchName}}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Start Date</span>
+            <span class="value">{{startDate}}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Time</span>
+            <span class="value">{{timeSlot}}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Training Days</span>
+            <span class="value">{{trainingDays}}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Duration</span>
+            <span class="value">{{duration}}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Participants -->
+      <div class="participants-section">
+        <h3>Participants</h3>
+        <ul class="participants-list">
+          {{participantsList}}
+        </ul>
+      </div>
+
+      <!-- Payment Details Table -->
+      <table class="payment-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th class="text-right">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Batch Amount</td>
+            <td class="text-right">{{batchAmount}}</td>
+          </tr>
+          <tr>
+            <td>Platform Fee</td>
+            <td class="text-right">{{platformFee}}</td>
+          </tr>
+          <tr>
+            <td>Subtotal</td>
+            <td class="text-right">{{subtotal}}</td>
+          </tr>
+          <tr>
+            <td>GST ({{gstPercentage}}%)</td>
+            <td class="text-right">{{gstAmount}}</td>
+          </tr>
+          <tr class="text-bold">
+            <td><strong>Total Amount Paid</strong></td>
+            <td class="text-right"><strong>{{totalAmount}}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Payment Info -->
+      <div class="payment-info">
+        <h3>Payment Information</h3>
+        <p>
+          <strong>Payment Status:</strong>
+          <span class="status {{paymentStatusClass}}">{{paymentStatus}}</span>
+        </p>
+        <p><strong>Payment Method:</strong> {{paymentMethod}}</p>
+        <p><strong>Order ID:</strong> {{orderId}}</p>
+        <p><strong>Paid On:</strong> {{paidAt}}</p>
+      </div>
+
+      <!-- Total Section -->
+      <div class="total-section">
+        <div class="total-row">
+          <span class="total-label">Total Amount:</span>
+          <span class="total-amount">{{totalAmount}}</span>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <p>This is a system-generated invoice</p>
+        <p>No signature required</p>
+        <p>All payments are subject to Play A Sport’s refund and cancellation policy</p>
+        <p>&copy; {{year}} Play A Sport. All rights reserved.</p>
+      </div>
+    </div>
+  </body>
+</html>

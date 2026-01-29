@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academy Payout Account API Tester - PlayAsport</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .config-section {
+            padding: 25px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .config-section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .api-section {
+            padding: 25px;
+        }
+
+        .api-section h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .endpoint-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+
+        .endpoint-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .method-badge {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .method-get {
+            background: #28a745;
+            color: white;
+        }
+
+        .method-post {
+            background: #007bff;
+            color: white;
+        }
+
+        .method-put {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .endpoint-path {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-row.full {
+            grid-template-columns: 1fr;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .response-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #1e1e1e;
+            border-radius: 6px;
+            color: #d4d4d4;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .response-section.success {
+            border-left: 4px solid #28a745;
+        }
+
+        .response-section.error {
+            border-left: 4px solid #dc3545;
+        }
+
+        .response-section pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .collapsible {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .collapsible:hover {
+            opacity: 0.8;
+        }
+
+        .collapsible-content {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .collapsible-content.active {
+            display: block;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .required {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Academy Payout Account API Tester</h1>
+            <p>Test Razorpay Route Linked Account APIs for Academy Payouts</p>
+        </div>
+
+        <div class="config-section">
+            <h2>⚙️ Configuration</h2>
+            <div class="form-group">
+                <label for="baseUrl">Base URL <span class="required">*</span></label>
+                <input type="text" id="baseUrl" placeholder="http://localhost:3000/api/v1" value="http://localhost:3000/api/v1">
+            </div>
+            <div class="form-group">
+                <label for="token">Access Token <span class="required">*</span></label>
+                <input type="text" id="token" placeholder="Bearer token from academy login" value="">
+                <div class="info-text">Get token from: POST /academy/auth/login</div>
+            </div>
+        </div>
+
+        <div class="api-section">
+            <h2>📡 API Endpoints</h2>
+
+            <!-- Get Payout Account -->
+            <div class="endpoint-card">
+                <div class="endpoint-header">
+                    <span class="method-badge method-get">GET</span>
+                    <span class="endpoint-path">/academy/payout-account</span>
+                </div>
+                <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Get payout account details for the authenticated academy user.</p>
+                <button class="btn btn-primary" onclick="getPayoutAccount()">Test Get Account</button>
+                <div id="response-get" class="response-section" style="display: none;"></div>
+            </div>
+
+            <!-- Create Payout Account -->
+            <div class="endpoint-card">
+                <div class="endpoint-header">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="endpoint-path">/academy/payout-account</span>
+                </div>
+                <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Create a new payout account (Linked Account) in Razorpay Route.</p>
+                <p style="margin-bottom: 15px; color: #e67e22; font-size: 13px; background: #fff3e0; padding: 10px; border-radius: 5px; border-left: 3px solid #e67e22;">
+                    <strong>Note:</strong> <code>pan</code> is now <strong>mandatory</strong> for all business types (including <code>individual</code>). <code>gst</code> is optional for all business types. PAN is required for stakeholder creation which is necessary for account activation.
+                </p>
+                <div class="form-row full">
+                    <div class="form-group">
+                        <label>Request Body (JSON)</label>
+                        <textarea id="createBody" placeholder='{
+  "kyc_details": {
+    "legal_business_name": "Elite Sports Academy",
+    "business_type": "partnership",
+    "contact_name": "John Doe",
+    "email": "contact@elitesportsacademy.com",
+    "phone": "9876543210",
+    "pan": "ABCDE1234F",
+    "gst": "29ABCDE1234F1Z5",
+    "address": {
+      "street1": "123 MG Road",
+      "street2": "Near Metro Station",
+      "city": "Bengaluru",
+      "state": "KARNATAKA",
+      "postal_code": "560001",
+      "country": "IN"
+    }
+  },
+  "bank_information": {
+    "account_number": "1234567890123456",
+    "ifsc_code": "SBIN0001234",
+    "account_holder_name": "Elite Sports Academy",
+    "bank_name": "State Bank of India"
+  },
+  "stakeholder": {
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "9876543210",
+    "relationship": "director",
+    "kyc": {
+      "pan": "ABCDE1234F",
+      "aadhaar": "123456789012"
+    }
+  }
+}'>{
+  "kyc_details": {
+    "legal_business_name": "Indal Kumar Singh",
+    "business_type": "individual",
+    "contact_name": "Indal Kumar Singh",
+    "email": "indalkumarsingh@playasport.in",
+    "phone": "9546576177",
+    "pan": "OHXPS8345Q",
+    "address": {
+      "street1": "BD-357, sector-1, saltlake city",
+      "street2": "Kolkata, West Bengal, India, 700064",
+      "city": "Kolkata",
+      "state": "West Bengal",
+      "postal_code": "700064",
+      "country": "IN"
+    }
+  },
+  "bank_information": {
+    "account_number": "30058100006235",
+    "ifsc_code": "BARB0GAMHAR",
+    "account_holder_name": "Indal Kumar Singh",
+    "bank_name": "Bank of Baroda"
+  }
+}</textarea>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="createPayoutAccount()">Test Create Account</button>
+                <div id="response-create" class="response-section" style="display: none;"></div>
+            </div>
+
+            <!-- Update Bank Details -->
+            <div class="endpoint-card">
+                <div class="endpoint-header">
+                    <span class="method-badge method-put">PUT</span>
+                    <span class="endpoint-path">/academy/payout-account/bank-details</span>
+                </div>
+                <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Update bank account details for the payout account.</p>
+                <div class="form-row full">
+                    <div class="form-group">
+                        <label>Request Body (JSON)</label>
+                        <textarea id="updateBankBody" placeholder='{
+  "account_number": "1234567890123456",
+  "ifsc_code": "SBIN0001234",
+  "account_holder_name": "Elite Sports Academy",
+  "bank_name": "State Bank of India"
+}'>{
+  "account_number": "1234567890123456",
+  "ifsc_code": "SBIN0001234",
+  "account_holder_name": "Elite Sports Academy",
+  "bank_name": "State Bank of India"
+}</textarea>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="updateBankDetails()">Test Update Bank Details</button>
+                <div id="response-update" class="response-section" style="display: none;"></div>
+            </div>
+
+            <!-- Sync Account Status -->
+            <div class="endpoint-card">
+                <div class="endpoint-header">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="endpoint-path">/academy/payout-account/sync-status</span>
+                </div>
+                <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Manually sync the payout account status from Razorpay.</p>
+                <button class="btn btn-primary" onclick="syncAccountStatus()">Test Sync Status</button>
+                <div id="response-sync" class="response-section" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getBaseUrl() {
+            return document.getElementById('baseUrl').value.trim();
+        }
+
+        function getToken() {
+            return document.getElementById('token').value.trim();
+        }
+
+        function validateConfig() {
+            const baseUrl = getBaseUrl();
+            const token = getToken();
+            
+            if (!baseUrl) {
+                alert('Please enter Base URL');
+                return false;
+            }
+            
+            if (!token) {
+                alert('Please enter Access Token');
+                return false;
+            }
+            
+            return true;
+        }
+
+        function showResponse(elementId, data, isError = false) {
+            const responseDiv = document.getElementById(elementId);
+            responseDiv.style.display = 'block';
+            responseDiv.className = `response-section ${isError ? 'error' : 'success'}`;
+            
+            const pre = document.createElement('pre');
+            pre.textContent = JSON.stringify(data, null, 2);
+            responseDiv.innerHTML = '';
+            responseDiv.appendChild(pre);
+        }
+
+        function hideResponse(elementId) {
+            const responseDiv = document.getElementById(elementId);
+            responseDiv.style.display = 'none';
+        }
+
+        async function makeRequest(method, endpoint, body = null, responseElementId) {
+            if (!validateConfig()) {
+                return;
+            }
+
+            const baseUrl = getBaseUrl();
+            const token = getToken();
+            const url = `${baseUrl}${endpoint}`;
+
+            hideResponse(responseElementId);
+            const button = event.target;
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.innerHTML = '<span class="loading"></span>Loading...';
+
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                };
+
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+
+                const response = await fetch(url, options);
+                const data = await response.json();
+
+                showResponse(responseElementId, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: Object.fromEntries(response.headers.entries()),
+                    data: data
+                }, !response.ok);
+
+            } catch (error) {
+                showResponse(responseElementId, {
+                    error: error.message,
+                    stack: error.stack
+                }, true);
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        }
+
+        async function getPayoutAccount() {
+            await makeRequest('GET', '/academy/payout-account', null, 'response-get');
+        }
+
+        async function createPayoutAccount() {
+            const bodyText = document.getElementById('createBody').value.trim();
+            
+            if (!bodyText) {
+                alert('Please enter request body');
+                return;
+            }
+
+            try {
+                const body = JSON.parse(bodyText);
+                await makeRequest('POST', '/academy/payout-account', body, 'response-create');
+            } catch (error) {
+                alert('Invalid JSON in request body: ' + error.message);
+            }
+        }
+
+        async function updateBankDetails() {
+            const bodyText = document.getElementById('updateBankBody').value.trim();
+            
+            if (!bodyText) {
+                alert('Please enter request body');
+                return;
+            }
+
+            try {
+                const body = JSON.parse(bodyText);
+                await makeRequest('PUT', '/academy/payout-account/bank-details', body, 'response-update');
+            } catch (error) {
+                alert('Invalid JSON in request body: ' + error.message);
+            }
+        }
+
+        async function syncAccountStatus() {
+            await makeRequest('POST', '/academy/payout-account/sync-status', null, 'response-sync');
+        }
+
+        // Load saved config from localStorage
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedBaseUrl = localStorage.getItem('payoutTestBaseUrl');
+            const savedToken = localStorage.getItem('payoutTestToken');
+            
+            if (savedBaseUrl) {
+                document.getElementById('baseUrl').value = savedBaseUrl;
+            }
+            if (savedToken) {
+                document.getElementById('token').value = savedToken;
+            }
+        });
+
+        // Save config to localStorage on change
+        document.getElementById('baseUrl').addEventListener('change', (e) => {
+            localStorage.setItem('payoutTestBaseUrl', e.target.value);
+        });
+
+        document.getElementById('token').addEventListener('change', (e) => {
+            localStorage.setItem('payoutTestToken', e.target.value);
+        });
+    </script>
+</body>
+</html>

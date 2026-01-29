@@ -13,7 +13,7 @@ const router = Router();
  *   post:
  *     summary: Create a new batch
  *     tags: [Batch]
- *     description: Create a new batch. Requires authentication.
+ *     description: Create a new batch. Fee configurations have been removed - use base_price and discounted_price instead. Requires authentication.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -26,100 +26,163 @@ const router = Router();
  *               - name
  *               - sportId
  *               - centerId
+ *               - gender
+ *               - certificate_issued
  *               - scheduled
  *               - duration
  *               - capacity
  *               - age
- *               - fee_structure
+ *               - base_price
  *             properties:
  *               name:
  *                 type: string
+ *                 maxLength: 50
  *                 example: "Morning Batch"
+ *               description:
+ *                 type: string
+ *                 maxLength: 1000
+ *                 nullable: true
+ *                 example: "Early morning training session"
  *               sportId:
  *                 type: string
- *                 description: Sport ObjectId
+ *                 description: Sport ObjectId (must be available for selected center)
  *               centerId:
  *                 type: string
  *                 description: Coaching Center ObjectId
  *               coach:
  *                 type: string
+ *                 nullable: true
  *                 description: Employee ObjectId (optional)
+ *               gender:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   enum: [male, female, others]
+ *                 minItems: 1
+ *                 example: ["male", "female"]
+ *               certificate_issued:
+ *                 type: boolean
+ *                 example: true
  *               scheduled:
  *                 type: object
+ *                 required:
+ *                   - start_date
+ *                   - training_days
  *                 properties:
  *                   start_date:
  *                     type: string
  *                     format: date
+ *                     example: "2024-04-01"
+ *                   end_date:
+ *                     type: string
+ *                     format: date
+ *                     nullable: true
+ *                     example: "2024-06-30"
  *                   start_time:
  *                     type: string
+ *                     pattern: "^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
+ *                     nullable: true
  *                     example: "09:00"
  *                   end_time:
  *                     type: string
+ *                     pattern: "^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
+ *                     nullable: true
  *                     example: "11:00"
+ *                   individual_timings:
+ *                     type: array
+ *                     nullable: true
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         day:
+ *                           type: string
+ *                           enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+ *                         start_time:
+ *                           type: string
+ *                           pattern: "^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
+ *                         end_time:
+ *                           type: string
+ *                           pattern: "^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
  *                   training_days:
  *                     type: array
  *                     items:
  *                       type: string
  *                       enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+ *                     minItems: 1
+ *                     example: ["monday", "wednesday", "friday"]
  *               duration:
  *                 type: object
+ *                 required:
+ *                   - count
+ *                   - type
  *                 properties:
  *                   count:
  *                     type: number
+ *                     minimum: 1
+ *                     maximum: 1000
  *                     example: 3
  *                   type:
  *                     type: string
  *                     enum: [day, month, week, year]
+ *                     example: "month"
  *               capacity:
  *                 type: object
+ *                 required:
+ *                   - min
  *                 properties:
  *                   min:
  *                     type: number
+ *                     minimum: 1
+ *                     maximum: 1000
  *                     example: 10
  *                   max:
  *                     type: number
+ *                     minimum: 1
+ *                     maximum: 1000
+ *                     nullable: true
  *                     example: 30
  *               age:
  *                 type: object
+ *                 required:
+ *                   - min
+ *                   - max
  *                 properties:
  *                   min:
  *                     type: number
- *                     example: 8
  *                     minimum: 3
  *                     maximum: 18
+ *                     example: 8
  *                   max:
  *                     type: number
- *                     example: 12
  *                     minimum: 3
  *                     maximum: 18
+ *                     example: 12
  *               admission_fee:
  *                 type: number
+ *                 minimum: 0
+ *                 maximum: 10000000
+ *                 nullable: true
+ *                 example: 500
+ *               base_price:
+ *                 type: number
+ *                 minimum: 0
+ *                 maximum: 10000000
  *                 example: 5000
- *               fee_structure:
- *                 type: object
- *                 required:
- *                   - fee_type
- *                   - fee_configuration
- *                 properties:
- *                   fee_type:
- *                     type: string
- *                     enum: [monthly, daily, weekly, hourly, per_batch, per_session, age_based, coach_license_based, player_level_based, seasonal, package_based, group_discount, advance_booking, weekend_pricing, peak_hours, membership_based, custom]
- *                     example: "monthly"
- *                     description: Fee type (see /academy/fee-type-config endpoint for available types)
- *                   fee_configuration:
- *                     type: object
- *                     additionalProperties: true
- *                     description: Dynamic configuration object based on fee_type (see /academy/fee-type-config/:feeType endpoint for form structure)
- *                     example:
- *                       base_price: 2000
- *                       classes_per_week_options:
- *                         - days_per_week: 2
- *                           price: 1500
- *                         - days_per_week: 3
- *                           price: 2000
+ *               discounted_price:
+ *                 type: number
+ *                 minimum: 0
+ *                 maximum: 10000000
+ *                 nullable: true
+ *                 description: Must be <= base_price
+ *                 example: 4500
+ *               is_allowed_disabled:
+ *                 type: boolean
+ *                 default: false
+ *                 description: Whether disabled participants are allowed in this batch
+ *                 example: false
  *               status:
  *                 type: string
- *                 enum: [published, draft, inactive]
+ *                 enum: [published, draft]
  *                 default: draft
  *     responses:
  *       201:
@@ -293,7 +356,7 @@ router.get('/:id', authenticate, authorize(DefaultRoles.ACADEMY), batchControlle
  *   patch:
  *     summary: Update batch details
  *     tags: [Batch]
- *     description: Update batch details. All fields are optional. Requires authentication.
+ *     description: Update batch details. All fields are optional. **Important:** If batch is active (is_active = true), details cannot be updated. You must first set is_active to false, then update other details. **Status restriction:** If current status is "published", it cannot be changed to "draft". Fee configurations have been removed - use base_price and discounted_price instead. Requires authentication.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -312,30 +375,124 @@ router.get('/:id', authenticate, authorize(DefaultRoles.ACADEMY), batchControlle
  *             properties:
  *               name:
  *                 type: string
+ *                 maxLength: 50
+ *               description:
+ *                 type: string
+ *                 maxLength: 1000
+ *                 nullable: true
  *               sportId:
  *                 type: string
  *               centerId:
  *                 type: string
  *               coach:
  *                 type: string
+ *                 nullable: true
+ *               gender:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   enum: [male, female, others]
+ *                 minItems: 1
+ *               certificate_issued:
+ *                 type: boolean
  *               scheduled:
  *                 type: object
+ *                 properties:
+ *                   start_date:
+ *                     type: string
+ *                     format: date
+ *                   end_date:
+ *                     type: string
+ *                     format: date
+ *                     nullable: true
+ *                   start_time:
+ *                     type: string
+ *                     pattern: "^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
+ *                     nullable: true
+ *                   end_time:
+ *                     type: string
+ *                     pattern: "^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
+ *                     nullable: true
+ *                   individual_timings:
+ *                     type: array
+ *                     nullable: true
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         day:
+ *                           type: string
+ *                           enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+ *                         start_time:
+ *                           type: string
+ *                           pattern: "^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
+ *                         end_time:
+ *                           type: string
+ *                           pattern: "^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
+ *                   training_days:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
  *               duration:
  *                 type: object
+ *                 properties:
+ *                   count:
+ *                     type: number
+ *                     minimum: 1
+ *                     maximum: 1000
+ *                   type:
+ *                     type: string
+ *                     enum: [day, month, week, year]
  *               capacity:
  *                 type: object
+ *                 properties:
+ *                   min:
+ *                     type: number
+ *                     minimum: 1
+ *                     maximum: 1000
+ *                   max:
+ *                     type: number
+ *                     minimum: 1
+ *                     maximum: 1000
+ *                     nullable: true
  *               age:
  *                 type: object
+ *                 properties:
+ *                   min:
+ *                     type: number
+ *                     minimum: 3
+ *                     maximum: 18
+ *                   max:
+ *                     type: number
+ *                     minimum: 3
+ *                     maximum: 18
  *               admission_fee:
  *                 type: number
+ *                 minimum: 0
+ *                 maximum: 10000000
+ *                 nullable: true
+ *               base_price:
+ *                 type: number
+ *                 minimum: 0
+ *                 maximum: 10000000
+ *               discounted_price:
+ *                 type: number
+ *                 minimum: 0
+ *                 maximum: 10000000
+ *                 nullable: true
+ *                 description: Must be <= base_price
  *               status:
  *                 type: string
- *                 enum: [published, draft, inactive]
+ *                 enum: [published, draft]
+ *                 description: Cannot change from "published" to "draft"
+ *               is_active:
+ *                 type: boolean
+ *                 description: If true, batch details cannot be updated. Must set to false first before updating other fields.
  *     responses:
  *       200:
  *         description: Batch updated successfully
  *       400:
- *         description: Validation error or invalid data
+ *         description: "Validation error or invalid data. Possible errors: \"Cannot update batch details while batch is active\", \"Cannot change status from 'published' to 'draft'\""
  *       401:
  *         description: Unauthorized - Authentication required
  *       403:

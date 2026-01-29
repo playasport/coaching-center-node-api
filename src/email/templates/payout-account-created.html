@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payout Account Created - Play A Sport</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background-color: #f5f7fa;
+        margin: 0;
+        padding: 0;
+        line-height: 1.6;
+      }
+      .email-wrapper {
+        width: 100%;
+        padding: 40px 20px;
+      }
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(10, 37, 64, 0.1);
+      }
+      .header {
+        background: linear-gradient(135deg, #0A2540 0%, #1F3C88 100%);
+        padding: 40px 30px;
+        text-align: center;
+      }
+      .header-title {
+        color: #ffffff;
+        font-size: 28px;
+        font-weight: 600;
+        margin: 0;
+        letter-spacing: 0.5px;
+      }
+      .content {
+        padding: 40px 30px;
+        color: #333333;
+      }
+      .greeting {
+        font-size: 16px;
+        color: #333333;
+        margin-bottom: 20px;
+      }
+      .message {
+        font-size: 15px;
+        color: #555555;
+        margin-bottom: 30px;
+      }
+      .account-details {
+        background: linear-gradient(135deg, #F0F4FF 0%, #E8F0FF 100%);
+        border: 1px solid #0A2540;
+        border-radius: 8px;
+        padding: 25px;
+        margin: 25px 0;
+      }
+      .account-details h3 {
+        color: #0A2540;
+        font-size: 20px;
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-weight: 600;
+      }
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      .detail-row:last-child {
+        border-bottom: none;
+      }
+      .detail-label {
+        font-weight: 600;
+        color: #0A2540;
+        min-width: 140px;
+      }
+      .detail-value {
+        color: #333333;
+        text-align: right;
+        flex: 1;
+      }
+      .status-box {
+        background: linear-gradient(135deg, #FFA500 0%, #FF8C42 100%);
+        color: #ffffff;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 8px;
+        text-align: center;
+      }
+      .status-label {
+        font-size: 14px;
+        opacity: 0.95;
+        margin-bottom: 8px;
+      }
+      .status-value {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 10px 0;
+        text-transform: capitalize;
+      }
+      .info-box {
+        background-color: #FFF9E6;
+        border-left: 4px solid #FF6B35;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 8px;
+      }
+      .info-box h4 {
+        color: #0A2540;
+        font-size: 16px;
+        margin-top: 0;
+        margin-bottom: 12px;
+      }
+      .info-box p {
+        margin: 8px 0;
+        font-size: 14px;
+        color: #555555;
+      }
+      .footer {
+        background-color: #f8f9fa;
+        padding: 30px;
+        text-align: center;
+        border-top: 1px solid #e9ecef;
+      }
+      .footer-text {
+        font-size: 13px;
+        color: #666666;
+        margin: 5px 0;
+      }
+      .footer-link {
+        color: #0A2540;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .signature {
+        margin-top: 30px;
+        color: #333333;
+        font-size: 15px;
+      }
+      .signature strong {
+        color: #0A2540;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-wrapper">
+      <div class="email-container">
+        <div class="header">
+          <h1 class="header-title">Your Payout Account Has Been Created</h1>
+        </div>
+        <div class="content">
+          <p class="greeting">Dear {{userName}},</p>
+          <p class="message">
+            Your payout account has been successfully created on <strong>Play A Sport</strong>.
+            <br>
+            We’re currently reviewing your account details and will notify you once the account is activated.
+          </p>
+
+          <div class="account-details">
+            <h3><strong>Account Details</strong></h3>
+            <div class="detail-row">
+              <span class="detail-label">Account ID:</span>
+              <span class="detail-value">{{accountId}}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Current Status:</span>
+              <span class="detail-value">{{status}}</span>
+            </div>
+          </div>
+
+          <div class="status-box">
+            <div class="status-label">Current Status</div>
+            <div class="status-value">{{status}}</div>
+          </div>
+
+          <div class="info-box">
+            <h4>What's Next?</h4>
+            <p>Your payout account is under review by our team</p>
+            <p>This process usually takes 3–4 business days</p>
+            <p>Once verified, you’ll receive a confirmation email and can start receiving payouts</p>
+            <p>If you have any questions or need assistance during this process, feel free to contact us at <a href="mailto:support@playasport.in" style="color: #FF6B35; text-decoration: none;">support@playasport.in</a>.</p>
+          </div>
+
+          <p class="message">Thank you for choosing <strong>Play A Sport</strong>. We appreciate your patience!</p>
+          <div class="signature">
+            <p>Best regards,<br /><strong>Play A Sport</strong></p>
+          </div>
+        </div>
+        <div class="footer">
+          <p class="footer-text">
+            <a href="{{websiteUrl}}" class="footer-link">{{companyName}}</a> | <a href="{{websiteUrl}}" class="footer-link">{{website}}</a>
+          </p>
+          <p class="footer-text">© {{year}} {{companyName}}. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

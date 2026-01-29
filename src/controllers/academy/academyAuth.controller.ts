@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { t } from '../../utils/i18n';
 import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
-import * as academyAuthService from '../../services/auth.service';
+import * as academyAuthService from '../../services/client/auth.service';
 import type {
   AcademyRegisterInput,
   AcademyLoginInput,
@@ -250,9 +250,14 @@ export const verifyAcademyOtp = async (
       mobile: string;
       otp: string;
       mode?: 'login' | 'register' | 'profile_update' | 'forgot_password';
+      fcmToken?: string;
+      deviceType?: 'web' | 'android' | 'ios';
+      deviceId?: string;
+      deviceName?: string;
+      appVersion?: string;
     };
 
-    const result = await academyAuthService.verifyAcademyOtp({ mobile, otp, mode });
+    const result = await academyAuthService.verifyAcademyOtp({ mobile, otp, mode, ...req.body });
 
     if (result.user && result.accessToken && result.refreshToken) {
       // Login mode - return tokens

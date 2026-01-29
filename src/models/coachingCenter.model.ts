@@ -2,6 +2,7 @@ import { Schema, model, HydratedDocument, Types } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 import { CoachingCenterStatus } from '../enums/coachingCenterStatus.enum';
 import { OperatingDays } from '../enums/operatingDays.enum';
+import { Gender } from '../enums/gender.enum';
 
 // Media item interface (for images and documents)
 export interface MediaItem {
@@ -9,6 +10,7 @@ export interface MediaItem {
   url: string;
   is_active: boolean;
   is_deleted: boolean;
+  is_banner?: boolean; // Mark if this image is used as banner for the center
   deletedAt?: Date | null; // Track when media was soft deleted
 }
 
@@ -52,6 +54,24 @@ export interface OperationalTiming {
   closing_time: string; // e.g., '18:00'
 }
 
+// Call timing interface (for when center can be called)
+export interface CallTiming {
+  start_time: string; // e.g., '09:00'
+  end_time: string; // e.g., '18:00'
+}
+
+// Training timing per day interface
+export interface TrainingTimingDay {
+  day: string; // e.g., 'monday', 'tuesday', etc.
+  start_time: string; // e.g., '09:00'
+  end_time: string; // e.g., '18:00'
+}
+
+// Training timing interface (day-wise training schedule)
+export interface TrainingTiming {
+  timings: TrainingTimingDay[]; // Array of day-wise training timings
+}
+
 // Sport detail interface (NEW)
 export interface SportDetail {
   sport_id: Types.ObjectId; // Reference to Sport model
@@ -71,7 +91,9 @@ export interface BankInformation {
 
 // Main Coaching Center interface
 export interface CoachingCenter {
-  user: Types.ObjectId; // Reference to User model (_id)
+  id: string;
+  user: Types.ObjectId; // Reference to User model (_id) - the academy owner
+  addedBy?: Types.ObjectId | null; // Reference to User model (_id) - the admin user who created this (only set when created via admin route)
   center_name: string;
   mobile_number: string;
   email: string;
@@ -83,10 +105,18 @@ export interface CoachingCenter {
   location: CenterLocation;
   facility: Types.ObjectId[]; // Array of references to Facility model
   operational_timing: OperationalTiming;
+  call_timing?: CallTiming | null; // Call timing (start and end time)
+  training_timing?: TrainingTiming | null; // Training timing (day-wise start and end time)
   documents: MediaItem[]; // General documents (not sport-specific)
   bank_information: BankInformation;
   status: CoachingCenterStatus;
+  allowed_genders: Gender[];
+  allowed_disabled: boolean;
+  is_only_for_disabled: boolean;
+  experience: number; // Number of years of experience
   is_active: boolean;
+  approval_status: 'approved' | 'rejected' | 'pending_approval';
+  reject_reason?: string | null;
   is_deleted: boolean;
   deletedAt?: Date | null;
   createdAt: Date;
@@ -112,6 +142,10 @@ const mediaItemSchema = new Schema<MediaItem>(
       default: true,
     },
     is_deleted: {
+      type: Boolean,
+      default: false,
+    },
+    is_banner: {
       type: Boolean,
       default: false,
     },
@@ -206,6 +240,57 @@ const operationalTimingSchema = new Schema<OperationalTiming>(
   { _id: false }
 );
 
+// Call timing schema
+const callTimingSchema = new Schema<CallTiming>(
+  {
+    start_time: {
+      type: String,
+      required: true,
+      match: /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, // HH:MM format
+    },
+    end_time: {
+      type: String,
+      required: true,
+      match: /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, // HH:MM format
+    },
+  },
+  { _id: false }
+);
+
+// Training timing day schema
+const trainingTimingDaySchema = new Schema<TrainingTimingDay>(
+  {
+    day: {
+      type: String,
+      required: true,
+      enum: Object.values(OperatingDays),
+    },
+    start_time: {
+      type: String,
+      required: true,
+      match: /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, // HH:MM format
+    },
+    end_time: {
+      type: String,
+      required: true,
+      match: /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, // HH:MM format
+    },
+  },
+  { _id: false }
+);
+
+// Training timing schema
+const trainingTimingSchema = new Schema<TrainingTiming>(
+  {
+    timings: {
+      type: [trainingTimingDaySchema],
+      required: true,
+      default: [],
+    },
+  },
+  { _id: false }
+);
+
 // Video item schema (with thumbnail)
 const videoItemSchema = new Schema<VideoItem>(
   {
@@ -267,20 +352,24 @@ const bankInformationSchema = new Schema<BankInformation>(
   {
     bank_name: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
     },
     account_number: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
     },
     ifsc_code: {
       type: String,
-      required: true,
+      required: false,
       uppercase: true,
+      default: null,
     },
     account_holder_name: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
     },
     gst_number: {
       type: String,
@@ -293,10 +382,23 @@ const bankInformationSchema = new Schema<BankInformation>(
 // Main schema
 const coachingCenterSchema = new Schema<CoachingCenter>(
   {
+    id: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+      default: () => uuidv4(),
+    },
     user: {
       type: Schema.Types.ObjectId,
       required: true,
       ref: 'User',
+      index: true,
+    },
+    addedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'AdminUser',
+      default: null,
       index: true,
     },
     center_name: {
@@ -351,23 +453,69 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
       type: operationalTimingSchema,
       required: true,
     },
+    call_timing: {
+      type: callTimingSchema,
+      required: false,
+      default: null,
+    },
+    training_timing: {
+      type: trainingTimingSchema,
+      required: false,
+      default: null,
+    },
     documents: {
       type: [mediaItemSchema],
       default: [],
     },
     bank_information: {
       type: bankInformationSchema,
-      required: true,
+      required: false,
+      default: null,
     },
     status: {
       type: String,
       enum: Object.values(CoachingCenterStatus),
       default: CoachingCenterStatus.DRAFT,
     },
+    allowed_genders: {
+      type: [String],
+      enum: Object.values(Gender),
+      required: true,
+      validate: {
+        validator: function(v: string[]) {
+          return Array.isArray(v) && v.length > 0;
+        },
+        message: 'At least one gender must be selected',
+      },
+    },
+    allowed_disabled: {
+      type: Boolean,
+      required: true,
+    },
+    is_only_for_disabled: {
+      type: Boolean,
+      required: true,
+    },
+    experience: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
     is_active: {
       type: Boolean,
       default: true,
       index: true,
+    },
+    approval_status: {
+      type: String,
+      enum: ['approved', 'rejected', 'pending_approval'],
+      default: 'approved',
+      index: true,
+    },
+    reject_reason: {
+      type: String,
+      default: null,
+      maxlength: 500,
     },
     is_deleted: {
       type: Boolean,
@@ -381,11 +529,27 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
   },
   {
     timestamps: true,
+    versionKey: false,
+    toJSON: {
+      transform(_doc, ret) {
+        const result = ret as any;
+        result.id = result.id ?? result._id;
+        delete result._id;
+      },
+    },
+    toObject: {
+      transform(_doc, ret) {
+        const result = ret as any;
+        result.id = result.id ?? result._id;
+        delete result._id;
+      },
+    },
   }
 );
 
 // Indexes
 coachingCenterSchema.index({ user: 1 });
+coachingCenterSchema.index({ addedBy: 1 });
 coachingCenterSchema.index({ center_name: 1 });
 coachingCenterSchema.index({ email: 1 });
 coachingCenterSchema.index({ mobile_number: 1 });
@@ -396,8 +560,43 @@ coachingCenterSchema.index({ facility: 1 });
 coachingCenterSchema.index({ status: 1 });
 coachingCenterSchema.index({ is_active: 1, is_deleted: 1 });
 coachingCenterSchema.index({ status: 1, is_active: 1, is_deleted: 1 });
+coachingCenterSchema.index({ status: 1, is_active: 1, approval_status: 1, is_deleted: 1 }); // Compound index for getAllAcademies query
 coachingCenterSchema.index({ user: 1, is_deleted: 1 });
 coachingCenterSchema.index({ user: 1, status: 1, is_deleted: 1 });
+
+// Meilisearch indexing hooks - using queue for non-blocking indexing
+coachingCenterSchema.post('save', async function (doc) {
+  try {
+    if (doc.id) {
+      const { enqueueMeilisearchIndexing, IndexingJobType } = await import('../queue/meilisearchIndexingQueue');
+      await enqueueMeilisearchIndexing(IndexingJobType.INDEX_COACHING_CENTER, doc.id);
+    }
+  } catch (error) {
+    // Silently fail - Meilisearch indexing is optional
+  }
+});
+
+coachingCenterSchema.post('findOneAndUpdate', async function (doc) {
+  try {
+    if (doc && doc.id) {
+      const { enqueueMeilisearchIndexing, IndexingJobType } = await import('../queue/meilisearchIndexingQueue');
+      await enqueueMeilisearchIndexing(IndexingJobType.UPDATE_COACHING_CENTER, doc.id);
+    }
+  } catch (error) {
+    // Silently fail - Meilisearch indexing is optional
+  }
+});
+
+coachingCenterSchema.post('findOneAndDelete', async function (doc) {
+  try {
+    if (doc && doc.id) {
+      const { enqueueMeilisearchIndexing, IndexingJobType } = await import('../queue/meilisearchIndexingQueue');
+      await enqueueMeilisearchIndexing(IndexingJobType.DELETE_COACHING_CENTER, doc.id);
+    }
+  } catch (error) {
+    // Silently fail - Meilisearch indexing is optional
+  }
+});
 
 export const CoachingCenterModel = model<CoachingCenter>('CoachingCenter', coachingCenterSchema);
 

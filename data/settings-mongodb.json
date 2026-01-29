@@ -1,0 +1,19 @@
+[
+  {
+    "app_name": "Play A Sport",
+    "app_logo": "https://playasport.com/logo.png",
+    "contact": {
+      "number": ["+919230981848","+919230981845"],
+      "email": "info@playasport.com",
+      "address": {
+        "office": "BD-357, sector-1, saltlake city, Kolkata, West Bengal, India, 700064",
+        "registered": "AE-694, Sector 1, Salt Lake City, Bidhan Nagar AE Market, North 24 Parganas, Saltlake, West Bengal, India, 700064"
+      },
+      "whatsapp": "+919230981848",
+      "instagram": "https://www.instagram.com/playasport.in/",
+      "facebook": "https://www.facebook.com/PlayASportIndia",
+      "youtube": "https://www.youtube.com/@PlayASport_in"
+    }
+  }
+]
+

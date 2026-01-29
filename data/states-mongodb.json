@@ -1,0 +1,290 @@
+[
+  {
+    "name": "Andaman and Nicobar Islands",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:09:49.000Z",
+    "updatedAt": "2024-02-13T07:09:49.000Z"
+  },
+  {
+    "name": "Andhra Pradesh",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:09:50.000Z",
+    "updatedAt": "2024-02-13T07:09:50.000Z"
+  },
+  {
+    "name": "Arunachal Pradesh",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:09:51.000Z",
+    "updatedAt": "2024-02-13T07:09:51.000Z"
+  },
+  {
+    "name": "Assam",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:09:52.000Z",
+    "updatedAt": "2024-02-13T07:09:52.000Z"
+  },
+  {
+    "name": "Bihar",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:09:53.000Z",
+    "updatedAt": "2024-02-13T07:09:53.000Z"
+  },
+  {
+    "name": "Chandigarh",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:09:54.000Z",
+    "updatedAt": "2024-02-13T07:09:54.000Z"
+  },
+  {
+    "name": "Chhattisgarh",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:09:55.000Z",
+    "updatedAt": "2024-02-13T07:09:55.000Z"
+  },
+  {
+    "name": "Dadra and Nagar Haveli and Daman and Diu",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:09:56.000Z",
+    "updatedAt": "2024-02-13T07:09:56.000Z"
+  },
+  {
+    "name": "Delhi",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:09:57.000Z",
+    "updatedAt": "2024-02-13T07:09:57.000Z"
+  },
+  {
+    "name": "Goa",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:09:58.000Z",
+    "updatedAt": "2024-02-13T07:09:58.000Z"
+  },
+  {
+    "name": "Gujarat",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:09:59.000Z",
+    "updatedAt": "2024-02-13T07:09:59.000Z"
+  },
+  {
+    "name": "Haryana",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:00.000Z",
+    "updatedAt": "2024-02-13T07:10:00.000Z"
+  },
+  {
+    "name": "Himachal Pradesh",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:01.000Z",
+    "updatedAt": "2024-02-13T07:10:01.000Z"
+  },
+  {
+    "name": "Jammu and Kashmir",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:02.000Z",
+    "updatedAt": "2024-02-13T07:10:02.000Z"
+  },
+  {
+    "name": "Jharkhand",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:03.000Z",
+    "updatedAt": "2024-02-13T07:10:03.000Z"
+  },
+  {
+    "name": "Karnataka",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:04.000Z",
+    "updatedAt": "2024-02-13T07:10:04.000Z"
+  },
+  {
+    "name": "Kerala",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:05.000Z",
+    "updatedAt": "2024-02-13T07:10:05.000Z"
+  },
+  {
+    "name": "Ladakh",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:06.000Z",
+    "updatedAt": "2024-02-13T07:10:06.000Z"
+  },
+  {
+    "name": "Lakshadweep",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:07.000Z",
+    "updatedAt": "2024-02-13T07:10:07.000Z"
+  },
+  {
+    "name": "Madhya Pradesh",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:08.000Z",
+    "updatedAt": "2024-02-13T07:10:08.000Z"
+  },
+  {
+    "name": "Maharashtra",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:09.000Z",
+    "updatedAt": "2024-02-13T07:10:09.000Z"
+  },
+  {
+    "name": "Manipur",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:10.000Z",
+    "updatedAt": "2024-02-13T07:10:10.000Z"
+  },
+  {
+    "name": "Meghalaya",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:11.000Z",
+    "updatedAt": "2024-02-13T07:10:11.000Z"
+  },
+  {
+    "name": "Mizoram",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:12.000Z",
+    "updatedAt": "2024-02-13T07:10:12.000Z"
+  },
+  {
+    "name": "Nagaland",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:13.000Z",
+    "updatedAt": "2024-02-13T07:10:13.000Z"
+  },
+  {
+    "name": "Odisha",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:14.000Z",
+    "updatedAt": "2024-02-13T07:10:14.000Z"
+  },
+  {
+    "name": "Puducherry",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:15.000Z",
+    "updatedAt": "2024-02-13T07:10:15.000Z"
+  },
+  {
+    "name": "Punjab",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:16.000Z",
+    "updatedAt": "2024-02-13T07:10:16.000Z"
+  },
+  {
+    "name": "Rajasthan",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:17.000Z",
+    "updatedAt": "2024-02-13T07:10:17.000Z"
+  },
+  {
+    "name": "Sikkim",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:18.000Z",
+    "updatedAt": "2024-02-13T07:10:18.000Z"
+  },
+  {
+    "name": "Tamil Nadu",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:19.000Z",
+    "updatedAt": "2024-02-13T07:10:19.000Z"
+  },
+  {
+    "name": "Telangana",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:20.000Z",
+    "updatedAt": "2024-02-13T07:10:20.000Z"
+  },
+  {
+    "name": "Tripura",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:21.000Z",
+    "updatedAt": "2024-02-13T07:10:21.000Z"
+  },
+  {
+    "name": "Uttar Pradesh",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:22.000Z",
+    "updatedAt": "2024-02-13T07:10:22.000Z"
+  },
+  {
+    "name": "Uttarakhand",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:23.000Z",
+    "updatedAt": "2024-02-13T07:10:23.000Z"
+  },
+  {
+    "name": "West Bengal",
+    "countryId": "country_103",
+    "countryCode": "IN",
+    "countryName": "India",
+    "createdAt": "2024-02-13T07:10:24.000Z",
+    "updatedAt": "2024-02-13T07:10:24.000Z"
+  }
+]

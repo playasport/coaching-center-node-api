@@ -26,7 +26,7 @@ const router = Router();
  *       - Logo: 1 file (JPEG, PNG, WebP) - max 5MB
  *       - Images: up to 10 files (JPEG, PNG, WebP) - max 5MB each
  *       - Videos: up to 10 files (MP4, MPEG, MOV, AVI) - max 100MB each
- *       - Documents: up to 10 files (PDF, DOC, DOCX, XLS, XLSX) - max 10MB each
+ *       - Documents: up to 10 files (PDF, DOC, DOCX, XLS, XLSX, JPEG, JPG, PNG) - max 10MB each
  *       
  *       **File Paths:**
  *       - Logo: `temp/coaching/photo/{uuid}.{ext}` → `coaching/photo/{uuid}.{ext}`
@@ -61,7 +61,7 @@ const router = Router();
  *                 items:
  *                   type: string
  *                   format: binary
- *                 description: Document files (PDF, DOC, DOCX, XLS, XLSX) - up to 10 files, max 10MB each
+ *                 description: Document files (PDF, DOC, DOCX, XLS, XLSX, JPEG, JPG, PNG) - up to 10 files, max 10MB each
  *     responses:
  *       200:
  *         description: Media files uploaded successfully

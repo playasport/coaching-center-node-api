@@ -111,6 +111,11 @@ router.post(
  *           maximum: 100
  *           default: 10
  *         description: Number of records per page
+ *       - in: query
+ *         name: roleName
+ *         schema:
+ *           type: string
+ *         description: Filter employees by role name (case-insensitive)
  *     responses:
  *       200:
  *         description: Employees retrieved successfully

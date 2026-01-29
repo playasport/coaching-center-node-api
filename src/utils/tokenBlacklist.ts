@@ -44,6 +44,11 @@ const getRedisClient = (): Redis => {
 const BLACKLIST_KEY_PREFIX = 'blacklist:token:';
 
 /**
+ * User blacklist key prefix (for logout all devices)
+ */
+const USER_BLACKLIST_KEY_PREFIX = 'blacklist:user:';
+
+/**
  * Blacklist a token until it expires
  * @param token - JWT token to blacklist
  * @param expiresIn - Expiration time in seconds (optional, will extract from token if not provided)
@@ -93,15 +98,38 @@ export const blacklistToken = async (token: string, expiresIn?: number): Promise
 
 /**
  * Check if a token is blacklisted
+ * Also checks if the user is blacklisted (logout from all devices)
  * @param token - JWT token to check
  * @returns true if token is blacklisted, false otherwise
  */
 export const isTokenBlacklisted = async (token: string): Promise<boolean> => {
   try {
     const redis = getRedisClient();
+    
+    // First check if the specific token is blacklisted
     const key = `${BLACKLIST_KEY_PREFIX}${token}`;
-    const result = await redis.get(key);
-    return result === '1';
+    const tokenBlacklisted = await redis.get(key);
+    if (tokenBlacklisted === '1') {
+      return true;
+    }
+    
+    // Try to decode token to get userId (without verification)
+    // This allows us to check user-level blacklist even for expired tokens
+    try {
+      const decoded = jwt.decode(token, { complete: false }) as jwt.JwtPayload | null;
+      if (decoded && decoded.id) {
+        // Check if user is blacklisted (logout from all devices)
+        const userBlacklisted = await isUserBlacklisted(decoded.id);
+        if (userBlacklisted) {
+          return true;
+        }
+      }
+    } catch (decodeError) {
+      // If we can't decode, just continue - token might be malformed
+      // We'll only check the specific token blacklist
+    }
+    
+    return false;
   } catch (error) {
     logger.error('Failed to check token blacklist:', {
       error: error instanceof Error ? error.message : error,
@@ -112,25 +140,69 @@ export const isTokenBlacklisted = async (token: string): Promise<boolean> => {
 };
 
 /**
- * Blacklist all tokens for a user (by JTI pattern)
- * This is useful when user logs out from all devices
+ * Blacklist all tokens for a user (logout from all devices)
+ * This sets a user-level blacklist flag that invalidates all tokens for that user
  * @param userId - User ID
  */
 export const blacklistUserTokens = async (userId: string): Promise<void> => {
   try {
     const redis = getRedisClient();
-    const pattern = `${BLACKLIST_KEY_PREFIX}*${userId}*`;
-    const keys = await redis.keys(pattern);
     
-    if (keys.length > 0) {
-      await redis.del(...keys);
-      logger.info('User tokens blacklisted', { userId, count: keys.length });
-    }
+    // Set a user-level blacklist flag with a long expiration (1 year)
+    // This will invalidate all tokens for this user
+    const userBlacklistKey = `${USER_BLACKLIST_KEY_PREFIX}${userId}`;
+    const oneYearInSeconds = 365 * 24 * 60 * 60; // 1 year
+    
+    await redis.setex(userBlacklistKey, oneYearInSeconds, Date.now().toString());
+    
+    logger.info('User tokens blacklisted (logout all devices)', { userId });
   } catch (error) {
     logger.error('Failed to blacklist user tokens:', {
       userId,
       error: error instanceof Error ? error.message : error,
     });
+    // Don't throw - blacklisting failure shouldn't break the flow
+  }
+};
+
+/**
+ * Check if a user is blacklisted (logout from all devices)
+ * @param userId - User ID
+ * @returns true if user is blacklisted, false otherwise
+ */
+export const isUserBlacklisted = async (userId: string): Promise<boolean> => {
+  try {
+    const redis = getRedisClient();
+    const userBlacklistKey = `${USER_BLACKLIST_KEY_PREFIX}${userId}`;
+    const result = await redis.get(userBlacklistKey);
+    return result !== null;
+  } catch (error) {
+    logger.error('Failed to check user blacklist:', {
+      userId,
+      error: error instanceof Error ? error.message : error,
+    });
+    // On error, assume user is blacklisted for security
+    return true;
+  }
+};
+
+/**
+ * Clear user-level blacklist (allow user to login again after logout all)
+ * This should be called when user successfully logs in
+ * @param userId - User ID
+ */
+export const clearUserBlacklist = async (userId: string): Promise<void> => {
+  try {
+    const redis = getRedisClient();
+    const userBlacklistKey = `${USER_BLACKLIST_KEY_PREFIX}${userId}`;
+    await redis.del(userBlacklistKey);
+    logger.info('User blacklist cleared (user logged in)', { userId });
+  } catch (error) {
+    logger.error('Failed to clear user blacklist:', {
+      userId,
+      error: error instanceof Error ? error.message : error,
+    });
+    // Don't throw - clearing failure shouldn't break login
   }
 };
 

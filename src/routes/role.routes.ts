@@ -15,8 +15,10 @@ const router = Router();
  *       - SUPER_ADMIN and ADMIN can see all roles
  *       - Other roles can only see roles where their role is included in the `visibleToRoles` array
  *       
- *       **Response includes only:** `id`, `name`, and `description` fields.
- *       `visibleToRoles`, `createdAt`, and `updatedAt` are excluded from the response.
+ *       **Response includes:** `id`, `name`, `description`, `isSystemDefined`, and `userCount` fields.
+ *       - `isSystemDefined`: Indicates if the role is a system-defined role (cannot be deleted or have name changed)
+ *       - `userCount`: Number of active users assigned to this role
+ *       - `visibleToRoles`, `createdAt`, and `updatedAt` are excluded from the response.
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -43,6 +45,27 @@ const router = Router();
  *                     count:
  *                       type: number
  *                       example: 2
+ *             example:
+ *               success: true
+ *               message: "Roles retrieved successfully"
+ *               data:
+ *                 roles:
+ *                   - id: "507f1f77bcf86cd799439011"
+ *                     name: "super_admin"
+ *                     description: "Super Administrator with full system access"
+ *                     isSystemDefined: true
+ *                     userCount: 1
+ *                   - id: "507f1f77bcf86cd799439012"
+ *                     name: "academy"
+ *                     description: "Academy user with coaching center management permissions"
+ *                     isSystemDefined: true
+ *                     userCount: 15
+ *                   - id: "507f1f77bcf86cd799439013"
+ *                     name: "custom_role"
+ *                     description: "Custom role created by admin"
+ *                     isSystemDefined: false
+ *                     userCount: 3
+ *                 count: 3
  *       401:
  *         description: Unauthorized - Authentication required
  *       500:

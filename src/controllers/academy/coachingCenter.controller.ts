@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
-import * as coachingCenterService from '../../services/coachingCenter.service';
+import * as coachingCenterService from '../../services/academy/coachingCenter.service';
 import type { CoachingCenterCreateInput, CoachingCenterUpdateInput } from '../../validations/coachingCenter.validation';
 
 export const createCoachingCenter = async (
@@ -48,9 +48,17 @@ export const getCoachingCenter = async (
       throw new ApiError(404, t('coachingCenter.notFound'));
     }
 
+    // Remove unwanted fields from response
+    const {
+      is_deleted,
+      deletedAt,
+      updatedAt,
+      ...filteredCoachingCenter
+    } = coachingCenter as any;
+
     const response = new ApiResponse(
       200,
-      { coachingCenter },
+      { coachingCenter: filteredCoachingCenter },
       t('coachingCenter.get.success')
     );
     res.json(response);

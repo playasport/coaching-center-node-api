@@ -79,3 +79,53 @@ export const uploadProfileImage = (
   });
 };
 
+const multerUploadImage = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: config.media.maxProfileImageSize,
+    files: 1,
+  },
+}).single('image');
+
+export const uploadImage = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  multerUploadImage(req, res, async (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return next(new ApiError(400, t('validation.file.tooLarge')));
+        }
+        return next(new ApiError(400, err.message));
+      }
+      return next(err);
+    }
+
+    // Compress image if it's an image file
+    if (req.file && isImage(req.file.mimetype)) {
+      try {
+        const originalSize = req.file.buffer.length;
+        const compressedBuffer = await compressImage(req.file.buffer, req.file.mimetype);
+        
+        // Update the file buffer with compressed version
+        req.file.buffer = compressedBuffer;
+        req.file.size = compressedBuffer.length;
+
+        logger.info('Image compressed', {
+          originalSize: `${(originalSize / 1024).toFixed(2)} KB`,
+          compressedSize: `${(compressedBuffer.length / 1024).toFixed(2)} KB`,
+          reduction: `${(((originalSize - compressedBuffer.length) / originalSize) * 100).toFixed(1)}%`,
+        });
+      } catch (error) {
+        logger.warn('Image compression failed, using original', { error });
+        // Continue with original image if compression fails
+      }
+    }
+
+    next();
+  });
+};
+

@@ -1,0 +1,51 @@
+import { Router } from 'express';
+import adminAuthRoutes from './auth.routes';
+import permissionRoutes from './permission.routes';
+import dashboardRoutes from './dashboard.routes';
+import coachingCenterRoutes from './coaching-center.routes';
+import userRoutes from './user.routes';
+import operationalUserRoutes from './operationalUser.routes';
+import roleRoutes from './role.routes';
+import sportRoutes from './sport.routes';
+import bookingRoutes from './booking.routes';
+import batchRoutes from './batch.routes';
+import transactionRoutes from './transaction.routes';
+import paymentRoutes from './payment.routes';
+import bannerRoutes from './banner.routes';
+import cmsPageRoutes from './cmsPage.routes';
+import notificationRoutes from './notification.routes';
+import settingsRoutes from './settings.routes';
+import highlightRoutes from './highlight.routes';
+import reelRoutes from './reel.routes';
+import queueRoutes from './queue.routes';
+import facilityRoutes from './facility.routes';
+import locationRoutes from './location.routes';
+import payoutRoutes from './payout.routes';
+
+const router = Router();
+
+// Admin routes
+router.use('/auth', adminAuthRoutes);
+router.use('/permissions', permissionRoutes);
+router.use('/dashboard', dashboardRoutes);
+router.use('/coaching-centers', coachingCenterRoutes);
+router.use('/users', userRoutes);
+router.use('/operational-users', operationalUserRoutes);
+router.use('/roles', roleRoutes);
+router.use('/sports', sportRoutes);
+router.use('/bookings', bookingRoutes);
+router.use('/batches', batchRoutes);
+router.use('/transactions', transactionRoutes);
+router.use('/payments', paymentRoutes);
+router.use('/banners', bannerRoutes);
+router.use('/cms-pages', cmsPageRoutes);
+router.use('/notifications', notificationRoutes);
+router.use('/settings', settingsRoutes);
+router.use('/highlights', highlightRoutes);
+router.use('/reels', reelRoutes);
+router.use('/queues', queueRoutes);
+router.use('/facilities', facilityRoutes);
+router.use('/locations', locationRoutes);
+router.use('/payouts', payoutRoutes);
+
+export default router;

@@ -1,5 +1,8 @@
 import { z } from 'zod';
 import { validationMessages } from '../utils/validationMessages';
+import { UserModel } from '../models/user.model';
+import { DefaultRoles } from '../enums/defaultRoles.enum';
+import { t } from '../utils/i18n';
 
 const mobileNumberSchema = z
   .string({ message: validationMessages.mobileNumber.required() })
@@ -20,19 +23,28 @@ const passwordComplexitySchema = z
 
 const nameRegex = /^[A-Z][a-zA-Z\s]*$/;
 
+// Device info schema for FCM token registration
+const deviceInfoSchema = z.object({
+  fcmToken: z.string().min(1, 'FCM token is required').optional(),
+  deviceType: z.enum(['web', 'android', 'ios']).optional(),
+  deviceId: z.string().optional(),
+  deviceName: z.string().optional(),
+  appVersion: z.string().optional(),
+});
+
 const addressInputSchema = z.object({
   line1: z
     .string()
-    .max(255)
+    .max(100)
     .optional()
     .transform((val) => (val === '' ? undefined : val)),
   line2: z
     .string({ message: validationMessages.address.line2Required() })
     .min(1, validationMessages.address.line2Required())
-    .max(255),
+    .max(100),
   area: z
     .string()
-    .max(255)
+    .max(100)
     .optional()
     .transform((val) => (val === '' ? undefined : val)),
   city: z
@@ -111,7 +123,38 @@ export const academyRegisterSchema = z.object({
     mobile: mobileNumberSchema,
     gender: z.enum(['male', 'female', 'other']).optional(),
     otp: otpCodeSchema,
-  }),
+  })
+    .merge(deviceInfoSchema)
+    .refine(
+      async (data) => {
+        // Check if mobile number already exists for a user with 'academy' role
+        const existingUser = await UserModel.findOne({ 
+          mobile: data.mobile,
+          isDeleted: false 
+        })
+          .populate('roles', 'name')
+          .lean();
+        
+        if (!existingUser) {
+          return true; // Mobile doesn't exist, validation passes
+        }
+        
+        // Check if user has 'academy' role
+        const roles = existingUser.roles as any[];
+        if (roles && roles.length > 0) {
+          const hasAcademyRole = roles.some((role: any) => role?.name === DefaultRoles.ACADEMY);
+          if (hasAcademyRole) {
+            return false; // Mobile exists with 'academy' role, validation fails
+          }
+        }
+        
+        return true; // Mobile exists but doesn't have 'academy' role, validation passes
+      },
+      {
+        message: t('auth.register.mobileExists') || 'Mobile number already exists',
+        path: ['mobile'],
+      }
+    ),
 });
 
 export const academyLoginSchema = z.object({
@@ -123,7 +166,7 @@ export const academyLoginSchema = z.object({
     password: z
       .string({ message: validationMessages.password.required() })
       .min(1, validationMessages.password.required()),
-  }),
+  }).merge(deviceInfoSchema),
 });
 
 export const academySocialLoginSchema = z.object({
@@ -139,7 +182,7 @@ export const academySocialLoginSchema = z.object({
     lastName: z
       .string()
       .optional(),
-  }),
+  }).merge(deviceInfoSchema),
 });
 
 export const academyOtpSchema = z.object({
@@ -154,7 +197,7 @@ export const academyVerifyOtpSchema = z.object({
     mobile: mobileNumberSchema,
     otp: otpCodeSchema,
     mode: z.enum(['login', 'register', 'profile_update', 'forgot_password']).optional(),
-  }),
+  }).merge(deviceInfoSchema),
 });
 
 const forgotPasswordRequestBodySchema = z.discriminatedUnion('mode', [
@@ -281,10 +324,9 @@ export const userRegisterSchema = z.object({
       .string({ message: validationMessages.email.required() })
       .min(1, validationMessages.email.required())
       .email(validationMessages.email.invalid()),
-    password: passwordComplexitySchema,
-    mobile: mobileNumberSchema,
-    role: z.enum(['student', 'guardian'], {
-      message: 'Role must be either student or guardian',
+    mobile: mobileNumberSchema.optional(),
+    type: z.enum(['student', 'guardian'], {
+      message: 'Type must be either student or guardian',
     }),
     dob: z
       .string({ message: 'Date of birth is required' })
@@ -305,8 +347,169 @@ export const userRegisterSchema = z.object({
     gender: z.enum(['male', 'female', 'other'], {
       message: 'Gender must be male, female, or other',
     }),
-    otp: otpCodeSchema,
-  }),
+    otp: otpCodeSchema.optional(),
+    tempToken: z.string().min(1, 'Temporary token is required').optional(),
+  })
+    .merge(deviceInfoSchema)
+    .refine(
+      async (data) => {
+        // Check if email already exists for a user with 'user' role
+        const existingUser = await UserModel.findOne({ 
+          email: data.email.toLowerCase(),
+          isDeleted: false 
+        })
+          .populate('roles', 'name')
+          .lean();
+        
+        if (!existingUser) {
+          return true; // Email doesn't exist, validation passes
+        }
+        
+        // Check if user has 'user' role
+        const roles = existingUser.roles as any[];
+        if (roles && roles.length > 0) {
+          const hasUserRole = roles.some((role: any) => role?.name === DefaultRoles.USER);
+          if (hasUserRole) {
+            return false; // Email exists with 'user' role, validation fails
+          }
+        }
+        
+        return true; // Email exists but doesn't have 'user' role (e.g., academy), validation passes
+      },
+      {
+        message: t('auth.register.emailExists') || 'Email already exists',
+        path: ['email'],
+      }
+    )
+    .refine(
+      async (data) => {
+        // Only validate mobile if it's provided directly (legacy OTP flow), not when using tempToken
+        if (data.tempToken || !data.mobile) {
+          return true; // Skip validation when using tempToken or mobile not provided
+        }
+        
+        // First check if email user exists (to see if it's the same user)
+        const existingUserByEmail = await UserModel.findOne({ 
+          email: data.email.toLowerCase(),
+          isDeleted: false 
+        })
+          .populate('roles', 'name')
+          .lean();
+        
+        // Check if mobile number already exists for a user with 'user' role
+        const existingUserByMobile = await UserModel.findOne({ 
+          mobile: data.mobile,
+          isDeleted: false 
+        })
+          .populate('roles', 'name')
+          .lean();
+        
+        if (!existingUserByMobile) {
+          return true; // Mobile doesn't exist, validation passes
+        }
+        
+        // Allow if it's the same user (found by email) - they can update their own mobile
+        if (existingUserByEmail && existingUserByEmail.id === existingUserByMobile.id) {
+          return true; // Same user, validation passes
+        }
+        
+        // Check if user has 'user' role
+        const roles = existingUserByMobile.roles as any[];
+        if (roles && roles.length > 0) {
+          const hasUserRole = roles.some((role: any) => role?.name === DefaultRoles.USER);
+          if (hasUserRole) {
+            return false; // Mobile exists with 'user' role for a different user, validation fails
+          }
+        }
+        
+        return true; // Mobile exists but doesn't have 'user' role (e.g., academy), validation passes
+      },
+      {
+        message: t('auth.register.mobileExists') || 'Mobile number already exists',
+        path: ['mobile'],
+      }
+    )
+    .refine(
+      (data) => data.otp || data.tempToken,
+      {
+        message: 'Either tempToken or otp is required',
+        path: ['tempToken'],
+      }
+    )
+    .refine(
+      (data) => !(data.tempToken && data.otp),
+      {
+        message: 'Cannot provide both tempToken and otp. Use tempToken for new registration flow or otp for legacy flow.',
+        path: ['otp'],
+      }
+    )
+    .refine(
+      (data) => {
+        // If using tempToken, mobile is not required (will be extracted from token)
+        // If using legacy otp, mobile is required
+        if (data.tempToken) {
+          return true; // Mobile not needed when using tempToken
+        }
+        if (data.otp) {
+          return !!data.mobile; // Mobile required for legacy otp flow
+        }
+        return true;
+      },
+      {
+        message: 'Mobile number is required when using OTP (legacy flow)',
+        path: ['mobile'],
+      }
+    )
+    .refine(
+      (data) => {
+        // If type is student, validate minimum age is 13 years
+        if (data.type === 'student' && data.dob) {
+          const dob = new Date(data.dob);
+          const today = new Date();
+          const age = today.getFullYear() - dob.getFullYear();
+          const monthDiff = today.getMonth() - dob.getMonth();
+          const dayDiff = today.getDate() - dob.getDate();
+          
+          // Calculate exact age
+          let exactAge = age;
+          if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+            exactAge = age - 1;
+          }
+          
+          return exactAge >= 13;
+        }
+        return true; // For guardian type, no additional age validation needed
+      },
+      {
+        message: 'Student must be at least 13 years old',
+        path: ['dob'],
+      }
+    )
+    .refine(
+      (data) => {
+        // If type is guardian, validate minimum age is 18 years
+        if (data.type === 'guardian' && data.dob) {
+          const dob = new Date(data.dob);
+          const today = new Date();
+          const age = today.getFullYear() - dob.getFullYear();
+          const monthDiff = today.getMonth() - dob.getMonth();
+          const dayDiff = today.getDate() - dob.getDate();
+          
+          // Calculate exact age
+          let exactAge = age;
+          if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+            exactAge = age - 1;
+          }
+          
+          return exactAge >= 18;
+        }
+        return true; // For student type, no additional age validation needed
+      },
+      {
+        message: 'Parent/Guardian must be at least 18 years old',
+        path: ['dob'],
+      }
+    ),
 });
 
 export const userLoginSchema = z.object({
@@ -318,7 +521,7 @@ export const userLoginSchema = z.object({
     password: z
       .string({ message: validationMessages.password.required() })
       .min(1, validationMessages.password.required()),
-  }),
+  }).merge(deviceInfoSchema),
 });
 
 export const userSocialLoginSchema = z.object({
@@ -334,8 +537,8 @@ export const userSocialLoginSchema = z.object({
     lastName: z
       .string()
       .optional(),
-    role: z.enum(['student', 'guardian']).optional(),
-  }),
+    type: z.enum(['student', 'guardian']).optional(),
+  }).merge(deviceInfoSchema),
 });
 
 export const userOtpSchema = z.object({
@@ -350,7 +553,7 @@ export const userVerifyOtpSchema = z.object({
     mobile: mobileNumberSchema,
     otp: otpCodeSchema,
     mode: z.enum(['login', 'register', 'profile_update', 'forgot_password']).optional(),
-  }),
+  }).merge(deviceInfoSchema),
 });
 
 export const userForgotPasswordRequestSchema = z.object({
@@ -377,6 +580,10 @@ export const userProfileUpdateSchema = z.object({
         ])
         .optional()
         .transform((val) => (val ? val : undefined)),
+      email: z
+        .string()
+        .email(validationMessages.email.invalid())
+        .optional(),
       dob: z
         .string()
         .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format')
@@ -386,7 +593,7 @@ export const userProfileUpdateSchema = z.object({
     .refine(
       (data) =>
         Boolean(
-          data.firstName ?? data.lastName ?? data.dob ?? data.gender
+          data.firstName ?? data.lastName ?? data.email ?? data.dob ?? data.gender
         ),
       {
         message: validationMessages.profile.noChanges(),
@@ -429,4 +636,15 @@ export type UserForgotPasswordRequestInput = z.infer<
 export type UserForgotPasswordVerifyInput = z.infer<
   typeof userForgotPasswordVerifySchema
 >['body'];
+
+export const userFavoriteSportsUpdateSchema = z.object({
+  body: z.object({
+    favoriteSports: z
+      .array(z.string().min(1, 'Sport ID is required'))
+      .min(0, 'At least one sport ID is required')
+      .optional(),
+  }),
+});
+
+export type UserFavoriteSportsUpdateInput = z.infer<typeof userFavoriteSportsUpdateSchema>['body'];
 

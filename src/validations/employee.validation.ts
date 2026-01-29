@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { validationMessages } from '../utils/validationMessages';
 
 // Certification schema
 const certificationSchema = z.object({

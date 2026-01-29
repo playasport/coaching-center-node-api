@@ -11,12 +11,19 @@ declare module 'nodemailer' {
     auth?: AuthOptions;
   }
 
+  interface Attachment {
+    filename: string;
+    content: Buffer;
+    contentType?: string;
+  }
+
   interface SendMailOptions {
     from?: string;
     to: string;
     subject: string;
     html?: string;
     text?: string;
+    attachments?: Attachment[];
   }
 
   interface Transporter {

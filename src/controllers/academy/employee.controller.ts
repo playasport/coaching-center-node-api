@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
-import * as employeeService from '../../services/employee.service';
+import * as employeeService from '../../services/academy/employee.service';
 import type { EmployeeCreateInput, EmployeeUpdateInput } from '../../validations/employee.validation';
 
 export const createEmployee = async (
@@ -176,11 +176,13 @@ export const getMyEmployees = async (
     // Get pagination parameters from query
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const roleName = req.query.roleName as string | undefined;
 
     const result = await employeeService.getEmployeesByUser(
       req.user.id,
       page,
-      limit
+      limit,
+      roleName
     );
 
     const response = new ApiResponse(

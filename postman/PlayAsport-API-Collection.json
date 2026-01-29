@@ -1,0 +1,4021 @@
+{
+  "info": {
+    "name": "PlayAsport Academy API",
+    "description": "Complete API collection for PlayAsport Academy backend - includes Authentication, Booking, Payment, Academy Management, Student Management, Participants, Locations, and more",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "2.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "payoutId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Booking",
+      "item": [
+        {
+          "name": "Get Booking Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/summary?batchId=:batchId&participantIds=:participantId1,:participantId2",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", "summary"],
+              "query": [
+                {
+                  "key": "batchId",
+                  "value": ":batchId",
+                  "description": "Batch ID (ObjectId)"
+                },
+                {
+                  "key": "participantIds",
+                  "value": ":participantId1,:participantId2",
+                  "description": "Comma-separated Participant IDs (e.g., id1,id2,id3)"
+                }
+              ]
+            },
+            "description": "Get booking summary including batch details (now returns center logo, address, experience), participant info (with age), and calculated amount before creating an order."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_1234567890\",\n  \"razorpay_payment_id\": \"pay_1234567890\",\n  \"razorpay_signature\": \"signature_from_razorpay\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/verify-payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", "verify-payment"]
+            },
+            "description": "Verify Razorpay payment signature and update booking status. Use this after successful payment on frontend."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete/Cancel Order",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_1234567890\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/delete-order",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", "delete-order"]
+            },
+            "description": "Cancel a booking order and mark payment status as failed. Only works for orders with pending payment status. Cannot cancel orders with successful payment."
+          },
+          "response": []
+        },
+        {
+          "name": "Book Slot (New Flow)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchId\": \"507f1f77bcf86cd799439011\",\n  \"participantIds\": [\"507f1f77bcf86cd799439012\", \"507f1f77bcf86cd799439013\"],\n  \"notes\": \"Optional booking notes\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/book-slot",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", "book-slot"]
+            },
+            "description": "Create a booking request (new flow). This will occupy slots, create a booking with SLOT_BOOKED status, and send notifications to academy, user, and admin. After academy approval, user can create payment order."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payment Order (After Approval)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/:bookingId/create-payment-order",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", ":bookingId", "create-payment-order"],
+              "variable": [
+                {
+                  "key": "bookingId",
+                  "value": "booking-id-here",
+                  "description": "Booking ID"
+                }
+              ]
+            },
+            "description": "Create a Razorpay payment order for an approved booking. The booking must be in APPROVED status. After this, user can proceed with payment."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Booking (With Reason)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Change of plans\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/booking/:bookingId/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking", ":bookingId", "cancel"],
+              "variable": [
+                {
+                  "key": "bookingId",
+                  "value": "booking-id-here",
+                  "description": "Booking ID"
+                }
+              ]
+            },
+            "description": "Cancel a booking by user with reason. Cannot cancel after payment is successful (status: CONFIRMED or payment status: SUCCESS). Creates audit trail entry."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/booking?page=1&limit=10&status=&paymentStatus=",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "booking"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (starts from 1)",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page (max: 100)",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by booking status (slot_booked, approved, rejected, payment_pending, confirmed, cancelled, completed)",
+                  "disabled": true
+                },
+                {
+                  "key": "paymentStatus",
+                  "value": "",
+                  "description": "Filter by payment status (not_initiated, initiated, pending, processing, success, failed, refunded, cancelled)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Retrieve a paginated list of user's bookings with enrolled batches, participants, and payment details. Shows all batches the user has enrolled in. Requires authentication."
+          },
+          "response": [
+            {
+              "name": "Success - User Bookings List",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/user/booking?page=1&limit=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["user", "booking"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"User bookings retrieved successfully\",\n  \"data\": {\n    \"data\": [\n      {\n        \"booking_id\": \"BK-2024-0001\",\n        \"id\": \"f316a86c-2909-4d32-8983-eb225c715bcb\",\n        \"batch\": {\n          \"id\": \"batch-id-here\",\n          \"name\": \"Morning Batch\",\n          \"sport\": {\n            \"id\": \"sport-id-here\",\n            \"name\": \"Cricket\"\n          },\n          \"center\": {\n            \"id\": \"center-id-here\",\n            \"center_name\": \"ABC Sports Academy\"\n          },\n          \"scheduled\": {\n            \"start_date\": \"2024-01-01\",\n            \"start_time\": \"09:00\",\n            \"end_time\": \"11:00\",\n            \"training_days\": [\"Monday\", \"Wednesday\", \"Friday\"]\n          },\n          \"duration\": {\n            \"count\": 3,\n            \"type\": \"months\"\n          }\n        },\n        \"participants\": [\n          {\n            \"id\": \"participant-id-here\",\n            \"firstName\": \"Alice\",\n            \"lastName\": \"Smith\"\n          }\n        ],\n        \"amount\": 5000,\n        \"currency\": \"INR\",\n        \"status\": \"confirmed\",\n        \"payment_status\": \"success\",\n        \"payment_method\": \"card\",\n        \"invoice_id\": \"order_1234567890\",\n        \"created_at\": \"2024-01-01T00:00:00.000Z\",\n        \"updated_at\": \"2024-01-01T00:00:00.000Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 10,\n      \"total\": 50,\n      \"totalPages\": 5,\n      \"hasNextPage\": true,\n      \"hasPrevPage\": false\n    }\n  }\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Booking and payment management endpoints"
+    },
+    {
+      "name": "Webhook",
+      "item": [
+        {
+          "name": "Razorpay Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Razorpay-Signature",
+                "value": "webhook_signature_from_razorpay",
+                "type": "text",
+                "description": "Razorpay webhook signature for verification"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entity\": \"event\",\n  \"account_id\": \"acc_1234567890\",\n  \"event\": \"payment.captured\",\n  \"contains\": [\"payment\"],\n  \"payload\": {\n    \"payment\": {\n      \"entity\": {\n        \"id\": \"pay_1234567890\",\n        \"entity\": \"payment\",\n        \"amount\": 500000,\n        \"currency\": \"INR\",\n        \"status\": \"captured\",\n        \"order_id\": \"order_1234567890\",\n        \"method\": \"card\",\n        \"captured\": true,\n        \"email\": \"user@example.com\",\n        \"contact\": \"9876543210\",\n        \"created_at\": 1234567890\n      }\n    }\n  },\n  \"created_at\": 1234567890\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/razorpay",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhook", "razorpay"]
+            },
+            "description": "Webhook endpoint for Razorpay payment events. Automatically verifies payments and updates booking status. Called by Razorpay when payment events occur."
+          },
+          "response": []
+        }
+      ],
+      "description": "Webhook endpoints for payment verification"
+    },
+    {
+      "name": "Academy Auth",
+      "item": [
+        {
+          "name": "Register Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"academy@example.com\",\n  \"password\": \"Password@123\",\n  \"mobile\": \"9876543210\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"otp\": \"123456\",\n  \"fcmToken\": \"fcm_token_here\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"device_unique_id\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "register"]
+            },
+            "description": "Register a new academy user with OTP verification. Returns access token (15 minutes) and device-specific refresh token. OTP must be obtained via /academy/auth/send-otp endpoint first."
+          },
+          "response": []
+        },
+        {
+          "name": "Login Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"academy@example.com\",\n  \"password\": \"Password@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "login"]
+            },
+            "description": "Login academy user and receive access/refresh tokens. Save the accessToken from response."
+          },
+          "response": []
+        },
+        {
+          "name": "Social Login Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"firebase_id_token_here\",\n  \"deviceInfo\": {\n    \"deviceId\": \"device123\",\n    \"deviceType\": \"web\",\n    \"platform\": \"web\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/social-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "social-login"]
+            },
+            "description": "Authenticate or auto-register academy users using Firebase ID token (Google, Facebook, Apple, etc.)"
+          },
+          "response": []
+        },
+        {
+          "name": "Send OTP Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"mode\": \"register\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/send-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "send-otp"]
+            },
+            "description": "Send OTP to academy user's mobile number for verification. Modes: login, register, profile_update, forgot_password. Default is 'login'."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"mode\": \"login\",\n  \"fcmToken\": \"fcm_token_here\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"device_unique_id\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "verify-otp"]
+            },
+            "description": "Verify OTP for academy user. For login mode, returns access and refresh tokens if user exists. Modes: login, register, profile_update, forgot_password."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current Academy User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "me"]
+            },
+            "description": "Get current authenticated academy user details. Requires ACADEMY role."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Academy Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"mobile\": \"9876543210\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "profile"]
+            },
+            "description": "Update academy user profile. Requires ACADEMY role."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Academy Address",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": {\n    \"street\": \"123 Main St\",\n    \"city\": \"New Delhi\",\n    \"state\": \"Delhi\",\n    \"country\": \"India\",\n    \"zipCode\": \"110001\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/address",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "address"]
+            },
+            "description": "Update academy user address. Requires ACADEMY role."
+          },
+          "response": []
+        },
+        {
+          "name": "Change Academy Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"OldPassword@123\",\n  \"newPassword\": \"NewPassword@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "password"]
+            },
+            "description": "Change academy user password. Requires ACADEMY role."
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password Request Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"academy@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/forgot-password/request",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "forgot-password", "request"]
+            },
+            "description": "Request password reset for academy user"
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password Verify Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"academy@example.com\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"NewPassword@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/forgot-password/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "forgot-password", "verify"]
+            },
+            "description": "Verify OTP and reset password for academy user"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"refresh_token_here\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "refresh"]
+            },
+            "description": "Refresh access token using refresh token"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "logout"]
+            },
+            "description": "Logout current device. Requires ACADEMY role."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout All Academy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/auth/logout-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "auth", "logout-all"]
+            },
+            "description": "Logout from all devices. Requires ACADEMY role."
+          },
+          "response": []
+        }
+      ],
+      "description": "Academy authentication and user management endpoints"
+    },
+    {
+      "name": "User Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john@example.com\",\n  \"type\": \"student\",\n  \"dob\": \"2000-01-15\",\n  \"gender\": \"male\",\n  \"tempToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtb2JpbGUiOiI5ODc2NTQzMjEwIiwidHlwZSI6InJlZ2lzdHJhdGlvbiIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoxNzAwMDAxODAwfQ.signature\",\n  \"fcmToken\": \"fcm_token_here\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"device_unique_id\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "register"]
+            },
+            "description": "Register a new user (student or guardian) with temporary token verification.\n\n**New Registration Flow:**\n1. User sends OTP to mobile number via `/user/auth/send-otp` (mode='login')\n2. User verifies OTP via `/user/auth/verify-otp` (mode='login')\n3. If user doesn't exist, API returns `needsRegistration: true` and `tempToken` (valid for 30 minutes)\n4. User completes registration with `tempToken` (instead of OTP)\n\n**Note:** Password is NOT required. Mobile number is extracted from tempToken for security. Returns access token (15 minutes) and device-specific refresh token."
+          },
+          "response": []
+        },
+        {
+          "name": "Social Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"firebase_id_token_here\",\n  \"deviceInfo\": {\n    \"deviceId\": \"device123\",\n    \"deviceType\": \"web\",\n    \"platform\": \"web\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/social-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "social-login"]
+            },
+            "description": "Authenticate or auto-register users using Firebase ID token (Google, Facebook, Apple, etc.)"
+          },
+          "response": []
+        },
+        {
+          "name": "Send OTP User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"mode\": \"login\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/send-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "send-otp"]
+            },
+            "description": "Send OTP to mobile number for login or registration.\n\n**For login mode:** Works for both existing and non-existing users. If user doesn't exist, they will receive a temporary registration token after OTP verification.\n\n**Modes:**\n- `login`: Works for both existing and non-existing users (default)\n- `register`: For explicit registration flow\n- `profile_update`: For profile update verification\n- `forgot_password`: For password reset"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"mode\": \"login\",\n  \"fcmToken\": \"fcm_token_here\",\n  \"deviceType\": \"android\",\n  \"deviceId\": \"device_unique_id\",\n  \"deviceName\": \"Samsung Galaxy S21\",\n  \"appVersion\": \"1.0.0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "verify-otp"]
+            },
+            "description": "Verify OTP sent to mobile number.\n\n**For login mode:**\n- If user exists: Returns user data with access and refresh tokens (login successful)\n- If user doesn't exist: Returns `needsRegistration: true` and `tempToken` (valid for 30 minutes) for registration\n\n**Response Examples:**\n\n**User exists (login successful):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"user\": {...},\n    \"accessToken\": \"...\",\n    \"refreshToken\": \"...\"\n  }\n}\n```\n\n**User doesn't exist (registration required):**\n```json\n{\n  \"success\": true,\n  \"message\": \"OTP verified. Please complete registration.\",\n  \"data\": {\n    \"needsRegistration\": true,\n    \"tempToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n  }\n}\n```"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "me"]
+            },
+            "description": "Get current authenticated user details. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"mobile\": \"9876543210\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "profile"]
+            },
+            "description": "Update user profile. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Address",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": {\n    \"street\": \"123 Main St\",\n    \"city\": \"New Delhi\",\n    \"state\": \"Delhi\",\n    \"country\": \"India\",\n    \"zipCode\": \"110001\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/address",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "address"]
+            },
+            "description": "Update user address. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Change User Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"OldPassword@123\",\n  \"newPassword\": \"NewPassword@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "password"]
+            },
+            "description": "Change user password. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Favorite Sports",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"favoriteSports\": [\n    \"507f1f77bcf86cd799439011\",\n    \"507f1f77bcf86cd799439012\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/favorite-sports",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "favorite-sports"]
+            },
+            "description": "Update user's favorite sports. Array of Sport ObjectIds. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"refresh_token_here\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "refresh"]
+            },
+            "description": "Refresh access token using refresh token"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "logout"]
+            },
+            "description": "Logout current device. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout All User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/auth/logout-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "auth", "logout-all"]
+            },
+            "description": "Logout from all devices. Requires authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "User authentication and profile management endpoints"
+    },
+    {
+      "name": "Academy",
+      "item": [
+        {
+          "name": "Get All Academies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academies?page=1&limit=10&latitude=28.6139&longitude=77.209",
+              "host": ["{{baseUrl}}"],
+              "path": ["academies"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page (default: 10, max: 100)"
+                },
+                {
+                  "key": "latitude",
+                  "value": "28.6139",
+                  "description": "User's latitude (optional, for distance-based sorting)",
+                  "disabled": true
+                },
+                {
+                  "key": "longitude",
+                  "value": "77.209",
+                  "description": "User's longitude (optional, for distance-based sorting)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all published academies with pagination. If location (latitude, longitude) is provided, academies are sorted by distance (nearest first). If user is logged in and has favorite sports, academies with favorite sports are prioritized. This is an unprotected route (authentication is optional)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Academy by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academies/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["academies", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "784d4s4447444s5s44s4s4s4s4s4s4s4s78",
+                  "description": "Academy identifier. Supports: CoachingCenter UUID (id field), MongoDB ObjectId (_id), or User custom ID (academy owner's user ID)"
+                }
+              ]
+            },
+            "description": "Get detailed information about an academy including all batches. Supports multiple ID types: 1) CoachingCenter UUID (id field) - e.g., \"784d4s4447444s5s44s4s4s4s4s4s4s4s78\", 2) MongoDB ObjectId (_id) - e.g., \"693bc2d1d0b08eea0c31cc53\", 3) User custom ID - searches by academy owner's user ID. If user is not logged in, email and mobile number will be masked. This is an unprotected route (authentication is optional)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Academies by City",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/city/:cityName?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["city", ":cityName"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page (default: 10, max: 100)"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "cityName",
+                  "value": "New Delhi",
+                  "description": "City name (case-insensitive)"
+                }
+              ]
+            },
+            "description": "Get list of academies in a specific city. This is an unprotected route."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Academies by Sport",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sport/:slug?page=1&limit=10&lat=28.6139&lon=77.209",
+              "host": ["{{baseUrl}}"],
+              "path": ["sport", ":slug"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page (default: 10, max: 100)"
+                },
+                {
+                  "key": "latitude",
+                  "value": "28.6139",
+                  "description": "User's latitude (optional, for distance-based sorting)",
+                  "disabled": true
+                },
+                {
+                  "key": "longitude",
+                  "value": "77.209",
+                  "description": "User's longitude (optional, for distance-based sorting)",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "cricket",
+                  "description": "Sport slug (e.g., 'cricket', 'football')"
+                }
+              ]
+            },
+            "description": "Get academies that offer a specific sport. If location (latitude, longitude) is provided, academies are sorted by distance (nearest first) and distance is shown in km. This is an unprotected route (authentication is optional)."
+          },
+          "response": []
+        }
+      ],
+      "description": "Public academy endpoints for browsing and searching academies"
+    },
+    {
+      "name": "Home",
+      "item": [
+        {
+          "name": "Get Home Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/home?latitude=28.6139&longitude=77.209",
+              "host": ["{{baseUrl}}"],
+              "path": ["home"],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "28.6139",
+                  "description": "User's latitude (optional, for nearby academies)",
+                  "disabled": true
+                },
+                {
+                  "key": "lon",
+                  "value": "77.209",
+                  "description": "User's longitude (optional, for nearby academies)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get home page data including nearby academies (up to 12, sorted by distance) and 8 popular sports. If location (latitude, longitude) is provided, nearby academies are shown. If user is logged in and has favorite sports, academies with favorite sports are prioritized. This is an unprotected route (authentication is optional)."
+          },
+          "response": []
+        }
+      ],
+      "description": "Home page data endpoints"
+    },
+    {
+      "name": "Search",
+      "description": "Search APIs for autocomplete and full-text search across sports, coaching centers, reels, and highlights",
+      "item": [
+        {
+          "name": "Autocomplete Search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search/autocomplete?q=cricket&size=5&latitude=28.6139&longitude=77.2090&radius=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["search", "autocomplete"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "cricket",
+                  "description": "Search query string (required)"
+                },
+                {
+                  "key": "size",
+                  "value": "5",
+                  "description": "Number of results per index (default: 5, max: 50)"
+                },
+                {
+                  "key": "index",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Optional - Search specific index only (sports_index, coaching_centres_index, reels_index, live_streams_index)"
+                },
+                {
+                  "key": "latitude",
+                  "value": "28.6139",
+                  "description": "User's latitude for geo-based sorting (optional)"
+                },
+                {
+                  "key": "longitude",
+                  "value": "77.2090",
+                  "description": "User's longitude for geo-based sorting (optional)"
+                },
+                {
+                  "key": "radius",
+                  "value": "50",
+                  "description": "Search radius in kilometers (default: 50km, only for coaching centers)"
+                }
+              ]
+            },
+            "description": "Autocomplete/search-as-you-type API. Searches across all indices (sports, coaching centers, reels, highlights) simultaneously. Supports geo-based sorting for coaching centers when latitude/longitude provided. Falls back to MongoDB search if Meilisearch is disabled. This is a public endpoint (no authentication required)."
+          },
+          "response": []
+        },
+        {
+          "name": "Full Search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search?q=cricket academy&size=10&from=0&latitude=28.6139&longitude=77.2090&radius=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "cricket academy",
+                  "description": "Search query string (required, can also use 'query' parameter)"
+                },
+                {
+                  "key": "query",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Alternative parameter name for search query"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Number of results per page (default: 10, max: 100)"
+                },
+                {
+                  "key": "from",
+                  "value": "0",
+                  "description": "Pagination offset (default: 0)"
+                },
+                {
+                  "key": "index",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Optional - Search specific index only (sports_index, coaching_centres_index, reels_index, live_streams_index)"
+                },
+                {
+                  "key": "latitude",
+                  "value": "28.6139",
+                  "description": "User's latitude for geo-based sorting and filtering"
+                },
+                {
+                  "key": "longitude",
+                  "value": "77.2090",
+                  "description": "User's longitude for geo-based sorting and filtering"
+                },
+                {
+                  "key": "radius",
+                  "value": "50",
+                  "description": "Search radius in kilometers (default: 50km, only for coaching centers)"
+                }
+              ]
+            },
+            "description": "Full-text search across all indices with pagination, geo-filtering, and advanced sorting. Searches sports, coaching centers, reels, and highlights simultaneously. For coaching centers, supports geo-based distance sorting and sport-based prioritization. Falls back to MongoDB search if Meilisearch is disabled. This is a public endpoint (no authentication required)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Participant",
+      "item": [
+        {
+          "name": "Create Participant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"gender\": \"male\",\n  \"disability\": 0,\n  \"dob\": \"2010-01-01\",\n  \"schoolName\": \"ABC School\",\n  \"contactNumber\": \"9876543210\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/participant",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "participant"]
+            },
+            "description": "Create a new participant. Users can only create participants for themselves. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Participants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/participant?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "participant"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Records per page",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all participants for the authenticated user. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Participant by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/participant/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "participant", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Participant ID"
+                }
+              ]
+            },
+            "description": "Get participant by ID. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Participant",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John Updated\",\n  \"lastName\": \"Doe Updated\",\n  \"gender\": \"female\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/participant/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "participant", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011",
+                  "description": "Participant ID"
+                }
+              ]
+            },
+            "description": "Update participant. Requires authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "Participant management endpoints for users"
+    },
+    {
+      "name": "Location",
+      "item": [
+        {
+          "name": "Get Countries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/location/countries",
+              "host": ["{{baseUrl}}"],
+              "path": ["location", "countries"]
+            },
+            "description": "Get all countries. Public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Get States",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/location/states?countryCode=IN",
+              "host": ["{{baseUrl}}"],
+              "path": ["location", "states"],
+              "query": [
+                {
+                  "key": "countryCode",
+                  "value": "IN",
+                  "description": "Country code (e.g., IN for India)"
+                }
+              ]
+            },
+            "description": "Get states by country code. Public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/location/cities?stateId=694119952301f6a1798b1300",
+              "host": ["{{baseUrl}}"],
+              "path": ["location", "cities"],
+              "query": [
+                {
+                  "key": "stateId",
+                  "value": "694119952301f6a1798b1300",
+                  "description": "State ID (MongoDB ObjectId or state reference ID)"
+                }
+              ]
+            },
+            "description": "Get cities by state ID. Returns cities with nested state and country objects. Accepts MongoDB ObjectId or state reference ID. Public endpoint."
+          },
+          "response": [
+            {
+              "name": "Success - Cities List",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/location/cities?stateId=694119952301f6a1798b1300",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["location", "cities"],
+                  "query": [
+                    {
+                      "key": "stateId",
+                      "value": "694119952301f6a1798b1300"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Cities retrieved successfully\",\n  \"data\": {\n    \"cities\": [\n      {\n        \"_id\": \"507f1f77bcf86cd799439013\",\n        \"name\": \"New Delhi\",\n        \"state\": {\n          \"id\": \"507f1f77bcf86cd799439012\",\n          \"name\": \"Delhi\",\n          \"code\": \"DL\"\n        },\n        \"country\": {\n          \"id\": \"507f1f77bcf86cd799439011\",\n          \"name\": \"India\",\n          \"code\": \"IN\"\n        },\n        \"latitude\": 28.6139,\n        \"longitude\": 77.209\n      },\n      {\n        \"_id\": \"507f1f77bcf86cd799439014\",\n        \"name\": \"Dwarka\",\n        \"state\": {\n          \"id\": \"507f1f77bcf86cd799439012\",\n          \"name\": \"Delhi\",\n          \"code\": \"DL\"\n        },\n        \"country\": {\n          \"id\": \"507f1f77bcf86cd799439011\",\n          \"name\": \"India\",\n          \"code\": \"IN\"\n        },\n        \"latitude\": 28.5923,\n        \"longitude\": 77.0487\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Top Cities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/top-cities",
+              "host": ["{{baseUrl}}"],
+              "path": ["top-cities"]
+            },
+            "description": "Get top 15 cities with academy and sports counts. Returns cities sorted by number of active academies. Shows city name, state name, academy count, and unique sports count for each city. Public endpoint."
+          },
+          "response": []
+        }
+      ],
+      "description": "Location endpoints for countries, states, cities, and top cities"
+    },
+    {
+      "name": "Basic",
+      "item": [
+        {
+          "name": "Get All Sports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sports",
+              "host": ["{{baseUrl}}"],
+              "path": ["sports"]
+            },
+            "description": "Get all sports. Public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Facilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/facilities",
+              "host": ["{{baseUrl}}"],
+              "path": ["facilities"]
+            },
+            "description": "Get all facilities. Public endpoint."
+          },
+          "response": []
+        }
+      ],
+      "description": "Basic public endpoints for sports and facilities"
+    },
+    {
+      "name": "Locale",
+      "item": [
+        {
+          "name": "Get Current Locale",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locale",
+              "host": ["{{baseUrl}}"],
+              "path": ["locale"]
+            },
+            "description": "Get current locale setting. Public endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Set Locale",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locale\": \"en\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/locale",
+              "host": ["{{baseUrl}}"],
+              "path": ["locale"]
+            },
+            "description": "Set locale (e.g., 'en', 'hi'). Public endpoint."
+          },
+          "response": []
+        }
+      ],
+      "description": "Locale management endpoints"
+    },
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Health check endpoint. Returns server status and timestamp."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["role"]
+            },
+            "description": "Get list of roles visible to logged-in user. SUPER_ADMIN and ADMIN can see all roles. Other roles can only see roles where their role is included in the visibleToRoles array. Response includes isSystemDefined flag (indicates if role is system-defined and cannot be deleted) and userCount (number of active users assigned to this role)."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/role",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["role"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Roles retrieved successfully\",\n  \"data\": {\n    \"roles\": [\n      {\n        \"id\": \"507f1f77bcf86cd799439011\",\n        \"name\": \"super_admin\",\n        \"description\": \"Super Administrator with full system access\",\n        \"isSystemDefined\": true,\n        \"userCount\": 1\n      },\n      {\n        \"id\": \"507f1f77bcf86cd799439012\",\n        \"name\": \"admin\",\n        \"description\": \"Administrator with elevated permissions\",\n        \"isSystemDefined\": true,\n        \"userCount\": 5\n      },\n      {\n        \"id\": \"507f1f77bcf86cd799439013\",\n        \"name\": \"academy\",\n        \"description\": \"Academy user with coaching center management permissions\",\n        \"isSystemDefined\": true,\n        \"userCount\": 15\n      },\n      {\n        \"id\": \"507f1f77bcf86cd799439014\",\n        \"name\": \"user\",\n        \"description\": \"Regular user with standard permissions\",\n        \"isSystemDefined\": true,\n        \"userCount\": 250\n      },\n      {\n        \"id\": \"507f1f77bcf86cd799439015\",\n        \"name\": \"custom_manager\",\n        \"description\": \"Custom manager role created by admin\",\n        \"isSystemDefined\": false,\n        \"userCount\": 3\n      }\n    ],\n    \"count\": 5\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["settings"]
+            },
+            "description": "Get limited public settings - returns only app_name, app_logo, and contact information. All other settings (fees, basic_info, notifications, payment) are excluded and available only through admin endpoints. This is a public endpoint with no authentication required."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/settings",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["settings"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Settings retrieved successfully\",\n  \"data\": {\n    \"app_name\": \"Play A Sport\",\n    \"app_logo\": \"https://testplayasport.s3.ap-south-1.amazonaws.com/images/logo/afa40028-96af-45af-ad94-4c8fb33f8100.png\",\n    \"contact\": {\n      \"number\": [\"+919230981848\", \"+919230981845\", \"+919546576177\"],\n      \"email\": \"info@playasport.com\",\n      \"address\": {\n        \"office\": \"BD-357, sector-1, saltlake city, Kolkata, West Bengal, India, 700064\",\n        \"registered\": \"AE-694, Sector 1, Salt Lake City, Bidhan Nagar AE Market, North 24 Parganas, Saltlake, West Bengal, India, 700064\"\n      },\n      \"whatsapp\": \"+919230981848\",\n      \"instagram\": \"https://www.instagram.com/playasport.in/\",\n      \"facebook\": \"https://www.facebook.com/PlayASportIndia\",\n      \"youtube\": \"https://www.youtube.com/@PlayASport_in\"\n    }\n  }\n}"
+            }
+          ]
+        }
+      ],
+      "description": "System and utility endpoints"
+    },
+    {
+      "name": "Academy Management",
+      "item": [
+        {
+          "name": "Coaching Center",
+          "item": [
+            {
+              "name": "Create Coaching Center",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"center_name\": \"ABC Sports Academy\",\n  \"mobile_number\": \"9876543210\",\n  \"email\": \"academy@example.com\",\n  \"rules_regulation\": [\n    \"All students must wear proper sports attire during training sessions\",\n    \"Punctuality is mandatory - students arriving late may not be allowed to join the session\",\n    \"Regular attendance is required - minimum 80% attendance is necessary\",\n    \"Students must bring their own equipment as specified for each sport\",\n    \"Respectful behavior towards coaches and fellow students is expected at all times\"\n  ],\n  \"sports\": [\"507f1f77bcf86cd799439011\"],\n  \"age\": {\n    \"min\": 5,\n    \"max\": 18\n  },\n  \"location\": {\n    \"latitude\": 28.6139,\n    \"longitude\": 77.209,\n    \"address\": {\n      \"street\": \"123 Main St\",\n      \"city\": \"New Delhi\",\n      \"state\": \"Delhi\",\n      \"country\": \"India\",\n      \"zipCode\": \"110001\"\n    }\n  },\n  \"operational_timing\": {\n    \"operating_days\": [\"monday\", \"tuesday\", \"wednesday\"],\n    \"opening_time\": \"09:00\",\n    \"closing_time\": \"18:00\"\n  },\n  \"bank_information\": {\n    \"bank_name\": \"ABC Bank\",\n    \"account_number\": \"1234567890\",\n    \"ifsc_code\": \"ABCD1234567\",\n    \"account_holder_name\": \"ABC Academy\"\n  },\n  \"allowed_genders\": [\"male\", \"female\"],\n  \"allowed_disabled\": false,\n  \"is_only_for_disabled\": false,\n  \"experience\": 5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/coaching-center",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "coaching-center"]
+                },
+                "description": "Create a new coaching center. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Coaching Centers",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/coaching-center?page=1&limit=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "coaching-center"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Records per page",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Get all coaching centers for the authenticated academy user. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Coaching Center by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/coaching-center/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "coaching-center", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Coaching Center ID"
+                    }
+                  ]
+                },
+                "description": "Get coaching center by ID. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Coaching Center",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"center_name\": \"Updated Academy Name\",\n  \"rules_regulation\": [\n    \"All students must wear proper sports attire during training sessions\",\n    \"Punctuality is mandatory - students arriving late may not be allowed to join the session\",\n    \"Regular attendance is required - minimum 80% attendance is necessary\",\n    \"Students must bring their own equipment as specified for each sport\",\n    \"Respectful behavior towards coaches and fellow students is expected at all times\",\n    \"Mobile phones are not allowed during training sessions\"\n  ],\n  \"allowed_genders\": [\"male\", \"female\"],\n  \"allowed_disabled\": false,\n  \"is_only_for_disabled\": false,\n  \"experience\": 5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/coaching-center/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "coaching-center", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Coaching Center ID"
+                    }
+                  ]
+                },
+                "description": "Update coaching center. Requires ACADEMY role. Note: allowed_genders, allowed_disabled, is_only_for_disabled, and experience are required fields."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Coaching Center Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"published\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/coaching-center/:id/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "coaching-center", ":id", "status"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Coaching Center ID"
+                    }
+                  ]
+                },
+                "description": "Update coaching center status (draft, published, suspended). Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Coaching Center",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/coaching-center/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "coaching-center", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Coaching Center ID"
+                    }
+                  ]
+                },
+                "description": "Delete coaching center (soft delete). Requires ACADEMY role."
+              },
+              "response": []
+            }
+          ],
+          "description": "Coaching center management endpoints"
+        },
+        {
+          "name": "Employee",
+          "item": [
+            {
+              "name": "Create Employee",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"John Coach\",\n  \"role\": \"507f1f77bcf86cd799439011\",\n  \"mobileNo\": \"9876543210\",\n  \"email\": \"coach@example.com\",\n  \"sport\": \"507f1f77bcf86cd799439012\",\n  \"center\": \"507f1f77bcf86cd799439013\",\n  \"workingHours\": \"9 AM - 6 PM\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/employee",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "employee"]
+                },
+                "description": "Create a new employee. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Employees",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/employee?page=1&limit=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "employee"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Records per page",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Get all employees for the authenticated academy user. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Employee by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/employee/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "employee", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Employee ID"
+                    }
+                  ]
+                },
+                "description": "Get employee by ID. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Employee",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"John Coach Updated\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/employee/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "employee", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Employee ID"
+                    }
+                  ]
+                },
+                "description": "Update employee. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Employee Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"is_active\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/employee/:id/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "employee", ":id", "status"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Employee ID"
+                    }
+                  ]
+                },
+                "description": "Update employee active status. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Employee",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/employee/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "employee", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Employee ID"
+                    }
+                  ]
+                },
+                "description": "Delete employee (soft delete). Requires ACADEMY role."
+              },
+              "response": []
+            }
+          ],
+          "description": "Employee management endpoints"
+        },
+        {
+          "name": "Batch",
+          "item": [
+            {
+              "name": "Create Batch",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Morning Cricket Batch\",\n  \"description\": \"Early morning cricket training session for beginners\",\n  \"sportId\": \"{{sportId}}\",\n  \"centerId\": \"{{coachingCenterId}}\",\n  \"coach\": \"507f1f77bcf86cd799439012\",\n  \"gender\": [\"male\", \"female\"],\n  \"certificate_issued\": true,\n  \"scheduled\": {\n    \"start_date\": \"2024-12-01\",\n    \"end_date\": \"2024-12-31\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": {\n    \"count\": 3,\n    \"type\": \"month\"\n  },\n  \"capacity\": {\n    \"min\": 10,\n    \"max\": 30\n  },\n  \"age\": {\n    \"min\": 8,\n    \"max\": 12\n  },\n  \"admission_fee\": 500,\n  \"base_price\": 5000,\n  \"discounted_price\": 4500,\n  \"is_allowed_disabled\": false,\n  \"status\": \"draft\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/batch",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "batch"]
+                },
+                "description": "Create a new batch. **Important:** Fee configurations have been removed. Use `base_price` and `discounted_price` instead. Requires ACADEMY role.\n\n**Example - Common timing:**\n```json\n{\n  \"name\": \"Morning Cricket Batch\",\n  \"description\": \"Early morning cricket training\",\n  \"sportId\": \"507f1f77bcf86cd799439011\",\n  \"centerId\": \"507f1f77bcf86cd799439011\",\n  \"gender\": [\"male\", \"female\"],\n  \"certificate_issued\": true,\n  \"scheduled\": {\n    \"start_date\": \"2024-12-01\",\n    \"end_date\": \"2024-12-31\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"11:00\",\n    \"training_days\": [\"monday\", \"wednesday\", \"friday\"]\n  },\n  \"duration\": { \"count\": 3, \"type\": \"month\" },\n  \"capacity\": { \"min\": 10, \"max\": 30 },\n  \"age\": { \"min\": 8, \"max\": 12 },\n  \"base_price\": 5000,\n  \"discounted_price\": 4500,\n  \"is_allowed_disabled\": false\n}\n```\n\n**Example - Individual timing:**\n```json\n{\n  \"scheduled\": {\n    \"start_date\": \"2024-12-01\",\n    \"individual_timings\": [\n      { \"day\": \"monday\", \"start_time\": \"09:00\", \"end_time\": \"11:00\" },\n      { \"day\": \"wednesday\", \"start_time\": \"14:00\", \"end_time\": \"16:00\" }\n    ],\n    \"training_days\": [\"monday\", \"wednesday\"]\n  }\n}\n```\n\n**Note:** `is_allowed_disabled` (boolean, default: false) - Whether disabled participants are allowed in this batch. This field takes precedence over the coaching center's disability settings during booking validation."
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Batches",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/batch?page=1&limit=10&centerId=&sportId=&status=",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "batch"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Records per page",
+                      "disabled": true
+                    },
+                    {
+                      "key": "centerId",
+                      "value": "",
+                      "description": "Filter by center ID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sportId",
+                      "value": "",
+                      "description": "Filter by sport ID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "Filter by status",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Get all batches for the authenticated academy user. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Batch by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/batch/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "batch", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Batch ID"
+                    }
+                  ]
+                },
+                "description": "Get batch by ID. Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Batch",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated Batch Name\",\n  \"base_price\": 5500,\n  \"discounted_price\": 5000,\n  \"is_allowed_disabled\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/batch/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "batch", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Batch ID"
+                    }
+                  ]
+                },
+                "description": "Update batch details. All fields are optional. **Important:** If batch is active (is_active = true), details cannot be updated. You must first set is_active to false, then update other details. **Status restriction:** If current status is \"published\", it cannot be changed to \"draft\". Fee configurations have been removed - use base_price and discounted_price instead. Requires ACADEMY role.\n\n**Example - Simple update:**\n```json\n{\n  \"name\": \"Updated Batch Name\",\n  \"base_price\": 5500,\n  \"discounted_price\": 5000,\n  \"is_allowed_disabled\": true\n}\n```\n\n**Example - Update with individual timing:**\n```json\n{\n  \"scheduled\": {\n    \"start_date\": \"2024-12-01\",\n    \"individual_timings\": [\n      { \"day\": \"monday\", \"start_time\": \"09:00\", \"end_time\": \"11:00\" },\n      { \"day\": \"wednesday\", \"start_time\": \"14:00\", \"end_time\": \"16:00\" }\n    ],\n    \"training_days\": [\"monday\", \"wednesday\"]\n  }\n}\n```\n\n**Note:** `is_allowed_disabled` (boolean) - Whether disabled participants are allowed in this batch. This field takes precedence over the coaching center's disability settings during booking validation."
+              },
+              "response": []
+            },
+            {
+              "name": "Toggle Batch Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/batch/:id/toggle-status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "batch", ":id", "toggle-status"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Batch ID"
+                    }
+                  ]
+                },
+                "description": "Toggle batch active/inactive status (is_active field). This endpoint toggles the is_active field (if true, becomes false and vice versa). Requires ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Batch",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/batch/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "batch", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Batch ID"
+                    }
+                  ]
+                },
+                "description": "Delete batch (soft delete). Requires ACADEMY role."
+              },
+              "response": []
+            }
+          ],
+          "description": "Batch management endpoints"
+        },
+        {
+          "name": "Academy Booking",
+          "item": [
+            {
+              "name": "Get Academy Bookings",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/booking?page=1&limit=10&centerId=&batchId=&status=&paymentStatus=",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "booking"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (starts from 1)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Number of records per page (max: 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "centerId",
+                      "value": "",
+                      "description": "Filter by coaching center ID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "batchId",
+                      "value": "",
+                      "description": "Filter by batch ID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "Filter by booking status (slot_booked, approved, rejected, payment_pending, confirmed, cancelled, completed)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "paymentStatus",
+                      "value": "",
+                      "description": "Filter by payment status (not_initiated, initiated, pending, processing, success, failed, refunded, cancelled)",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Retrieve a paginated list of bookings for coaching centers owned by the authenticated academy user. Requires authentication and ACADEMY role.\n\nReturns simplified booking information including:\n- id: Booking UUID\n- booking_id: Unique booking reference ID (BK-YYYY-NNNN format)\n- user_name: Full name of the user\n- student_name: Participant name(s) - comma-separated if multiple\n- student_count: Number of participants/students in the booking\n- batch_name: Name of the batch\n- center_name: Name of the coaching center\n- amount: Total booking amount (batch amount only, excludes platform fee and GST)\n- status: Booking status (slot_booked, approved, rejected, payment_pending, confirmed, cancelled, completed, requested, pending)\n- status_message: Custom message based on booking status and payment status\n- payment_status: Payment status (returns \"paid\" when payment status is \"success\")\n- can_accept_reject: Flag to indicate if accept/reject actions should be shown (true when status is SLOT_BOOKED or REQUESTED)\n- rejection_reason: Rejection reason if status is REJECTED, otherwise null\n- cancellation_reason: Cancellation reason if status is CANCELLED, otherwise null\n- created_at: Booking creation timestamp"
+              },
+              "response": [
+                {
+                  "name": "Success - Bookings List",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{accessToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/academy/booking?page=1&limit=10",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["academy", "booking"],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "limit",
+                          "value": "10"
+                        }
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Bookings retrieved successfully\",\n  \"data\": {\n    \"data\": [\n      {\n        \"id\": \"f316a86c-2909-4d32-8983-eb225c715bcb\",\n        \"booking_id\": \"BK-2024-0001\",\n        \"user_name\": \"John Doe\",\n        \"student_name\": \"Alice Smith, Bob Smith\",\n        \"student_count\": 2,\n        \"batch_name\": \"Morning Batch\",\n        \"center_name\": \"ABC Sports Academy\",\n        \"amount\": 5000,\n        \"status\": \"confirmed\",\n        \"status_message\": \"Booking confirmed and payment completed\",\n        \"payment_status\": \"paid\",\n        \"can_accept_reject\": false,\n        \"rejection_reason\": null,\n        \"cancellation_reason\": null,\n        \"created_at\": \"2024-01-01T00:00:00.000Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 10,\n      \"total\": 50,\n      \"totalPages\": 5,\n      \"hasNextPage\": true,\n      \"hasPrevPage\": false\n    }\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "Get Academy Booking by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/booking/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "booking", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "f316a86c-2909-4d32-8983-eb225c715bcb",
+                      "description": "Booking UUID"
+                    }
+                  ]
+                },
+                "description": "Retrieve a booking by its ID. The booking must belong to one of the academy's coaching centers. Returns booking details with user, participants, batch, center, and sport information. Requires authentication and ACADEMY role.\n\n**Response includes:**\n- _id: MongoDB ObjectId\n- id: Booking UUID\n- booking_id: Unique booking reference ID\n- user: User details with profileImage\n- participants: Array of participants with profilePhoto, gender, age, dob\n- batch: Batch details (_id, name)\n- center: Center details (_id, center_name, mobile_number, logo, email, id)\n- sport: Sport details (_id, name, logo)\n- amount: Booking amount (batch amount only, excludes platform fee and GST)\n- currency: Currency code\n- status: Booking status\n- status_message: Custom message based on booking status and payment status\n- payment_status: Payment status (returns \"paid\" when payment status is \"success\")\n- can_accept_reject: Flag to indicate if accept/reject actions should be shown\n- notes: Optional notes\n- cancellation_reason: Cancellation reason if status is CANCELLED\n- rejection_reason: Rejection reason if status is REJECTED\n- createdAt: Booking creation timestamp"
+              },
+              "response": [
+                {
+                  "name": "Success - Booking Details",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{accessToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/academy/booking/f316a86c-2909-4d32-8983-eb225c715bcb",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["academy", "booking", "f316a86c-2909-4d32-8983-eb225c715bcb"]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Booking retrieved successfully\",\n  \"data\": {\n    \"_id\": \"696a26dc6a830138ed964cb0\",\n    \"id\": \"14b31f41-2ec3-4f10-b83b-6c070b3b287b\",\n    \"booking_id\": \"PS-2026-0007\",\n    \"user\": {\n      \"_id\": \"693a72393c18b3e80760dbda\",\n      \"id\": \"862968bb-aa80-4c18-92bc-bca25f5d71a5\",\n      \"firstName\": \"Indal\",\n      \"lastName\": \"Singh\",\n      \"email\": \"indalkumarsingh@playasport.in\",\n      \"mobile\": \"9546576177\",\n      \"profileImage\": \"\"\n    },\n    \"participants\": [\n      {\n        \"_id\": \"6965db5f734654f0a9344e33\",\n        \"firstName\": \"Indal\",\n        \"lastName\": \"Singh\",\n        \"profilePhoto\": \"\",\n        \"gender\": \"male\",\n        \"age\": \"5\",\n        \"dob\": \"2019-01-12T00:00:00.000Z\"\n      }\n    ],\n    \"batch\": {\n      \"_id\": \"6965c9841713b07ad0f77adc\",\n      \"name\": \"test 2\"\n    },\n    \"center\": {\n      \"_id\": \"6954d14414b396df0d2254d4\",\n      \"center_name\": \"Monthly Cricket Training\",\n      \"mobile_number\": \"9546576177\",\n      \"logo\": \"\",\n      \"email\": \"indalkumarsingh@playasport.in\",\n      \"id\": \"61db8434-b1fd-4dc6-a040-16fc99943f2f\"\n    },\n    \"sport\": {\n      \"_id\": \"693a9e96b4d798f46c938643\",\n      \"name\": \"Cricket\",\n      \"logo\": \"\"\n    },\n    \"amount\": 5500,\n    \"currency\": \"INR\",\n    \"status\": \"slot_booked\",\n    \"status_message\": \"Booking request received. Waiting for academy approval.\",\n    \"payment_status\": \"paid\",\n    \"can_accept_reject\": false,\n    \"notes\": null,\n    \"cancellation_reason\": null,\n    \"rejection_reason\": null,\n    \"createdAt\": \"2026-01-16T11:54:04.769Z\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "Approve Booking Request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/booking/:id/approve",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "booking", ":id", "approve"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "f316a86c-2909-4d32-8983-eb225c715bcb",
+                      "description": "Booking UUID"
+                    }
+                  ]
+                },
+                "description": "Approve a booking request. The booking must be in SLOT_BOOKED status. After approval, user can create payment order. Requires authentication and ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Reject Booking Request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"Optional rejection reason\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academy/booking/:id/reject",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "booking", ":id", "reject"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "f316a86c-2909-4d32-8983-eb225c715bcb",
+                      "description": "Booking UUID"
+                    }
+                  ]
+                },
+                "description": "Reject a booking request. The booking must be in SLOT_BOOKED status. Optional reason can be provided. Requires authentication and ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Export Academy Bookings",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/booking/export?format=excel&startDate=2024-01-01&endDate=2024-12-31&type=all&centerId=&batchId=&status=&paymentStatus=",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "booking", "export"],
+                  "query": [
+                    {
+                      "key": "format",
+                      "value": "excel",
+                      "description": "Export format (excel, csv, or pdf)",
+                      "disabled": false
+                    },
+                    {
+                      "key": "startDate",
+                      "value": "2024-01-01",
+                      "description": "Filter by start date (YYYY-MM-DD format)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "endDate",
+                      "value": "2024-12-31",
+                      "description": "Filter by end date (YYYY-MM-DD format)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "type",
+                      "value": "all",
+                      "description": "Filter by booking type (all, confirmed, pending, cancelled, rejected)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "centerId",
+                      "value": "",
+                      "description": "Filter by coaching center ID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "batchId",
+                      "value": "",
+                      "description": "Filter by batch ID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "Filter by booking status (slot_booked, approved, rejected, payment_pending, confirmed, cancelled, completed, requested, pending)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "paymentStatus",
+                      "value": "",
+                      "description": "Filter by payment status (not_initiated, initiated, pending, processing, success, failed, refunded, cancelled)",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Export bookings to Excel, CSV, or PDF format with date range and type filters. Requires authentication and ACADEMY role.\n\n**Export Formats:**\n- `excel`: Excel file (.xlsx)\n- `csv`: CSV file (.csv)\n- `pdf`: PDF file (.pdf)\n\n**Type Filters:**\n- `all`: All bookings (default)\n- `confirmed`: Bookings with CONFIRMED status and SUCCESS payment\n- `pending`: Bookings with SLOT_BOOKED, APPROVED, REQUESTED, or PAYMENT_PENDING status\n- `cancelled`: Bookings with CANCELLED status\n- `rejected`: Bookings with REJECTED status\n\n**Date Format:** YYYY-MM-DD (e.g., 2024-01-01)\n\n**Export includes:** Booking ID, User Name, Student Names, Student Count, Batch Name, Center Name, Amount, Status, Payment Status, Rejection Reason, Cancellation Reason, Created Date"
+              },
+              "response": []
+            }
+          ],
+          "description": "Academy booking management endpoints for viewing, managing, and exporting bookings"
+        },
+        {
+          "name": "Academy Student",
+          "item": [
+            {
+              "name": "Get Enrolled Students",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/my-student?page=1&limit=10&centerId=&batchId=&status=",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "my-student"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (starts from 1)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Number of records per page (max: 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "centerId",
+                      "value": "",
+                      "description": "Filter by coaching center ID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "batchId",
+                      "value": "",
+                      "description": "Filter by batch ID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "Filter by overall student status (active, left, completed, pending)",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Retrieve a paginated list of enrolled students grouped by participant (no duplicates). Shows student details including current age (calculated from DOB), batch name, sport name, booking status, and payment status for each enrollment. Requires authentication and ACADEMY role."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Enrolled Student Detail",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/my-student/:participantId",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "my-student", ":participantId"],
+                  "variable": [
+                    {
+                      "key": "participantId",
+                      "value": "507f1f77bcf86cd799439011",
+                      "description": "Participant ID (ObjectId)"
+                    }
+                  ]
+                },
+                "description": "Retrieve comprehensive details about a specific enrolled student including all participant information (with age), complete user details, all batches with full batch information (scheduled timings, duration, capacity, fee structure), sport details, coaching center basic information (name, contact, location), and complete booking details (status, payment info, notes, timestamps). Requires authentication and ACADEMY role."
+              },
+              "response": []
+            }
+          ],
+          "description": "Academy student management endpoints for viewing enrolled students"
+        }
+      ],
+      "description": "Academy management endpoints for booking and student management. Requires ACADEMY role authentication."
+    },
+    {
+      "name": "Reels",
+      "item": [
+        {
+          "name": "Get Reels List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reels?page=1&limit=3",
+              "host": ["{{baseUrl}}"],
+              "path": ["reels"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (starts from 1)",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "3",
+                  "description": "Number of reels per page (max 3)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Retrieve a paginated list of approved reels with video processing completed. Only returns reels from active users. Maximum 3 reels per page."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Reels List with ID First",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reels/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["reels", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "a9e7fb78-085a-4cbc-993c-9784f8f6576a",
+                  "description": "Reel ID (UUID)"
+                }
+              ]
+            },
+            "description": "Retrieve a list of reels where the specified reel appears first, followed by 2 more reels (total 3). Only returns reels from active users with video processing completed."
+          },
+          "response": []
+        }
+      ],
+      "description": "Public endpoints for viewing reels. Returns only approved reels with completed video processing from active users."
+    },
+    {
+      "name": "Banners",
+      "item": [
+        {
+          "name": "Get Banners by Position",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/banners/homepage_top?limit=5&sportId=&centerId=&targetAudience=all",
+              "host": ["{{baseUrl}}"],
+              "path": ["banners", "homepage_top"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5",
+                  "description": "Maximum number of banners to return (default: 10)"
+                },
+                {
+                  "key": "sportId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter banners by sport ID (optional)"
+                },
+                {
+                  "key": "centerId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter banners by center ID (optional)"
+                },
+                {
+                  "key": "targetAudience",
+                  "value": "all",
+                  "disabled": true,
+                  "description": "Filter by target audience (all, new_users, existing_users, premium_users, mobile_users, web_users)"
+                }
+              ]
+            },
+            "description": "Get active banners for a specific position. Banners are filtered by scheduling, targeting, and sorted by priority. Public endpoint (authentication optional)."
+          },
+          "response": [
+            {
+              "name": "Success - Banners List",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/banners/homepage_top?limit=5",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["banners", "homepage_top"],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banners retrieved successfully\",\n  \"data\": {\n    \"banners\": [\n      {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"title\": \"Summer Sports Camp 2024\",\n        \"description\": \"Join our exciting summer sports camp\",\n        \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/summer-camp.jpg\",\n        \"mobileImageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/summer-camp-mobile.jpg\",\n        \"linkUrl\": \"/sports/cricket\",\n        \"linkType\": \"internal\",\n        \"position\": \"homepage_top\",\n        \"priority\": 10\n      },\n      {\n        \"id\": \"660e8400-e29b-41d4-a716-446655440001\",\n        \"title\": \"Winter Registration Open\",\n        \"description\": \"Register now for winter sports coaching\",\n        \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/winter.jpg\",\n        \"mobileImageUrl\": null,\n        \"linkUrl\": \"/campaigns/winter-2024\",\n        \"linkType\": \"internal\",\n        \"position\": \"homepage_top\",\n        \"priority\": 8\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Track Banner View",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/banners/:id/track/view",
+              "host": ["{{baseUrl}}"],
+              "path": ["banners", ":id", "track", "view"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "550e8400-e29b-41d4-a716-446655440000",
+                  "description": "Banner ID"
+                }
+              ]
+            },
+            "description": "Track banner view (increment viewCount). This endpoint is optional and failures are silently ignored. Public endpoint (authentication optional)."
+          },
+          "response": [
+            {
+              "name": "Success - View Tracked",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/banners/550e8400-e29b-41d4-a716-446655440000/track/view",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["banners", "550e8400-e29b-41d4-a716-446655440000", "track", "view"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banner view tracked successfully\",\n  \"data\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Track Banner Click",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/banners/:id/track/click",
+              "host": ["{{baseUrl}}"],
+              "path": ["banners", ":id", "track", "click"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "550e8400-e29b-41d4-a716-446655440000",
+                  "description": "Banner ID"
+                }
+              ]
+            },
+            "description": "Track banner click (increment clickCount). This endpoint is optional and failures are silently ignored. Public endpoint (authentication optional)."
+          },
+          "response": [
+            {
+              "name": "Success - Click Tracked",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/banners/550e8400-e29b-41d4-a716-446655440000/track/click",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["banners", "550e8400-e29b-41d4-a716-446655440000", "track", "click"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banner click tracked successfully\",\n  \"data\": null\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Public banner endpoints for users to fetch active banners by position with filtering options. Authentication is optional."
+    },
+    {
+      "name": "CMS Pages",
+      "item": [
+        {
+          "name": "Get CMS Page by Slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pages/:slug?platform=",
+              "host": ["{{baseUrl}}"],
+              "path": ["pages", ":slug"],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "privacy-policy",
+                  "description": "CMS page slug (e.g., privacy-policy, terms-and-conditions, about-us)"
+                }
+              ],
+              "query": [
+                {
+                  "key": "platform",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by platform (web, app, both) - optional"
+                }
+              ]
+            },
+            "description": "Get an active CMS page by its slug. This is a public endpoint that doesn't require authentication. Returns HTML content that can be rendered directly in the frontend."
+          },
+          "response": [
+            {
+              "name": "Success - Privacy Policy",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/pages/privacy-policy",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["pages", "privacy-policy"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"CMS page retrieved successfully\",\n  \"data\": {\n    \"page\": {\n      \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"slug\": \"privacy-policy\",\n      \"title\": \"Privacy Policy\",\n      \"content\": \"<h1>Privacy Policy</h1><p>This Privacy Policy describes how we collect, use, and protect your personal information.</p><h2>Information We Collect</h2><p>We collect information that you provide directly to us when you register for an account, make a booking, or contact us for support.</p><h2>How We Use Your Information</h2><ul><li>To process your bookings and payments</li><li>To communicate with you about your account</li><li>To improve our services</li></ul>\",\n      \"platform\": \"both\",\n      \"isActive\": true,\n      \"version\": 1,\n      \"createdAt\": \"2024-01-15T10:00:00.000Z\",\n      \"updatedAt\": \"2024-01-15T10:00:00.000Z\"\n    }\n  }\n}"
+            },
+            {
+              "name": "Success - Terms and Conditions",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/pages/terms-and-conditions",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["pages", "terms-and-conditions"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"CMS page retrieved successfully\",\n  \"data\": {\n    \"page\": {\n      \"id\": \"660e8400-e29b-41d4-a716-446655440001\",\n      \"slug\": \"terms-and-conditions\",\n      \"title\": \"Terms and Conditions\",\n      \"content\": \"<h1>Terms and Conditions</h1><p>Please read these terms and conditions carefully before using our service.</p><h2>Acceptance of Terms</h2><p>By accessing and using this service, you accept and agree to be bound by the terms and provision of this agreement.</p>\",\n      \"platform\": \"both\",\n      \"isActive\": true,\n      \"version\": 1,\n      \"createdAt\": \"2024-01-15T10:00:00.000Z\",\n      \"updatedAt\": \"2024-01-15T10:00:00.000Z\"\n    }\n  }\n}"
+            },
+            {
+              "name": "Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/pages/non-existent-page",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["pages", "non-existent-page"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"CMS page not found\",\n  \"statusCode\": 404\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Public CMS page endpoints for users to access content pages like privacy policy, terms and conditions, about us, etc. No authentication required."
+    },
+    {
+      "name": "Academy Banners",
+      "item": [
+        {
+          "name": "Get All Center Banners",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/banners?limit=5&sportId=",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "banners"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5",
+                  "description": "Maximum number of banners per position (default: 5)"
+                },
+                {
+                  "key": "sportId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter banners by sport ID (optional)"
+                }
+              ]
+            },
+            "description": "Get all active banners that are displayed on the coaching center's page. Returns banners grouped by position. Requires authentication with ACADEMY role."
+          },
+          "response": [
+            {
+              "name": "Success - Banners by Position",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/banners?limit=5",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "banners"],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banners retrieved successfully\",\n  \"data\": {\n    \"banners\": {\n      \"center_page\": [\n        {\n          \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n          \"title\": \"Elite Academy Special Offer\",\n          \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/elite-academy.jpg\",\n          \"linkUrl\": \"/centers/elite-academy\",\n          \"linkType\": \"internal\",\n          \"position\": \"center_page\",\n          \"priority\": 10\n        }\n      ],\n      \"homepage_top\": [\n        {\n          \"id\": \"660e8400-e29b-41d4-a716-446655440001\",\n          \"title\": \"Summer Sports Camp\",\n          \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/summer.jpg\",\n          \"linkUrl\": \"/campaigns/summer\",\n          \"linkType\": \"internal\",\n          \"position\": \"homepage_top\",\n          \"priority\": 8\n        }\n      ]\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Banners by Position",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/banners/center_page?limit=10&sportId=",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "banners", "center_page"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Maximum number of banners to return (default: 10)"
+                },
+                {
+                  "key": "sportId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter banners by sport ID (optional)"
+                }
+              ]
+            },
+            "description": "Get active banners for a specific position that are displayed on the coaching center's page. Requires authentication with ACADEMY role."
+          },
+          "response": [
+            {
+              "name": "Success - Banners List",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/banners/center_page?limit=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "banners", "center_page"],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banners retrieved successfully\",\n  \"data\": {\n    \"banners\": [\n      {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"title\": \"Elite Academy Special Offer\",\n        \"description\": \"Special discount for new students\",\n        \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/elite-academy.jpg\",\n        \"mobileImageUrl\": \"https://bucket.s3.region.amazonaws.com/banners/elite-academy-mobile.jpg\",\n        \"linkUrl\": \"/centers/elite-academy\",\n        \"linkType\": \"internal\",\n        \"position\": \"center_page\",\n        \"priority\": 10\n      }\n    ]\n  }\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Banner endpoints for coaching centers to view banners displayed on their center pages. Requires authentication with ACADEMY role."
+    },
+    {
+      "name": "Admin Notifications",
+      "item": [
+        {
+          "name": "Send Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipientType\": \"user\",\n  \"recipientId\": \"user-uuid-here\",\n  \"title\": \"New Booking Confirmed\",\n  \"body\": \"Your booking for Cricket Batch has been confirmed.\",\n  \"channels\": [\"push\", \"email\"],\n  \"priority\": \"medium\",\n  \"data\": {\n    \"bookingId\": \"BK-2024-0001\",\n    \"type\": \"booking\",\n    \"batchId\": \"batch-uuid-123\",\n    \"amount\": 5000\n  },\n  \"imageUrl\": \"https://bucket.s3.region.amazonaws.com/notifications/image.png\",\n  \"metadata\": {\n    \"customField\": \"custom-value\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/notifications/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "notifications", "send"]
+            },
+            "description": "Send a notification to a user or academy through multiple channels (SMS, Email, WhatsApp, Push). Requires admin authentication. Note: The metadata field is automatically populated with source: 'admin_panel' and adminId from the authenticated admin user. You can provide additional metadata fields which will be merged with the auto-populated ones."
+          },
+          "response": []
+        },
+        {
+          "name": "Test Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipientType\": \"user\",\n  \"recipientId\": \"user-uuid-here\",\n  \"channels\": [\"push\", \"email\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/notifications/test",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "notifications", "test"]
+            },
+            "description": "Send a test notification to verify notification channels are working. Requires admin authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "Admin panel notification management endpoints for sending notifications to users and academies. Requires admin authentication."
+    },
+    {
+      "name": "User Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications?page=1&limit=10&isRead=",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page (default: 10, max: 100)"
+                },
+                {
+                  "key": "isRead",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by read status (true/false) - optional"
+                }
+              ]
+            },
+            "description": "Get paginated list of notifications for the authenticated user. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications", "unread-count"]
+            },
+            "description": "Get count of unread notifications for the authenticated user. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications/:id/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications", ":id", "read"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification-uuid-here",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Mark a specific notification as read. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Unread",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications/:id/unread",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications", ":id", "unread"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification-uuid-here",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Mark a specific notification as unread. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications", "read-all"]
+            },
+            "description": "Mark all notifications as read for the authenticated user. Requires USER role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/notifications/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "notifications", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification-uuid-here",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Delete a specific notification. Requires USER role authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "User notification endpoints for viewing and managing notifications. Requires USER role authentication."
+    },
+    {
+      "name": "Academy Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/notifications?page=1&limit=10&isRead=",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "notifications"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records per page (default: 10, max: 100)"
+                },
+                {
+                  "key": "isRead",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by read status (true/false) - optional"
+                }
+              ]
+            },
+            "description": "Get paginated list of notifications for the authenticated academy. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/notifications/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "notifications", "unread-count"]
+            },
+            "description": "Get count of unread notifications for the authenticated academy. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/notifications/:id/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "notifications", ":id", "read"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification-uuid-here",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Mark a specific notification as read. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Unread",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/notifications/:id/unread",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "notifications", ":id", "unread"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification-uuid-here",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Mark a specific notification as unread. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/notifications/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "notifications", "read-all"]
+            },
+            "description": "Mark all notifications as read for the authenticated academy. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/notifications/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "notifications", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification-uuid-here",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Delete a specific notification. Requires ACADEMY role authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "Academy notification endpoints for viewing and managing notifications. Requires ACADEMY role authentication."
+    },
+    {
+      "name": "Academy Payout Account",
+      "item": [
+        {
+          "name": "Get Payout Account",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/payout-account",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "payout-account"]
+            },
+            "description": "Get payout account details for the authenticated academy user. Each academy user can have only one payout account. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payout Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kyc_details\": {\n    \"legal_business_name\": \"Elite Sports Academy\",\n    \"business_type\": \"partnership\",\n    \"contact_name\": \"John Doe\",\n    \"email\": \"contact@elitesportsacademy.com\",\n    \"phone\": \"9876543210\",\n    \"pan\": \"ABCDE1234F\",\n    \"gst\": \"29ABCDE1234F1Z5\",\n    \"address\": {\n      \"street1\": \"123 MG Road\",\n      \"street2\": \"Near Metro Station\",\n      \"city\": \"Bengaluru\",\n      \"state\": \"KARNATAKA\",\n      \"postal_code\": \"560001\",\n      \"country\": \"IN\"\n    }\n  },\n  \"bank_information\": {\n    \"account_number\": \"1234567890123456\",\n    \"ifsc_code\": \"SBIN0001234\",\n    \"account_holder_name\": \"Elite Sports Academy\",\n    \"bank_name\": \"State Bank of India\"\n  },\n  \"stakeholder\": {\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"phone\": \"9876543210\",\n    \"relationship\": \"director\",\n    \"kyc\": {\n      \"pan\": \"ABCDE1234F\",\n      \"aadhaar\": \"123456789012\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/payout-account",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "payout-account"]
+            },
+            "description": "Create a new payout account (Linked Account) in Razorpay Route for the authenticated academy user. This will create a Linked Account in Razorpay with KYC details, create a stakeholder (if provided), request Route product configuration, and store the account details. Each academy user can create only one payout account. Bank details can be provided during creation or updated later. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Bank Details",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"account_number\": \"1234567890123456\",\n  \"ifsc_code\": \"SBIN0001234\",\n  \"account_holder_name\": \"Elite Sports Academy\",\n  \"bank_name\": \"State Bank of India\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/payout-account/bank-details",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "payout-account", "bank-details"]
+            },
+            "description": "Update bank account details for the payout account. This will update the bank details in Razorpay Route and in the database. The bank details will be verified by Razorpay. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Sync Account Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/payout-account/sync-status",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "payout-account", "sync-status"]
+            },
+            "description": "Manually sync the payout account status from Razorpay. This will fetch the latest status from Razorpay and update the database. Notifications will be sent if the status has changed. Requires ACADEMY role authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "Academy payout account management endpoints for creating and managing Razorpay Route Linked Accounts for receiving payouts. Each academy user can have only one payout account. Requires ACADEMY role authentication."
+    },
+    {
+      "name": "Academy Payouts",
+      "item": [
+        {
+          "name": "Get Payouts List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/my-payouts?status=pending&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "my-payouts"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "description": "Filter by payout status: pending, processing, completed, failed, cancelled, refunded",
+                  "disabled": true
+                },
+                {
+                  "key": "dateFrom",
+                  "value": "",
+                  "description": "Filter from date (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "dateTo",
+                  "value": "",
+                  "description": "Filter to date (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items per page (default: 20, max: 100)"
+                }
+              ]
+            },
+            "description": "Get paginated list of payouts for the authenticated academy user with basic information. Returns only payouts belonging to the authenticated academy user. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payout Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/my-payouts/:payoutId",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "my-payouts", ":payoutId"],
+              "variable": [
+                {
+                  "key": "payoutId",
+                  "value": "payout-uuid-here",
+                  "description": "Payout ID (UUID)"
+                }
+              ]
+            },
+            "description": "Get detailed payout information for a specific payout ID. Only returns payout if it belongs to the authenticated academy user. Requires ACADEMY role authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payout Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/my-payouts/stats?dateFrom=2026-01-01&dateTo=2026-01-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "my-payouts", "stats"],
+              "query": [
+                {
+                  "key": "dateFrom",
+                  "value": "2026-01-01",
+                  "description": "Filter from date (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "dateTo",
+                  "value": "2026-01-31",
+                  "description": "Filter to date (YYYY-MM-DD)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get aggregated payout statistics for the authenticated academy user including counts and amounts for pending, processing, completed, and failed payouts. Requires ACADEMY role authentication."
+          },
+          "response": []
+        }
+      ],
+      "description": "Academy payout viewing endpoints for viewing payout information. Academy users can view their payouts list, details, and statistics. Only returns payouts belonging to the authenticated academy user. Requires ACADEMY role authentication."
+    },
+    {
+      "name": "Academy Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["academy", "dashboard"]
+            },
+            "description": "Get comprehensive dashboard statistics for the authenticated academy user including total users, students, bookings, active batches, total earnings, monthly earnings graph data (last 12 months), and recent 5 bookings with student names, batch names, sport names, and booking times. Data is cached for 5 minutes to optimize performance. Requires ACADEMY role authentication."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/academy/dashboard",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academy", "dashboard"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"statusCode\": 200,\n  \"data\": {\n    \"total_users\": 150,\n    \"total_students\": 250,\n    \"total_bookings\": 500,\n    \"total_active_batches\": 25,\n    \"total_earnings\": 500000,\n    \"monthly_earnings\": [\n      {\n        \"month\": \"2024-01\",\n        \"earnings\": 45000\n      },\n      {\n        \"month\": \"2024-02\",\n        \"earnings\": 52000\n      },\n      {\n        \"month\": \"2024-03\",\n        \"earnings\": 48000\n      }\n    ],\n    \"recent_bookings\": [\n      {\n        \"id\": \"booking-uuid-1\",\n        \"booking_id\": \"BK123456\",\n        \"student_name\": \"John Doe, Jane Smith\",\n        \"batch_name\": \"Morning Batch\",\n        \"sport_name\": \"Cricket\",\n        \"booking_time\": \"2024-01-15T10:30:00Z\"\n      },\n      {\n        \"id\": \"booking-uuid-2\",\n        \"booking_id\": \"BK123457\",\n        \"student_name\": \"Alice Johnson\",\n        \"batch_name\": \"Evening Batch\",\n        \"sport_name\": \"Football\",\n        \"booking_time\": \"2024-01-14T15:20:00Z\"\n      }\n    ]\n  },\n  \"message\": \"Dashboard statistics retrieved successfully\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Academy dashboard endpoints for viewing comprehensive statistics including total users, students, bookings, active batches, earnings, monthly earnings graph data, and recent bookings. Data is cached for 5 minutes to optimize performance. Requires ACADEMY role authentication."
+    }
+  ]
+}
+

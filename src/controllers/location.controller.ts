@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
-import * as locationService from '../services/location.service';
+import * as locationService from '../services/common/location.service';
 
 export const getCountries = async (
   _req: Request,
@@ -30,6 +30,11 @@ export const getStates = async (
       throw new ApiError(400, t('location.states.countryCodeRequired'));
     }
 
+    // Validate countryCode length
+    if (countryCode.length > 50) {
+      throw new ApiError(400, 'Country code is too long');
+    }
+
     const states = await locationService.getStatesByCountry(countryCode);
     const response = new ApiResponse(200, { states }, t('location.states.success'));
     res.json(response);
@@ -44,25 +49,33 @@ export const getCities = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { stateName, stateId, countryCode } = req.query;
+    const { stateId } = req.query;
 
-    if (!stateName && !stateId) {
+    if (!stateId || typeof stateId !== 'string') {
       throw new ApiError(400, t('location.cities.stateRequired'));
     }
 
-    let cities;
-    if (stateId && typeof stateId === 'string') {
-      cities = await locationService.getCitiesByStateId(stateId);
-    } else if (stateName && typeof stateName === 'string') {
-      cities = await locationService.getCitiesByState(
-        stateName,
-        countryCode as string | undefined
-      );
-    } else {
-      throw new ApiError(400, t('location.cities.stateRequired'));
+    // Validate stateId length
+    if (stateId.length > 100) {
+      throw new ApiError(400, 'State ID is too long');
     }
 
+    const cities = await locationService.getCitiesByStateId(stateId);
     const response = new ApiResponse(200, { cities }, t('location.cities.success'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getTopCities = async (
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const topCities = await locationService.getTopCities(15);
+    const response = new ApiResponse(200, { cities: topCities }, 'Top cities retrieved successfully');
     res.json(response);
   } catch (error) {
     next(error);

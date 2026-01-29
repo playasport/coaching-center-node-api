@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import * as coachingCenterController from '../../controllers/academy/coachingCenter.controller';
 import { validate } from '../../middleware/validation.middleware';
-import { coachingCenterCreateSchema, coachingCenterUpdateSchema } from '../../validations/coachingCenter.validation';
+import { academyCoachingCenterCreateSchema, academyCoachingCenterUpdateSchema } from '../../validations/coachingCenter.validation';
 import { authenticate, authorize } from '../../middleware/auth.middleware';
 import { DefaultRoles } from '../../enums/defaultRoles.enum';
 import coachingCenterMediaRoutes from './coachingCenterMedia.routes';
@@ -21,8 +21,49 @@ const router = Router();
  *       required: true
  *       content:
  *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/CoachingCenterCreateRequest'
+   *           schema:
+   *             $ref: '#/components/schemas/CoachingCenterCreateRequest'
+   *           example:
+   *             center_name: "Elite Sports Academy"
+   *             mobile_number: "9876543210"
+   *             email: "info@elitesportsacademy.com"
+   *             logo: "https://bucket.s3.region.amazonaws.com/logos/elite-academy.png"
+   *             documents:
+   *               - unique_id: "h8l9i1jk-02l4-1i53-i75h-70m60h154h1i"
+   *                 url: "https://bucket.s3.region.amazonaws.com/documents/coachingCentres/certificate.pdf"
+   *             sports: ["507f1f77bcf86cd799439011"]
+   *             sport_details:
+   *               - sport_id: "507f1f77bcf86cd799439011"
+   *                 description: "Professional cricket coaching with international level facilities. Our coaches have played at state and national levels."
+   *                 images:
+   *                   - unique_id: "aeddb4dc-35e7-4b86-b08a-03f93a487a4b"
+   *                     url: "https://bucket.s3.region.amazonaws.com/images/coachingCentres/cricket1.jpg"
+   *                 videos:
+   *                   - unique_id: "c3g4d6ef-57g9-6d08-d20c-25h15c609c6d"
+   *                     url: "https://bucket.s3.region.amazonaws.com/videos/coachingCentres/cricket-training.mp4"
+   *                     thumbnail: "https://bucket.s3.region.amazonaws.com/videos/coachingCentres/cricket-training_thumb.jpg"
+   *             age:
+   *               min: 5
+   *               max: 18
+   *             location:
+   *               latitude: 28.6139
+   *               longitude: 77.209
+   *               address:
+   *                 line1: "123 Sports Complex"
+   *                 line2: "Near Metro Station"
+   *                 city: "New Delhi"
+   *                 state: "Delhi"
+   *                 country: "India"
+   *                 pincode: "110001"
+   *             operational_timing:
+   *               operating_days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+   *               opening_time: "09:00"
+   *               closing_time: "18:00"
+   *             allowed_genders: ["male", "female"]
+   *             allowed_disabled: false
+   *             is_only_for_disabled: false
+   *             experience: 5
+   *             status: "draft"
  *     responses:
  *       201:
  *         description: Coaching center created successfully
@@ -48,14 +89,12 @@ const router = Router();
  *         description: Unauthorized - Authentication required
  *       403:
  *         description: Forbidden - ACADEMY role required
- *       409:
- *         description: Email or mobile number already exists
  */
 router.post(
   '/',
   authenticate,
   authorize(DefaultRoles.ACADEMY),
-  validate(coachingCenterCreateSchema),
+  validate(academyCoachingCenterCreateSchema),
   coachingCenterController.createCoachingCenter
 );
 
@@ -86,7 +125,7 @@ router.post(
  *         description: Number of records per page
  *     responses:
  *       200:
- *         description: Coaching centers retrieved successfully
+ *         description: Coaching centers retrieved successfully. Note: The response excludes the following fields - addedBy, rules_regulation, sport_details, age, facility, operational_timing, call_timing, training_timing, bank_information, status, is_deleted, deletedAt, documents, createdAt, updatedAt.
  *         content:
  *           application/json:
  *             schema:
@@ -105,6 +144,7 @@ router.post(
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/CoachingCenter'
+ *                       description: 'Array of coaching centers (excludes: addedBy, rules_regulation, sport_details, age, facility, operational_timing, call_timing, training_timing, bank_information, status, is_deleted, deletedAt, documents, createdAt, updatedAt)'
  *                     pagination:
  *                       type: object
  *                       properties:
@@ -158,7 +198,7 @@ router.get(
  *         description: Coaching center ID
  *     responses:
  *       200:
- *         description: Coaching center retrieved successfully
+ *         description: Coaching center retrieved successfully. Note: The response excludes the following fields - is_deleted, deletedAt, updatedAt.
  *         content:
  *           application/json:
  *             schema:
@@ -175,6 +215,7 @@ router.get(
  *                   properties:
  *                     coachingCenter:
  *                       $ref: '#/components/schemas/CoachingCenter'
+ *                       description: 'Coaching center object (excludes: is_deleted, deletedAt, updatedAt)'
  *       401:
  *         description: Unauthorized - Authentication required
  *       404:
@@ -202,8 +243,49 @@ router.get('/:id', authenticate, authorize(DefaultRoles.ACADEMY), coachingCenter
  *       required: true
  *       content:
  *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/CoachingCenterUpdateRequest'
+   *           schema:
+   *             $ref: '#/components/schemas/CoachingCenterUpdateRequest'
+   *           example:
+   *             center_name: "Updated Elite Sports Academy"
+   *             mobile_number: "9876543210"
+   *             email: "info@elitesportsacademy.com"
+   *             logo: "https://bucket.s3.region.amazonaws.com/logos/elite-academy.png"
+   *             documents:
+   *               - unique_id: "h8l9i1jk-02l4-1i53-i75h-70m60h154h1i"
+   *                 url: "https://bucket.s3.region.amazonaws.com/documents/coachingCentres/certificate.pdf"
+   *             sports: ["507f1f77bcf86cd799439011"]
+   *             sport_details:
+   *               - sport_id: "507f1f77bcf86cd799439011"
+   *                 description: "Updated cricket coaching description"
+   *                 images:
+   *                   - unique_id: "aeddb4dc-35e7-4b86-b08a-03f93a487a4b"
+   *                     url: "https://bucket.s3.region.amazonaws.com/images/coachingCentres/cricket1.jpg"
+   *                 videos:
+   *                   - unique_id: "c3g4d6ef-57g9-6d08-d20c-25h15c609c6d"
+   *                     url: "https://bucket.s3.region.amazonaws.com/videos/coachingCentres/cricket-training.mp4"
+   *                     thumbnail: "https://bucket.s3.region.amazonaws.com/videos/coachingCentres/cricket-training_thumb.jpg"
+   *             age:
+   *               min: 5
+   *               max: 18
+   *             location:
+   *               latitude: 28.6139
+   *               longitude: 77.209
+   *               address:
+   *                 line1: "123 Sports Complex"
+   *                 line2: "Updated Address"
+   *                 city: "New Delhi"
+   *                 state: "Delhi"
+   *                 country: "India"
+   *                 pincode: "110001"
+   *             operational_timing:
+   *               operating_days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+   *               opening_time: "07:00"
+   *               closing_time: "10:00"
+   *             allowed_genders: ["male", "female", "other"]
+   *             allowed_disabled: true
+   *             is_only_for_disabled: false
+   *             experience: 12
+   *             status: "published"
  *     responses:
  *       200:
  *         description: Coaching center updated successfully
@@ -231,14 +313,12 @@ router.get('/:id', authenticate, authorize(DefaultRoles.ACADEMY), coachingCenter
  *         description: Forbidden - ACADEMY role required
  *       404:
  *         description: Coaching center not found
- *       409:
- *         description: Email or mobile number already exists
  */
 router.patch(
   '/:id',
   authenticate,
   authorize(DefaultRoles.ACADEMY),
-  validate(coachingCenterUpdateSchema),
+  validate(academyCoachingCenterUpdateSchema),
   coachingCenterController.updateCoachingCenter
 );
 

@@ -7,6 +7,8 @@ export interface TokenPayload {
   role: string;
   jti?: string; // JWT ID for token blacklisting
   type?: 'access' | 'refresh'; // Token type
+  deviceId?: string; // Device ID for device-specific tokens
+  deviceType?: 'web' | 'android' | 'ios'; // Device type
 }
 
 export interface TokenPair {
@@ -33,31 +35,55 @@ export const generateAccessToken = (payload: TokenPayload): string => {
 };
 
 /**
- * Generate refresh token (long-lived, 7 days)
+ * Generate refresh token (long-lived)
+ * For mobile apps (android/ios), uses longer expiry (default 90 days)
+ * For web, uses standard expiry (default 7 days)
  */
-export const generateRefreshToken = (payload: TokenPayload): string => {
+export const generateRefreshToken = (
+  payload: TokenPayload,
+  deviceType?: 'web' | 'android' | 'ios'
+): string => {
   const { jti, type, ...tokenPayload } = payload;
+  
+  // Use longer expiry for mobile apps
+  const expiresIn = 
+    deviceType === 'android' || deviceType === 'ios'
+      ? config.jwt.mobileRefreshTokenExpiresIn
+      : config.jwt.refreshTokenExpiresIn;
+  
   return jwt.sign(
     {
       ...tokenPayload,
       type: 'refresh',
       jti: jti || `${payload.id}-${Date.now()}-refresh`,
+      deviceType: deviceType || 'web',
+      deviceId: payload.deviceId,
     },
     config.jwt.refreshSecret as jwt.Secret,
     {
-      expiresIn: config.jwt.refreshTokenExpiresIn as jwt.SignOptions['expiresIn'],
+      expiresIn: expiresIn as jwt.SignOptions['expiresIn'],
     }
   );
 };
 
 /**
  * Generate both access and refresh tokens
+ * @param payload - Token payload
+ * @param deviceType - Device type for determining refresh token expiry (web uses 7d, mobile uses 90d)
+ * @param deviceId - Optional device ID for device-specific tokens
  */
-export const generateTokenPair = (payload: TokenPayload): TokenPair => {
+export const generateTokenPair = (
+  payload: TokenPayload,
+  deviceType?: 'web' | 'android' | 'ios',
+  deviceId?: string
+): TokenPair => {
   const jti = `${payload.id}-${Date.now()}`;
   return {
     accessToken: generateAccessToken({ ...payload, jti }),
-    refreshToken: generateRefreshToken({ ...payload, jti }),
+    refreshToken: generateRefreshToken(
+      { ...payload, jti, deviceId, deviceType },
+      deviceType
+    ),
   };
 };
 
@@ -105,5 +131,50 @@ export const generateToken = (payload: TokenPayload): string => {
  */
 export const verifyToken = (token: string): TokenPayload => {
   return verifyAccessToken(token);
+};
+
+/**
+ * Temporary token payload for registration
+ */
+export interface TempTokenPayload {
+  mobile: string;
+  type: 'registration';
+  iat: number;
+  exp: number;
+}
+
+/**
+ * Generate temporary registration token (30 minutes expiry)
+ * Used when user verifies OTP but doesn't exist yet
+ */
+export const generateTempRegistrationToken = (mobile: string): string => {
+  return jwt.sign(
+    {
+      mobile,
+      type: 'registration',
+    },
+    config.jwt.secret as jwt.Secret,
+    {
+      expiresIn: '30m', // 30 minutes
+    }
+  );
+};
+
+/**
+ * Verify temporary registration token
+ */
+export const verifyTempRegistrationToken = (token: string): TempTokenPayload => {
+  try {
+    const decoded = jwt.verify(token, config.jwt.secret as jwt.Secret) as TempTokenPayload;
+    if (decoded.type !== 'registration') {
+      throw new Error('Invalid token type');
+    }
+    if (!decoded.mobile) {
+      throw new Error('Mobile number missing in token');
+    }
+    return decoded;
+  } catch (error) {
+    throw new Error('Invalid or expired temporary registration token');
+  }
 };
 

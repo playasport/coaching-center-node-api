@@ -1,0 +1,522 @@
+[
+  {
+    "custom_id": "9be61f81-66a1-47d0-b7b1-1ba5087dffde",
+    "name": "Archery",
+    "slug": "archery",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/693008443d20b_1764755524.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "81ad71b9-7082-40a0-8e94-22aec4233f1a",
+    "name": "Badminton",
+    "slug": "badminton",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300a688dd6a_1764756072.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "a076ab42-3315-4741-a1da-df05d26f5769",
+    "name": "Baseball",
+    "slug": "baseball",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300bf7bf7b1_1764756471.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9b99b82e-3d23-4543-ab8f-4262d5319603",
+    "name": "Basketball",
+    "slug": "basketball",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/6930077bb18b2_1764755323.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9bd60f76-7371-4786-bca4-5d80133a75e2",
+    "name": "Billiards",
+    "slug": "billiards",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300838d5abc_1764755512.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9bcfba0c-1da6-433f-b68e-b9285ff98bb3",
+    "name": "Boxing",
+    "slug": "boxing",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300752c385d_1764755282.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9bd60c2f-21fe-4400-9d12-c4e4761a09c8",
+    "name": "Brazilian Jujutsu",
+    "slug": "brazilian-jujutsu",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/693009fae08a5_1764755962.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "a7b801e4-3f3c-4c88-b5f6-23280a7e9685",
+    "name": "Chess",
+    "slug": "chess",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300b1cad26d_1764756252.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9bd60b75-a8d4-490f-a054-61e56862c368",
+    "name": "Combat Sports",
+    "slug": "combat-sports",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300b89103c1_1764756361.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "745c653e-2706-4cce-8197-5ffee68c6b35",
+    "name": "Cricket",
+    "slug": "cricket",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/693007285a28b_1764755240.jpg",
+    "is_active": true,
+    "is_popular": true,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9ff24ce6-f2c4-4d5a-9053-8a4f1581148d",
+    "name": "Discus Throw",
+    "slug": "discus-throw",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/6930086017679_1764755552.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9e91cf4a-f771-4ecf-8b80-8aafbfebe423",
+    "name": "Fencing",
+    "slug": "fencing",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300b99240e3_1764756377.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "a080e318-8583-45c8-80a6-5f0d13125d92",
+    "name": "Fillipino Martial Art",
+    "slug": "fillipino-martial-art",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300356cbe30_1764754262.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "ca54244e-a967-4c6c-9cce-1a9ddb44cb25",
+    "name": "Football",
+    "slug": "football",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300a239ccec_1764756003.jpg",
+    "is_active": true,
+    "is_popular": true,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9c125522-b8a8-4168-99b9-01f08808bad1",
+    "name": "Golf",
+    "slug": "golf",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/6930073c0dcb3_1764755260.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9c2c9738-c6f9-469b-b9d5-ca97fb02ca0c",
+    "name": "Grappling",
+    "slug": "grappling",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300b90d2b6b_1764756368.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9c5cd82f-3452-4a3b-b379-e531f39d6f65",
+    "name": "Gymnastics",
+    "slug": "gymnastics",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300a0d8dd90_1764755981.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "06da21af-f11c-4cd9-8ecc-b21d3de9ad2c",
+    "name": "Hockey",
+    "slug": "hockey",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300a7c0df52_1764756092.jpg",
+    "is_active": true,
+    "is_popular": true,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9dd52129-b8c1-402a-9b73-aedffdaad572",
+    "name": "Horse Riding",
+    "slug": "horse-riding",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300bbabc953_1764756410.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9f3abc9a-2399-4d2a-81f0-2b4fa541f30f",
+    "name": "Javelin",
+    "slug": "javelin",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300bb3344a3_1764756403.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9f32ef62-99ad-4414-bb37-ef2a359b6a1e",
+    "name": "Judo",
+    "slug": "judo",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300bc20d7d2_1764756418.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9ff24cd0-589e-431c-8783-b6d33e47b4c8",
+    "name": "Jumping",
+    "slug": "jumping",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/693007e1c4eb3_1764755425.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9b99b868-ff07-4bdd-8a0e-60a6f180c740",
+    "name": "Kabaddi",
+    "slug": "kabaddi",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300beed49b9_1764756462.jpg",
+    "is_active": true,
+    "is_popular": true,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9f633f88-bf70-4da7-a2b7-829e7b87059b",
+    "name": "Kalahi",
+    "slug": "kalahi",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300b70c3f1b_1764756336.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9b99b90b-ccdc-4970-821f-49c2ccb95e7a",
+    "name": "Karate",
+    "slug": "karate",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300a43b81d0_1764756035.jpg",
+    "is_active": true,
+    "is_popular": true,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9bcfbd92-559f-4c25-81d4-485f55602ec4",
+    "name": "Kick Boxing",
+    "slug": "kick-boxing",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/693007c184c4b_1764755393.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "a01c57a8-c116-4f54-8dda-8e93aa0a2bb7",
+    "name": "Lathi Sports",
+    "slug": "lathi-sports",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300b80c315c_1764756352.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9b99b897-d6a0-4856-a2cf-4437d6fbbfdd",
+    "name": "Lawn Tennis",
+    "slug": "lawn-tennis",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300a346e1b1_1764756020.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9fa547c1-5f72-462a-9ea1-b5fdd3405a90",
+    "name": "Mallakhamb",
+    "slug": "mallakhamb",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300bcaa35e8_1764756426.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9be7fdb3-29f1-41d4-abbc-9c53e9eb1de0",
+    "name": "Martial Art",
+    "slug": "martial-art",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300b034a6af_1764756227.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9bd60c8f-eb48-462a-8444-10b131c7d02d",
+    "name": "MMA",
+    "slug": "mma",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/6930080859c72_1764755464.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9c5cda8c-a97c-4e84-8caa-9cf3a93cafb1",
+    "name": "Physical Training",
+    "slug": "physical-training",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300b67b5dff_1764756327.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9c2c6848-98e4-44f5-bf9b-6ee4153d89a5",
+    "name": "Pickleball",
+    "slug": "pickleball",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/693007f9dbdc5_1764755449.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9c5c9ecc-16bb-4960-b06a-5e6e78f57305",
+    "name": "Polo",
+    "slug": "polo",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300b292c4f4_1764756265.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9e15261b-23ed-4988-92bc-18482db4ce9c",
+    "name": "Roll Ball",
+    "slug": "roll-ball",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300ba417fde_1764756388.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9be7fe33-aa1a-4fb6-a92b-16f3d6f6ad1e",
+    "name": "Roller Skating",
+    "slug": "roller-skating",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/6930093ef2d8b_1764755774.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9c2058d9-ff83-4d7a-82ed-e1c3706642ea",
+    "name": "Rugby",
+    "slug": "rugby",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300953418ac_1764755795.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9ff24cb9-fffd-4e06-8b77-0a68341c5b10",
+    "name": "Running",
+    "slug": "running",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/693007d951dbb_1764755417.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9c205fbc-4b03-4158-8ce2-30bb3fb2ae63",
+    "name": "Sepak Takraw",
+    "slug": "sepak-takraw",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/6930088cb4800_1764755596.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "0bfbf935-490e-46a4-9441-4a3c381dec14",
+    "name": "Shooting",
+    "slug": "shooting",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300aef14fba_1764756207.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9ff24cfb-b348-4246-a609-3844104af121",
+    "name": "Shot Put",
+    "slug": "shot-put",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/6930070d08764_1764755213.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9c5cd640-8468-48ef-9032-7e48c94985b3",
+    "name": "Skating",
+    "slug": "skating",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300b5f158e7_1764756319.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9f32e590-44f6-48aa-9347-c5fd90c13907",
+    "name": "Squash",
+    "slug": "squash",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300b10e2c72_1764756240.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9b99b84c-3877-4d02-9f59-fcb1063881ff",
+    "name": "Swimming",
+    "slug": "swimming",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300a531ce35_1764756051.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "4bb4402b-b309-4bf5-93d4-15176aeed317",
+    "name": "Table Tennis",
+    "slug": "table-tennis",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300a8d44e52_1764756109.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9b99ba2b-6de2-452e-b3dc-570b9fce4865",
+    "name": "Taekwondo",
+    "slug": "taekwondo",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300796f095e_1764755350.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9e3fcf66-ba63-490d-8ac4-e7885d41e339",
+    "name": "Thai Boxing",
+    "slug": "thai-boxing",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300b56533de_1764756310.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9e91cf63-6930-486f-ac29-05879d3bb73a",
+    "name": "Tug Of War",
+    "slug": "tug-of-war",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300b4b9efd7_1764756299.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "a7480112-4591-45f9-aff6-3ad415b40970",
+    "name": "Volleyball",
+    "slug": "volleyball",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300b3fe87fa_1764756287.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9c2c982e-8fed-499b-99c0-c7637a63eee5",
+    "name": "Wrestling",
+    "slug": "wrestling",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300bd2e51e0_1764756434.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9e91cfae-6183-4aca-9261-b65ce360ef36",
+    "name": "Wushu",
+    "slug": "wushu",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/69300b36ca57a_1764756278.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  },
+  {
+    "custom_id": "9bd60cd9-2dda-4a5d-ac6d-217a26baaa1a",
+    "name": "Yoga",
+    "slug": "yoga",
+    "logo": "https://media-playsport.s3.ap-south-1.amazonaws.com/images/sports/6930081fb07b7_1764755487.jpg",
+    "is_active": true,
+    "is_popular": false,
+    "createdAt": "2025-12-11T10:32:59.236Z",
+    "updatedAt": "2025-12-11T10:32:59.236Z"
+  }
+]
