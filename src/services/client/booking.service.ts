@@ -59,6 +59,7 @@ import {
 } from './booking.helpers.validation';
 import {
   calculatePriceBreakdownAndCommission,
+  getPerParticipantFee,
   roundToTwoDecimals,
 } from './booking.helpers.calculation';
 import {
@@ -409,13 +410,7 @@ export const getBookingSummary = async (
 
     // Calculate amount
     const admissionFeePerParticipant = batch.admission_fee || 0;
-    
-    // Use discounted_price if available and > 0, otherwise use base_price
-    // discounted_price should be <= base_price (validated in batch model)
-    const perParticipantFee =
-      batch.discounted_price != null && batch.discounted_price > 0
-        ? batch.discounted_price
-        : batch.base_price;
+    const perParticipantFee = getPerParticipantFee(batch);
     const participantCount = participants.length;
 
     // Calculate base amount: (admission fee + base fee) * participant count
@@ -574,9 +569,7 @@ export const bookSlot = async (
     // Use data from summary instead of re-fetching batch
     // Summary already has all the batch data we need
     const admissionFeePerParticipant = summary.batch.admission_fee || 0;
-    const perParticipantFee = summary.batch.discounted_price !== null && summary.batch.discounted_price !== undefined 
-      ? summary.batch.discounted_price 
-      : summary.batch.base_price;
+    const perParticipantFee = getPerParticipantFee(summary.batch);
     const participantCount = participantIds.length;
     const totalAdmissionFee = roundToTwoDecimals(admissionFeePerParticipant * participantCount);
     const totalBaseFee = roundToTwoDecimals(perParticipantFee * participantCount);
@@ -708,13 +701,13 @@ export const bookSlot = async (
                 batchName,
                 userName,
                 participants: participantNames,
-                bookingId: booking.booking_id || booking.id,
+                bookingId: booking.booking_id ?? undefined,
                 year: new Date().getFullYear(),
               },
               priority: 'high',
               metadata: {
                 type: 'booking_request',
-                bookingId: booking.booking_id || booking.id,
+                bookingId: booking.booking_id ?? undefined,
                 recipient: 'academy',
               },
             });
@@ -727,11 +720,11 @@ export const bookSlot = async (
               batchName,
               userName,
               participants: participantNames,
-              bookingId: booking.id,
+              bookingId: booking.booking_id ?? undefined,
             });
             queueSms(academyMobile, smsMessage, 'high', {
               type: 'booking_request',
-              bookingId: booking.id,
+              bookingId: booking.booking_id ?? undefined,
               recipient: 'academy',
             });
           }
@@ -742,16 +735,16 @@ export const bookSlot = async (
               batchName,
               userName,
               participants: participantNames,
-              bookingId: booking.booking_id || booking.id,
+              bookingId: booking.booking_id ?? undefined,
             });
             queueWhatsApp(academyMobile, whatsappMessage, 'high', {
               type: 'booking_request',
-              bookingId: booking.booking_id || booking.id,
+              bookingId: booking.booking_id ?? undefined,
               recipient: 'academy',
             });
           }
         } catch (error) {
-          logger.error('Failed to send academy notifications', { error, bookingId: booking.id });
+          logger.error('Failed to send academy notifications', { error, bookingId: booking.booking_id ?? booking.id });
         }
       })().catch(() => {
         // Errors already logged in try-catch
@@ -792,13 +785,13 @@ export const bookSlot = async (
           batchName,
           centerName,
           participants: participantNames,
-          bookingId: booking.booking_id || booking.id,
+          bookingId: booking.booking_id ?? undefined,
           year: new Date().getFullYear(),
         },
         priority: 'medium',
         metadata: {
           type: 'booking_request_sent',
-          bookingId: booking.booking_id || booking.id,
+          bookingId: booking.booking_id ?? undefined,
           recipient: 'user',
         },
       });
@@ -809,11 +802,11 @@ export const bookSlot = async (
       const smsMessage = getBookingRequestSentUserSms({
         batchName,
         centerName,
-        bookingId: booking.id,
+        bookingId: booking.booking_id ?? undefined,
       });
       queueSms(userDetails.mobile, smsMessage, 'medium', {
         type: 'booking_request_sent',
-        bookingId: booking.id,
+        bookingId: booking.booking_id ?? undefined,
         recipient: 'user',
       });
     }
@@ -824,11 +817,11 @@ export const bookSlot = async (
         batchName,
         centerName,
         participants: participantNames,
-        bookingId: booking.booking_id || booking.id,
+        bookingId: booking.booking_id ?? undefined,
       });
       queueWhatsApp(userDetails.mobile, whatsappMessage, 'medium', {
         type: 'booking_request_sent',
-        bookingId: booking.booking_id || booking.id,
+        bookingId: booking.booking_id ?? undefined,
         recipient: 'user',
       });
     }
@@ -1603,7 +1596,7 @@ export const verifyPayment = async (
         // Prepare email template variables
         const emailTemplateVariables = {
           userName,
-          bookingId: updatedBooking.id,
+          bookingId: updatedBooking.booking_id ?? undefined,
           batchName,
           sportName,
           centerName,
@@ -1637,7 +1630,7 @@ export const verifyPayment = async (
           queueEmail(userEmail, EmailSubjects.BOOKING_CONFIRMATION_USER, {
             template: EmailTemplates.BOOKING_CONFIRMATION_USER,
             text: getBookingConfirmationUserEmailText({
-              bookingId: updatedBooking.booking_id || updatedBooking.id,
+              bookingId: updatedBooking.booking_id ?? undefined,
               batchName,
               centerName,
             }),
@@ -1645,13 +1638,13 @@ export const verifyPayment = async (
             priority: 'high',
             metadata: {
               type: 'booking_confirmation',
-              bookingId: updatedBooking.booking_id || updatedBooking.id,
+              bookingId: updatedBooking.booking_id ?? undefined,
               recipient: 'user',
             },
             attachments: invoiceBuffer
               ? [
                   {
-                    filename: `invoice-${updatedBooking.booking_id || updatedBooking.id}.pdf`,
+                    filename: `invoice-${updatedBooking.booking_id}.pdf`,
                     content: invoiceBuffer,
                     contentType: 'application/pdf',
                   },
@@ -1665,7 +1658,7 @@ export const verifyPayment = async (
           queueEmail(centerEmail, EmailSubjects.BOOKING_CONFIRMATION_CENTER, {
             template: EmailTemplates.BOOKING_CONFIRMATION_CENTER,
             text: getBookingConfirmationCenterEmailText({
-              bookingId: updatedBooking.booking_id || updatedBooking.id,
+              bookingId: updatedBooking.booking_id ?? undefined,
               batchName,
               userName,
             }),
@@ -1676,7 +1669,7 @@ export const verifyPayment = async (
             priority: 'high',
             metadata: {
               type: 'booking_confirmation',
-              bookingId: updatedBooking.booking_id || updatedBooking.id,
+              bookingId: updatedBooking.booking_id ?? undefined,
               recipient: 'coaching_center',
             },
           });
@@ -1687,7 +1680,7 @@ export const verifyPayment = async (
           queueEmail(config.admin.email, EmailSubjects.BOOKING_CONFIRMATION_ADMIN, {
             template: EmailTemplates.BOOKING_CONFIRMATION_ADMIN,
             text: getBookingConfirmationAdminEmailText({
-              bookingId: updatedBooking.booking_id || updatedBooking.id,
+              bookingId: updatedBooking.booking_id ?? undefined,
               batchName,
               centerName,
             }),
@@ -1698,7 +1691,7 @@ export const verifyPayment = async (
             priority: 'high',
             metadata: {
               type: 'booking_confirmation',
-              bookingId: updatedBooking.booking_id || updatedBooking.id,
+              bookingId: updatedBooking.booking_id ?? undefined,
               recipient: 'admin',
             },
           });
@@ -1707,7 +1700,7 @@ export const verifyPayment = async (
         // Prepare SMS messages using notification messages
         const userSmsMessage = getPaymentVerifiedUserSms({
           userName: userName || 'User',
-          bookingId: updatedBooking.booking_id || updatedBooking.id,
+          bookingId: updatedBooking.booking_id ?? undefined,
           batchName,
           sportName,
           centerName,
@@ -1720,7 +1713,7 @@ export const verifyPayment = async (
         });
         
         const centerSmsMessage = getPaymentVerifiedAcademySms({
-          bookingId: updatedBooking.booking_id || updatedBooking.id,
+          bookingId: updatedBooking.booking_id ?? undefined,
           batchName,
           sportName,
           userName: userName || 'N/A',
@@ -1737,12 +1730,12 @@ export const verifyPayment = async (
         if (userMobile) {
           queueSms(userMobile, userSmsMessage, 'high', {
             type: 'booking_confirmation',
-            bookingId: updatedBooking.booking_id || updatedBooking.id,
+            bookingId: updatedBooking.booking_id ?? undefined,
             recipient: 'user',
           });
         } else {
           logger.warn('User mobile number not available for SMS', {
-            bookingId: booking.booking_id || booking.id,
+            bookingId: booking.booking_id ?? undefined,
           });
         }
 
@@ -1750,19 +1743,19 @@ export const verifyPayment = async (
         if (centerMobile) {
           queueSms(centerMobile, centerSmsMessage, 'high', {
             type: 'booking_confirmation',
-            bookingId: updatedBooking.id,
+            bookingId: updatedBooking.booking_id ?? undefined,
             recipient: 'coaching_center',
           });
         } else {
           logger.warn('Coaching center mobile number not available for SMS', {
-            bookingId: booking.id,
+            bookingId: booking.booking_id ?? undefined,
           });
         }
 
         // Prepare WhatsApp messages using notification messages
         const userWhatsAppMessage = getPaymentVerifiedUserWhatsApp({
           userName: userName || 'User',
-          bookingId: updatedBooking.booking_id || updatedBooking.id,
+          bookingId: updatedBooking.booking_id ?? undefined,
           batchName,
           sportName,
           centerName,
@@ -1775,7 +1768,7 @@ export const verifyPayment = async (
         });
         
         const centerWhatsAppMessage = getPaymentVerifiedAcademyWhatsApp({
-          bookingId: updatedBooking.id,
+          bookingId: updatedBooking.booking_id ?? undefined,
           batchName,
           sportName,
           userName: userName || 'N/A',
@@ -1792,12 +1785,12 @@ export const verifyPayment = async (
         if (userMobile) {
           queueWhatsApp(userMobile, userWhatsAppMessage, 'high', {
             type: 'booking_confirmation',
-            bookingId: updatedBooking.booking_id || updatedBooking.id,
+            bookingId: updatedBooking.booking_id ?? undefined,
             recipient: 'user',
           });
         } else {
           logger.warn('User mobile number not available for WhatsApp', {
-            bookingId: booking.booking_id || booking.id,
+            bookingId: booking.booking_id ?? undefined,
           });
         }
 
@@ -1805,12 +1798,12 @@ export const verifyPayment = async (
         if (centerMobile) {
           queueWhatsApp(centerMobile, centerWhatsAppMessage, 'high', {
             type: 'booking_confirmation',
-            bookingId: updatedBooking.booking_id || updatedBooking.id,
+            bookingId: updatedBooking.booking_id ?? undefined,
             recipient: 'coaching_center',
           });
         } else {
           logger.warn('Coaching center mobile number not available for WhatsApp', {
-            bookingId: booking.booking_id || booking.id,
+            bookingId: booking.booking_id ?? undefined,
           });
         }
 
@@ -2717,14 +2710,14 @@ export const cancelBooking = async (
                 userName,
                 batchName,
                 centerName,
-                bookingId: booking.booking_id || booking.id,
+                bookingId: booking.booking_id ?? undefined,
                 reason: reason || null,
                 year: new Date().getFullYear(),
               },
               priority: 'medium',
               metadata: {
                 type: 'booking_cancelled',
-                bookingId: booking.booking_id || booking.id,
+                bookingId: booking.booking_id ?? undefined,
                 recipient: 'user',
               },
             });
@@ -2735,12 +2728,12 @@ export const cancelBooking = async (
             const smsMessage = getBookingCancelledUserSms({
               batchName,
               centerName,
-              bookingId: booking.booking_id || booking.id,
+              bookingId: booking.booking_id ?? undefined,
               reason: reason || null,
             });
             queueSms(user.mobile, smsMessage, 'medium', {
               type: 'booking_cancelled',
-              bookingId: booking.booking_id || booking.id,
+              bookingId: booking.booking_id ?? undefined,
               recipient: 'user',
             });
           }
@@ -2750,12 +2743,12 @@ export const cancelBooking = async (
             const whatsappMessage = getBookingCancelledUserWhatsApp({
               batchName,
               centerName,
-              bookingId: booking.booking_id || booking.id,
+              bookingId: booking.booking_id ?? undefined,
               reason: reason || null,
             });
             queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
               type: 'booking_cancelled',
-              bookingId: booking.booking_id || booking.id,
+              bookingId: booking.booking_id ?? undefined,
               recipient: 'user',
             });
           }
@@ -2793,7 +2786,7 @@ export const cancelBooking = async (
               queueEmail(academyEmail, EmailSubjects.BOOKING_CANCELLED_ACADEMY, {
                 template: EmailTemplates.BOOKING_CANCELLED_ACADEMY,
                 text: getBookingCancelledAcademyEmailText({
-                  bookingId: booking.booking_id || booking.id,
+                  bookingId: booking.booking_id ?? undefined,
                   batchName,
                   userName,
                   reason: reason || null,
@@ -2803,14 +2796,14 @@ export const cancelBooking = async (
                   batchName,
                   userName,
                   userEmail: user?.email || 'N/A',
-                  bookingId: booking.booking_id || booking.id,
+                  bookingId: booking.booking_id ?? undefined,
                   reason: reason || null,
                   year: new Date().getFullYear(),
                 },
                 priority: 'medium',
                 metadata: {
                   type: 'booking_cancelled',
-                  bookingId: booking.booking_id || booking.id,
+                  bookingId: booking.booking_id ?? undefined,
                   recipient: 'academy',
                 },
               });
@@ -2820,14 +2813,14 @@ export const cancelBooking = async (
             const academyMobile = (centerDetails as any)?.mobile_number || academyOwner.mobile;
             if (academyMobile) {
               const smsMessage = getBookingCancelledAcademySms({
-                bookingId: booking.booking_id || booking.id,
+                bookingId: booking.booking_id ?? undefined,
                 batchName,
                 userName,
                 reason: reason || null,
               });
               queueSms(academyMobile, smsMessage, 'medium', {
                 type: 'booking_cancelled',
-                bookingId: booking.booking_id || booking.id,
+                bookingId: booking.booking_id ?? undefined,
                 recipient: 'academy',
               });
             }
@@ -2835,14 +2828,14 @@ export const cancelBooking = async (
             // WhatsApp notification (async)
             if (academyMobile) {
               const whatsappMessage = getBookingCancelledAcademyWhatsApp({
-                bookingId: booking.id,
+                bookingId: booking.booking_id ?? undefined,
                 batchName,
                 userName,
                 reason: reason || null,
               });
               queueWhatsApp(academyMobile, whatsappMessage, 'medium', {
                 type: 'booking_cancelled',
-                bookingId: booking.id,
+                bookingId: booking.booking_id ?? undefined,
                 recipient: 'academy',
               });
             }
@@ -2854,7 +2847,7 @@ export const cancelBooking = async (
           queueEmail(config.admin.email, EmailSubjects.BOOKING_CANCELLED_ADMIN, {
             template: EmailTemplates.BOOKING_CANCELLED_ADMIN,
             text: getBookingCancelledAdminEmailText({
-              bookingId: booking.booking_id || booking.id,
+              bookingId: booking.booking_id ?? undefined,
               batchName,
               centerName,
               userName,
@@ -2865,20 +2858,20 @@ export const cancelBooking = async (
               userEmail: user?.email || 'N/A',
               batchName,
               centerName,
-              bookingId: booking.booking_id || booking.id,
+              bookingId: booking.booking_id ?? undefined,
               reason: reason || null,
               year: new Date().getFullYear(),
             },
             priority: 'medium',
             metadata: {
               type: 'booking_cancelled',
-              bookingId: booking.booking_id || booking.id,
+              bookingId: booking.booking_id ?? undefined,
               recipient: 'admin',
             },
           });
         }
 
-        logger.info(`Booking cancellation notifications queued for booking: ${booking.id}`);
+        logger.info(`Booking cancellation notifications queued for booking: ${booking.booking_id}`);
       } catch (notificationError) {
         // Log error but don't fail the cancellation
         logger.error('Error sending booking cancellation notifications', {

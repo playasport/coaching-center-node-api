@@ -254,7 +254,7 @@ export const createRefund = async (
           {
             text: getBookingRefundedUserEmailText({
               userName: user.firstName || 'User',
-              bookingId: bookingId || booking.booking_id || '',
+              bookingId: booking.booking_id || '',
               amount: refundAmountInRupees.toFixed(2),
               reason: refundData.reason,
               refundId: razorpayRefund.id,
@@ -262,7 +262,7 @@ export const createRefund = async (
             priority: 'high',
             metadata: {
               type: 'booking_refunded',
-              bookingId: bookingId,
+              bookingId: booking.booking_id,
               recipient: 'user',
             },
           }
@@ -277,10 +277,10 @@ export const createRefund = async (
 
     if (user?.mobile) {
       try {
-        const smsMessage = `Your booking ${booking.booking_id || bookingId} has been refunded. Amount: ₹${refundAmountInRupees.toFixed(2)}. Refund ID: ${razorpayRefund.id}. - Play A Sport`;
+        const smsMessage = `Your booking ${booking.booking_id} has been refunded. Amount: ₹${refundAmountInRupees.toFixed(2)}. Refund ID: ${razorpayRefund.id}. - Play A Sport`;
         queueSms(user.mobile, smsMessage, 'high', {
           type: 'booking_refunded',
-          bookingId: bookingId,
+          bookingId: booking.booking_id,
           recipient: 'user',
         });
       } catch (error: unknown) {

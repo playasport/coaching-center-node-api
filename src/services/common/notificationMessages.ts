@@ -335,16 +335,16 @@ export const EmailTemplates = {
  * Email Subject Lines
  */
 export const EmailSubjects = {
-  BOOKING_REQUEST_ACADEMY: 'New Booking Request - PlayAsport',
-  BOOKING_REQUEST_SENT_USER: 'Booking Request Sent - PlayAsport',
-  BOOKING_APPROVED_USER: 'Booking Approved - PlayAsport',
-  BOOKING_REJECTED_USER: 'Booking Request Rejected - PlayAsport',
+  BOOKING_REQUEST_ACADEMY: 'New Booking Request - Play A Sport',
+  BOOKING_REQUEST_SENT_USER: 'Booking Request Sent - Play A Sport',
+  BOOKING_APPROVED_USER: 'Booking Approved - Play A Sport',
+  BOOKING_REJECTED_USER: 'Booking Request Rejected - Play A Sport',
   BOOKING_CONFIRMATION_USER: 'Booking Confirmed - Play A Sport',
   BOOKING_CONFIRMATION_CENTER: 'New Booking Received - Play A Sport',
   BOOKING_CONFIRMATION_ADMIN: 'New Booking Notification - Play A Sport',
-  BOOKING_CANCELLED_USER: 'Booking Cancelled - PlayAsport',
-  BOOKING_CANCELLED_ACADEMY: 'Booking Cancelled - PlayAsport',
-  BOOKING_CANCELLED_ADMIN: 'Booking Cancelled - PlayAsport',
+  BOOKING_CANCELLED_USER: 'Booking Cancelled - Play A Sport',
+  BOOKING_CANCELLED_ACADEMY: 'Booking Cancelled - Play A Sport',
+  BOOKING_CANCELLED_ADMIN: 'Booking Cancelled - Play A Sport',
   BOOKING_REFUNDED_USER: 'Booking Refunded - Play A Sport',
   PAYOUT_ACCOUNT_CREATED: 'Payout Account Created - Play A Sport',
   PAYOUT_ACCOUNT_ACTIVATED: 'Payout Account Activated - Play A Sport',
@@ -580,7 +580,7 @@ export const getBookingCancelledAcademyPush = (variables: NotificationMessageVar
  */
 export const getBookingApprovedUserPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
   return {
-    title: 'Booking Approved! ✅',
+    title: 'Booking Approved!',
     body: replaceVariables(`Your booking request for "{{batchName}}" has been approved. Please proceed with payment.`, variables),
   };
 };
@@ -641,7 +641,7 @@ export const getBankDetailsUpdatedAcademyPush = (variables: NotificationMessageV
  */
 export const getPayoutAccountActivatedAcademyPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
   return {
-    title: 'Payout Account Activated! 🎉',
+    title: 'Payout Account Activated!',
     body: replaceVariables(`Great news! Your payout account has been activated. You can now start receiving payouts.`, variables),
   };
 };
@@ -681,7 +681,7 @@ export const getPayoutTransferInitiatedAcademyPush = (variables: NotificationMes
  */
 export const getPayoutTransferCompletedAcademyPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
   return {
-    title: 'Payout Completed! 💰',
+    title: 'Payout Completed!',
     body: replaceVariables(`Your payout of ₹{{amount}} has been successfully transferred. Transfer ID: {{transferId}}`, variables),
   };
 };

@@ -13,6 +13,18 @@ const roundToTwoDecimals = (value: number): number => {
 export { roundToTwoDecimals };
 
 /**
+ * Resolve per-participant fee from batch: use discounted_price only when set and > 0, else base_price.
+ * Use this everywhere batch pricing drives booking amount, payout, or commission.
+ */
+export const getPerParticipantFee = (batch: {
+  base_price: number;
+  discounted_price?: number | null;
+}): number =>
+  batch.discounted_price != null && batch.discounted_price > 0
+    ? batch.discounted_price
+    : batch.base_price;
+
+/**
  * Helper function to calculate price breakdown and commission
  * Used internally for booking creation
  * Note: GST is applied only on platform_fee, not on the entire amount
@@ -94,8 +106,8 @@ export const calculatePriceBreakdownAndCommission = async (
     payoutAmount = roundToTwoDecimals(baseAmount - commissionAmount);
   }
   
-  // Ensure payout amount is never negative (safety check)
-  payoutAmount = Math.max(0, roundToTwoDecimals(payoutAmount));
+  // Ensure payout amount is in [0, baseAmount] (safety check)
+  payoutAmount = Math.max(0, Math.min(roundToTwoDecimals(baseAmount), roundToTwoDecimals(payoutAmount)));
 
   const priceBreakdown = {
     admission_fee_per_participant: admissionFeePerParticipant,

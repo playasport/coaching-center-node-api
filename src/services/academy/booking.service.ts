@@ -597,13 +597,13 @@ export const approveBookingRequest = async (
             userName,
             batchName,
             centerName,
-            bookingId: booking.booking_id || booking.id,
+            bookingId: booking.booking_id,
             year: new Date().getFullYear(),
           },
           priority: 'high',
           metadata: {
             type: 'booking_approved',
-            bookingId: booking.booking_id || booking.id,
+            bookingId: booking.booking_id,
             recipient: 'user',
           },
         });
@@ -614,11 +614,11 @@ export const approveBookingRequest = async (
         const smsMessage = getBookingApprovedUserSms({
           batchName,
           centerName,
-          bookingId: booking.booking_id || booking.id,
+          bookingId: booking.booking_id,
         });
         queueSms(user.mobile, smsMessage, 'high', {
           type: 'booking_approved',
-          bookingId: booking.booking_id || booking.id,
+          bookingId: booking.booking_id,
           recipient: 'user',
         });
       }
@@ -628,11 +628,11 @@ export const approveBookingRequest = async (
         const whatsappMessage = getBookingApprovedUserWhatsApp({
           batchName,
           centerName,
-          bookingId: booking.booking_id || booking.id,
+          bookingId: booking.booking_id,
         });
         queueWhatsApp(user.mobile, whatsappMessage, 'high', {
           type: 'booking_approved',
-          bookingId: booking.booking_id || booking.id,
+          bookingId: booking.booking_id,
           recipient: 'user',
         });
       }
@@ -803,14 +803,14 @@ export const rejectBookingRequest = async (
             userName,
             batchName,
             centerName,
-            bookingId: booking.booking_id || booking.id,
+            bookingId: booking.booking_id,
             reason: reason || null,
             year: new Date().getFullYear(),
           },
           priority: 'medium',
           metadata: {
             type: 'booking_rejected',
-            bookingId: booking.booking_id || booking.id,
+            bookingId: booking.booking_id,
             recipient: 'user',
           },
         });
@@ -821,12 +821,12 @@ export const rejectBookingRequest = async (
         const smsMessage = getBookingRejectedUserSms({
           batchName,
           centerName,
-          bookingId: booking.booking_id || booking.id,
+          bookingId: booking.booking_id,
           reason: reason || null,
         });
         queueSms(user.mobile, smsMessage, 'medium', {
           type: 'booking_rejected',
-          bookingId: booking.booking_id || booking.id,
+          bookingId: booking.booking_id,
           recipient: 'user',
         });
       }
@@ -836,12 +836,12 @@ export const rejectBookingRequest = async (
         const whatsappMessage = getBookingRejectedUserWhatsApp({
           batchName,
           centerName,
-          bookingId: booking.booking_id || booking.id,
+          bookingId: booking.booking_id,
           reason: reason || null,
         });
         queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
           type: 'booking_rejected',
-          bookingId: booking.booking_id || booking.id,
+          bookingId: booking.booking_id,
           recipient: 'user',
         });
       }
