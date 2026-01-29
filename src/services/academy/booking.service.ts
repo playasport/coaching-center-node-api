@@ -614,11 +614,11 @@ export const approveBookingRequest = async (
         const smsMessage = getBookingApprovedUserSms({
           batchName,
           centerName,
-          bookingId: booking.booking_id,
+          bookingId: booking.booking_id ?? undefined,
         });
         queueSms(user.mobile, smsMessage, 'high', {
           type: 'booking_approved',
-          bookingId: booking.booking_id,
+          bookingId: booking.booking_id ?? undefined,
           recipient: 'user',
         });
       }
@@ -628,11 +628,11 @@ export const approveBookingRequest = async (
         const whatsappMessage = getBookingApprovedUserWhatsApp({
           batchName,
           centerName,
-          bookingId: booking.booking_id,
+          bookingId: booking.booking_id ?? undefined,
         });
         queueWhatsApp(user.mobile, whatsappMessage, 'high', {
           type: 'booking_approved',
-          bookingId: booking.booking_id,
+          bookingId: booking.booking_id ?? undefined,
           recipient: 'user',
         });
       }
@@ -821,12 +821,12 @@ export const rejectBookingRequest = async (
         const smsMessage = getBookingRejectedUserSms({
           batchName,
           centerName,
-          bookingId: booking.booking_id,
+          bookingId: booking.booking_id ?? undefined,
           reason: reason || null,
         });
         queueSms(user.mobile, smsMessage, 'medium', {
           type: 'booking_rejected',
-          bookingId: booking.booking_id,
+          bookingId: booking.booking_id ?? undefined,
           recipient: 'user',
         });
       }
@@ -836,12 +836,12 @@ export const rejectBookingRequest = async (
         const whatsappMessage = getBookingRejectedUserWhatsApp({
           batchName,
           centerName,
-          bookingId: booking.booking_id,
+          bookingId: booking.booking_id ?? undefined,
           reason: reason || null,
         });
         queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
           type: 'booking_rejected',
-          bookingId: booking.booking_id,
+          bookingId: booking.booking_id ?? undefined,
           recipient: 'user',
         });
       }
