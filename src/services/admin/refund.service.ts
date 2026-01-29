@@ -254,7 +254,7 @@ export const createRefund = async (
           {
             text: getBookingRefundedUserEmailText({
               userName: user.firstName || 'User',
-              bookingId: booking.booking_id || bookingId,
+              bookingId: bookingId || booking.booking_id || '',
               amount: refundAmountInRupees.toFixed(2),
               reason: refundData.reason,
               refundId: razorpayRefund.id,

@@ -400,6 +400,60 @@ export const getNotifications = async (
 };
 
 /**
+ * Build recipient filter for notification lookup.
+ * For academy: match both 'academy' and 'user' notifications (same user may receive both).
+ * For user/role: match only the given recipientType.
+ */
+const buildRecipientFilter = (
+  recipientType: NotificationRecipientType,
+  recipientObjectId: Types.ObjectId
+): Record<string, unknown> => {
+  if (recipientType === 'academy') {
+    return {
+      $or: [
+        { recipientType: 'academy' as const, recipientId: recipientObjectId },
+        { recipientType: 'user' as const, recipientId: recipientObjectId },
+      ],
+    };
+  }
+  return {
+    recipientType,
+    recipientId: recipientObjectId,
+  };
+};
+
+/**
+ * Find notification by id or _id, with recipient filter.
+ * Used by markAsRead, markAsUnread, deleteNotification.
+ */
+const findNotificationForRecipient = async (
+  notificationId: string,
+  recipientType: NotificationRecipientType,
+  recipientObjectId: Types.ObjectId
+): Promise<InstanceType<typeof NotificationModel> | null> => {
+  const recipientFilter = buildRecipientFilter(recipientType, recipientObjectId);
+
+  let notification = await NotificationModel.findOne({
+    id: notificationId,
+    ...recipientFilter,
+  });
+
+  if (!notification && Types.ObjectId.isValid(notificationId)) {
+    try {
+      const byObjectId = await NotificationModel.findOne({
+        _id: new Types.ObjectId(notificationId),
+        ...recipientFilter,
+      });
+      if (byObjectId) notification = byObjectId;
+    } catch {
+      logger.debug('Notification ID is not a valid ObjectId', { notificationId });
+    }
+  }
+
+  return notification;
+};
+
+/**
  * Mark notification as read
  */
 export const markAsRead = async (
@@ -413,13 +467,18 @@ export const markAsRead = async (
       throw new ApiError(404, t('notification.recipientNotFound'));
     }
 
-    const notification = await NotificationModel.findOne({
-      id: notificationId,
+    const notification = await findNotificationForRecipient(
+      notificationId,
       recipientType,
-      recipientId: recipientObjectId,
-    });
+      recipientObjectId
+    );
 
     if (!notification) {
+      logger.warn('Notification not found on mark-as-read', {
+        notificationId,
+        recipientType,
+        recipientObjectId: recipientObjectId.toString(),
+      });
       throw new ApiError(404, t('notification.notFound'));
     }
 
@@ -453,13 +512,18 @@ export const markAsUnread = async (
       throw new ApiError(404, t('notification.recipientNotFound'));
     }
 
-    const notification = await NotificationModel.findOne({
-      id: notificationId,
+    const notification = await findNotificationForRecipient(
+      notificationId,
       recipientType,
-      recipientId: recipientObjectId,
-    });
+      recipientObjectId
+    );
 
     if (!notification) {
+      logger.warn('Notification not found on mark-as-unread', {
+        notificationId,
+        recipientType,
+        recipientObjectId: recipientObjectId.toString(),
+      });
       throw new ApiError(404, t('notification.notFound'));
     }
 
@@ -530,13 +594,18 @@ export const deleteNotification = async (
       throw new ApiError(404, t('notification.recipientNotFound'));
     }
 
-    const notification = await NotificationModel.findOne({
-      id: notificationId,
+    const notification = await findNotificationForRecipient(
+      notificationId,
       recipientType,
-      recipientId: recipientObjectId,
-    });
+      recipientObjectId
+    );
 
     if (!notification) {
+      logger.warn('Notification not found on delete', {
+        notificationId,
+        recipientType,
+        recipientObjectId: recipientObjectId.toString(),
+      });
       throw new ApiError(404, t('notification.notFound'));
     }
 
