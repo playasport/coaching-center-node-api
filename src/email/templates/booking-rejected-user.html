@@ -85,6 +85,10 @@
         color: #333333;
         text-align: right;
         flex: 1;
+        min-width: 0;
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+        word-break: break-word;
       }
       .info-box {
         background-color: #FFF5F5;
@@ -141,7 +145,7 @@
       <div class="email-container">
         <div class="header">
           <div class="logo-container">
-            <img src="https://front.playasport.in/images/logo.webp" alt="Play A Sport Logo" style="max-width: 180px; height: auto; margin-bottom: 10px;" />
+            <img src="https://front.playasport.in/images/logo-light1.png" alt="Play A Sport Logo" style="max-width: 180px; height: auto; margin-bottom: 10px;" />
           </div>
           <h1 class="header-title">Your Booking Request Was Not Approved</h1>
         </div>
@@ -166,20 +170,16 @@
               <span class="detail-label">Coaching Center:</span>
               <span class="detail-value">{{centerName}}</span>
             </div>
-            {{#if reason}}
             <div class="detail-row">
               <span class="detail-label">Reason:</span>
               <span class="detail-value">{{reason}}</span>
             </div>
-            {{/if}}
           </div>
 
           <div class="info-box">
             <h4>What's Next?</h4>
             <p>We understand this can be disappointing. You’re welcome to explore other available batches or coaching centers that may better suit your schedule and preferences.</p>
-            {{#if reason}}
-            <p><strong>Reason for rejection:</strong> {{reason}}</p>
-            {{/if}}
+            <p><strong>Student's reason for rejection:</strong> {{reason}}</p>
           </div>
 
           <p class="message">If you need any help finding an alternative or have questions, feel free to contact our support team at <a href="mailto:support@playasport.in" style="color: #FF6B35; text-decoration: none;">support@playasport.in</a> — we’re happy to assist..</p>
