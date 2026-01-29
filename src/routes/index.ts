@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import path from 'path';
 import localeRoutes from './locale.routes';
 import academyAuthRoutes from './academy/academyAuth.routes';
 import userAuthRoutes from './userAuth.routes';
@@ -238,31 +237,6 @@ router.use('/academies', academyRoutes);
 router.get('/health', (_req, res) => {
   const response = new ApiResponse(200, { timestamp: new Date().toISOString() }, t('health.serverRunning'));
   res.json(response);
-});
-
-router.get('/demo/social-login', (_req, res) => {
-  const filePath = path.resolve(process.cwd(), 'docs', 'social-login-demo.html');
-  res.sendFile(filePath);
-});
-
-router.get('/demo/coaching-center', (_req, res) => {
-  const filePath = path.resolve(process.cwd(), 'docs', 'coaching-center-test.html');
-  res.sendFile(filePath);
-});
-
-router.get('/demo/batch-create', (_req, res) => {
-  const filePath = path.resolve(process.cwd(), 'docs', 'batch-create-demo.html');
-  res.sendFile(filePath);
-});
-
-router.get('/demo/booking-payment', (_req, res) => {
-  const filePath = path.resolve(process.cwd(), 'docs', 'booking-payment-demo.html');
-  res.sendFile(filePath);
-});
-
-router.get('/demo/payout-account', (_req, res) => {
-  const filePath = path.resolve(process.cwd(), 'docs', 'payout-account-test-ui.html');
-  res.sendFile(filePath);
 });
 
 export default router;
