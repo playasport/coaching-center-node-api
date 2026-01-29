@@ -64,23 +64,19 @@ const transactionSchema = new Schema<Transaction>(
       type: Schema.Types.ObjectId,
       ref: 'Booking',
       required: true,
-      index: true,
     },
     user: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true,
     },
     razorpay_order_id: {
       type: String,
       required: true,
-      index: true,
     },
     razorpay_payment_id: {
       type: String,
       default: null,
-      index: true,
     },
     razorpay_refund_id: {
       type: String,
@@ -91,20 +87,17 @@ const transactionSchema = new Schema<Transaction>(
       enum: Object.values(TransactionType),
       required: true,
       default: TransactionType.PAYMENT,
-      index: true,
     },
     status: {
       type: String,
       enum: Object.values(TransactionStatus),
       required: true,
       default: TransactionStatus.PENDING,
-      index: true,
     },
     source: {
       type: String,
       enum: Object.values(TransactionSource),
       required: true,
-      index: true,
     },
     amount: {
       type: Number,

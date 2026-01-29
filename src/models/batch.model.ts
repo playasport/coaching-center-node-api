@@ -233,14 +233,12 @@ const batchSchema = new Schema<Batch>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'User is required'],
-      index: true,
     },
     name: {
       type: String,
       required: [true, 'Batch name is required'],
       trim: true,
       maxlength: [50, 'Batch name cannot exceed 50 characters'],
-      index: true,
     },
     description: {
       type: String,
@@ -252,19 +250,16 @@ const batchSchema = new Schema<Batch>(
       type: Schema.Types.ObjectId,
       ref: 'Sport',
       required: [true, 'Sport is required'],
-      index: true,
     },
     center: {
       type: Schema.Types.ObjectId,
       ref: 'CoachingCenter',
       required: [true, 'Center is required'],
-      index: true,
     },
     coach: {
       type: Schema.Types.ObjectId,
       ref: 'Employee',
       default: null,
-      index: true,
     },
     gender: {
       type: [String],
@@ -341,7 +336,6 @@ const batchSchema = new Schema<Batch>(
       type: Boolean,
       default: false,
       required: true,
-      index: true,
     },
     status: {
       type: String,
@@ -350,17 +344,14 @@ const batchSchema = new Schema<Batch>(
         message: `Status must be one of: ${statusEnum.join(', ')}`,
       },
       default: BatchStatus.DRAFT,
-      index: true,
     },
     is_active: {
       type: Boolean,
       default: true,
-      index: true,
     },
     is_deleted: {
       type: Boolean,
       default: false,
-      index: true,
     },
     deletedAt: {
       type: Date,

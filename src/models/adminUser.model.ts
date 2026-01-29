@@ -42,7 +42,7 @@ const adminUserSchema = new Schema<AdminUser>(
       index: true,
     },
     address: { type: addressSchema, default: null },
-    isDeleted: { type: Boolean, default: false, index: true },
+    isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
   },
   {

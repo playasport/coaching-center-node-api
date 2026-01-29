@@ -393,13 +393,11 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
       type: Schema.Types.ObjectId,
       required: true,
       ref: 'User',
-      index: true,
     },
     addedBy: {
       type: Schema.Types.ObjectId,
       ref: 'AdminUser',
       default: null,
-      index: true,
     },
     center_name: {
       type: String,
@@ -504,13 +502,11 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
     is_active: {
       type: Boolean,
       default: true,
-      index: true,
     },
     approval_status: {
       type: String,
       enum: ['approved', 'rejected', 'pending_approval'],
       default: 'approved',
-      index: true,
     },
     reject_reason: {
       type: String,
@@ -520,7 +516,6 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
     is_deleted: {
       type: Boolean,
       default: false,
-      index: true,
     },
     deletedAt: {
       type: Date,

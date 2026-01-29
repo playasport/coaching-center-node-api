@@ -76,7 +76,7 @@ const userSchema = new Schema<User>(
       },
       default: null,
     },
-    isDeleted: { type: Boolean, default: false, index: true },
+    isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
   },
   {

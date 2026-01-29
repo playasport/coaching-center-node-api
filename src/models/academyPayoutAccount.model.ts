@@ -211,13 +211,11 @@ const academyPayoutAccountSchema = new Schema<AcademyPayoutAccount>(
       required: true,
       ref: 'User',
       unique: true, // One account per academy user
-      index: true,
     },
     razorpay_account_id: {
       type: String,
       required: true,
       unique: true,
-      index: true,
       trim: true,
     },
     kyc_details: {
@@ -233,7 +231,6 @@ const academyPayoutAccountSchema = new Schema<AcademyPayoutAccount>(
       enum: Object.values(PayoutAccountActivationStatus),
       required: true,
       default: PayoutAccountActivationStatus.PENDING,
-      index: true,
     },
     activation_requirements: {
       type: [String],
@@ -271,7 +268,6 @@ const academyPayoutAccountSchema = new Schema<AcademyPayoutAccount>(
     is_active: {
       type: Boolean,
       default: true,
-      index: true,
     },
   },
   {
@@ -308,9 +304,8 @@ const academyPayoutAccountSchema = new Schema<AcademyPayoutAccount>(
   }
 );
 
-// Indexes
+// Indexes (razorpay_account_id already has unique index from schema)
 academyPayoutAccountSchema.index({ user: 1, is_active: 1 });
-academyPayoutAccountSchema.index({ razorpay_account_id: 1 });
 academyPayoutAccountSchema.index({ activation_status: 1 });
 academyPayoutAccountSchema.index({ activation_status: 1, is_active: 1 });
 

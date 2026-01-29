@@ -30,7 +30,6 @@ const participantSchema = new Schema<Participant>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true,
     },
     firstName: {
       type: String,
@@ -89,12 +88,10 @@ const participantSchema = new Schema<Participant>(
     is_active: {
       type: Boolean,
       default: true,
-      index: true,
     },
     is_deleted: {
       type: Boolean,
       default: false,
-      index: true,
     },
     deletedAt: {
       type: Date,
