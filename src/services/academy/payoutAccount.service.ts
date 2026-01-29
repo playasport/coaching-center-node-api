@@ -101,10 +101,9 @@ const sanitizePayoutAccountResponse = (account: any): any => {
   if (sanitized.kyc_details && sanitized.kyc_details.metadata) {
     delete sanitized.kyc_details.metadata;
   }
-  if (sanitized.bank_information && sanitized.bank_information.metadata) {
-    delete sanitized.bank_information.metadata;
-  }
-  
+  // Never return bank information in API response (sensitive data - not stored in DB)
+  delete sanitized.bank_information;
+
   return sanitized;
 };
 
@@ -375,7 +374,7 @@ export const createPayoutAccount = async (
       user: userObjectId,
       razorpay_account_id: razorpayAccount.id,
       kyc_details: data.kyc_details,
-      bank_information: data.bank_information || null,
+      bank_information: null, // Never store bank details in DB; sent to Razorpay via queue only
       activation_status: activationStatus,
       activation_requirements: activationRequirements,
       stakeholder_id: stakeholderId,
@@ -558,21 +557,7 @@ export const createPayoutAccount = async (
       }
     }
 
-    // Update bank details if provided
-    if (data.bank_information) {
-      try {
-        await updateBankDetails(userId, data.bank_information, {
-          ipAddress: options?.ipAddress,
-          userAgent: options?.userAgent,
-        });
-      } catch (error: any) {
-        logger.warn('Failed to update bank details during account creation:', {
-          error: error.message || error,
-          accountId: payoutAccount.id,
-        });
-        // Don't fail the entire operation
-      }
-    }
+    // Bank details are not stored in DB; they were already enqueued above for Razorpay submission
 
     return sanitizePayoutAccountResponse(payoutAccount);
   } catch (error: any) {
@@ -654,13 +639,8 @@ export const updateBankDetails = async (
       throw new ApiError(500, 'Product configuration ID not found. Please contact support.');
     }
 
-    // Update bank details in database first
-    account.bank_information = {
-      account_number: bankDetails.account_number,
-      ifsc_code: bankDetails.ifsc_code,
-      account_holder_name: bankDetails.account_holder_name,
-      bank_name: bankDetails.bank_name || null,
-    };
+    // Do not store bank details in database; only update status and send to Razorpay via queue
+    account.bank_information = null; // Clear any legacy data; never persist bank details
     account.bank_details_status = 'pending'; // Will be updated to 'submitted' by worker
 
     await account.save();
