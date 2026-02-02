@@ -79,7 +79,7 @@ router.get(
  *         required: true
  *         schema:
  *           type: string
- *           enum: [thumbnail-generation, video-processing-reel]
+ *           enum: [thumbnail-generation, video-processing-reel, media-move-coaching-center]
  *       - in: query
  *         name: status
  *         schema:
