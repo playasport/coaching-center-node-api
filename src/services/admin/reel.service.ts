@@ -331,7 +331,7 @@ export const createReel = async (
     enqueueVideoProcessing({
       reelId: reel.id,
       videoUrl: finalVideoUrl, // This is now the permanent URL
-      folderPath: `reels/${reel.id}`,
+      folderPath: `reels/playasport-${reel.id}`,
       type: 'reel',
       timestamp: Date.now(),
     }).catch((error) => {
@@ -485,7 +485,7 @@ export const updateReel = async (
         enqueueVideoProcessing({
           reelId: reel.id,
           videoUrl: finalVideoUrl, // Use permanent URL
-          folderPath: `reels/${reel.id}`,
+          folderPath: `reels/playasport-${reel.id}`,
           type: 'reel',
           timestamp: Date.now(),
         }).catch((error) => {
@@ -650,7 +650,7 @@ export const reprocessReelVideo = async (
     enqueueVideoProcessing({
       reelId: reel.id,
       videoUrl: finalVideoUrl, // Use permanent URL
-      folderPath: `reels/${reel.id}`,
+      folderPath: `reels/playasport-${reel.id}`,
       type: 'reel',
       timestamp: Date.now(),
     }).catch((error) => {
