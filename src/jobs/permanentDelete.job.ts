@@ -200,9 +200,9 @@ const deleteHighlightMedia = async (highlight: any): Promise<number> => {
   }
 
   // Delete entire highlight folder (this will catch any remaining files like master.m3u8, thumbnail, preview, video)
-  // Note: Some files may have already been deleted above, but this ensures everything is cleaned up
+  // Path must match upload/processing: highlights/playasport-{highlightId}/
   if (highlight.id) {
-    const highlightFolder = `highlights/${highlight.id}/`;
+    const highlightFolder = `highlights/playasport-${highlight.id}/`;
     const folderDeletedCount = await deleteS3Folder(highlightFolder);
     deletedCount += folderDeletedCount;
   }
@@ -265,9 +265,9 @@ const deleteReelMedia = async (reel: any): Promise<number> => {
   }
 
   // Delete entire reel folder (this will catch any remaining files like master.m3u8, thumbnail, preview, video)
-  // Note: Some files may have already been deleted above, but this ensures everything is cleaned up
+  // Path must match upload/processing: reels/playasport-{reelId}/
   if (reel.id) {
-    const reelFolder = `reels/${reel.id}/`;
+    const reelFolder = `reels/playasport-${reel.id}/`;
     const folderDeletedCount = await deleteS3Folder(reelFolder);
     deletedCount += folderDeletedCount;
   }

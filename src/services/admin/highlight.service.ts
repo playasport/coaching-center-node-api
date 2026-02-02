@@ -336,7 +336,7 @@ export const createHighlight = async (
     enqueueVideoProcessing({
       highlightId: highlight.id,
       videoUrl: finalVideoUrl, // This is now the permanent URL
-      folderPath: `highlights/${highlight.id}`,
+      folderPath: `highlights/playasport-${highlight.id}`,
       type: 'highlight',
       timestamp: Date.now(),
     })
@@ -432,7 +432,7 @@ export const updateHighlight = async (
         enqueueVideoProcessing({
           highlightId: highlight.id,
           videoUrl: finalVideoUrl, // Use permanent URL
-          folderPath: `highlights/${highlight.id}`,
+          folderPath: `highlights/playasport-${highlight.id}`,
           type: 'highlight',
           timestamp: Date.now(),
         })
@@ -676,7 +676,7 @@ export const reprocessHighlightVideo = async (
     enqueueVideoProcessing({
       highlightId: highlight.id,
       videoUrl: finalVideoUrl, // Use permanent URL
-      folderPath: `highlights/${highlight.id}`,
+      folderPath: `highlights/playasport-${highlight.id}`,
       type: 'highlight',
       timestamp: Date.now(),
     })

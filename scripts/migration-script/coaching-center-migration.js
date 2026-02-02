@@ -27,6 +27,7 @@ const { UserModel } = require('../../src/models/user.model');
 const { AdminUserModel } = require('../../src/models/adminUser.model');
 const { SportModel } = require('../../src/models/sport.model');
 const { CoachingCenterModel } = require('../../src/models/coachingCenter.model');
+const { BatchModel } = require('../../src/models/batch.model');
 const { FacilityModel } = require('../../src/models/facility.model');
 const { RoleModel } = require('../../src/models/role.model');
 const { hashPassword } = require('../../src/utils/password');
@@ -1044,6 +1045,10 @@ async function migrateSingleCoachingCenter(cc, mysqlConnection, agentRoleId, aca
 
     log(`   ✅ Using email: ${coachingCenterEmail}, mobile: ${coachingCenterMobile}`);
 
+    // Parse MySQL created_at / updated_at for MongoDB createdAt / updatedAt
+    const createdAtMongo = cc.created_at ? new Date(cc.created_at) : undefined;
+    const updatedAtMongo = cc.updated_at ? new Date(cc.updated_at) : undefined;
+
     // Step 12: Create coaching center
     const coachingCenter = new CoachingCenterModel({
       id: cc.id, // Use MySQL coaching center ID instead of generating new UUID
@@ -1103,6 +1108,8 @@ async function migrateSingleCoachingCenter(cc, mysqlConnection, agentRoleId, aca
       approval_status: cc.is_admin_approve === 'approved' ? 'approved' : 'pending_approval',
       reject_reason: cc.rejection_reason || null,
       is_deleted: false,
+      ...(createdAtMongo && { createdAt: createdAtMongo }),
+      ...(updatedAtMongo && { updatedAt: updatedAtMongo }),
     });
 
     await coachingCenter.save();
