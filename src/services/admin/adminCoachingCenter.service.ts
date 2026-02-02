@@ -1381,15 +1381,7 @@ export const listCoachingCentersSimple = async (
         }
       }
 
-      // Add status filter if provided
-      if (status) {
-        query.status = status;
-      }
-
-      // Add isActive filter if provided
-      if (isActive !== undefined) {
-        query.is_active = isActive;
-      }
+      // Simple list includes all statuses (draft, published) and all active states (active, inactive) - no status/isActive filter
 
       const coachingCenter = await CoachingCenterModel.findOne(query)
         .populate('sport_details.sport_id', 'custom_id name _id')
@@ -1479,15 +1471,7 @@ export const listCoachingCentersSimple = async (
       }
     }
 
-    // Add status filter if provided
-    if (status) {
-      query.status = status;
-    }
-
-    // Add isActive filter if provided
-    if (isActive !== undefined) {
-      query.is_active = isActive;
-    }
+    // Simple list includes draft, published, active, and inactive - no status/isActive filter applied
 
     // Note: No approval_status filter - includes all centers (approved, rejected, pending_approval)
 

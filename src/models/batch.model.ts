@@ -195,13 +195,13 @@ const capacitySchema = new Schema<Capacity>(
       type: Number,
       required: [true, 'Minimum capacity is required'],
       min: [1, 'Minimum capacity must be at least 1'],
-      max: [1000, 'Minimum capacity cannot exceed 1000'],
+      max: [10000, 'Minimum capacity cannot exceed 10000'],
     },
     max: {
       type: Number,
       default: null,
       min: [1, 'Maximum capacity must be at least 1'],
-      max: [1000, 'Maximum capacity cannot exceed 1000'],
+      max: [10000, 'Maximum capacity cannot exceed 10000'],
     },
   },
   { _id: false }
