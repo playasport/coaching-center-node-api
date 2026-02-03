@@ -436,11 +436,12 @@ export const updateCoachingCenter = async (
       commonService.validatePublishStatus({ ...existingCenter.toObject(), ...data }, false);
     }
 
-    // Handle other fields
+    // Handle other fields (include status so draft -> published update is applied)
     const fields = [
       'email', 'mobile_number', 'center_name', 'rules_regulation', 'logo', 'age',
       'location', 'operational_timing', 'documents',
-      'allowed_genders', 'allowed_disabled', 'is_only_for_disabled', 'experience','user','experience'
+      'allowed_genders', 'allowed_disabled', 'is_only_for_disabled', 'experience', 'user',
+      'status',
     ];
     fields.forEach(f => { if ((data as any)[f] !== undefined) updates[f] = (data as any)[f]; });
 
