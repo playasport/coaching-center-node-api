@@ -1540,6 +1540,118 @@ router.patch(
 
 /**
  * @swagger
+ * /admin/coaching-centers/{id}/coach:
+ *   get:
+ *     summary: Get coaches (id and name) for a coaching center
+ *     description: Returns list of coaches (employees with coach role) with id and name only. Default limit 100. Optional search by name.
+ *     tags: [Admin Coaching Centers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Coaching center ID
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search coaches by name
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *     responses:
+ *       200:
+ *         description: Coaches retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     coaches:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           name:
+ *                             type: string
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *       404:
+ *         description: Coaching center not found
+ */
+router.get(
+  '/:id/coach',
+  coachingCenterController.getCoaches
+);
+
+/**
+ * @swagger
+ * /admin/coaching-centers/{id}/coach (POST):
+ *   post:
+ *     summary: Create a coach (employee) for a coaching center
+ *     description: Creates a coach with only name and coaching center ID. Uses the coaching center's owner as the employee user. No role permission required.
+ *     tags: [Admin Coaching Centers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Coaching center ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "John Doe"
+ *     responses:
+ *       201:
+ *         description: Coach created successfully
+ *       400:
+ *         description: Name is required
+ *       404:
+ *         description: Coaching center or coach role not found
+ */
+router.post(
+  '/:id/coach',
+  coachingCenterController.createCoach
+);
+
+/**
+ * @swagger
  * /admin/coaching-centers/{id}/employees:
  *   get:
  *     summary: Get employees (coaches) by coaching center ID

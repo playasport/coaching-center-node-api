@@ -1330,6 +1330,134 @@ export const getEmployeesByCoachingCenterId = async (
 };
 
 /**
+ * Get coaches (employees with role 'coach') for a coaching center.
+ * Returns only id and name. Supports search by name. Default limit 100.
+ */
+export const getCoachesListByCoachingCenterId = async (
+  coachingCenterId: string,
+  search?: string,
+  page: number = 1,
+  limit: number = 100
+): Promise<{ coaches: Array<{ id: string; name: string }>; pagination: { page: number; limit: number; total: number; totalPages: number } }> => {
+  try {
+    const centerObjectId = await getCenterObjectId(coachingCenterId);
+    if (!centerObjectId) {
+      throw new ApiError(404, t('coachingCenter.notFound'));
+    }
+
+    const coachRole = await RoleModel.findOne({ name: 'coach' });
+    if (!coachRole) {
+      return {
+        coaches: [],
+        pagination: { page: 1, limit: Math.min(100, Math.max(1, limit)), total: 0, totalPages: 0 },
+      };
+    }
+
+    const pageNumber = Math.max(1, Math.floor(page));
+    const pageSize = Math.min(100, Math.max(1, Math.floor(limit)));
+
+    const query: any = {
+      center: centerObjectId,
+      role: coachRole._id,
+      is_deleted: false,
+    };
+
+    if (search && search.trim()) {
+      query.fullName = new RegExp(search.trim(), 'i');
+    }
+
+    const [total, employees] = await Promise.all([
+      EmployeeModel.countDocuments(query),
+      EmployeeModel.find(query).select('_id fullName').sort({ fullName: 1 }).skip((pageNumber - 1) * pageSize).limit(pageSize).lean(),
+    ]);
+
+    const totalPages = Math.ceil(total / pageSize);
+
+    const coaches = (employees as any[]).map((emp) => ({
+      id: emp._id?.toString() || '',
+      name: emp.fullName || '',
+    }));
+
+    return {
+      coaches,
+      pagination: { page: pageNumber, limit: pageSize, total, totalPages },
+    };
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    logger.error('Failed to get coaches list', { coachingCenterId, error });
+    throw new ApiError(500, 'Failed to get coaches');
+  }
+};
+
+/**
+ * Create a coach (employee) for a coaching center.
+ * Accepts only name and coaching center ID (from URL). Uses the coaching center's owner (user) as the employee's userId.
+ */
+export const createCoachForCoachingCenter = async (
+  coachingCenterId: string,
+  name: string
+): Promise<any> => {
+  try {
+    const trimmedName = (name || '').trim();
+    if (!trimmedName) {
+      throw new ApiError(400, 'Name is required');
+    }
+
+    const centerObjectId = await getCenterObjectId(coachingCenterId);
+    if (!centerObjectId) {
+      throw new ApiError(404, t('coachingCenter.notFound'));
+    }
+
+    const coachingCenter = await CoachingCenterModel.findById(centerObjectId).select('user').lean();
+    if (!coachingCenter?.user) {
+      throw new ApiError(404, 'Coaching center has no associated user');
+    }
+
+    const centerUserId = coachingCenter.user as Types.ObjectId;
+
+    const coachRole = await RoleModel.findOne({ name: 'coach' });
+    if (!coachRole) {
+      throw new ApiError(404, "Role with name 'coach' not found. Please ensure the coach role exists in the database.");
+    }
+
+    const employee = new EmployeeModel({
+      userId: centerUserId,
+      fullName: trimmedName,
+      role: coachRole._id,
+      center: centerObjectId,
+      workingHours: null,
+      email: null,
+      sport: null,
+      experience: null,
+      extraHours: null,
+      certification: null,
+      salary: null,
+      is_active: true,
+      is_deleted: false,
+    });
+    await employee.save();
+
+    logger.info('Coach created for coaching center', {
+      coachingCenterId,
+      employeeId: employee._id?.toString(),
+      fullName: trimmedName,
+    });
+
+    return { id: employee._id.toString(), name: employee.fullName };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Failed to create coach for coaching center', {
+      coachingCenterId,
+      name,
+      error: error instanceof Error ? error.message : error,
+    });
+    throw new ApiError(500, 'Failed to create coach');
+  }
+};
+
+/**
  * List coaching centers with search and pagination
  * If centerId is provided, returns full details of that specific center with sports
  * Otherwise, returns simple list (id and center_name only)
