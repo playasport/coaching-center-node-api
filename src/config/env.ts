@@ -29,7 +29,7 @@ export const config = {
   cors: {
     allowedOrigins: (() => {
       if (process.env.NODE_ENV !== 'production') return true;
-      const origins = [trimUrl(process.env.MAIN_SITE_URL), trimUrl(process.env.ACADEMY_SITE_URL), trimUrl(process.env.ADMIN_PANEL_URL)].filter(Boolean);
+      const origins = [trimUrl(process.env.MAIN_SITE_URL), trimUrl(process.env.ACADEMY_SITE_URL), trimUrl(process.env.ADMIN_PANEL_URL), trimUrl("https://www.playasport.in")].filter(Boolean);
       return origins.length > 0 ? origins : true;
     })(),
   },
