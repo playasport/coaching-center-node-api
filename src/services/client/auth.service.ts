@@ -1933,10 +1933,10 @@ export const getCurrentUser = async (userId: string): Promise<any> => {
           .select('_id custom_id name logo')
           .lean();
 
-        // Map sports to the expected format, maintaining the order from originalFavoriteSports
+        // Map sports to the expected format; id = MongoDB _id (string)
         const sportMap = new Map(
           sports.map((sport: any) => [sport._id.toString(), {
-            id: sport.custom_id || sport._id.toString(),
+            id: sport._id.toString() || sport.custom_id,
             name: sport.name,
             logo: sport.logo || null,
           }])

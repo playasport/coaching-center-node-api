@@ -496,6 +496,49 @@ export const updateApprovalStatus = async (req: Request, res: Response, next: Ne
 };
 
 /**
+ * Get coaches (id and name only) for a coaching center.
+ * GET /admin/coaching-centers/:id/coach?search=...&page=1&limit=100 (default limit 100)
+ */
+export const getCoaches = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id: coachingCenterId } = req.params;
+    const search = req.query.search as string | undefined;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 100;
+
+    const result = await adminCoachingCenterService.getCoachesListByCoachingCenterId(
+      coachingCenterId,
+      search,
+      page,
+      limit
+    );
+
+    const response = new ApiResponse(200, result, 'Coaches retrieved successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Create a coach (employee) for a coaching center.
+ * POST /admin/coaching-centers/:id/coach with body { name: string }
+ */
+export const createCoach = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id: coachingCenterId } = req.params;
+    const name = req.body?.name;
+
+    const coach = await adminCoachingCenterService.createCoachForCoachingCenter(coachingCenterId, name);
+
+    const response = new ApiResponse(201, { coach }, 'Coach created successfully');
+    res.status(201).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get employees (coaches) by coaching center ID
  */
 export const getEmployeesByCoachingCenterId = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

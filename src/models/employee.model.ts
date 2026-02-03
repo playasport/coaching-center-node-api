@@ -16,7 +16,7 @@ export interface Employee {
   sport?: Types.ObjectId | null; // Reference to Sport model
   center?: Types.ObjectId | null; // Reference to CoachingCenter model
   experience?: number | null;
-  workingHours: string; // Required
+  workingHours?: string | null; // Optional
   extraHours?: string | null;
   certification?: Certification[] | null;
   salary?: number | null;
@@ -83,7 +83,7 @@ const employeeSchema = new Schema<Employee>(
     },
     mobileNo: {
       type: String,
-      required: [true, 'Mobile number is required'],
+      required: false,
       trim: true,
       validate: {
         validator: validateMobileNo,
@@ -119,10 +119,10 @@ const employeeSchema = new Schema<Employee>(
       type: Number,
       default: null,
       min: [0, 'Experience cannot be negative'],
-    },
+    }, 
     workingHours: {
       type: String,
-      required: [true, 'Working hours is required'],
+      default: null,
       trim: true,
     },
     extraHours: {

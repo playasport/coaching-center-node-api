@@ -580,7 +580,7 @@ export const approveBookingRequest = async (
         priority: 'high',
         data: {
           type: 'booking_approved',
-          bookingId: booking.booking_id || booking.id,
+          bookingId: booking.id,
           batchId: booking.batch.toString(),
         },
       });
@@ -597,13 +597,13 @@ export const approveBookingRequest = async (
             userName,
             batchName,
             centerName,
-            bookingId: booking.booking_id,
+            bookingId: booking.booking_id ?? booking.id,
             year: new Date().getFullYear(),
           },
           priority: 'high',
           metadata: {
             type: 'booking_approved',
-            bookingId: booking.booking_id,
+            bookingId: booking.id,
             recipient: 'user',
           },
         });
@@ -618,7 +618,7 @@ export const approveBookingRequest = async (
         });
         queueSms(user.mobile, smsMessage, 'high', {
           type: 'booking_approved',
-          bookingId: booking.booking_id ?? undefined,
+          bookingId: booking.id,
           recipient: 'user',
         });
       }
@@ -632,7 +632,7 @@ export const approveBookingRequest = async (
         });
         queueWhatsApp(user.mobile, whatsappMessage, 'high', {
           type: 'booking_approved',
-          bookingId: booking.booking_id ?? undefined,
+          bookingId: booking.id,
           recipient: 'user',
         });
       }
@@ -784,7 +784,7 @@ export const rejectBookingRequest = async (
         priority: 'medium',
         data: {
           type: 'booking_rejected',
-          bookingId: booking.booking_id || booking.id,
+          bookingId: booking.id,
           batchId: booking.batch.toString(),
           reason: reason || null,
         },
@@ -803,14 +803,14 @@ export const rejectBookingRequest = async (
             userName,
             batchName,
             centerName,
-            bookingId: booking.booking_id,
+            bookingId: booking.booking_id ?? booking.id,
             reason: reason || null,
             year: new Date().getFullYear(),
           },
           priority: 'medium',
           metadata: {
             type: 'booking_rejected',
-            bookingId: booking.booking_id,
+            bookingId: booking.id,
             recipient: 'user',
           },
         });
@@ -826,7 +826,7 @@ export const rejectBookingRequest = async (
         });
         queueSms(user.mobile, smsMessage, 'medium', {
           type: 'booking_rejected',
-          bookingId: booking.booking_id ?? undefined,
+          bookingId: booking.id,
           recipient: 'user',
         });
       }
@@ -841,7 +841,7 @@ export const rejectBookingRequest = async (
         });
         queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
           type: 'booking_rejected',
-          bookingId: booking.booking_id ?? undefined,
+          bookingId: booking.id,
           recipient: 'user',
         });
       }

@@ -15,21 +15,28 @@ import type { CreateOperationalUserInput, UpdateOperationalUserInput } from '../
 import * as agentCoachingStatsService from '../../services/admin/agentCoachingStats.service';
 
 /**
- * Check if address object has all required fields for Mongoose schema
- * Required fields: line2, city, state, country, pincode
- * Note: line1 is optional (can be null)
+ * Build address object for save. All address fields optional in API; save only when required fields for DB (line2, city, state, pincode) are present.
  */
-const isAddressComplete = (address: any): boolean => {
+const buildAddressForSave = (address: any): any => {
   if (!address || typeof address !== 'object') {
-    return false;
+    return null;
   }
-  return !!(
-    address.line2 &&
-    address.city &&
-    address.state &&
-    (address.country || 'India') && // Default to India if not provided
-    address.pincode
-  );
+  const line2 = address.line2 != null && String(address.line2).trim() !== '' ? String(address.line2).trim() : null;
+  const city = address.city != null && String(address.city).trim() !== '' ? String(address.city).trim() : null;
+  const state = address.state != null && String(address.state).trim() !== '' ? String(address.state).trim() : null;
+  const pincode = address.pincode != null && String(address.pincode).trim() !== '' ? String(address.pincode).trim() : null;
+  if (!line2 || !city || !state || !pincode) {
+    return null;
+  }
+  return {
+    line1: address.line1 != null && String(address.line1).trim() !== '' ? String(address.line1).trim() : null,
+    line2,
+    area: address.area != null && String(address.area).trim() !== '' ? String(address.area).trim() : null,
+    city,
+    state,
+    country: address.country && String(address.country).trim() !== '' ? String(address.country).trim() : 'India',
+    pincode,
+  };
 };
 
 /**
@@ -87,22 +94,17 @@ export const createOperationalUser = async (req: Request, res: Response): Promis
       throw new ApiError(400, 'One or more roles are invalid');
     }
 
-    // Generate secure random password
-    const generatedPassword = generateSecurePassword(12);
-    const hashedPassword = await hashPassword(generatedPassword);
+    // Use password from request if provided; otherwise generate secure random password
+    const userProvidedPassword = (data as any).password;
+    const isPasswordFromUser = typeof userProvidedPassword === 'string' && userProvidedPassword.trim().length > 0;
+    const passwordToUse = isPasswordFromUser ? userProvidedPassword.trim() : generateSecurePassword(12);
+    const hashedPassword = await hashPassword(passwordToUse);
 
     // Generate unique user ID
     const userId = uuidv4();
 
-    // Validate address
-    let address = null;
-    if (data.address && isAddressComplete(data.address)) {
-      address = {
-        line1: data.address.line1 ?? null,
-        ...data.address,
-        country: data.address.country || 'India',
-      };
-    }
+    // Address: all fields optional; save if any field provided
+    const address = buildAddressForSave(data.address);
 
     // Create user (operational users don't have userType)
     const user = await AdminUserModel.create({
@@ -133,10 +135,10 @@ export const createOperationalUser = async (req: Request, res: Response): Promis
 
     logger.info(`Admin created operational user: ${userId} (${data.email})`);
 
-    // Send account credentials email asynchronously (don't wait for it)
-    // This prevents email sending from blocking the API response
+    // Send account credentials email only when we generated the password (not when user provided their own)
     const userName = `${data.firstName}${data.lastName ? ' ' + data.lastName : ''}`;
-    sendAccountCredentialsEmail(data.email.toLowerCase(), generatedPassword, userName)
+    if (!isPasswordFromUser) {
+      sendAccountCredentialsEmail(data.email.toLowerCase(), passwordToUse, userName)
       .then(() => {
         logger.info(`Account credentials email sent to operational user: ${data.email}`);
       })
@@ -147,8 +149,13 @@ export const createOperationalUser = async (req: Request, res: Response): Promis
         });
         // Don't fail user creation if email fails, just log the error
       });
+    }
 
-    const response = new ApiResponse(201, { user: populatedUser }, 'Operational user created successfully. Credentials have been sent to their email.');
+    const response = new ApiResponse(
+      201,
+      { user: populatedUser },
+      isPasswordFromUser ? 'Operational user created successfully.' : 'Operational user created successfully. Credentials have been sent to their email.'
+    );
     res.status(201).json(response);
   } catch (error) {
     if (error instanceof ApiError) {

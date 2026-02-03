@@ -1,6 +1,7 @@
 import { Queue, Job } from 'bullmq';
 import { thumbnailQueue, THUMBNAIL_QUEUE_NAME } from '../../queue/thumbnailQueue';
 import { videoProcessingQueue, VIDEO_PROCESSING_QUEUE_NAME } from '../../queue/videoProcessingQueue';
+import { mediaMoveQueue, MEDIA_MOVE_QUEUE_NAME } from '../../queue/mediaMoveQueue';
 import { logger } from '../../utils/logger';
 import { ApiError } from '../../utils/ApiError';
 
@@ -111,6 +112,37 @@ export const getAllQueues = async (): Promise<QueueListResponse> => {
       logger.error('Failed to get video processing queue stats', { error });
     }
 
+    // Get media move queue stats
+    try {
+      const [
+        mediaMoveActive,
+        mediaMoveWaiting,
+        mediaMoveCompleted,
+        mediaMoveFailed,
+        mediaMoveDelayed,
+        mediaMovePaused,
+      ] = await Promise.all([
+        mediaMoveQueue.getActiveCount(),
+        mediaMoveQueue.getWaitingCount(),
+        mediaMoveQueue.getCompletedCount(),
+        mediaMoveQueue.getFailedCount(),
+        mediaMoveQueue.getDelayedCount(),
+        mediaMoveQueue.isPaused(),
+      ]);
+
+      queues.push({
+        name: MEDIA_MOVE_QUEUE_NAME,
+        active: mediaMoveActive,
+        waiting: mediaMoveWaiting,
+        completed: mediaMoveCompleted,
+        failed: mediaMoveFailed,
+        delayed: mediaMoveDelayed,
+        paused: mediaMovePaused,
+      });
+    } catch (error) {
+      logger.error('Failed to get media move queue stats', { error });
+    }
+
     return {
       queues,
       totalQueues: queues.length,
@@ -130,6 +162,8 @@ const getQueueByName = (queueName: string): Queue => {
       return thumbnailQueue;
     case VIDEO_PROCESSING_QUEUE_NAME:
       return videoProcessingQueue;
+    case MEDIA_MOVE_QUEUE_NAME:
+      return mediaMoveQueue;
     default:
       throw new ApiError(404, `Queue not found: ${queueName}`);
   }

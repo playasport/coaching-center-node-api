@@ -765,11 +765,11 @@ export const bookSlot = async (
       priority: 'medium',
       data: {
         type: 'booking_request_sent',
-        bookingId: booking.booking_id || booking.id,
+        bookingId: booking.id,
         batchId: data.batchId,
       },
     }).catch((error) => {
-      logger.error('Failed to send push notification to user', { error, bookingId: booking.booking_id || booking.id });
+      logger.error('Failed to send push notification to user', { error, bookingId: booking.id });
     });
 
     // Email notification (async)
@@ -785,13 +785,13 @@ export const bookSlot = async (
           batchName,
           centerName,
           participants: participantNames,
-          bookingId: booking.booking_id ?? undefined,
+          bookingId: booking.booking_id ?? booking.id,
           year: new Date().getFullYear(),
         },
         priority: 'medium',
         metadata: {
           type: 'booking_request_sent',
-          bookingId: booking.booking_id ?? undefined,
+          bookingId: booking.id,
           recipient: 'user',
         },
       });
@@ -806,7 +806,7 @@ export const bookSlot = async (
       });
       queueSms(userDetails.mobile, smsMessage, 'medium', {
         type: 'booking_request_sent',
-        bookingId: booking.booking_id ?? undefined,
+        bookingId: booking.id,
         recipient: 'user',
       });
     }
@@ -821,7 +821,7 @@ export const bookSlot = async (
       });
       queueWhatsApp(userDetails.mobile, whatsappMessage, 'medium', {
         type: 'booking_request_sent',
-        bookingId: booking.booking_id ?? undefined,
+        bookingId: booking.id,
         recipient: 'user',
       });
     }
@@ -1638,7 +1638,7 @@ export const verifyPayment = async (
             priority: 'high',
             metadata: {
               type: 'booking_confirmation',
-              bookingId: updatedBooking.booking_id ?? undefined,
+              bookingId: updatedBooking.id,
               recipient: 'user',
             },
             attachments: invoiceBuffer
@@ -1730,7 +1730,7 @@ export const verifyPayment = async (
         if (userMobile) {
           queueSms(userMobile, userSmsMessage, 'high', {
             type: 'booking_confirmation',
-            bookingId: updatedBooking.booking_id ?? undefined,
+            bookingId: updatedBooking.id,
             recipient: 'user',
           });
         } else {
@@ -1785,7 +1785,7 @@ export const verifyPayment = async (
         if (userMobile) {
           queueWhatsApp(userMobile, userWhatsAppMessage, 'high', {
             type: 'booking_confirmation',
-            bookingId: updatedBooking.booking_id ?? undefined,
+            bookingId: updatedBooking.id,
             recipient: 'user',
           });
         } else {
@@ -1824,7 +1824,7 @@ export const verifyPayment = async (
             priority: 'high',
             data: {
               type: 'booking_confirmation',
-              bookingId: updatedBooking.booking_id || updatedBooking.id,
+              bookingId: updatedBooking.id,
               batchId: booking.batch.toString(),
               centerId: booking.center.toString(),
             },
@@ -2691,7 +2691,7 @@ export const cancelBooking = async (
             priority: 'medium',
             data: {
               type: 'booking_cancelled',
-              bookingId: booking.booking_id || booking.id,
+              bookingId: booking.id,
               batchId: booking.batch.toString(),
               reason: reason || null,
             },
@@ -2710,14 +2710,14 @@ export const cancelBooking = async (
                 userName,
                 batchName,
                 centerName,
-                bookingId: booking.booking_id ?? undefined,
+                bookingId: booking.booking_id ?? booking.id,
                 reason: reason || null,
                 year: new Date().getFullYear(),
               },
               priority: 'medium',
               metadata: {
                 type: 'booking_cancelled',
-                bookingId: booking.booking_id ?? undefined,
+                bookingId: booking.id,
                 recipient: 'user',
               },
             });
@@ -2733,7 +2733,7 @@ export const cancelBooking = async (
             });
             queueSms(user.mobile, smsMessage, 'medium', {
               type: 'booking_cancelled',
-              bookingId: booking.booking_id ?? undefined,
+              bookingId: booking.id,
               recipient: 'user',
             });
           }
@@ -2748,7 +2748,7 @@ export const cancelBooking = async (
             });
             queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
               type: 'booking_cancelled',
-              bookingId: booking.booking_id ?? undefined,
+              bookingId: booking.id,
               recipient: 'user',
             });
           }

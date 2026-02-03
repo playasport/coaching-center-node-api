@@ -262,7 +262,7 @@ export const createRefund = async (
             priority: 'high',
             metadata: {
               type: 'booking_refunded',
-              bookingId: booking.booking_id,
+              bookingId: booking.id,
               recipient: 'user',
             },
           }
@@ -280,7 +280,7 @@ export const createRefund = async (
         const smsMessage = `Your booking ${booking.booking_id} has been refunded. Amount: ₹${refundAmountInRupees.toFixed(2)}. Refund ID: ${razorpayRefund.id}. - Play A Sport`;
         queueSms(user.mobile, smsMessage, 'high', {
           type: 'booking_refunded',
-          bookingId: booking.booking_id,
+          bookingId: booking.id,
           recipient: 'user',
         });
       } catch (error: unknown) {
