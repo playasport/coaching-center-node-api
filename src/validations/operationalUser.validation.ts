@@ -11,6 +11,11 @@ const mobileNumberSchema = z
   .optional()
   .nullable();
 
+const mobileRequiredSchema = z
+  .string({ error: 'Mobile number is required' })
+  .min(1, 'Mobile number is required')
+  .regex(/^[6-9]\d{9}$/, validationMessages.mobileNumber.invalidPattern());
+
 const addressInputSchema = z.object({
   line1: z.string().max(255).optional().nullable(),
   line2: z.string().max(255).optional().nullable(),
@@ -47,7 +52,7 @@ export const createOperationalUserSchema = z.object({
       .min(1, 'First name is required')
       .max(100, 'First name is too long'),
     lastName: z.string().max(100, 'Last name is too long').optional().nullable(),
-    mobile: mobileNumberSchema,
+    mobile: mobileRequiredSchema,
     gender: z.nativeEnum(Gender).optional().nullable(),
     dob: z
       .string()
@@ -270,6 +275,11 @@ export const updateOperationalUserSchema = z.object({
       .optional(),
     isActive: z.boolean().optional(),
     address: addressInputSchema.optional().nullable(),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .max(128, 'Password is too long')
+      .optional(),
   }),
 });
 
