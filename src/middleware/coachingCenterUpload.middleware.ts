@@ -20,31 +20,49 @@ const ALLOWED_DOCUMENT_TYPES = [
 
 const storage = multer.memoryStorage();
 
-// Unified file filter that accepts all media types
+// Pre-compute once (avoids array spread + includes on every file)
+const ALL_ALLOWED_TYPES = [
+  ...ALLOWED_IMAGE_TYPES,
+  ...ALLOWED_VIDEO_TYPES,
+  ...ALLOWED_DOCUMENT_TYPES,
+];
+const ALL_ALLOWED_TYPES_STR = ALL_ALLOWED_TYPES.join(', ');
+
 const unifiedFileFilter = (
   _req: Request,
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ): void => {
-  const allAllowedTypes = [
-    ...ALLOWED_IMAGE_TYPES,
-    ...ALLOWED_VIDEO_TYPES,
-    ...ALLOWED_DOCUMENT_TYPES,
-  ];
-
-  if (allAllowedTypes.includes(file.mimetype)) {
+  if (ALL_ALLOWED_TYPES.includes(file.mimetype)) {
     cb(null, true);
   } else {
     cb(
       new ApiError(
         400,
-        t('validation.file.invalidType', {
-          types: allAllowedTypes.join(', '),
-        })
+        t('validation.file.invalidType', { types: ALL_ALLOWED_TYPES_STR })
       ) as any
     );
   }
 };
+
+// Create multer instance once (avoids re-creating on every request)
+const uploadMediaMulter = multer({
+  storage,
+  fileFilter: unifiedFileFilter,
+  limits: {
+    fileSize: config.media.maxVideoSize,
+    files: config.media.maxTotalFilesCount,
+  },
+}).fields([
+  { name: 'logo', maxCount: 1 },
+  { name: 'logo[]', maxCount: 1 },
+  { name: 'images', maxCount: config.media.maxImagesCount },
+  { name: 'images[]', maxCount: config.media.maxImagesCount },
+  { name: 'videos', maxCount: config.media.maxVideosCount },
+  { name: 'videos[]', maxCount: config.media.maxVideosCount },
+  { name: 'documents', maxCount: config.media.maxDocumentsCount },
+  { name: 'documents[]', maxCount: config.media.maxDocumentsCount },
+]);
 
 // Unified upload middleware that accepts all media types
 export const uploadMedia = (
@@ -52,22 +70,7 @@ export const uploadMedia = (
   res: Response,
   next: NextFunction
 ): void => {
-  // Use fields to accept multiple field names
-  const multerUpload = multer({
-    storage,
-    fileFilter: unifiedFileFilter,
-    limits: {
-      fileSize: config.media.maxVideoSize, // Use max video size as overall limit
-      files: config.media.maxTotalFilesCount, // Total files limit
-    },
-  }).fields([
-    { name: 'logo', maxCount: 1 },
-    { name: 'images', maxCount: config.media.maxImagesCount },
-    { name: 'videos', maxCount: config.media.maxVideosCount },
-    { name: 'documents', maxCount: config.media.maxDocumentsCount },
-  ]);
-
-  multerUpload(req, res, (err) => {
+  uploadMediaMulter(req, res, (err) => {
     if (err) {
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
@@ -83,7 +86,46 @@ export const uploadMedia = (
 
     // Validate file types based on field names
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-    
+
+    // Normalize logo: merge logo[] into logo (support both field names, single file)
+    if (files['logo[]']?.length) {
+      files.logo = [...(files.logo || []), ...files['logo[]']].slice(0, 1);
+      delete files['logo[]'];
+    }
+
+    // Normalize images: merge images[] into images (support both field names)
+    if (files['images[]']?.length) {
+      files.images = [...(files.images || []), ...files['images[]']];
+      delete files['images[]'];
+    }
+    if (files.images && files.images.length > config.media.maxImagesCount) {
+      return next(
+        new ApiError(400, `Images count exceeds maximum of ${config.media.maxImagesCount}`)
+      );
+    }
+
+    // Normalize videos: merge videos[] into videos (support both field names)
+    if (files['videos[]']?.length) {
+      files.videos = [...(files.videos || []), ...files['videos[]']];
+      delete files['videos[]'];
+    }
+    if (files.videos && files.videos.length > config.media.maxVideosCount) {
+      return next(
+        new ApiError(400, `Videos count exceeds maximum of ${config.media.maxVideosCount}`)
+      );
+    }
+
+    // Normalize documents: merge documents[] into documents (support both field names)
+    if (files['documents[]']?.length) {
+      files.documents = [...(files.documents || []), ...files['documents[]']];
+      delete files['documents[]'];
+    }
+    if (files.documents && files.documents.length > config.media.maxDocumentsCount) {
+      return next(
+        new ApiError(400, `Documents count exceeds maximum of ${config.media.maxDocumentsCount}`)
+      );
+    }
+
     if (files.logo) {
       const logoFile = files.logo[0];
       if (!ALLOWED_IMAGE_TYPES.includes(logoFile.mimetype)) {
@@ -135,32 +177,31 @@ export const uploadMedia = (
   });
 };
 
+// Thumbnail file filter (reused for single instance)
+const thumbnailFileFilter: multer.Options['fileFilter'] = (_req, file, cb) => {
+  if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(
+      new ApiError(400, 'Thumbnail must be an image file (JPEG, PNG, WebP)') as any
+    );
+  }
+};
+
+// Create once (avoids re-creating on every request)
+const uploadThumbnailMulter = multer({
+  storage,
+  fileFilter: thumbnailFileFilter,
+  limits: { fileSize: config.media.maxImageSize },
+}).single('thumbnail');
+
 // Single image upload middleware for video thumbnail
 export const uploadThumbnail = (
   req: Request,
   res: Response,
   next: NextFunction
 ): void => {
-  const multerUpload = multer({
-    storage,
-    fileFilter: (_req, file, cb) => {
-      if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
-        cb(null, true);
-      } else {
-        cb(
-          new ApiError(
-            400,
-            'Thumbnail must be an image file (JPEG, PNG, WebP)'
-          ) as any
-        );
-      }
-    },
-    limits: {
-      fileSize: config.media.maxImageSize,
-    },
-  }).single('thumbnail');
-
-  multerUpload(req, res, (err) => {
+  uploadThumbnailMulter(req, res, (err) => {
     if (err) {
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
