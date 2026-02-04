@@ -43,25 +43,25 @@ const router = Router();
  *               logo:
  *                 type: string
  *                 format: binary
- *                 description: Logo image file (JPEG, PNG, WebP) - single file
+ *                 description: Logo image file (JPEG, PNG, WebP) - single file. Field name may be "logo" or "logo[]".
  *               images:
  *                 type: array
  *                 items:
  *                   type: string
  *                   format: binary
- *                 description: Image files (JPEG, PNG, WebP) - up to 10 files
+ *                 description: Image files (JPEG, PNG, WebP) - up to 10 files. Field name may be "images" or "images[]".
  *               videos:
  *                 type: array
  *                 items:
  *                   type: string
  *                   format: binary
- *                 description: Video files (MP4, MPEG, MOV, AVI) - up to 10 files, max 100MB each
+ *                 description: Video files (MP4, MPEG, MOV, AVI) - up to 10 files, max 100MB each. Field name may be "videos" or "videos[]".
  *               documents:
  *                 type: array
  *                 items:
  *                   type: string
  *                   format: binary
- *                 description: Document files (PDF, DOC, DOCX, XLS, XLSX, JPEG, JPG, PNG) - up to 10 files, max 10MB each
+ *                 description: Document files (PDF, DOC, DOCX, XLS, XLSX, JPEG, JPG, PNG) - up to 10 files, max 10MB each. Field name may be "documents" or "documents[]".
  *     responses:
  *       200:
  *         description: Media files uploaded successfully
