@@ -450,8 +450,13 @@ export const updateOperationalUser = async (req: Request, res: Response): Promis
       updateData.email = data.email.toLowerCase();
     }
 
-    // Password updates are handled separately and only by super_admin
-    // Password field is removed from update schema, so this check is no longer needed here
+    // Password can only be updated by super_admin; when frontend sends password, hash and save
+    if (data.password !== undefined && typeof data.password === 'string' && data.password.trim().length > 0) {
+      if (!currentUserIsSuperAdmin) {
+        throw new ApiError(403, 'Only super admin can update password');
+      }
+      updateData.password = await hashPassword(data.password.trim());
+    }
 
     if (data.firstName !== undefined) {
       updateData.firstName = data.firstName;
