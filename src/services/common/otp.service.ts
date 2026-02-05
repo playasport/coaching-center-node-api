@@ -3,7 +3,7 @@ import { OtpModel, Otp } from '../../models/otp.model';
 import { OtpMode } from '../../enums/otpMode.enum';
 import { OtpChannel } from '../../enums/otpChannel.enum';
 
-const OTP_EXPIRY_MINUTES = 5;
+const OTP_EXPIRY_MINUTES = 10;
 
 export type OtpVerificationStatus = 'valid' | 'expired' | 'invalid' | 'not_found' | 'consumed';
 
