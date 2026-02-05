@@ -28,6 +28,7 @@ export interface DashboardStats {
     batch_name: string;
     sport_name: string;
     booking_time: Date;
+    booking_status: string;
   }>;
 }
 
@@ -194,7 +195,7 @@ export const getAcademyDashboard = async (
             select: 'name',
           },
         })
-        .select('id booking_id participants batch createdAt')
+        .select('id booking_id participants batch createdAt status')
         .sort({ createdAt: -1 })
         .limit(5)
         .lean(),
@@ -246,6 +247,7 @@ export const getAcademyDashboard = async (
         batch_name: batchName,
         sport_name: sportName,
         booking_time: booking.createdAt || new Date(),
+        booking_status: booking.status || 'N/A',
       };
     });
 

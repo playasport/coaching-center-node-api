@@ -71,7 +71,7 @@ export const getReelsList = async (
   try {
     // Validate pagination parameters
     const pageNumber = Math.max(1, Math.floor(page));
-    const pageSize = Math.min(3, Math.max(1, Math.floor(limit))); // Max 3 per page
+    const pageSize = Math.max(1, Math.floor(limit)) || 3; // Default 3, accept limit from frontend
 
     // Calculate skip
     const skip = (pageNumber - 1) * pageSize;
@@ -198,7 +198,7 @@ export const getReelsListWithIdFirst = async (
   try {
     // Validate pagination parameters
     const pageNumber = Math.max(1, Math.floor(page));
-    const pageSize = Math.min(3, Math.max(1, Math.floor(limit))); // Max 3 per page
+    const pageSize = Math.max(1, Math.floor(limit)) || 3; // Default 3, accept limit from frontend
 
     // For page 1, we need to verify the target reel exists and get it
     let targetReel = null;
@@ -312,9 +312,9 @@ export const getReelsListWithIdFirst = async (
     let limitForQuery = pageSize;
     
     if (pageNumber === 1) {
-      // Page 1: target reel + 2 more
+      // Page 1: target reel + (pageSize - 1) more
       skip = 0;
-      limitForQuery = 2;
+      limitForQuery = pageSize - 1;
     } else {
       // Page 2+: exclude target reel, skip = (pageNumber - 1) * pageSize - 1
       // We already showed 1 target + 2 others = 3 on page 1
