@@ -73,6 +73,7 @@ export interface CoachingCenterListItem {
     email: string;
     mobile: string;
   };
+  added_by: string | null; // Admin user name who added the center (list only)
   sports: Array<{
     id: string;
     name: string;
@@ -199,12 +200,17 @@ export const getAllCoachingCenters = async (
 
     const [coachingCenters, total] = await Promise.all([
       CoachingCenterModel.find(query)
-        .select('_id id center_name email mobile_number logo status is_active approval_status reject_reason user sports location createdAt updatedAt')
+        .select('_id id center_name email mobile_number logo status is_active approval_status reject_reason user addedBy sports location createdAt updatedAt')
         .populate({
           path: 'user',
           select: 'id firstName lastName email mobile isDeleted',
           // Don't use match here - it can exclude parent documents
           // Instead, we'll filter deleted users in the transformation
+          options: { lean: true },
+        })
+        .populate({
+          path: 'addedBy',
+          select: 'id firstName lastName email',
           options: { lean: true },
         })
         .populate('sports', 'id name')
@@ -240,6 +246,9 @@ export const getAllCoachingCenters = async (
         email: '',
         mobile: '',
       },
+      added_by: center.addedBy
+        ? `${center.addedBy.firstName || ''} ${center.addedBy.lastName || ''}`.trim() || center.addedBy.email || null
+        : null,
       sports: (center.sports || []).map((sport: any) => ({
         id: sport.id || sport._id?.toString() || '',
         name: sport.name || '',
@@ -435,8 +444,27 @@ export const getCoachingCenterByIdForAdmin = async (
     }
 
     // If center exists and passes filter, get full details using common service
-    // This will return the full coaching center with all populated fields
-    return await commonService.getCoachingCenterById(centerId);
+    const result = await commonService.getCoachingCenterById(centerId);
+    if (!result) return null;
+
+    // Populate added_by (admin user who created this center) for details view
+    if (result.addedBy) {
+      const adminUser = await AdminUserModel.findById(result.addedBy)
+        .select('id firstName lastName email')
+        .lean();
+      (result as any).added_by = adminUser
+        ? {
+            id: adminUser.id || (adminUser as any)._id?.toString() || '',
+            firstName: adminUser.firstName || '',
+            lastName: adminUser.lastName || '',
+            email: adminUser.email || '',
+          }
+        : null;
+    } else {
+      (result as any).added_by = null;
+    }
+
+    return result;
   } catch (error) {
     logger.error('Admin failed to fetch coaching center by ID:', {
       centerId,
