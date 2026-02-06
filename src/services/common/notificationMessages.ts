@@ -178,7 +178,7 @@ export const getPaymentVerifiedAcademyWhatsApp = (variables: NotificationMessage
  * OTP - SMS (Generic - used for login, registration, password reset, profile update)
  */
 export const getOtpSms = (variables: { otp: string }): string => {
-  return `Your Play A Sport OTP is ${variables.otp}. This OTP will expire in 5 minutes. Do not share this OTP with anyone. Thank You.`;
+  return `Your Play A Sport OTP is ${variables.otp}. This OTP will expire in 10 minutes. Do not share this OTP with anyone. Thank You.`;
 };
 
 /**

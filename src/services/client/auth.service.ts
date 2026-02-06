@@ -827,6 +827,11 @@ export const sendAcademyOtp = async (data: {
       throw new ApiError(404, t('auth.login.mobileNotFound'));
     }
 
+    // Check if user is active and not deleted before sending OTP
+    if (existingUser.isDeleted || !existingUser.isActive) {
+      throw new ApiError(403, t('auth.login.inactive'));
+    }
+
     // If user has 'user' role and trying to login as academy, add academy role (keep user role)
     if (hasRole(existingUser, DefaultRoles.USER) && !hasRole(existingUser, DefaultRoles.ACADEMY)) {
       const updatedUser = await userService.update(existingUser.id, {
@@ -868,6 +873,11 @@ export const sendAcademyOtp = async (data: {
   } else if (mode === 'forgot_password') {
     if (!existingUser) {
       throw new ApiError(404, t('auth.password.resetUserNotFound'));
+    }
+
+    // Check if user is active and not deleted before sending OTP
+    if (existingUser.isDeleted || !existingUser.isActive) {
+      throw new ApiError(403, t('auth.login.inactive'));
     }
     
     // If user has 'user' role and trying to reset password as academy, add academy role (keep user role)
@@ -1990,6 +2000,11 @@ export const sendUserOtp = async (data: {
   if (mode === 'login') {
     // Allow sending OTP even if user doesn't exist - we'll handle that in verifyUserOtp
     if (existingUser) {
+      // Check if user is active and not deleted before sending OTP
+      if (existingUser.isDeleted || !existingUser.isActive) {
+        throw new ApiError(403, t('auth.login.inactive'));
+      }
+
       let userRole = getRoleName(existingUser);
       
       // If user is registered as academy and trying to login as user, add user role (keep academy role)
@@ -2042,6 +2057,12 @@ export const sendUserOtp = async (data: {
     if (!existingUser) {
       throw new ApiError(404, t('auth.password.resetUserNotFound'));
     }
+
+    // Check if user is active and not deleted before sending OTP
+    if (existingUser.isDeleted || !existingUser.isActive) {
+      throw new ApiError(403, t('auth.login.inactive'));
+    }
+
     let userRole = getRoleName(existingUser);
     
     // If user is registered as academy, add user role (keep academy role)
