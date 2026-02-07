@@ -735,27 +735,26 @@ export const getAcademiesBySport = async (
 
     const totalPages = Math.ceil(filteredTotal / pageSize);
 
+    const searchedSportIdStr = sport._id.toString();
+
     return {
       data: paginatedAcademies.map((academy: any) => {
-        // Get first active image from sport_details, prioritizing banner images
+        // Get image from the sport_detail of the searched sport only, prioritizing banner
         let image: string | null = null;
         if (academy.sport_details && Array.isArray(academy.sport_details)) {
-          for (const sportDetail of academy.sport_details) {
-            if (sportDetail.images && Array.isArray(sportDetail.images)) {
-              // Sort images: banner first, then others
-              const sortedImages = [...sportDetail.images].sort((a, b) => {
-                if (a.is_banner && !b.is_banner) return -1;
-                if (!a.is_banner && b.is_banner) return 1;
-                return 0;
-              });
-              const activeImage = sortedImages.find(
-                (img: any) => img.is_active && !img.is_deleted
-              );
-              if (activeImage) {
-                image = activeImage.url;
-                break;
-              }
-            }
+          const searchedSportDetail = academy.sport_details.find(
+            (sd: any) => (sd.sport_id?._id || sd.sport_id)?.toString() === searchedSportIdStr
+          );
+          if (searchedSportDetail?.images && Array.isArray(searchedSportDetail.images)) {
+            const sortedImages = [...searchedSportDetail.images].sort((a, b) => {
+              if (a.is_banner && !b.is_banner) return -1;
+              if (!a.is_banner && b.is_banner) return 1;
+              return 0;
+            });
+            const activeImage = sortedImages.find(
+              (img: any) => img.is_active && !img.is_deleted
+            );
+            if (activeImage) image = activeImage.url;
           }
         }
 
