@@ -267,12 +267,14 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
           let results: any = { hits: [], estimatedTotalHits: 0 };
 
           if (lowerIndex.includes('coaching') || lowerIndex.includes('centre')) {
+            // When city or state filter is applied, skip location filter (lat/long/radius)
+            const useLocationAutocomplete = !cityAutocomplete && !stateAutocomplete;
             results = await mongodbFallback.searchCoachingCenters(searchQuery, {
               size: sizePerIndex,
               from: 0,
-              latitude,
-              longitude,
-              radius: radiusKmAutocomplete,
+              latitude: useLocationAutocomplete ? latitude ?? undefined : undefined,
+              longitude: useLocationAutocomplete ? longitude ?? undefined : undefined,
+              radius: useLocationAutocomplete ? radiusKmAutocomplete : undefined,
               city: cityAutocomplete,
               state: stateAutocomplete,
               sportId: sportIdAutocomplete,
@@ -420,7 +422,7 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
         const lowerIndex = indexName.toLowerCase();
         const isCoachingIndex = lowerIndex.includes('coaching') || lowerIndex.includes('centre');
 
-        if (isCoachingIndex && latitude !== null && longitude !== null) {
+        if (isCoachingIndex && latitude !== null && longitude !== null && !cityAutocomplete && !stateAutocomplete) {
           const radiusForGeo = (radiusKmAutocomplete != null && Number.isFinite(radiusKmAutocomplete) && radiusKmAutocomplete > 0)
             ? Math.max(radiusKmAutocomplete, 1)
             : 50;
@@ -687,12 +689,14 @@ export const search = async (req: Request, res: Response): Promise<void> => {
           let searchResults: any = { hits: [], estimatedTotalHits: 0 };
 
           if (lowerIndex.includes('coaching') || lowerIndex.includes('centre')) {
+            // When city or state filter is applied, skip location filter (lat/long/radius)
+            const useLocationSearch = !city && !state;
             searchResults = await mongodbFallback.searchCoachingCenters(searchQuery, {
               size: size * 2, // Get more for proper sorting
               from: 0,
-              latitude,
-              longitude,
-              radius: radiusKm,
+              latitude: useLocationSearch ? latitude ?? undefined : undefined,
+              longitude: useLocationSearch ? longitude ?? undefined : undefined,
+              radius: useLocationSearch ? radiusKm : undefined,
               city,
               state,
               sportId,
@@ -921,7 +925,8 @@ export const search = async (req: Request, res: Response): Promise<void> => {
             offset: 0,
           };
 
-          if (latitude !== null && longitude !== null) {
+          // When city or state filter is applied, skip location filter (geo/radius)
+          if (latitude !== null && longitude !== null && !city && !state) {
             const geoFilterOptions: any = { ...searchOptionsForIndex };
             geoFilterOptions.filter = [`_geoRadius(${latitude}, ${longitude}, ${radiusInMeters})`];
             geoFilterOptions.aroundLatLng = `${latitude},${longitude}`;
@@ -1268,9 +1273,9 @@ export const search = async (req: Request, res: Response): Promise<void> => {
         };
       });
 
-      // Filter and sort for coaching centres with location
+      // Filter and sort for coaching centres with location (skip when city or state filter applied)
       let finalTransformedResults = transformedResults;
-      if ((indexName.includes('coaching') || indexName.includes('centre')) && latitude !== null && longitude !== null) {
+      if ((indexName.includes('coaching') || indexName.includes('centre')) && latitude !== null && longitude !== null && !city && !state) {
         const radiusForFilter = radiusKm ?? 50;
         const filteredResults = transformedResults.filter((result: any) => {
           if (result.source.distance === null || result.source.distance === undefined) {
@@ -1307,7 +1312,7 @@ export const search = async (req: Request, res: Response): Promise<void> => {
       if (resultsByIndex[normalizedIndexName]) {
         let mergedResults = [...resultsByIndex[normalizedIndexName].results, ...finalTransformedResults];
 
-        if ((indexName.includes('coaching') || indexName.includes('centre')) && latitude !== null && longitude !== null) {
+        if ((indexName.includes('coaching') || indexName.includes('centre')) && latitude !== null && longitude !== null && !city && !state) {
           const radiusForFilter = radiusKm ?? 50;
           const queryLower = query.toLowerCase().trim();
 

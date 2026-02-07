@@ -276,18 +276,20 @@ export const getAllAcademies = async (
       }
     }
 
-    // If location is provided, use bounding box to pre-filter records at database level
-    // This significantly reduces the number of records we need to process
-    if (userLocation) {
+    // When city or state filter is applied, skip location filter (lat/long/radius)
+    const useLocationFilter = userLocation && !filterCity && !filterState;
+
+    // If location is provided (and no city/state filter), use bounding box to pre-filter records at database level
+    if (useLocationFilter) {
       const searchRadius = radius ?? config.location.defaultRadius;
-      const bbox = getBoundingBox(userLocation.latitude, userLocation.longitude, searchRadius);
+      const bbox = getBoundingBox(userLocation!.latitude, userLocation!.longitude, searchRadius);
       query['location.latitude'] = { $gte: bbox.minLat, $lte: bbox.maxLat };
       query['location.longitude'] = { $gte: bbox.minLon, $lte: bbox.maxLon };
     }
 
     // For location-based queries, fetch more records (5x page size) to ensure we have enough
     // for proper sorting after distance calculation. For non-location queries, use a reasonable limit.
-    const fetchLimit = userLocation ? Math.min(pageSize * 5, 200) : Math.min(pageSize * 5, 200);
+    const fetchLimit = useLocationFilter ? Math.min(pageSize * 5, 200) : Math.min(pageSize * 5, 200);
 
     // Fetch academies with database-level filtering and limit
     // Use lean() for better performance and populate sports
@@ -298,16 +300,16 @@ export const getAllAcademies = async (
       .limit(fetchLimit)
       .lean();
 
-    // Calculate distances if location provided (only for fetched records, not all)
-    if (userLocation && academies.length > 0) {
+    // Calculate distances if location provided and not skipped by city/state filter
+    if (useLocationFilter && academies.length > 0) {
       const destinations = academies.map((academy) => ({
         latitude: academy.location.latitude,
         longitude: academy.location.longitude,
       }));
 
       const distances = await calculateDistances(
-        userLocation.latitude,
-        userLocation.longitude,
+        userLocation!.latitude,
+        userLocation!.longitude,
         destinations
       );
 
@@ -340,8 +342,8 @@ export const getAllAcademies = async (
         if (!aHasFavorite && bHasFavorite) return 1;
       }
 
-      // Priority 2: Distance (if location provided)
-      if (userLocation && (a as any).distance !== undefined && (b as any).distance !== undefined) {
+      // Priority 2: Distance (if location provided and not skipped by city/state filter)
+      if (useLocationFilter && (a as any).distance !== undefined && (b as any).distance !== undefined) {
         return (a as any).distance - (b as any).distance;
       }
 
@@ -351,7 +353,7 @@ export const getAllAcademies = async (
 
     // Get total count efficiently
     let filteredTotal: number;
-    if (userLocation) {
+    if (useLocationFilter) {
       // For location queries, we use bounding box count as approximation
       // Exact count would require calculating distances for all records (too slow)
       // The bounding box count is close enough and much faster

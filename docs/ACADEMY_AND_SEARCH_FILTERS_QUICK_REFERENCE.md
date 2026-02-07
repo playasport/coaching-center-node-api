@@ -30,6 +30,9 @@ Short reference: the same filters apply to **Get All Academies** and **Search/Au
 **Sport filter behaviour (Get All Academies):**  
 When `sportId` or `sportIds` is used: (1) each academy’s **image** comes from that sport’s `sport_detail` (banner first); (2) filtered sport(s) appear **first** in the **sports** list.
 
+**City/state vs location:**  
+When `city` or `state` filter is applied, the **location filter** (latitude, longitude, radius) is **skipped** – no distance filtering or distance-based sorting. Same for Get All Academies, Search, and Autocomplete.
+
 ---
 
 ## 2. Search & Autocomplete (same filters)
