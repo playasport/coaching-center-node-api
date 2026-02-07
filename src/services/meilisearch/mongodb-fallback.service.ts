@@ -32,6 +32,8 @@ const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: num
 class MongodbFallbackService {
   /**
    * Search Coaching Centers from MongoDB
+   * @param query - Search text
+   * @param options - size, from, lat/long, radius, and filters: city, state, sportId, sportIds (comma-separated), gender
    */
   async searchCoachingCenters(
     query: string,
@@ -40,10 +42,44 @@ class MongodbFallbackService {
       from?: number;
       latitude?: number | null;
       longitude?: number | null;
+      /** Max distance in km (only when lat/long provided). Omit or 0 = no limit; results sorted by distance. */
       radius?: number;
+      /** Filter by city (location.address.city), case-insensitive partial match */
+      city?: string;
+      /** Filter by state (location.address.state), case-insensitive partial match */
+      state?: string;
+      /** Filter by sport – centers that offer this sport (single ID) */
+      sportId?: string;
+      /** Filter by sports – centers that offer any of these sports (comma-separated IDs) */
+      sportIds?: string;
+      /** Filter by allowed gender: male | female | other */
+      gender?: string;
+      /** Filter for persons with disability – only centers where allowed_disabled is true */
+      forDisabled?: boolean;
+      /** Filter by age range – minimum age (years). Centers whose age range overlaps [minAge, maxAge] are included. */
+      minAge?: number;
+      /** Filter by age range – maximum age (years). Centers whose age range overlaps [minAge, maxAge] are included. */
+      maxAge?: number;
+      /** When true and lat/long provided, sort by nearest first (default true when lat/long present) */
+      sortByDistance?: boolean;
     } = {}
   ): Promise<any> {
-    const { size = 10, from = 0, latitude: userLatitude, longitude: userLongitude } = options;
+    const {
+      size = 10,
+      from = 0,
+      latitude: userLatitude,
+      longitude: userLongitude,
+      city: filterCity,
+      state: filterState,
+      sportId: filterSportId,
+      sportIds: filterSportIds,
+      gender: filterGender,
+      forDisabled: filterForDisabled,
+      minAge: filterMinAge,
+      maxAge: filterMaxAge,
+      radius: radiusKm,
+      sortByDistance = true,
+    } = options;
 
     try {
       // Escape regex special chars; then allow both & and fullwidth ＆ so "s&s" matches "S&S" and "S＆S"
@@ -85,6 +121,55 @@ class MongodbFallbackService {
         is_active: true,
         $or: orConditions,
       };
+
+      // Apply filters: city, state, sportId/sportIds, gender, forDisabled (persons with disability)
+      if (filterCity && filterCity.trim()) {
+        mongoQuery['location.address.city'] = new RegExp(filterCity.trim(), 'i');
+      }
+      if (filterState && filterState.trim()) {
+        mongoQuery['location.address.state'] = new RegExp(filterState.trim(), 'i');
+      }
+      if (filterGender && filterGender.trim()) {
+        const g = filterGender.trim().toLowerCase();
+        if (['male', 'female', 'other'].includes(g)) {
+          mongoQuery.allowed_genders = g;
+        }
+      }
+      if (filterForDisabled === true) {
+        mongoQuery.allowed_disabled = true;
+      }
+      // Age range filter: center's age range overlaps [minAge, maxAge] when center.age.max >= minAge AND center.age.min <= maxAge
+      if (filterMinAge != null && !Number.isNaN(filterMinAge) && filterMaxAge != null && !Number.isNaN(filterMaxAge)) {
+        mongoQuery['age.max'] = { $gte: filterMinAge };
+        mongoQuery['age.min'] = { $lte: filterMaxAge };
+      } else if (filterMinAge != null && !Number.isNaN(filterMinAge)) {
+        mongoQuery['age.max'] = { $gte: filterMinAge };
+      } else if (filterMaxAge != null && !Number.isNaN(filterMaxAge)) {
+        mongoQuery['age.min'] = { $lte: filterMaxAge };
+      }
+      const sportIdStrings: string[] = [];
+      if (filterSportId && filterSportId.trim()) sportIdStrings.push(filterSportId.trim());
+      if (filterSportIds && filterSportIds.trim()) {
+        sportIdStrings.push(...filterSportIds.split(',').map((s) => s.trim()).filter(Boolean));
+      }
+      if (sportIdStrings.length > 0) {
+        const validObjectIds = sportIdStrings
+          .filter((id) => Types.ObjectId.isValid(id) && String(id).length === 24)
+          .map((id) => new Types.ObjectId(id));
+        const byObjectId = validObjectIds.length > 0
+          ? await SportModel.find({ _id: { $in: validObjectIds }, is_active: true }).select('_id').lean()
+          : [];
+        const byCustomId = await SportModel.find({
+          custom_id: { $in: sportIdStrings },
+          is_active: true,
+        })
+          .select('_id')
+          .lean();
+        const ids = [...new Set([...byObjectId.map((s: any) => s._id), ...byCustomId.map((s: any) => s._id)])];
+        if (ids.length > 0) {
+          mongoQuery.sports = { $in: ids };
+        }
+      }
 
       // Fetch all matching centers
       let centers = await CoachingCenterModel.find(mongoQuery)
@@ -246,35 +331,47 @@ class MongodbFallbackService {
           distance: distance !== null ? Math.round(distance * 100) / 100 : null,
           _isSportMatch: isSportMatch,
           _priority: isSportMatch ? 1 : 2,
+          allowed_disabled: center.allowed_disabled === true,
+          is_only_for_disabled: center.is_only_for_disabled === true,
+          age: center.age ? { min: center.age.min, max: center.age.max } : null,
         };
       });
 
-      // No radius filtering - return all matching results
-      // Sort: sport matches first, then by distance (if location provided)
-      transformed.sort((a: any, b: any) => {
+      // Optional radius filter: when radius (km) > 0 and user location provided, keep only centers within radius
+      let filtered = transformed;
+      if (
+        radiusKm != null &&
+        radiusKm > 0 &&
+        userLatitude != null &&
+        userLongitude != null
+      ) {
+        filtered = transformed.filter(
+          (c: any) => c.distance != null && c.distance <= radiusKm
+        );
+      }
+
+      // Sort: sport matches first, then by distance (nearest first when lat/long provided and sortByDistance)
+      filtered.sort((a: any, b: any) => {
         if (a._priority !== b._priority) {
           return a._priority - b._priority;
         }
-        // Sort by distance if both have distance values
-        if (a.distance !== null && b.distance !== null) {
-          return a.distance - b.distance;
-        }
-        // Items with distance come before items without distance
-        if (a.distance !== null && b.distance === null) {
-          return -1;
-        }
-        if (a.distance === null && b.distance !== null) {
-          return 1;
+        if (sortByDistance && userLatitude != null && userLongitude != null) {
+          // Nearest first: items with distance, then by distance ascending
+          if (a.distance !== null && b.distance !== null) {
+            return a.distance - b.distance;
+          }
+          if (a.distance !== null && b.distance === null) return -1;
+          if (a.distance === null && b.distance !== null) return 1;
         }
         return 0;
       });
 
       // Paginate
-      const paginated = transformed.slice(from, from + size);
+      const paginated = filtered.slice(from, from + size);
 
       return {
         hits: paginated,
-        estimatedTotalHits: transformed.length,
+        estimatedTotalHits: filtered.length,
         processingTimeMs: 0,
       };
     } catch (error) {

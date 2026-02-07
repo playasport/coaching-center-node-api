@@ -204,7 +204,22 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
     const specificIndex = req.query.index as string | undefined;
     const latitude = req.query.latitude ? parseFloat(req.query.latitude as string) : null;
     const longitude = req.query.longitude ? parseFloat(req.query.longitude as string) : null;
-    const radius = parseInt((req.query.radius as string) || '50', 10);
+    const radiusParamAutocomplete = req.query.radius as string | undefined;
+    const radiusAutocomplete = radiusParamAutocomplete !== undefined && radiusParamAutocomplete !== ''
+      ? parseInt(radiusParamAutocomplete, 10)
+      : undefined;
+    const radiusKmAutocomplete = radiusAutocomplete != null && !Number.isNaN(radiusAutocomplete) && radiusAutocomplete > 0
+      ? radiusAutocomplete
+      : undefined;
+    const cityAutocomplete = (req.query.city as string)?.trim() || undefined;
+    const stateAutocomplete = (req.query.state as string)?.trim() || undefined;
+    const sportIdAutocomplete = (req.query.sportId as string)?.trim() || undefined;
+    const sportIdsAutocomplete = (req.query.sportIds as string)?.trim() || undefined;
+    const genderAutocomplete = (req.query.gender as string)?.trim() || undefined;
+    const forDisabledAutocomplete = req.query.for_disabled === 'true' || req.query.for_disabled === '1';
+    const minAgeAutocomplete = req.query.min_age != null ? parseInt(req.query.min_age as string, 10) : undefined;
+    const maxAgeAutocomplete = req.query.max_age != null ? parseInt(req.query.max_age as string, 10) : undefined;
+    const sortByDistanceAutocomplete = req.query.sort_by !== 'distance' ? true : req.query.sort_by === 'distance';
 
     if (!query || query.trim() === '') {
       res.status(200).json(
@@ -257,7 +272,16 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
               from: 0,
               latitude,
               longitude,
-              radius,
+              radius: radiusKmAutocomplete,
+              city: cityAutocomplete,
+              state: stateAutocomplete,
+              sportId: sportIdAutocomplete,
+              sportIds: sportIdsAutocomplete,
+              gender: genderAutocomplete,
+              forDisabled: forDisabledAutocomplete,
+              minAge: minAgeAutocomplete != null && !Number.isNaN(minAgeAutocomplete) ? minAgeAutocomplete : undefined,
+              maxAge: maxAgeAutocomplete != null && !Number.isNaN(maxAgeAutocomplete) ? maxAgeAutocomplete : undefined,
+              sortByDistance: sortByDistanceAutocomplete,
             });
           } else if (lowerIndex.includes('sport') && !lowerIndex.includes('coaching')) {
             results = await mongodbFallback.searchSports(searchQuery, { size: sizePerIndex, from: 0 });
@@ -397,8 +421,10 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
         const isCoachingIndex = lowerIndex.includes('coaching') || lowerIndex.includes('centre');
 
         if (isCoachingIndex && latitude !== null && longitude !== null) {
-          const radiusKm = Number.isFinite(radius) ? Math.max(radius, 1) : 50;
-          const radiusInMeters = radiusKm * 1000;
+          const radiusForGeo = (radiusKmAutocomplete != null && Number.isFinite(radiusKmAutocomplete) && radiusKmAutocomplete > 0)
+            ? Math.max(radiusKmAutocomplete, 1)
+            : 50;
+          const radiusInMeters = radiusForGeo * 1000;
           const searchLimit = Math.max(sizePerIndex * 4, sizePerIndex + 10, 50);
 
           const geoOptions = {
@@ -595,7 +621,20 @@ export const search = async (req: Request, res: Response): Promise<void> => {
     const from = parseInt((req.query.from as string) || '0', 10);
     const latitude = req.query.latitude ? parseFloat(req.query.latitude as string) : null;
     const longitude = req.query.longitude ? parseFloat(req.query.longitude as string) : null;
-    const radius = parseInt((req.query.radius as string) || '50', 10);
+    // Radius in km; omit or 0 = no limit (show all, sorted by distance). When set, only centers within radius.
+    const radiusParam = req.query.radius as string | undefined;
+    const radius = radiusParam !== undefined && radiusParam !== '' ? parseInt(radiusParam, 10) : undefined;
+    const radiusKm = radius != null && !Number.isNaN(radius) && radius > 0 ? radius : undefined;
+    // Filter options (apply to coaching centres when using MongoDB fallback)
+    const city = (req.query.city as string)?.trim() || undefined;
+    const state = (req.query.state as string)?.trim() || undefined;
+    const sportId = (req.query.sportId as string)?.trim() || undefined;
+    const sportIds = (req.query.sportIds as string)?.trim() || undefined;
+    const gender = (req.query.gender as string)?.trim() || undefined;
+    const forDisabled = req.query.for_disabled === 'true' || req.query.for_disabled === '1';
+    const minAge = req.query.min_age != null ? parseInt(req.query.min_age as string, 10) : undefined;
+    const maxAge = req.query.max_age != null ? parseInt(req.query.max_age as string, 10) : undefined;
+    const sortByDistance = req.query.sort_by !== 'distance' ? true : req.query.sort_by === 'distance';
 
     if (!query || query.trim() === '') {
       throw new ApiError(400, 'Query parameter "q" or "query" is required');
@@ -653,7 +692,16 @@ export const search = async (req: Request, res: Response): Promise<void> => {
               from: 0,
               latitude,
               longitude,
-              radius,
+              radius: radiusKm,
+              city,
+              state,
+              sportId,
+              sportIds,
+              gender,
+              forDisabled,
+              minAge: minAge != null && !Number.isNaN(minAge) ? minAge : undefined,
+              maxAge: maxAge != null && !Number.isNaN(maxAge) ? maxAge : undefined,
+              sortByDistance,
             });
           } else if (lowerIndex.includes('sport') && !lowerIndex.includes('coaching')) {
             searchResults = await mongodbFallback.searchSports(searchQuery, { size: size * 2, from: 0 });
@@ -706,6 +754,9 @@ export const search = async (req: Request, res: Response): Promise<void> => {
               experience: hit.experience || null,
               pincode: hit.pincode || null,
               distance: hit.distance !== null && hit.distance !== undefined ? hit.distance : null,
+              allowed_disabled: hit.allowed_disabled === true,
+              is_only_for_disabled: hit.is_only_for_disabled === true,
+              age: hit.age ? { min: hit.age.min, max: hit.age.max } : null,
             };
 
             if (indexName.includes('live') || indexName.includes('stream') || indexName.includes('reel')) {
@@ -860,8 +911,8 @@ export const search = async (req: Request, res: Response): Promise<void> => {
 
         if (indexName.includes('coaching') || indexName.includes('centre')) {
           const index = client!.index(indexName);
-          const radiusKm = radius || 50;
-          const radiusInMeters = radiusKm * 1000;
+          const radiusForMeili = radiusKm ?? 50;
+          const radiusInMeters = radiusForMeili * 1000;
           const searchLimit = 200; // Fetch large set for proper distance sorting
 
           const searchOptionsForIndex = {
@@ -1170,6 +1221,12 @@ export const search = async (req: Request, res: Response): Promise<void> => {
             distanceInMeters !== null ? Math.round(distanceInMeters / 10) / 100 : null,
         };
 
+        if (indexName.includes('coaching') || indexName.includes('centre')) {
+          source.allowed_disabled = hit.allowed_disabled === true;
+          source.is_only_for_disabled = hit.is_only_for_disabled === true;
+          source.age = hit.age ? { min: hit.age.min, max: hit.age.max } : null;
+        }
+
         if (indexName.includes('live') || indexName.includes('stream') || indexName.includes('reel')) {
           source.thumbnail = hit.thumbnail || hit.thumbnailUrl || null;
         }
@@ -1214,12 +1271,12 @@ export const search = async (req: Request, res: Response): Promise<void> => {
       // Filter and sort for coaching centres with location
       let finalTransformedResults = transformedResults;
       if ((indexName.includes('coaching') || indexName.includes('centre')) && latitude !== null && longitude !== null) {
-        const radiusKm = radius || 50;
+        const radiusForFilter = radiusKm ?? 50;
         const filteredResults = transformedResults.filter((result: any) => {
           if (result.source.distance === null || result.source.distance === undefined) {
             return false;
           }
-          return result.source.distance <= radiusKm;
+          return result.source.distance <= radiusForFilter;
         });
 
         const queryLower = query.toLowerCase().trim();
@@ -1251,14 +1308,14 @@ export const search = async (req: Request, res: Response): Promise<void> => {
         let mergedResults = [...resultsByIndex[normalizedIndexName].results, ...finalTransformedResults];
 
         if ((indexName.includes('coaching') || indexName.includes('centre')) && latitude !== null && longitude !== null) {
-          const radiusKm = radius || 50;
+          const radiusForFilter = radiusKm ?? 50;
           const queryLower = query.toLowerCase().trim();
 
           mergedResults = mergedResults.filter((result: any) => {
             if (result.source.distance === null || result.source.distance === undefined) {
               return false;
             }
-            return result.source.distance <= radiusKm;
+            return result.source.distance <= radiusForFilter;
           });
 
           mergedResults.sort((a: any, b: any) => {

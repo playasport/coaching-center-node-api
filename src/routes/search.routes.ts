@@ -70,6 +70,20 @@ const router = Router();
  *           default: 50
  *         description: "Search radius in kilometers (default: 50km, only for coaching centers)"
  *         example: 50
+ *       - in: query
+ *         name: min_age
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *         description: "Filter coaching centers by age range – minimum age (years). Centers whose age range overlaps [min_age, max_age] are included. Applied when MongoDB fallback is used."
+ *         example: 5
+ *       - in: query
+ *         name: max_age
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *         description: "Filter coaching centers by age range – maximum age (years). Centers whose age range overlaps [min_age, max_age] are included. Applied when MongoDB fallback is used."
+ *         example: 18
  *     responses:
  *       200:
  *         description: Autocomplete results retrieved successfully
@@ -236,9 +250,65 @@ router.get('/autocomplete', autocomplete);
  *           type: integer
  *           minimum: 1
  *           maximum: 200
- *           default: 50
- *         description: "Search radius in kilometers (default: 50km, only for coaching centers)"
+ *         description: "Max distance in km (only when latitude/longitude provided). Omit or 0 = no limit; results sorted by distance (nearest first)."
  *         example: 50
+ *       - in: query
+ *         name: sort_by
+ *         schema:
+ *           type: string
+ *           enum: [distance]
+ *         description: "When 'distance' and lat/long provided, sort by nearest first. Default when lat/long present."
+ *       - in: query
+ *         name: for_disabled
+ *         schema:
+ *           type: boolean
+ *         description: "Filter for persons with disability – only centers where allowed_disabled is true (MongoDB fallback)."
+ *         example: true
+ *       - in: query
+ *         name: city
+ *         schema:
+ *           type: string
+ *         description: "Filter coaching centers by city (location.address.city). Case-insensitive partial match. Applied when MongoDB fallback is used."
+ *         example: "Mumbai"
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: "Filter coaching centers by state (location.address.state). Case-insensitive partial match. Applied when MongoDB fallback is used."
+ *         example: "Maharashtra"
+ *       - in: query
+ *         name: sportId
+ *         schema:
+ *           type: string
+ *         description: "Filter coaching centers that offer this sport (MongoDB ObjectId or custom_id). Applied when MongoDB fallback is used."
+ *         example: "507f1f77bcf86cd799439011"
+ *       - in: query
+ *         name: sportIds
+ *         schema:
+ *           type: string
+ *         description: "Filter coaching centers that offer any of these sports (comma-separated IDs). Applied when MongoDB fallback is used."
+ *         example: "id1,id2"
+ *       - in: query
+ *         name: gender
+ *         schema:
+ *           type: string
+ *           enum: [male, female, other]
+ *         description: "Filter coaching centers by allowed gender. Applied when MongoDB fallback is used."
+ *         example: "male"
+ *       - in: query
+ *         name: min_age
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *         description: "Filter coaching centers by age range – minimum age (years). Centers whose age range overlaps [min_age, max_age] are included. Applied when MongoDB fallback is used."
+ *         example: 5
+ *       - in: query
+ *         name: max_age
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *         description: "Filter coaching centers by age range – maximum age (years). Centers whose age range overlaps [min_age, max_age] are included. Applied when MongoDB fallback is used."
+ *         example: 18
  *     responses:
  *       200:
  *         description: Search results retrieved successfully

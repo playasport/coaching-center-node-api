@@ -57,6 +57,9 @@ export interface AcademyListItem {
     is_popular: boolean;
   }>;
   allowed_genders: string[];
+  age?: { min: number; max: number }; // Age range (years) the academy accepts
+  allowed_disabled?: boolean; // Academy allows persons with disability
+  is_only_for_disabled?: boolean; // Academy is only for persons with disability
   distance?: number; // Distance in km (if location provided)
 }
 
@@ -157,20 +160,44 @@ const maskMobile = (mobile: string): string => {
   return `${mobile.substring(0, 2)}****${mobile.substring(mobile.length - 2)}`;
 };
 
+/** Filter options for get all academies (same as search API) */
+export interface GetAllAcademiesFilters {
+  city?: string;
+  state?: string;
+  sportId?: string;
+  sportIds?: string;
+  gender?: string;
+  forDisabled?: boolean;
+  minAge?: number;
+  maxAge?: number;
+}
+
 /**
  * Get all academies with pagination, location-based sorting, and favorite sports preference
- * Optimized to use database-level filtering and limit records fetched
+ * Optimized to use database-level filtering and limit records fetched.
+ * Supports same filters as search API: city, state, sportId, sportIds, gender, for_disabled, min_age, max_age.
  */
 export const getAllAcademies = async (
   page: number = 1,
   limit: number = config.pagination.defaultLimit,
   userLocation?: { latitude: number; longitude: number },
   userId?: string,
-  radius?: number
+  radius?: number,
+  filters: GetAllAcademiesFilters = {}
 ): Promise<PaginatedResult<AcademyListItem>> => {
   try {
     const pageNumber = Math.max(1, Math.floor(page));
     const pageSize = Math.min(config.pagination.maxLimit, Math.max(1, Math.floor(limit)));
+    const {
+      city: filterCity,
+      state: filterState,
+      sportId: filterSportId,
+      sportIds: filterSportIds,
+      gender: filterGender,
+      forDisabled: filterForDisabled,
+      minAge: filterMinAge,
+      maxAge: filterMaxAge,
+    } = filters;
 
     // Build base query - only published, active, and approved academies
     const query: any = {
@@ -179,6 +206,57 @@ export const getAllAcademies = async (
       approval_status: 'approved', // Only show approved academies to users
       is_deleted: false,
     };
+
+    // Apply filters: city, state, sportId/sportIds, gender, forDisabled, age range
+    if (filterCity && filterCity.trim()) {
+      query['location.address.city'] = new RegExp(filterCity.trim(), 'i');
+    }
+    if (filterState && filterState.trim()) {
+      query['location.address.state'] = new RegExp(filterState.trim(), 'i');
+    }
+    if (filterGender && filterGender.trim()) {
+      const g = filterGender.trim().toLowerCase();
+      if (['male', 'female', 'other'].includes(g)) {
+        query.allowed_genders = g;
+      }
+    }
+    if (filterForDisabled === true) {
+      query.allowed_disabled = true;
+    }
+    if (filterMinAge != null && !Number.isNaN(filterMinAge) && filterMaxAge != null && !Number.isNaN(filterMaxAge)) {
+      query['age.max'] = { $gte: filterMinAge };
+      query['age.min'] = { $lte: filterMaxAge };
+    } else if (filterMinAge != null && !Number.isNaN(filterMinAge)) {
+      query['age.max'] = { $gte: filterMinAge };
+    } else if (filterMaxAge != null && !Number.isNaN(filterMaxAge)) {
+      query['age.min'] = { $lte: filterMaxAge };
+    }
+    const sportIdStrings: string[] = [];
+    if (filterSportId && filterSportId.trim()) sportIdStrings.push(filterSportId.trim());
+    if (filterSportIds && filterSportIds.trim()) {
+      sportIdStrings.push(...filterSportIds.split(',').map((s) => s.trim()).filter(Boolean));
+    }
+    /** When sport filter is applied: use for image (that sport's banner first) and put that sport first in sports list */
+    let filterSportObjectIds: Types.ObjectId[] = [];
+    if (sportIdStrings.length > 0) {
+      const validObjectIds = sportIdStrings
+        .filter((id) => Types.ObjectId.isValid(id) && String(id).length === 24)
+        .map((id) => new Types.ObjectId(id));
+      const byObjectId = validObjectIds.length > 0
+        ? await SportModel.find({ _id: { $in: validObjectIds }, is_active: true }).select('_id').lean()
+        : [];
+      const byCustomId = await SportModel.find({
+        custom_id: { $in: sportIdStrings },
+        is_active: true,
+      })
+        .select('_id')
+        .lean();
+      const ids = [...new Set([...byObjectId.map((s: any) => s._id), ...byCustomId.map((s: any) => s._id)])];
+      if (ids.length > 0) {
+        query.sports = { $in: ids };
+        filterSportObjectIds = ids;
+      }
+    }
 
     // Get user's favorite sports if logged in
     let favoriteSportIds: Types.ObjectId[] = [];
@@ -215,7 +293,7 @@ export const getAllAcademies = async (
     // Use lean() for better performance and populate sports
     let academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo is_popular')
-      .select('id center_name logo location sports allowed_genders sport_details createdAt')
+      .select('id center_name logo location sports allowed_genders sport_details age allowed_disabled is_only_for_disabled createdAt')
       .sort({ createdAt: -1 }) // Default sort by creation date
       .limit(fetchLimit)
       .lean();
@@ -297,23 +375,67 @@ export const getAllAcademies = async (
     const paginatedAcademies = academies.slice(skip, skip + pageSize);
     const totalPages = Math.ceil(filteredTotal / pageSize);
 
+    const filterSportIdSet = new Set(filterSportObjectIds.map((id) => id.toString()));
+
     return {
       data: paginatedAcademies.map((academy: any) => {
-        // Get first active image from sport_details
+        // Image: when sport filter applied, use that sport's sport_detail image (banner first); else first active image
         let image: string | null = null;
         if (academy.sport_details && Array.isArray(academy.sport_details)) {
-          for (const sportDetail of academy.sport_details) {
-            if (sportDetail.images && Array.isArray(sportDetail.images)) {
-              const activeImage = sportDetail.images.find(
+          if (filterSportIdSet.size > 0) {
+            const matchedDetail = academy.sport_details.find(
+              (sd: any) => filterSportIdSet.has((sd.sport_id?._id || sd.sport_id)?.toString())
+            );
+            if (matchedDetail?.images && Array.isArray(matchedDetail.images)) {
+              const sortedImages = [...matchedDetail.images].sort((a: any, b: any) => {
+                if (a.is_banner && !b.is_banner) return -1;
+                if (!a.is_banner && b.is_banner) return 1;
+                return 0;
+              });
+              const activeImage = sortedImages.find(
                 (img: any) => img.is_active && !img.is_deleted
               );
-              if (activeImage) {
-                image = activeImage.url;
-                break;
+              if (activeImage) image = activeImage.url;
+            }
+          }
+          if (!image) {
+            for (const sportDetail of academy.sport_details) {
+              if (sportDetail.images && Array.isArray(sportDetail.images)) {
+                const activeImage = sportDetail.images.find(
+                  (img: any) => img.is_active && !img.is_deleted
+                );
+                if (activeImage) {
+                  image = activeImage.url;
+                  break;
+                }
               }
             }
           }
         }
+
+        // Sports list: when sport filter applied, put filtered sport(s) first
+        let sportsList = (academy.sports || []).map((sport: any) => ({
+          id: sport.custom_id || sport._id?.toString(),
+          name: sport.name,
+          logo: sport.logo || null,
+          is_popular: sport.is_popular || false,
+          _oid: sport._id?.toString(),
+        }));
+        if (filterSportIdSet.size > 0 && sportsList.length > 1) {
+          sportsList = [...sportsList].sort((a: any, b: any) => {
+            const aMatch = filterSportIdSet.has(a._oid);
+            const bMatch = filterSportIdSet.has(b._oid);
+            if (aMatch && !bMatch) return -1;
+            if (!aMatch && bMatch) return 1;
+            return 0;
+          });
+        }
+        sportsList = sportsList.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          logo: s.logo ?? null,
+          is_popular: s.is_popular ?? false,
+        }));
 
         return {
           id: academy.id || academy._id.toString(),
@@ -321,13 +443,11 @@ export const getAllAcademies = async (
           logo: academy.logo,
           image: image,
           location: academy.location,
-          sports: (academy.sports || []).map((sport: any) => ({
-            id: sport.custom_id || sport._id?.toString(),
-            name: sport.name,
-            logo: sport.logo || null,
-            is_popular: sport.is_popular || false,
-          })),
+          sports: sportsList,
           allowed_genders: academy.allowed_genders || [],
+          age: academy.age ? { min: academy.age.min, max: academy.age.max } : undefined,
+          allowed_disabled: academy.allowed_disabled === true,
+          is_only_for_disabled: academy.is_only_for_disabled === true,
           distance: academy.distance,
         };
       }) as AcademyListItem[],
@@ -568,7 +688,7 @@ export const getAcademiesByCity = async (
     // Fetch all academies (we'll filter and paginate after filtering deleted users)
     let academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo')
-      .select('id center_name logo location sports allowed_genders sport_details')
+      .select('id center_name logo location sports allowed_genders sport_details age allowed_disabled is_only_for_disabled')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -617,6 +737,9 @@ export const getAcademiesByCity = async (
             is_popular: sport.is_popular || false,
           })),
           allowed_genders: academy.allowed_genders || [],
+          age: academy.age ? { min: academy.age.min, max: academy.age.max } : undefined,
+          allowed_disabled: academy.allowed_disabled === true,
+          is_only_for_disabled: academy.is_only_for_disabled === true,
         };
       }) as AcademyListItem[],
       pagination: {
@@ -686,7 +809,7 @@ export const getAcademiesBySport = async (
     // Fetch academies (total count will be calculated after filtering by radius)
     let academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo')
-      .select('id center_name logo location sports allowed_genders sport_details')
+      .select('id center_name logo location sports allowed_genders sport_details age allowed_disabled is_only_for_disabled')
       .lean();
 
     // Calculate distances if location provided
@@ -771,6 +894,9 @@ export const getAcademiesBySport = async (
             is_popular: sportItem.is_popular || false,
           })),
           allowed_genders: academy.allowed_genders || [],
+          age: academy.age ? { min: academy.age.min, max: academy.age.max } : undefined,
+          allowed_disabled: academy.allowed_disabled === true,
+          is_only_for_disabled: academy.is_only_for_disabled === true,
           distance: academy.distance,
         };
       }) as AcademyListItem[],
