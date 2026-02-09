@@ -229,6 +229,34 @@ export const updateCoachingCenter = async (req: Request, res: Response, next: Ne
 };
 
 /**
+ * Update coaching center added_by (agent/admin who added the center). Requires coaching_center:update.
+ */
+export const updateCoachingCenterAddedBy = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { addedById } = req.body as { addedById?: string | null };
+    const currentUserId = req.user?.id;
+    const currentUserRole = await getUserRoleFromDatabase(currentUserId) || req.user?.role;
+
+    const coachingCenter = await adminCoachingCenterService.updateCoachingCenterAddedBy(
+      id,
+      addedById ?? null,
+      currentUserId,
+      currentUserRole
+    );
+
+    if (!coachingCenter) {
+      throw new ApiError(404, t('coachingCenter.notFound'));
+    }
+
+    const response = new ApiResponse(200, { coachingCenter }, t('admin.coachingCenters.updated'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Delete coaching center (admin)
  */
 export const deleteCoachingCenter = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import * as coachingCenterController from '../../controllers/admin/coachingCenter.controller';
 import { validate } from '../../middleware/validation.middleware';
-import { adminCoachingCenterCreateSchema, adminCoachingCenterUpdateSchema } from '../../validations/coachingCenter.validation';
+import { adminCoachingCenterCreateSchema, adminCoachingCenterUpdateSchema, adminCoachingCenterUpdateAddedBySchema } from '../../validations/coachingCenter.validation';
 import { authenticate } from '../../middleware/auth.middleware';
 import { requireAdmin } from '../../middleware/admin.middleware';
 import { requirePermission } from '../../middleware/permission.middleware';
@@ -766,6 +766,60 @@ router.get(
   '/:id',
   requirePermission(Section.COACHING_CENTER, Action.VIEW),
   coachingCenterController.getCoachingCenter
+);
+
+/**
+ * @swagger
+ * /admin/coaching-centers/{id}/added-by:
+ *   patch:
+ *     summary: Update coaching center added-by (agent/admin)
+ *     description: Update the agent or admin user who is set as "added by" for this coaching center. Body can include addedById (admin user id) or null to clear. Requires coaching_center:update permission.
+ *     tags: [Admin Coaching Centers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Coaching center ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               addedById:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Admin user ID (agent/admin) to set as added-by; omit or null to clear
+ *     responses:
+ *       200:
+ *         description: Coaching center updated successfully (includes populated added_by in response)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 message: { type: string }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     coachingCenter:
+ *                       $ref: '#/components/schemas/CoachingCenter'
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       404:
+ *         description: Coaching center not found or admin user not found
+ */
+router.patch(
+  '/:id/added-by',
+  requirePermission(Section.COACHING_CENTER, Action.UPDATE),
+  validate(adminCoachingCenterUpdateAddedBySchema),
+  coachingCenterController.updateCoachingCenterAddedBy
 );
 
 /**

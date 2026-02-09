@@ -231,6 +231,13 @@ export const adminCoachingCenterUpdateSchema = z.object({
   })
 });
 
+/** Body for PATCH /admin/coaching-centers/:id/added-by - update the agent/admin who added the center */
+export const adminCoachingCenterUpdateAddedBySchema = z.object({
+  body: z.object({
+    addedById: z.string().min(1, 'addedById is required').optional().nullable(),
+  }),
+});
+
 // Legacy exports for backward compatibility (defaults to academy)
 export const coachingCenterCreateSchema = academyCoachingCenterCreateSchema;
 export const coachingCenterUpdateSchema = academyCoachingCenterUpdateSchema;
