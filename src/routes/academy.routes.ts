@@ -14,6 +14,7 @@ const router = Router();
  *       Get all published academies with pagination.
  *       If location (latitude, longitude) is provided, academies are sorted by distance (nearest first).
  *       If user is logged in and has favorite sports, academies with favorite sports are prioritized.
+ *       Supports same filters as search API: city, state, sportId, sportIds, gender, for_disabled, min_age, max_age.
  *       This is an unprotected route.
  *     parameters:
  *       - in: query
@@ -45,6 +46,55 @@ const router = Router();
  *           minimum: -180
  *           maximum: 180
  *         description: User's longitude (optional, for distance-based sorting)
+ *       - in: query
+ *         name: radius
+ *         schema:
+ *           type: number
+ *           minimum: 1
+ *         description: Max distance in km when latitude/longitude provided. Omit or 0 = no limit.
+ *       - in: query
+ *         name: city
+ *         schema:
+ *           type: string
+ *         description: Filter by city (location.address.city), case-insensitive partial match
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: Filter by state (location.address.state), case-insensitive partial match
+ *       - in: query
+ *         name: sportId
+ *         schema:
+ *           type: string
+ *         description: Filter academies that offer this sport (single ID)
+ *       - in: query
+ *         name: sportIds
+ *         schema:
+ *           type: string
+ *         description: Filter academies that offer any of these sports (comma-separated IDs)
+ *       - in: query
+ *         name: gender
+ *         schema:
+ *           type: string
+ *           enum: [male, female, other]
+ *         description: Filter by allowed gender
+ *       - in: query
+ *         name: for_disabled
+ *         schema:
+ *           type: boolean
+ *         description: If true or 1, only academies where allowed_disabled is true
+ *       - in: query
+ *         name: min_age
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *         description: Filter by age range – minimum age (years). Academies whose age range overlaps [min_age, max_age] are included.
+ *       - in: query
+ *         name: max_age
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *         description: Filter by age range – maximum age (years). Academies whose age range overlaps [min_age, max_age] are included.
  *     responses:
  *       200:
  *         description: Academies retrieved successfully

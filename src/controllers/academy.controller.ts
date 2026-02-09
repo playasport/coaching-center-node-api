@@ -20,6 +20,14 @@ export const getAllAcademies = async (
     const latitude = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
     const longitude = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
     const radius = req.query.radius ? parseFloat(req.query.radius as string) : undefined;
+    const city = (req.query.city as string)?.trim() || undefined;
+    const state = (req.query.state as string)?.trim() || undefined;
+    const sportId = (req.query.sportId as string)?.trim() || undefined;
+    const sportIds = (req.query.sportIds as string)?.trim() || undefined;
+    const gender = (req.query.gender as string)?.trim() || undefined;
+    const forDisabled = req.query.for_disabled === 'true' || req.query.for_disabled === '1';
+    const minAge = req.query.min_age != null ? parseInt(req.query.min_age as string, 10) : undefined;
+    const maxAge = req.query.max_age != null ? parseInt(req.query.max_age as string, 10) : undefined;
 
     // Validate location if provided
     let userLocation: { latitude: number; longitude: number } | undefined;
@@ -40,7 +48,17 @@ export const getAllAcademies = async (
     // Get user ID if authenticated (optional)
     const userId = req.user?.id;
 
-    const result = await academyService.getAllAcademies(page, limit, userLocation, userId, radius);
+    const filters = {
+      city,
+      state,
+      sportId,
+      sportIds,
+      gender,
+      forDisabled,
+      minAge: minAge != null && !Number.isNaN(minAge) ? minAge : undefined,
+      maxAge: maxAge != null && !Number.isNaN(maxAge) ? maxAge : undefined,
+    };
+    const result = await academyService.getAllAcademies(page, limit, userLocation, userId, radius, filters);
 
     const response = new ApiResponse(200, result, t('academy.getAll.success'));
     res.json(response);

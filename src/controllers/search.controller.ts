@@ -3,9 +3,79 @@ import { MeiliSearch } from 'meilisearch';
 import { MEILISEARCH_INDICES } from '../services/meilisearch/indexing.service';
 import { meilisearchClient } from '../services/meilisearch/meilisearch.client';
 import { mongodbFallback } from '../services/meilisearch/mongodb-fallback.service';
+import { SportModel } from '../models/sport.model';
+import { CoachingCenterModel } from '../models/coachingCenter.model';
 import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import { logger } from '../utils/logger';
+import { getCorrectedSearchQuery, buildSearchDictionary, normalizeSearchQuery } from '../utils';
+
+/** TTL for search correction dictionary cache (ms) – avoid DB hit on every request */
+const SEARCH_DICTIONARY_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+let searchDictionaryCache: { dictionary: string[]; expiresAt: number } | null = null;
+
+/**
+ * Build search correction dictionary from sports, coaching center names, cities, states, and description words.
+ * Cached in-memory with TTL to avoid bottleneck: no DB hit on every autocomplete/search request.
+ */
+const getSearchCorrectionDictionary = async (): Promise<string[]> => {
+  const now = Date.now();
+  if (searchDictionaryCache && searchDictionaryCache.expiresAt > now) {
+    return searchDictionaryCache.dictionary;
+  }
+
+  const [sportList, centerList] = await Promise.all([
+    SportModel.find({ is_active: true }).select('name').lean(),
+    CoachingCenterModel.find({
+      is_deleted: false,
+      approval_status: 'approved',
+      is_active: true,
+    })
+      .select('center_name location.address sport_details.description')
+      .lean(),
+  ]);
+
+  const sportNames = sportList.map((s: any) => s.name).filter(Boolean);
+  const centerNames: string[] = [];
+  const cities: string[] = [];
+  const stateNames: string[] = [];
+  const descriptionWordsSet = new Set<string>();
+
+  for (const c of centerList as any[]) {
+    if (c.center_name?.trim()) centerNames.push(c.center_name.trim());
+    const addr = c.location?.address;
+    if (addr?.city?.trim()) cities.push(addr.city.trim());
+    if (addr?.state?.trim()) stateNames.push(addr.state.trim());
+    if (Array.isArray(c.sport_details)) {
+      for (const sd of c.sport_details) {
+        if (sd.description?.trim()) {
+          sd.description
+            .replace(/\s+/g, ' ')
+            .trim()
+            .split(/\s+/)
+            .map((w: string) => w.replace(/[^a-zA-Z0-9]/g, ''))
+            .filter((w: string) => w.length >= 3)
+            .forEach((w: string) => descriptionWordsSet.add(w));
+        }
+      }
+    }
+  }
+
+  const dictionary = buildSearchDictionary({
+    sportNames,
+    centerNames,
+    cities: [...new Set(cities)],
+    stateNames: [...new Set(stateNames)],
+    descriptionWords: descriptionWordsSet.size > 0 ? Array.from(descriptionWordsSet) : undefined,
+  });
+
+  searchDictionaryCache = {
+    dictionary,
+    expiresAt: now + SEARCH_DICTIONARY_CACHE_TTL_MS,
+  };
+  return dictionary;
+};
 
 /**
  * Get Meilisearch client (returns null if disabled - will use MongoDB fallback)
@@ -134,7 +204,22 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
     const specificIndex = req.query.index as string | undefined;
     const latitude = req.query.latitude ? parseFloat(req.query.latitude as string) : null;
     const longitude = req.query.longitude ? parseFloat(req.query.longitude as string) : null;
-    const radius = parseInt((req.query.radius as string) || '50', 10);
+    const radiusParamAutocomplete = req.query.radius as string | undefined;
+    const radiusAutocomplete = radiusParamAutocomplete !== undefined && radiusParamAutocomplete !== ''
+      ? parseInt(radiusParamAutocomplete, 10)
+      : undefined;
+    const radiusKmAutocomplete = radiusAutocomplete != null && !Number.isNaN(radiusAutocomplete) && radiusAutocomplete > 0
+      ? radiusAutocomplete
+      : undefined;
+    const cityAutocomplete = (req.query.city as string)?.trim() || undefined;
+    const stateAutocomplete = (req.query.state as string)?.trim() || undefined;
+    const sportIdAutocomplete = (req.query.sportId as string)?.trim() || undefined;
+    const sportIdsAutocomplete = (req.query.sportIds as string)?.trim() || undefined;
+    const genderAutocomplete = (req.query.gender as string)?.trim() || undefined;
+    const forDisabledAutocomplete = req.query.for_disabled === 'true' || req.query.for_disabled === '1';
+    const minAgeAutocomplete = req.query.min_age != null ? parseInt(req.query.min_age as string, 10) : undefined;
+    const maxAgeAutocomplete = req.query.max_age != null ? parseInt(req.query.max_age as string, 10) : undefined;
+    const sortByDistanceAutocomplete = req.query.sort_by !== 'distance' ? true : req.query.sort_by === 'distance';
 
     if (!query || query.trim() === '') {
       res.status(200).json(
@@ -159,7 +244,7 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
     // If Meilisearch is disabled, use MongoDB fallback
     if (!client) {
       logger.info('Meilisearch disabled, using MongoDB fallback for autocomplete');
-      
+
       const allIndices = specificIndex
         ? [specificIndex]
         : [
@@ -169,25 +254,43 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
             MEILISEARCH_INDICES.REELS,
           ];
 
+      // Normalize ("popular cricket academy near me" → "cricket academy") then auto-correct ("cricaket acaemy" → "cricket academy")
+      const normalized = normalizeSearchQuery(query.trim());
+      const queryForSearch = normalized || query.trim();
+      const dictionary = await getSearchCorrectionDictionary();
+      const correction = getCorrectedSearchQuery(queryForSearch, dictionary);
+      const searchQuery = correction.wasCorrected ? correction.corrected : queryForSearch;
+
       const searchPromises = allIndices.map(async (indexName) => {
         try {
           const lowerIndex = indexName.toLowerCase();
           let results: any = { hits: [], estimatedTotalHits: 0 };
 
           if (lowerIndex.includes('coaching') || lowerIndex.includes('centre')) {
-            results = await mongodbFallback.searchCoachingCenters(query, {
+            // When city or state filter is applied, skip location filter (lat/long/radius)
+            const useLocationAutocomplete = !cityAutocomplete && !stateAutocomplete;
+            results = await mongodbFallback.searchCoachingCenters(searchQuery, {
               size: sizePerIndex,
               from: 0,
-              latitude,
-              longitude,
-              radius,
+              latitude: useLocationAutocomplete ? latitude ?? undefined : undefined,
+              longitude: useLocationAutocomplete ? longitude ?? undefined : undefined,
+              radius: useLocationAutocomplete ? radiusKmAutocomplete : undefined,
+              city: cityAutocomplete,
+              state: stateAutocomplete,
+              sportId: sportIdAutocomplete,
+              sportIds: sportIdsAutocomplete,
+              gender: genderAutocomplete,
+              forDisabled: forDisabledAutocomplete,
+              minAge: minAgeAutocomplete != null && !Number.isNaN(minAgeAutocomplete) ? minAgeAutocomplete : undefined,
+              maxAge: maxAgeAutocomplete != null && !Number.isNaN(maxAgeAutocomplete) ? maxAgeAutocomplete : undefined,
+              sortByDistance: sortByDistanceAutocomplete,
             });
           } else if (lowerIndex.includes('sport') && !lowerIndex.includes('coaching')) {
-            results = await mongodbFallback.searchSports(query, { size: sizePerIndex, from: 0 });
+            results = await mongodbFallback.searchSports(searchQuery, { size: sizePerIndex, from: 0 });
           } else if (lowerIndex.includes('reel')) {
-            results = await mongodbFallback.searchReels(query, { size: sizePerIndex, from: 0 });
+            results = await mongodbFallback.searchReels(searchQuery, { size: sizePerIndex, from: 0 });
           } else if (lowerIndex.includes('live') || lowerIndex.includes('stream') || lowerIndex.includes('highlight')) {
-            results = await mongodbFallback.searchStreamHighlights(query, { size: sizePerIndex, from: 0 });
+            results = await mongodbFallback.searchStreamHighlights(searchQuery, { size: sizePerIndex, from: 0 });
           }
 
           // Transform to autocomplete format
@@ -271,7 +374,11 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
           200,
           {
             success: true,
-            query: query,
+            query: searchQuery,
+            query_original: correction.wasCorrected ? query.trim() : undefined,
+            query_corrected: correction.wasCorrected ? correction.corrected : undefined,
+            was_corrected: correction.wasCorrected,
+            corrections: correction.corrections,
             total: sanitizedResults.length,
             total_available: totalAvailable,
             size: sanitizedResults.length,
@@ -315,9 +422,11 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
         const lowerIndex = indexName.toLowerCase();
         const isCoachingIndex = lowerIndex.includes('coaching') || lowerIndex.includes('centre');
 
-        if (isCoachingIndex && latitude !== null && longitude !== null) {
-          const radiusKm = Number.isFinite(radius) ? Math.max(radius, 1) : 50;
-          const radiusInMeters = radiusKm * 1000;
+        if (isCoachingIndex && latitude !== null && longitude !== null && !cityAutocomplete && !stateAutocomplete) {
+          const radiusForGeo = (radiusKmAutocomplete != null && Number.isFinite(radiusKmAutocomplete) && radiusKmAutocomplete > 0)
+            ? Math.max(radiusKmAutocomplete, 1)
+            : 50;
+          const radiusInMeters = radiusForGeo * 1000;
           const searchLimit = Math.max(sizePerIndex * 4, sizePerIndex + 10, 50);
 
           const geoOptions = {
@@ -514,7 +623,20 @@ export const search = async (req: Request, res: Response): Promise<void> => {
     const from = parseInt((req.query.from as string) || '0', 10);
     const latitude = req.query.latitude ? parseFloat(req.query.latitude as string) : null;
     const longitude = req.query.longitude ? parseFloat(req.query.longitude as string) : null;
-    const radius = parseInt((req.query.radius as string) || '50', 10);
+    // Radius in km; omit or 0 = no limit (show all, sorted by distance). When set, only centers within radius.
+    const radiusParam = req.query.radius as string | undefined;
+    const radius = radiusParam !== undefined && radiusParam !== '' ? parseInt(radiusParam, 10) : undefined;
+    const radiusKm = radius != null && !Number.isNaN(radius) && radius > 0 ? radius : undefined;
+    // Filter options (apply to coaching centres when using MongoDB fallback)
+    const city = (req.query.city as string)?.trim() || undefined;
+    const state = (req.query.state as string)?.trim() || undefined;
+    const sportId = (req.query.sportId as string)?.trim() || undefined;
+    const sportIds = (req.query.sportIds as string)?.trim() || undefined;
+    const gender = (req.query.gender as string)?.trim() || undefined;
+    const forDisabled = req.query.for_disabled === 'true' || req.query.for_disabled === '1';
+    const minAge = req.query.min_age != null ? parseInt(req.query.min_age as string, 10) : undefined;
+    const maxAge = req.query.max_age != null ? parseInt(req.query.max_age as string, 10) : undefined;
+    const sortByDistance = req.query.sort_by !== 'distance' ? true : req.query.sort_by === 'distance';
 
     if (!query || query.trim() === '') {
       throw new ApiError(400, 'Query parameter "q" or "query" is required');
@@ -522,10 +644,13 @@ export const search = async (req: Request, res: Response): Promise<void> => {
 
     const client = getClient();
 
+    // For Meilisearch: "s&s" → "s s" so token search matches "S&S Football Academy"
+    const queryForMeilisearch = query.trim().replace(/&/g, ' ').replace(/\s+/g, ' ').trim() || query.trim();
+
     // If Meilisearch is disabled, use MongoDB fallback
     if (!client) {
       logger.info('Meilisearch disabled, using MongoDB fallback for search');
-      
+
       const allIndices = specificIndex
         ? [specificIndex]
         : [
@@ -534,6 +659,13 @@ export const search = async (req: Request, res: Response): Promise<void> => {
             MEILISEARCH_INDICES.LIVE_STREAMS,
             MEILISEARCH_INDICES.REELS,
           ];
+
+      // Normalize ("popular cricket academy near me" → "cricket academy") then auto-correct ("cricaket acaemy" → "cricket academy")
+      const normalized = normalizeSearchQuery(query.trim());
+      const queryForSearch = normalized || query.trim();
+      const dictionary = await getSearchCorrectionDictionary();
+      const correction = getCorrectedSearchQuery(queryForSearch, dictionary);
+      const searchQuery = correction.wasCorrected ? correction.corrected : queryForSearch;
 
       const resultsByIndex: Record<string, any> = {};
 
@@ -557,19 +689,30 @@ export const search = async (req: Request, res: Response): Promise<void> => {
           let searchResults: any = { hits: [], estimatedTotalHits: 0 };
 
           if (lowerIndex.includes('coaching') || lowerIndex.includes('centre')) {
-            searchResults = await mongodbFallback.searchCoachingCenters(query, {
+            // When city or state filter is applied, skip location filter (lat/long/radius)
+            const useLocationSearch = !city && !state;
+            searchResults = await mongodbFallback.searchCoachingCenters(searchQuery, {
               size: size * 2, // Get more for proper sorting
               from: 0,
-              latitude,
-              longitude,
-              radius,
+              latitude: useLocationSearch ? latitude ?? undefined : undefined,
+              longitude: useLocationSearch ? longitude ?? undefined : undefined,
+              radius: useLocationSearch ? radiusKm : undefined,
+              city,
+              state,
+              sportId,
+              sportIds,
+              gender,
+              forDisabled,
+              minAge: minAge != null && !Number.isNaN(minAge) ? minAge : undefined,
+              maxAge: maxAge != null && !Number.isNaN(maxAge) ? maxAge : undefined,
+              sortByDistance,
             });
           } else if (lowerIndex.includes('sport') && !lowerIndex.includes('coaching')) {
-            searchResults = await mongodbFallback.searchSports(query, { size: size * 2, from: 0 });
+            searchResults = await mongodbFallback.searchSports(searchQuery, { size: size * 2, from: 0 });
           } else if (lowerIndex.includes('reel')) {
-            searchResults = await mongodbFallback.searchReels(query, { size: size * 2, from: 0 });
+            searchResults = await mongodbFallback.searchReels(searchQuery, { size: size * 2, from: 0 });
           } else if (lowerIndex.includes('live') || lowerIndex.includes('stream') || lowerIndex.includes('highlight')) {
-            searchResults = await mongodbFallback.searchStreamHighlights(query, { size: size * 2, from: 0 });
+            searchResults = await mongodbFallback.searchStreamHighlights(searchQuery, { size: size * 2, from: 0 });
           }
 
           // Transform results to match Meilisearch format
@@ -615,6 +758,9 @@ export const search = async (req: Request, res: Response): Promise<void> => {
               experience: hit.experience || null,
               pincode: hit.pincode || null,
               distance: hit.distance !== null && hit.distance !== undefined ? hit.distance : null,
+              allowed_disabled: hit.allowed_disabled === true,
+              is_only_for_disabled: hit.is_only_for_disabled === true,
+              age: hit.age ? { min: hit.age.min, max: hit.age.max } : null,
             };
 
             if (indexName.includes('live') || indexName.includes('stream') || indexName.includes('reel')) {
@@ -689,9 +835,13 @@ export const search = async (req: Request, res: Response): Promise<void> => {
           {
             success: true,
             query: {
-              text: query,
+              text: searchQuery,
               indices: allIndices,
             },
+            query_original: correction.wasCorrected ? query.trim() : undefined,
+            query_corrected: correction.wasCorrected ? correction.corrected : undefined,
+            was_corrected: correction.wasCorrected,
+            corrections: correction.corrections,
             pagination: {
               total: totalResults,
               total_available: totalAvailable,
@@ -765,8 +915,8 @@ export const search = async (req: Request, res: Response): Promise<void> => {
 
         if (indexName.includes('coaching') || indexName.includes('centre')) {
           const index = client!.index(indexName);
-          const radiusKm = radius || 50;
-          const radiusInMeters = radiusKm * 1000;
+          const radiusForMeili = radiusKm ?? 50;
+          const radiusInMeters = radiusForMeili * 1000;
           const searchLimit = 200; // Fetch large set for proper distance sorting
 
           const searchOptionsForIndex = {
@@ -775,13 +925,14 @@ export const search = async (req: Request, res: Response): Promise<void> => {
             offset: 0,
           };
 
-          if (latitude !== null && longitude !== null) {
+          // When city or state filter is applied, skip location filter (geo/radius)
+          if (latitude !== null && longitude !== null && !city && !state) {
             const geoFilterOptions: any = { ...searchOptionsForIndex };
             geoFilterOptions.filter = [`_geoRadius(${latitude}, ${longitude}, ${radiusInMeters})`];
             geoFilterOptions.aroundLatLng = `${latitude},${longitude}`;
 
             try {
-              const searchResults = await index.search(query, geoFilterOptions);
+              const searchResults = await index.search(queryForMeilisearch, geoFilterOptions);
               const queryLower = query.toLowerCase().trim();
 
               let prioritizedHits = (searchResults.hits || []).map((hit: any) => {
@@ -822,7 +973,7 @@ export const search = async (req: Request, res: Response): Promise<void> => {
 
               usedGeoFilter = true;
             } catch (geoError) {
-              const searchResults = await index.search(query, searchOptionsForIndex);
+              const searchResults = await index.search(queryForMeilisearch, searchOptionsForIndex);
               const queryLower = query.toLowerCase().trim();
 
               let prioritizedHits = (searchResults.hits || []).map((hit: any) => {
@@ -870,7 +1021,7 @@ export const search = async (req: Request, res: Response): Promise<void> => {
               };
             }
           } else {
-            const searchResults = await index.search(query, searchOptionsForIndex);
+            const searchResults = await index.search(queryForMeilisearch, searchOptionsForIndex);
             const queryLower = query.toLowerCase().trim();
 
             let prioritizedHits = (searchResults.hits || []).map((hit: any) => {
@@ -937,7 +1088,7 @@ export const search = async (req: Request, res: Response): Promise<void> => {
           }
 
           const index = client!.index(indexName);
-          results = await index.search(query, indexSpecificOptions);
+          results = await index.search(queryForMeilisearch, indexSpecificOptions);
         }
 
         return {
@@ -1075,6 +1226,12 @@ export const search = async (req: Request, res: Response): Promise<void> => {
             distanceInMeters !== null ? Math.round(distanceInMeters / 10) / 100 : null,
         };
 
+        if (indexName.includes('coaching') || indexName.includes('centre')) {
+          source.allowed_disabled = hit.allowed_disabled === true;
+          source.is_only_for_disabled = hit.is_only_for_disabled === true;
+          source.age = hit.age ? { min: hit.age.min, max: hit.age.max } : null;
+        }
+
         if (indexName.includes('live') || indexName.includes('stream') || indexName.includes('reel')) {
           source.thumbnail = hit.thumbnail || hit.thumbnailUrl || null;
         }
@@ -1116,15 +1273,15 @@ export const search = async (req: Request, res: Response): Promise<void> => {
         };
       });
 
-      // Filter and sort for coaching centres with location
+      // Filter and sort for coaching centres with location (skip when city or state filter applied)
       let finalTransformedResults = transformedResults;
-      if ((indexName.includes('coaching') || indexName.includes('centre')) && latitude !== null && longitude !== null) {
-        const radiusKm = radius || 50;
+      if ((indexName.includes('coaching') || indexName.includes('centre')) && latitude !== null && longitude !== null && !city && !state) {
+        const radiusForFilter = radiusKm ?? 50;
         const filteredResults = transformedResults.filter((result: any) => {
           if (result.source.distance === null || result.source.distance === undefined) {
             return false;
           }
-          return result.source.distance <= radiusKm;
+          return result.source.distance <= radiusForFilter;
         });
 
         const queryLower = query.toLowerCase().trim();
@@ -1155,15 +1312,15 @@ export const search = async (req: Request, res: Response): Promise<void> => {
       if (resultsByIndex[normalizedIndexName]) {
         let mergedResults = [...resultsByIndex[normalizedIndexName].results, ...finalTransformedResults];
 
-        if ((indexName.includes('coaching') || indexName.includes('centre')) && latitude !== null && longitude !== null) {
-          const radiusKm = radius || 50;
+        if ((indexName.includes('coaching') || indexName.includes('centre')) && latitude !== null && longitude !== null && !city && !state) {
+          const radiusForFilter = radiusKm ?? 50;
           const queryLower = query.toLowerCase().trim();
 
           mergedResults = mergedResults.filter((result: any) => {
             if (result.source.distance === null || result.source.distance === undefined) {
               return false;
             }
-            return result.source.distance <= radiusKm;
+            return result.source.distance <= radiusForFilter;
           });
 
           mergedResults.sort((a: any, b: any) => {

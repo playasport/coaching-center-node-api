@@ -32,6 +32,8 @@ const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: num
 class MongodbFallbackService {
   /**
    * Search Coaching Centers from MongoDB
+   * @param query - Search text
+   * @param options - size, from, lat/long, radius, and filters: city, state, sportId, sportIds (comma-separated), gender
    */
   async searchCoachingCenters(
     query: string,
@@ -40,25 +42,134 @@ class MongodbFallbackService {
       from?: number;
       latitude?: number | null;
       longitude?: number | null;
+      /** Max distance in km (only when lat/long provided). Omit or 0 = no limit; results sorted by distance. */
       radius?: number;
+      /** Filter by city (location.address.city), case-insensitive partial match */
+      city?: string;
+      /** Filter by state (location.address.state), case-insensitive partial match */
+      state?: string;
+      /** Filter by sport – centers that offer this sport (single ID) */
+      sportId?: string;
+      /** Filter by sports – centers that offer any of these sports (comma-separated IDs) */
+      sportIds?: string;
+      /** Filter by allowed gender: male | female | other */
+      gender?: string;
+      /** Filter for persons with disability – only centers where allowed_disabled is true */
+      forDisabled?: boolean;
+      /** Filter by age range – minimum age (years). Centers whose age range overlaps [minAge, maxAge] are included. */
+      minAge?: number;
+      /** Filter by age range – maximum age (years). Centers whose age range overlaps [minAge, maxAge] are included. */
+      maxAge?: number;
+      /** When true and lat/long provided, sort by nearest first (default true when lat/long present) */
+      sortByDistance?: boolean;
     } = {}
   ): Promise<any> {
-    const { size = 10, from = 0, latitude: userLatitude, longitude: userLongitude } = options;
+    const {
+      size = 10,
+      from = 0,
+      latitude: userLatitude,
+      longitude: userLongitude,
+      city: filterCity,
+      state: filterState,
+      sportId: filterSportId,
+      sportIds: filterSportIds,
+      gender: filterGender,
+      forDisabled: filterForDisabled,
+      minAge: filterMinAge,
+      maxAge: filterMaxAge,
+      radius: radiusKm,
+      sortByDistance = true,
+    } = options;
 
     try {
-      // Build search query
-      const searchRegex = new RegExp(query, 'i');
+      // Escape regex special chars; then allow both & and fullwidth ＆ so "s&s" matches "S&S" and "S＆S"
+      let escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      escapedQuery = escapedQuery.replace(/&/g, '[&\uFF06]'); // match & and fullwidth ampersand
+      const searchRegex = new RegExp(escapedQuery, 'i');
+      const orConditions: any[] = [
+        { center_name: searchRegex },
+        { 'location.address': searchRegex },
+        { 'location.city_name': searchRegex },
+        { 'location.state_name': searchRegex },
+        { 'sport_details.description': searchRegex },
+      ];
+
+      // When query contains "&", also match: "X and Y" and "X & Y" (optional spaces) so "s&s" finds "S&S", "S and S", "S & S"
+      if (query.includes('&')) {
+        const andVariant = query.replace(/&/g, ' and ');
+        const andEscaped = andVariant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        orConditions.push({ center_name: new RegExp(andEscaped, 'i') });
+        const withSpaces = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/&/g, '\\s*[&\uFF06]\\s*');
+        orConditions.push({ center_name: new RegExp(withSpaces, 'i') });
+      }
+
+      // If query matches any sport name, also find centers that offer that sport
+      const matchingSports = await SportModel.find({
+        name: searchRegex,
+        is_active: true,
+      })
+        .select('_id')
+        .lean();
+      if (matchingSports.length > 0) {
+        const sportIds = matchingSports.map((s: any) => s._id);
+        orConditions.push({ sports: { $in: sportIds } });
+      }
+
       const mongoQuery: any = {
         is_deleted: false,
         approval_status: 'approved',
         is_active: true,
-        $or: [
-          { center_name: searchRegex },
-          { 'location.address': searchRegex },
-          { 'location.city_name': searchRegex },
-          { 'location.state_name': searchRegex },
-        ],
+        $or: orConditions,
       };
+
+      // Apply filters: city, state, sportId/sportIds, gender, forDisabled (persons with disability)
+      if (filterCity && filterCity.trim()) {
+        mongoQuery['location.address.city'] = new RegExp(filterCity.trim(), 'i');
+      }
+      if (filterState && filterState.trim()) {
+        mongoQuery['location.address.state'] = new RegExp(filterState.trim(), 'i');
+      }
+      if (filterGender && filterGender.trim()) {
+        const g = filterGender.trim().toLowerCase();
+        if (['male', 'female', 'other'].includes(g)) {
+          mongoQuery.allowed_genders = g;
+        }
+      }
+      if (filterForDisabled === true) {
+        mongoQuery.allowed_disabled = true;
+      }
+      // Age range filter: center's age range overlaps [minAge, maxAge] when center.age.max >= minAge AND center.age.min <= maxAge
+      if (filterMinAge != null && !Number.isNaN(filterMinAge) && filterMaxAge != null && !Number.isNaN(filterMaxAge)) {
+        mongoQuery['age.max'] = { $gte: filterMinAge };
+        mongoQuery['age.min'] = { $lte: filterMaxAge };
+      } else if (filterMinAge != null && !Number.isNaN(filterMinAge)) {
+        mongoQuery['age.max'] = { $gte: filterMinAge };
+      } else if (filterMaxAge != null && !Number.isNaN(filterMaxAge)) {
+        mongoQuery['age.min'] = { $lte: filterMaxAge };
+      }
+      const sportIdStrings: string[] = [];
+      if (filterSportId && filterSportId.trim()) sportIdStrings.push(filterSportId.trim());
+      if (filterSportIds && filterSportIds.trim()) {
+        sportIdStrings.push(...filterSportIds.split(',').map((s) => s.trim()).filter(Boolean));
+      }
+      if (sportIdStrings.length > 0) {
+        const validObjectIds = sportIdStrings
+          .filter((id) => Types.ObjectId.isValid(id) && String(id).length === 24)
+          .map((id) => new Types.ObjectId(id));
+        const byObjectId = validObjectIds.length > 0
+          ? await SportModel.find({ _id: { $in: validObjectIds }, is_active: true }).select('_id').lean()
+          : [];
+        const byCustomId = await SportModel.find({
+          custom_id: { $in: sportIdStrings },
+          is_active: true,
+        })
+          .select('_id')
+          .lean();
+        const ids = [...new Set([...byObjectId.map((s: any) => s._id), ...byCustomId.map((s: any) => s._id)])];
+        if (ids.length > 0) {
+          mongoQuery.sports = { $in: ids };
+        }
+      }
 
       // Fetch all matching centers
       let centers = await CoachingCenterModel.find(mongoQuery)
@@ -73,14 +184,40 @@ class MongodbFallbackService {
         const sportDetails = center.sport_details || [];
         const facilities = center.facility || [];
 
-        const sportsNames: string[] = [];
-        if (Array.isArray(sports)) {
+        const logoUrl = center.logo || null;
+        const queryLower = query.toLowerCase().trim();
+
+        // If search term matches a sport, prefer that sport first in list and use its images
+        const matchedSportIds = new Set<string>();
+        if (Array.isArray(sports) && queryLower) {
           sports.forEach((sport: any) => {
-            if (typeof sport === 'object' && sport.name) {
-              sportsNames.push(sport.name);
+            const name = typeof sport === 'object' && sport.name ? sport.name : '';
+            if (name && name.toLowerCase().includes(queryLower)) {
+              const id = sport._id?.toString?.() || (sport instanceof Types.ObjectId && sport.toString());
+              if (id) matchedSportIds.add(id);
             }
           });
         }
+
+        // Sort sports so user-searched sport(s) appear first
+        const sortedSports = Array.isArray(sports)
+          ? [...sports].sort((a: any, b: any) => {
+              const aId = (a._id?.toString?.() || (a instanceof Types.ObjectId && a.toString()) || '');
+              const bId = (b._id?.toString?.() || (b instanceof Types.ObjectId && b.toString()) || '');
+              const aMatch = matchedSportIds.has(aId);
+              const bMatch = matchedSportIds.has(bId);
+              if (aMatch && !bMatch) return -1;
+              if (!aMatch && bMatch) return 1;
+              return 0;
+            })
+          : [];
+
+        const sportsNames: string[] = [];
+        sortedSports.forEach((sport: any) => {
+          if (typeof sport === 'object' && sport.name) {
+            sportsNames.push(sport.name);
+          }
+        });
 
         const facilityNames: string[] = [];
         if (Array.isArray(facilities)) {
@@ -92,33 +229,42 @@ class MongodbFallbackService {
         }
 
         const sportsIds: string[] = [];
-        if (Array.isArray(sports)) {
-          sports.forEach((sport: any) => {
-            if (typeof sport === 'object' && sport._id) {
-              sportsIds.push(sport._id.toString());
-            } else if (sport instanceof Types.ObjectId) {
-              sportsIds.push(sport.toString());
-            }
-          });
-        }
+        sortedSports.forEach((sport: any) => {
+          if (typeof sport === 'object' && sport._id) {
+            sportsIds.push(sport._id.toString());
+          } else if (sport instanceof Types.ObjectId) {
+            sportsIds.push(sport.toString());
+          }
+        });
 
-        // Get images from sport_details - prioritize is_banner, limit to 2
-        // If no images available, use logo as fallback
-        const allImages: any[] = [];
-        const logoUrl = center.logo || null;
-        
-        if (Array.isArray(sportDetails)) {
-          sportDetails.forEach((detail: any) => {
-            if (Array.isArray(detail.images)) {
-              // Filter active, non-deleted images and exclude logo if it matches
+        // Prefer images from that sport's sport_detail (banner first)
+        let allImages: any[] = [];
+
+        if (matchedSportIds.size > 0 && Array.isArray(sportDetails)) {
+          // Get images only from sport_details that match the searched sport
+          for (const detail of sportDetails) {
+            const detailSportId = (detail.sport_id?._id || detail.sport_id)?.toString?.();
+            if (detailSportId && matchedSportIds.has(detailSportId) && Array.isArray(detail.images)) {
               const validImages = detail.images.filter((img: any) => {
-                if (typeof img === 'string') {
-                  // Exclude if it matches the logo URL
-                  return logoUrl ? img !== logoUrl : true;
-                }
+                if (typeof img === 'string') return logoUrl ? img !== logoUrl : true;
                 const isActive = img.is_active !== false && img.is_deleted !== true && !img.deletedAt;
                 if (!isActive) return false;
-                // Exclude if image URL matches logo URL
+                const imgUrl = img.url || '';
+                return logoUrl ? imgUrl !== logoUrl : true;
+              });
+              allImages.push(...validImages);
+            }
+          }
+        }
+
+        // Fallback: get images from all sport_details if no sport-matched images
+        if (allImages.length === 0 && Array.isArray(sportDetails)) {
+          sportDetails.forEach((detail: any) => {
+            if (Array.isArray(detail.images)) {
+              const validImages = detail.images.filter((img: any) => {
+                if (typeof img === 'string') return logoUrl ? img !== logoUrl : true;
+                const isActive = img.is_active !== false && img.is_deleted !== true && !img.deletedAt;
+                if (!isActive) return false;
                 const imgUrl = img.url || '';
                 return logoUrl ? imgUrl !== logoUrl : true;
               });
@@ -160,7 +306,6 @@ class MongodbFallbackService {
         }
 
         // Check if query matches sports
-        const queryLower = query.toLowerCase().trim();
         const isSportMatch = sportsNames.some((sport) =>
           sport.toLowerCase().includes(queryLower)
         );
@@ -186,35 +331,47 @@ class MongodbFallbackService {
           distance: distance !== null ? Math.round(distance * 100) / 100 : null,
           _isSportMatch: isSportMatch,
           _priority: isSportMatch ? 1 : 2,
+          allowed_disabled: center.allowed_disabled === true,
+          is_only_for_disabled: center.is_only_for_disabled === true,
+          age: center.age ? { min: center.age.min, max: center.age.max } : null,
         };
       });
 
-      // No radius filtering - return all matching results
-      // Sort: sport matches first, then by distance (if location provided)
-      transformed.sort((a: any, b: any) => {
+      // Optional radius filter: when radius (km) > 0 and user location provided, keep only centers within radius
+      let filtered = transformed;
+      if (
+        radiusKm != null &&
+        radiusKm > 0 &&
+        userLatitude != null &&
+        userLongitude != null
+      ) {
+        filtered = transformed.filter(
+          (c: any) => c.distance != null && c.distance <= radiusKm
+        );
+      }
+
+      // Sort: sport matches first, then by distance (nearest first when lat/long provided and sortByDistance)
+      filtered.sort((a: any, b: any) => {
         if (a._priority !== b._priority) {
           return a._priority - b._priority;
         }
-        // Sort by distance if both have distance values
-        if (a.distance !== null && b.distance !== null) {
-          return a.distance - b.distance;
-        }
-        // Items with distance come before items without distance
-        if (a.distance !== null && b.distance === null) {
-          return -1;
-        }
-        if (a.distance === null && b.distance !== null) {
-          return 1;
+        if (sortByDistance && userLatitude != null && userLongitude != null) {
+          // Nearest first: items with distance, then by distance ascending
+          if (a.distance !== null && b.distance !== null) {
+            return a.distance - b.distance;
+          }
+          if (a.distance !== null && b.distance === null) return -1;
+          if (a.distance === null && b.distance !== null) return 1;
         }
         return 0;
       });
 
       // Paginate
-      const paginated = transformed.slice(from, from + size);
+      const paginated = filtered.slice(from, from + size);
 
       return {
         hits: paginated,
-        estimatedTotalHits: transformed.length,
+        estimatedTotalHits: filtered.length,
         processingTimeMs: 0,
       };
     } catch (error) {
