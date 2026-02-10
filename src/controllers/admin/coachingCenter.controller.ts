@@ -47,7 +47,7 @@ export const getAllCoachingCenters = async (req: Request, res: Response, next: N
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const { userId, status, search, sportId, isActive, approvalStatus, sortBy, sortOrder } = req.query;
+    const { userId, status, search, sportId, isActive, approvalStatus, addedById, sortBy, sortOrder } = req.query;
 
     const filters = {
       userId: userId as string,
@@ -56,6 +56,7 @@ export const getAllCoachingCenters = async (req: Request, res: Response, next: N
       sportId: sportId as string,
       isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
       approvalStatus: approvalStatus as 'approved' | 'rejected' | 'pending_approval' | undefined,
+      addedById: addedById as string,
       sortBy: sortBy as string,
       sortOrder: sortOrder as 'asc' | 'desc',
     };
@@ -216,6 +217,34 @@ export const updateCoachingCenter = async (req: Request, res: Response, next: Ne
 
     // Use admin update logic which supports userId change
     const coachingCenter = await adminCoachingCenterService.updateCoachingCenterByAdmin(id, data);
+
+    if (!coachingCenter) {
+      throw new ApiError(404, t('coachingCenter.notFound'));
+    }
+
+    const response = new ApiResponse(200, { coachingCenter }, t('admin.coachingCenters.updated'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Update coaching center added_by (agent/admin who added the center). Requires coaching_center:update.
+ */
+export const updateCoachingCenterAddedBy = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { addedById } = req.body as { addedById?: string | null };
+    const currentUserId = req.user?.id;
+    const currentUserRole = await getUserRoleFromDatabase(currentUserId) || req.user?.role;
+
+    const coachingCenter = await adminCoachingCenterService.updateCoachingCenterAddedBy(
+      id,
+      addedById ?? null,
+      currentUserId,
+      currentUserRole
+    );
 
     if (!coachingCenter) {
       throw new ApiError(404, t('coachingCenter.notFound'));

@@ -127,6 +127,7 @@ export const getAllCoachingCenters = async (
     isActive?: boolean;
     isApproved?: boolean;
     approvalStatus?: 'approved' | 'rejected' | 'pending_approval'; // Direct approval status filter
+    addedById?: string; // Filter by admin/agent user ID (who added the center)
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   } = {},
@@ -182,6 +183,16 @@ export const getAllCoachingCenters = async (
 
     if (filters.sportId) {
       query.sports = new Types.ObjectId(filters.sportId);
+    }
+
+    // Filter by added_by (admin/agent who added the center)
+    if (filters.addedById && filters.addedById.trim()) {
+      const addedByAdmin = await AdminUserModel.findOne({ id: filters.addedById.trim(), isDeleted: false })
+        .select('_id')
+        .lean();
+      if (addedByAdmin && addedByAdmin._id) {
+        query.addedBy = addedByAdmin._id as Types.ObjectId;
+      }
     }
 
     if (filters.search) {
@@ -447,17 +458,17 @@ export const getCoachingCenterByIdForAdmin = async (
     const result = await commonService.getCoachingCenterById(centerId);
     if (!result) return null;
 
-    // Populate added_by (admin user who created this center) for details view
+    // Populate added_by (admin/agent who created this center) with name, email, phone
     if (result.addedBy) {
       const adminUser = await AdminUserModel.findById(result.addedBy)
-        .select('id firstName lastName email')
+        .select('id firstName lastName email mobile')
         .lean();
       (result as any).added_by = adminUser
         ? {
             id: adminUser.id || (adminUser as any)._id?.toString() || '',
-            firstName: adminUser.firstName || '',
-            lastName: adminUser.lastName || '',
+            name: `${adminUser.firstName || ''} ${adminUser.lastName || ''}`.trim() || undefined,      
             email: adminUser.email || '',
+            phone: adminUser.mobile || '',
           }
         : null;
     } else {
@@ -890,6 +901,71 @@ export const updateCoachingCenterByAdmin = async (
   } catch (error) {
     if (error instanceof ApiError) throw error;
     logger.error('Admin failed to update coaching center:', error);
+    throw new ApiError(500, t('coachingCenter.update.failed'));
+  }
+};
+
+/**
+ * Update only the addedBy (agent/admin) for a coaching center. Uses same access rules as get (agents only their centers).
+ */
+export const updateCoachingCenterAddedBy = async (
+  centerId: string,
+  addedById: string | null | undefined,
+  currentUserId?: string,
+  currentUserRole?: string
+): Promise<CoachingCenter | null> => {
+  try {
+    const centerObjectId = await getCenterObjectId(centerId);
+    if (!centerObjectId) {
+      return null;
+    }
+
+    const query: any = {
+      _id: centerObjectId,
+      is_deleted: false,
+    };
+
+    if (currentUserRole === DefaultRolesEnum.AGENT && currentUserId) {
+      const adminUser = await AdminUserModel.findOne({ id: currentUserId, isDeleted: false })
+        .select('_id')
+        .lean();
+      if (adminUser && adminUser._id) {
+        query.addedBy = adminUser._id as Types.ObjectId;
+      } else {
+        return null;
+      }
+    }
+
+    let addedByObjectId: Types.ObjectId | null = null;
+    if (addedById && addedById.trim()) {
+      const adminUser = await AdminUserModel.findOne({ id: addedById.trim(), isDeleted: false })
+        .select('_id')
+        .lean();
+      if (!adminUser || !adminUser._id) {
+        throw new ApiError(404, t('admin.userNotFound') || 'Admin user not found');
+      }
+      addedByObjectId = adminUser._id as Types.ObjectId;
+    }
+
+    const updated = await CoachingCenterModel.findOneAndUpdate(
+      query,
+      { $set: { addedBy: addedByObjectId } },
+      { new: true }
+    ).lean();
+
+    if (!updated) {
+      return null;
+    }
+
+    invalidateCoachingCentersListCache().catch(() => {});
+
+    return getCoachingCenterByIdForAdmin(centerId, currentUserId, currentUserRole);
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    logger.error('Admin failed to update coaching center addedBy:', {
+      centerId,
+      error: error instanceof Error ? error.message : error,
+    });
     throw new ApiError(500, t('coachingCenter.update.failed'));
   }
 };
