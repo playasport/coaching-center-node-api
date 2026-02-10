@@ -248,6 +248,11 @@ router.use(authenticate, requireAdmin);
  *           type: string
  *         description: Search by center name, email, or mobile number
  *       - in: query
+ *         name: addedById
+ *         schema:
+ *           type: string
+ *         description: Filter by added-by admin/agent user ID (only centers added by this user)
+ *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string

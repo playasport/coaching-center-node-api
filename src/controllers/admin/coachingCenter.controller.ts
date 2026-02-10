@@ -47,7 +47,7 @@ export const getAllCoachingCenters = async (req: Request, res: Response, next: N
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const { userId, status, search, sportId, isActive, approvalStatus, sortBy, sortOrder } = req.query;
+    const { userId, status, search, sportId, isActive, approvalStatus, addedById, sortBy, sortOrder } = req.query;
 
     const filters = {
       userId: userId as string,
@@ -56,6 +56,7 @@ export const getAllCoachingCenters = async (req: Request, res: Response, next: N
       sportId: sportId as string,
       isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
       approvalStatus: approvalStatus as 'approved' | 'rejected' | 'pending_approval' | undefined,
+      addedById: addedById as string,
       sortBy: sortBy as string,
       sortOrder: sortOrder as 'asc' | 'desc',
     };

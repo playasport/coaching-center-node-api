@@ -127,6 +127,7 @@ export const getAllCoachingCenters = async (
     isActive?: boolean;
     isApproved?: boolean;
     approvalStatus?: 'approved' | 'rejected' | 'pending_approval'; // Direct approval status filter
+    addedById?: string; // Filter by admin/agent user ID (who added the center)
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   } = {},
@@ -182,6 +183,16 @@ export const getAllCoachingCenters = async (
 
     if (filters.sportId) {
       query.sports = new Types.ObjectId(filters.sportId);
+    }
+
+    // Filter by added_by (admin/agent who added the center)
+    if (filters.addedById && filters.addedById.trim()) {
+      const addedByAdmin = await AdminUserModel.findOne({ id: filters.addedById.trim(), isDeleted: false })
+        .select('_id')
+        .lean();
+      if (addedByAdmin && addedByAdmin._id) {
+        query.addedBy = addedByAdmin._id as Types.ObjectId;
+      }
     }
 
     if (filters.search) {
