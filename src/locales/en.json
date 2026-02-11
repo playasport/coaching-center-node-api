@@ -51,6 +51,9 @@
       "success": "Logged out successfully",
       "allSuccess": "Logged out from all devices successfully"
     },
+    "fcmToken": {
+      "saved": "FCM token saved successfully"
+    },
     "authorization": {
       "unauthorized": "Unauthorized",
       "forbidden": "Forbidden: Insufficient permissions",

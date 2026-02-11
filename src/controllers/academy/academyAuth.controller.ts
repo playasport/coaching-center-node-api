@@ -2,7 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import { t } from '../../utils/i18n';
 import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
+import { DeviceType } from '../../enums/deviceType.enum';
 import * as academyAuthService from '../../services/client/auth.service';
+import { deviceTokenService } from '../../services/common/deviceToken.service';
 import type {
   AcademyRegisterInput,
   AcademyLoginInput,
@@ -12,6 +14,7 @@ import type {
   AcademyPasswordChangeInput,
   AcademyForgotPasswordRequestInput,
   AcademyForgotPasswordVerifyInput,
+  SaveFcmTokenInput,
 } from '../../validations/auth.validation';
 
 export const registerAcademyUser = async (
@@ -351,6 +354,36 @@ export const logoutAll = async (
     await academyAuthService.logoutAll(req.user.id);
 
     const response = new ApiResponse(200, null, t('auth.logout.allSuccess'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Save FCM token for push notifications (academy user)
+ */
+export const saveFcmToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const data = req.body as SaveFcmTokenInput;
+    await deviceTokenService.registerOrUpdateDeviceToken({
+      userId: req.user.id,
+      fcmToken: data.fcmToken,
+      deviceType: data.deviceType as DeviceType,
+      deviceId: data.deviceId ?? undefined,
+      deviceName: data.deviceName ?? undefined,
+      appVersion: data.appVersion ?? undefined,
+    });
+
+    const response = new ApiResponse(200, null, t('auth.fcmToken.saved'));
     res.json(response);
   } catch (error) {
     next(error);

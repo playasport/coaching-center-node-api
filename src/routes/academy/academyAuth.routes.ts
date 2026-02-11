@@ -14,6 +14,7 @@ import {
   refreshToken,
   logout,
   logoutAll,
+  saveFcmToken,
 } from '../../controllers/academy/academyAuth.controller';
 import { validate } from '../../middleware/validation.middleware';
 import {
@@ -27,6 +28,7 @@ import {
   academyPasswordChangeSchema,
   academyForgotPasswordRequestSchema,
   academyForgotPasswordVerifySchema,
+  saveFcmTokenSchema,
 } from '../../validations/auth.validation';
 import { authenticate, authorize } from '../../middleware/auth.middleware';
 import { loginRateLimit, generalRateLimit } from '../../middleware/rateLimit.middleware';
@@ -465,6 +467,49 @@ router.post(
  *         description: Invalid or expired refresh token, or device is inactive
  */
 router.post('/refresh', generalRateLimit, refreshToken);
+
+/**
+ * @swagger
+ * /academy/auth/save-token:
+ *   post:
+ *     summary: Save FCM token for push notifications
+ *     description: Register or update the device FCM token for the authenticated academy user. Used for push notifications.
+ *     tags: [Academy Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SaveFcmTokenRequest'
+ *     responses:
+ *       200:
+ *         description: FCM token saved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SaveFcmTokenResponse'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post(
+  '/save-token',
+  authenticate,
+  authorize(DefaultRoles.ACADEMY),
+  validate(saveFcmTokenSchema),
+  saveFcmToken
+);
 
 /**
  * @swagger

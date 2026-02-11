@@ -351,6 +351,56 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        SaveFcmTokenRequest: {
+          type: 'object',
+          required: ['fcmToken', 'deviceType'],
+          description: 'Request body for saving FCM token (academy or user). Used for push notifications.',
+          properties: {
+            fcmToken: {
+              type: 'string',
+              example: 'fcm-token-from-firebase-cloud-messaging',
+              description: 'Firebase Cloud Messaging token for push notifications',
+            },
+            deviceType: {
+              type: 'string',
+              enum: ['web', 'android', 'ios'],
+              example: 'android',
+              description: 'Type of device (web, android, or ios)',
+            },
+            deviceId: {
+              type: 'string',
+              example: 'unique-device-identifier',
+              description: 'Optional unique device identifier',
+            },
+            deviceName: {
+              type: 'string',
+              example: 'Samsung Galaxy S21',
+              description: 'Optional device name/model',
+            },
+            appVersion: {
+              type: 'string',
+              example: '1.0.0',
+              description: 'Optional app version',
+            },
+          },
+        },
+        SaveFcmTokenResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'FCM token saved successfully',
+            },
+            data: {
+              type: 'object',
+              nullable: true,
+            },
+          },
+        },
         AcademyRegisterRequest: {
           type: 'object',
           required: ['firstName', 'email', 'password', 'mobile', 'otp'],
