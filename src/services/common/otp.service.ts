@@ -2,8 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { OtpModel, Otp } from '../../models/otp.model';
 import { OtpMode } from '../../enums/otpMode.enum';
 import { OtpChannel } from '../../enums/otpChannel.enum';
-
-const OTP_EXPIRY_MINUTES = 10;
+import { config } from '../../config/env';
 
 export type OtpVerificationStatus = 'valid' | 'expired' | 'invalid' | 'not_found' | 'consumed';
 
@@ -23,7 +22,7 @@ const normalizeTarget = (target: OtpTarget): { channel: OtpChannel; identifier: 
 
 export const otpService = {
   async createOtp(target: OtpTarget, otp: string, mode: OtpMode): Promise<Otp> {
-    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+    const expiresAt = new Date(Date.now() + config.otp.expiryMinutes * 60 * 1000);
     const { channel, identifier } = normalizeTarget(target);
 
     const doc = await OtpModel.findOneAndUpdate(

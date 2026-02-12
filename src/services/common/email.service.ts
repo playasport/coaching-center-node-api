@@ -241,8 +241,14 @@ export const sendTemplatedEmail = async ({
     contentType: att.contentType || 'application/pdf',
   }));
 
+  const fromAddress = emailConfig.from || emailConfig.username;
+  const from =
+    emailConfig.fromName?.trim()
+      ? `"${emailConfig.fromName.replace(/"/g, '\\"')}" <${fromAddress}>`
+      : fromAddress;
+
   await mailer.sendMail({
-    from: emailConfig.from || emailConfig.username,
+    from,
     to,
     subject,
     html: finalHtml,
@@ -263,7 +269,7 @@ interface CommonVariableOptions {
 
 const buildCommonVariables = ({
   name = 'User',
-  expiryMinutes = 5,
+  expiryMinutes = config.otp.expiryMinutes,
   extras = {},
 }: CommonVariableOptions = {}) => ({
   name,
@@ -277,8 +283,9 @@ export const sendOtpEmail = async (
   otp: string,
   options: Omit<CommonVariableOptions, 'extras'> = {}
 ): Promise<string> => {
+  const expiryMinutes = options.expiryMinutes ?? config.otp.expiryMinutes;
   const subject = 'Your PlayAsport OTP';
-  const text = `Your one-time password (OTP) is ${otp}. It will expire in 5 minutes. Do not share it with anyone.`;
+  const text = `Your one-time password (OTP) is ${otp}. It will expire in ${expiryMinutes} minutes. Do not share it with anyone.`;
 
   return sendTemplatedEmail({
     to: email,
@@ -287,6 +294,7 @@ export const sendOtpEmail = async (
     text,
     variables: buildCommonVariables({
       ...options,
+      expiryMinutes,
       extras: { otp },
     }),
   });
@@ -297,8 +305,9 @@ export const sendPasswordResetEmail = async (
   otp: string,
   options: Omit<CommonVariableOptions, 'extras'> = {}
 ): Promise<string> => {
+  const expiryMinutes = options.expiryMinutes ?? config.otp.expiryMinutes;
   const subject = 'Reset your PlayAsport password';
-  const text = `Use the OTP ${otp} to reset your password. The code expires in 5 minutes.`;
+  const text = `Use the OTP ${otp} to reset your password. The code expires in ${expiryMinutes} minutes.`;
 
   return sendTemplatedEmail({
     to: email,
@@ -307,6 +316,7 @@ export const sendPasswordResetEmail = async (
     text,
     variables: buildCommonVariables({
       ...options,
+      expiryMinutes,
       extras: { otp },
     }),
   });

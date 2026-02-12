@@ -4,6 +4,8 @@
  * All messages use template variables that will be replaced at runtime
  */
 
+import { config } from '../../config/env';
+
 export interface NotificationMessageVariables {
   userName?: string;
   userEmail?: string;
@@ -176,9 +178,11 @@ export const getPaymentVerifiedAcademyWhatsApp = (variables: NotificationMessage
 
 /**
  * OTP - SMS (Generic - used for login, registration, password reset, profile update)
+ * Uses same expiry as email OTP (config.otp.expiryMinutes).
  */
 export const getOtpSms = (variables: { otp: string }): string => {
-  return `Your Play A Sport OTP is ${variables.otp}. This OTP will expire in 10 minutes. Do not share this OTP with anyone. Thank You.`;
+  const minutes = config.otp.expiryMinutes;
+  return `Your Play A Sport OTP is ${variables.otp}. This OTP will expire in ${minutes} minutes. Do not share this OTP with anyone. Thank You.`;
 };
 
 /**

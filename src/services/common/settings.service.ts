@@ -163,7 +163,7 @@ const createDefaultSettings = async (): Promise<Settings> => {
         username: config.email.username || null,
         password: config.email.password || null,
         from: config.email.from,
-        from_name: null,
+        from_name: config.email.fromName || null,
         secure: config.email.secure,
       },
       whatsapp: {
@@ -452,6 +452,7 @@ export const getEmailConfig = async (): Promise<{
   username: string;
   password: string;
   from: string;
+  fromName: string;
   secure: boolean;
 }> => {
   const enabled = (await getConfigWithPriority<boolean>('notifications.email.enabled', config.email.enabled)) ?? config.email.enabled;
@@ -460,6 +461,7 @@ export const getEmailConfig = async (): Promise<{
   const username = (await getConfigWithPriority<string>('notifications.email.username', config.email.username)) || config.email.username || '';
   const password = (await getConfigWithPriority<string>('notifications.email.password', config.email.password)) || config.email.password || '';
   const from = (await getConfigWithPriority<string>('notifications.email.from', config.email.from)) || config.email.from || '';
+  const fromName = (await getConfigWithPriority<string>('notifications.email.from_name', config.email.fromName)) || config.email.fromName || '';
   const secure = (await getConfigWithPriority<boolean>('notifications.email.secure', config.email.secure)) ?? config.email.secure;
   
   return {
@@ -469,6 +471,7 @@ export const getEmailConfig = async (): Promise<{
     username,
     password,
     from,
+    fromName,
     secure,
   };
 };

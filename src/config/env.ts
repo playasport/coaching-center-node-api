@@ -57,9 +57,13 @@ export const config = {
   sms: {
     enabled: parseBoolean(process.env.SMS_ENABLED, true),
   },
+  otp: {
+    expiryMinutes: Number(process.env.OTP_EXPIRY_MINUTES || 10), // Used for both SMS and email OTP
+  },
   email: {
     enabled: parseBoolean(process.env.EMAIL_ENABLED, true),
     from: process.env.EMAIL_FROM || '',
+    fromName: process.env.EMAIL_SENDER_NAME || 'Play A Sport',
     host: process.env.EMAIL_HOST || 'smtp.gmail.com',
     port: Number(process.env.EMAIL_PORT) || 587,
     username: process.env.EMAIL_USERNAME || '',
