@@ -47,16 +47,20 @@ export const getAllCoachingCenters = async (req: Request, res: Response, next: N
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const { userId, status, search, sportId, isActive, approvalStatus, addedById, sortBy, sortOrder } = req.query;
+    const { userId, status, search, sportId, isActive, approvalStatus, addedById, onlyForFemale, allowingDisabled, onlyForDisabled, sortBy, sortOrder } = req.query;
 
+    const parseBool = (v: unknown) => (v === 'true' ? true : v === 'false' ? false : undefined);
     const filters = {
       userId: userId as string,
       status: status as string,
       search: search as string,
       sportId: sportId as string,
-      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      isActive: parseBool(isActive),
       approvalStatus: approvalStatus as 'approved' | 'rejected' | 'pending_approval' | undefined,
       addedById: addedById as string,
+      onlyForFemale: parseBool(onlyForFemale),
+      allowingDisabled: parseBool(allowingDisabled),
+      onlyForDisabled: parseBool(onlyForDisabled),
       sortBy: sortBy as string,
       sortOrder: sortOrder as 'asc' | 'desc',
     };

@@ -24,6 +24,7 @@ import { startMediaCleanupJob } from './jobs/mediaCleanup.job';
 import { startPermanentDeleteJob } from './jobs/permanentDelete.job';
 import { preloadRoleCache } from './services/admin/role.service';
 import { closeAcademyDashboardCache } from './utils/academyDashboardCache';
+import { closeAdminDashboardCache } from './utils/adminDashboardCache';
 
 const startServer = async (): Promise<void> => {
   try {
@@ -133,6 +134,9 @@ const gracefulShutdown = async (signal: string) => {
     
     // Close academy dashboard cache Redis connection
     await closeAcademyDashboardCache();
+
+    // Close admin dashboard cache Redis connection
+    await closeAdminDashboardCache();
     
     // Disconnect database
     await disconnectDatabase();

@@ -129,6 +129,9 @@ export const getAllCoachingCenters = async (
     isApproved?: boolean;
     approvalStatus?: 'approved' | 'rejected' | 'pending_approval'; // Direct approval status filter
     addedById?: string; // Filter by admin/agent user ID (who added the center)
+    onlyForFemale?: boolean; // Academies only for female candidates (allowed_genders === ['female'])
+    allowingDisabled?: boolean; // Academies that allow disabled participants
+    onlyForDisabled?: boolean; // Academies only for disabled participants
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   } = {},
@@ -203,6 +206,18 @@ export const getAllCoachingCenters = async (
         { mobile_number: searchRegex },
         { email: searchRegex }
       ];
+    }
+
+    if (filters.onlyForFemale === true) {
+      query.allowed_genders = ['female'];
+    }
+
+    if (filters.allowingDisabled === true) {
+      query.allowed_disabled = true;
+    }
+
+    if (filters.onlyForDisabled === true) {
+      query.is_only_for_disabled = true;
     }
 
     // Handle sorting
