@@ -11,6 +11,7 @@ import { RoleModel } from '../../models/role.model';
 import { DefaultRoles } from '../../enums/defaultRoles.enum';
 import { Types } from 'mongoose';
 import { logger } from '../../utils/logger';
+import { getCoachingCenterStats } from './adminCoachingCenter.service';
 
 /**
  * Get all available sections
@@ -61,6 +62,9 @@ export const getDashboardStats = async () => {
     const sevenDaysAgo = new Date(now);
     sevenDaysAgo.setDate(now.getDate() - 7);
     sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    // Academy stats (by state, city, sport, only for disabled, allowing disabled, only for female, etc.)
+    const academyStatsPromise = getCoachingCenterStats(undefined, undefined, undefined);
 
     const [
       totalUsers,
@@ -216,6 +220,8 @@ export const getDashboardStats = async () => {
         : Promise.resolve(0),
     ]);
 
+    const academyStats = await academyStatsPromise;
+
     // Process revenue aggregates
     const totalRevenueAmount = totalRevenue[0]?.total || 0;
     const todayRevenueAmount = todayRevenue[0]?.total || 0;
@@ -264,6 +270,19 @@ export const getDashboardStats = async () => {
         total: totalCoachingCenters,
         active: activeCoachingCenters,
         inactive: totalCoachingCenters - activeCoachingCenters,
+        // Academy stats: by state, city, sport, only for disabled, allowing disabled, only for female, status, approval, etc.
+        academyStats: {
+          total: academyStats.total,
+          byStatus: academyStats.byStatus,
+          byActiveStatus: academyStats.byActiveStatus,
+          byApprovalStatus: academyStats.byApprovalStatus,
+          bySport: academyStats.bySport,
+          byCity: academyStats.byCity,
+          byState: academyStats.byState,
+          allowingDisabled: academyStats.allowingDisabled,
+          onlyForDisabled: academyStats.onlyForDisabled,
+          onlyForFemale: academyStats.onlyForFemale,
+        },
       },
       bookings: {
         total: totalBookings,

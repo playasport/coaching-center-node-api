@@ -111,6 +111,7 @@ export interface CoachingCenterStats {
   byState: Record<string, number>;
   allowingDisabled: number;
   onlyForDisabled: number;
+  onlyForFemale: number;
 }
 
 /**
@@ -1197,6 +1198,12 @@ export const getCoachingCenterStats = async (
 
     const onlyForDisabled = onlyDisabledCounts.find((item: any) => item._id === true)?.count || 0;
 
+    // Get centers only for female candidates (allowed_genders is exactly ['female'])
+    const onlyForFemale = await CoachingCenterModel.countDocuments({
+      ...dateQuery,
+      allowed_genders: ['female'],
+    });
+
     return {
       total,
       byStatus,
@@ -1207,6 +1214,7 @@ export const getCoachingCenterStats = async (
       byState,
       allowingDisabled,
       onlyForDisabled,
+      onlyForFemale,
     };
   } catch (error) {
     logger.error('Admin failed to get coaching center stats:', error);
