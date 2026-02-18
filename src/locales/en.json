@@ -307,7 +307,15 @@
   "errors": {
     "internalServerError": "Internal Server Error",
     "routeNotFound": "Route {route} not found",
-    "roleNotFound": "Role with name '{role}' not found"
+    "roleNotFound": "Role with name '{role}' not found",
+    "userNotFound": "User not found"
+  },
+  "coachingCenterRating": {
+    "invalidRating": "Rating must be between {min} and {max}",
+    "centerNotFound": "Coaching center not found",
+    "ratingsDisabled": "Ratings are currently disabled",
+    "submitSuccess": "Rating submitted successfully",
+    "updateSuccess": "Rating updated successfully"
   },
   "health": {
     "serverRunning": "Server is running"

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as academyController from '../controllers/academy.controller';
-import { optionalAuthenticate } from '../middleware/auth.middleware';
+import { authenticate, optionalAuthenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -153,13 +153,17 @@ router.get('/', optionalAuthenticate, academyController.getAllAcademies);
  *     summary: Get academy details by ID
  *     tags: [Academy]
  *     description: |
- *       Get detailed information about an academy including all batches.
+ *       Get detailed information about an academy including all batches and latest 5 ratings.
  *       Supports multiple ID types:
  *       - CoachingCenter UUID (id field): e.g., "784d4s4447444s5s44s4s4s4s4s4s4s4s78"
  *       - MongoDB ObjectId (_id): e.g., "693bc2d1d0b08eea0c31cc53"
  *       - User custom ID: searches by academy owner's user ID
+ *       Response includes: ratings (latest 5), averageRating, totalRatings.
+ *       When user is logged in: their rating appears first in ratings (if they rated), isAlreadyRated and canUpdateRating indicate if they have rated and can update it.
  *       If user is not logged in, email and mobile number will be masked.
- *       This is an unprotected route (authentication is optional).
+ *       Authentication is optional.
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -205,6 +209,100 @@ router.get('/', optionalAuthenticate, academyController.getAllAcademies);
  *               $ref: '#/components/schemas/Error'
  */
 router.get('/:id', optionalAuthenticate, academyController.getAcademyById);
+
+/**
+ * @swagger
+ * /academies/{id}/rate:
+ *   post:
+ *     summary: Submit or update rating for a coaching center
+ *     tags: [Academy]
+ *     description: One rating per user per center. Authenticated user can submit or update their rating (1-5). Optional comment.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Coaching center ID (UUID or MongoDB ObjectId)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [rating]
+ *             properties:
+ *               rating:
+ *                 type: number
+ *                 minimum: 1
+ *                 maximum: 5
+ *               comment:
+ *                 type: string
+ *                 maxLength: 500
+ *     responses:
+ *       200:
+ *         description: Rating submitted or updated successfully
+ *       400:
+ *         description: Invalid rating or center ID
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/:id/rate', authenticate, academyController.submitRating);
+
+/**
+ * @swagger
+ * /academies/{id}/ratings:
+ *   get:
+ *     summary: Get paginated ratings for a coaching center
+ *     tags: [Academy]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Paginated ratings list with averageRating and totalRatings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     ratings:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         description: Rating with id, rating, comment, createdAt, user
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     averageRating:
+ *                       type: number
+ *                     totalRatings:
+ *                       type: integer
+ */
+router.get('/:id/ratings', optionalAuthenticate, academyController.getRatingsByAcademyId);
 
 /**
  * @swagger

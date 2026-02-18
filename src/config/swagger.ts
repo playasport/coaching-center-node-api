@@ -3521,6 +3521,16 @@ const options: swaggerJsdoc.Options = {
               example: 2.5,
               description: 'Distance in kilometers (if location provided)',
             },
+            averageRating: {
+              type: 'number',
+              example: 4.2,
+              description: 'Average rating (0-5)',
+            },
+            totalRatings: {
+              type: 'number',
+              example: 24,
+              description: 'Total number of ratings',
+            },
           },
         },
         PopularSport: {
@@ -3758,6 +3768,49 @@ const options: swaggerJsdoc.Options = {
                 },
                 allowed_disabled: { type: 'boolean' },
                 is_only_for_disabled: { type: 'boolean' },
+                ratings: {
+                  type: 'array',
+                  description: 'Latest 5 ratings; when user is logged in and has rated, their rating appears first',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      rating: { type: 'number', minimum: 1, maximum: 5 },
+                      comment: { type: 'string', nullable: true },
+                      createdAt: { type: 'string', format: 'date-time' },
+                      user: {
+                        type: 'object',
+                        nullable: true,
+                        properties: {
+                          id: { type: 'string' },
+                          firstName: { type: 'string' },
+                          lastName: { type: 'string', nullable: true },
+                          profileImage: { type: 'string', format: 'uri', nullable: true },
+                        },
+                      },
+                    },
+                  },
+                },
+                averageRating: {
+                  type: 'number',
+                  description: 'Average rating (0-5) across all ratings',
+                  example: 4.2,
+                },
+                totalRatings: {
+                  type: 'number',
+                  description: 'Total number of ratings',
+                  example: 24,
+                },
+                isAlreadyRated: {
+                  type: 'boolean',
+                  description: 'True if the current user has already rated this center (only when logged in)',
+                  example: false,
+                },
+                canUpdateRating: {
+                  type: 'boolean',
+                  description: 'True if the current user can update their rating (they have rated; only when logged in)',
+                  example: false,
+                },
                 batches: {
                   type: 'array',
                   items: {

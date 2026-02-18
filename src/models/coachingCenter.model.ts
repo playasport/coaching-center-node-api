@@ -119,6 +119,9 @@ export interface CoachingCenter {
   reject_reason?: string | null;
   is_deleted: boolean;
   deletedAt?: Date | null;
+  averageRating: number;
+  totalRatings: number;
+  ratings: Types.ObjectId[]; // References to CoachingCenterRating for populate when needed
   createdAt: Date;
   updatedAt: Date;
 }
@@ -520,6 +523,22 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
     deletedAt: {
       type: Date,
       default: null,
+    },
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    totalRatings: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    ratings: {
+      type: [Schema.Types.ObjectId],
+      ref: 'CoachingCenterRating',
+      default: [],
     },
   },
   {

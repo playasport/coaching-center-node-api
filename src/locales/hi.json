@@ -202,7 +202,15 @@
   "errors": {
     "internalServerError": "आंतरिक सर्वर त्रुटि",
     "routeNotFound": "रूट {route} नहीं मिला",
-    "roleNotFound": "नाम '{role}' के साथ भूमिका नहीं मिली"
+    "roleNotFound": "नाम '{role}' के साथ भूमिका नहीं मिली",
+    "userNotFound": "उपयोगकर्ता नहीं मिला"
+  },
+  "coachingCenterRating": {
+    "invalidRating": "रेटिंग {min} और {max} के बीच होनी चाहिए",
+    "centerNotFound": "कोचिंग सेंटर नहीं मिला",
+    "ratingsDisabled": "रेटिंग वर्तमान में अक्षम हैं",
+    "submitSuccess": "रेटिंग सफलतापूर्वक जमा की गई",
+    "updateSuccess": "रेटिंग सफलतापूर्वक अपडेट की गई"
   },
   "health": {
     "serverRunning": "सर्वर चल रहा है"

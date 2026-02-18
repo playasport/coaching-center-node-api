@@ -4,6 +4,7 @@ import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
 import { config } from '../config/env';
 import * as academyService from '../services/client/academy.service';
+import * as coachingCenterRatingService from '../services/client/coachingCenterRating.service';
 
 /**
  * Get all academies with pagination
@@ -83,10 +84,11 @@ export const getAcademyById = async (
       throw new ApiError(400, t('academy.getById.idRequired'));
     }
 
-    // Check if user is logged in
+    // Check if user is logged in (for ratings: show their rating first, isAlreadyRated, canUpdateRating)
     const isUserLoggedIn = !!req.user;
+    const userId = req.user?.id ?? null;
 
-    const academy = await academyService.getAcademyById(id, isUserLoggedIn);
+    const academy = await academyService.getAcademyById(id, isUserLoggedIn, userId);
 
     if (!academy) {
       throw new ApiError(404, t('academy.getById.notFound'));
@@ -166,6 +168,71 @@ export const getAcademiesBySport = async (
     const result = await academyService.getAcademiesBySport(slug, page, limit, userLocation, radius);
 
     const response = new ApiResponse(200, result, t('academy.getBySport.success'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Submit or update rating for a coaching center (one per user, can update).
+ */
+export const submitRating = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id: coachingCenterId } = req.params;
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+    if (!coachingCenterId) {
+      throw new ApiError(400, t('coachingCenter.idRequired'));
+    }
+    const body = req.body as { rating?: number; comment?: string | null };
+    if (body.rating == null || typeof body.rating !== 'number') {
+      throw new ApiError(400, t('coachingCenterRating.invalidRating', { min: 1, max: 5 }));
+    }
+    const result = await coachingCenterRatingService.submitOrUpdateRating(
+      userId,
+      coachingCenterId,
+      { rating: body.rating, comment: body.comment ?? null }
+    );
+    const message = result.isUpdate
+      ? t('coachingCenterRating.updateSuccess')
+      : t('coachingCenterRating.submitSuccess');
+    const response = new ApiResponse(200, result, message);
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get paginated ratings for a coaching center.
+ */
+export const getRatingsByAcademyId = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id: coachingCenterId } = req.params;
+    if (!coachingCenterId) {
+      throw new ApiError(400, t('coachingCenter.idRequired'));
+    }
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const userId = req.user?.id ?? null;
+    const result = await coachingCenterRatingService.getRatingsByCoachingCenterId(
+      coachingCenterId,
+      page,
+      limit,
+      userId
+    );
+    const response = new ApiResponse(200, result, 'Ratings retrieved successfully');
     res.json(response);
   } catch (error) {
     next(error);
