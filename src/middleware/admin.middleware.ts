@@ -91,6 +91,7 @@ export const requireAdmin = async (
         Section.USER,
         Section.ROLE,
         Section.COACHING_CENTER,
+        Section.COACHING_CENTER_RATINGS,
       ];
 
       const hasAdminPermission = await PermissionModel.exists({

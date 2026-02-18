@@ -313,9 +313,14 @@
   "coachingCenterRating": {
     "invalidRating": "Rating must be between {min} and {max}",
     "centerNotFound": "Coaching center not found",
+    "ratingNotFound": "Rating not found",
+    "invalidStatus": "Invalid status. Use approved, rejected, or pending",
     "ratingsDisabled": "Ratings are currently disabled",
     "submitSuccess": "Rating submitted successfully",
-    "updateSuccess": "Rating updated successfully"
+    "updateSuccess": "Rating updated successfully",
+    "listSuccess": "Ratings retrieved successfully",
+    "getSuccess": "Rating retrieved successfully",
+    "statusUpdated": "Rating status updated successfully"
   },
   "health": {
     "serverRunning": "Server is running"

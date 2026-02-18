@@ -90,6 +90,10 @@ export const getPublicSettings = async (): Promise<Settings> => {
       delete publicSettings.payment.stripe.api_key;
       delete publicSettings.payment.stripe.secret_key;
     }
+
+    if (publicSettings.general?.ratings_enabled === false) {
+      delete publicSettings.general.ratings_enabled;
+    }
     
     return publicSettings;
   } catch (error) {
@@ -112,6 +116,7 @@ export const getLimitedPublicSettings = async (): Promise<Partial<Settings>> => 
       app_name: settings.app_name || null,
       app_logo: settings.app_logo || null,
       contact: settings.contact || null,
+      general: settings.general || null,
     };
     
     return limitedSettings;
