@@ -25,6 +25,7 @@ import { startPermanentDeleteJob } from './jobs/permanentDelete.job';
 import { preloadRoleCache } from './services/admin/role.service';
 import { closeAcademyDashboardCache } from './utils/academyDashboardCache';
 import { closeAdminDashboardCache } from './utils/adminDashboardCache';
+import { closeHomeDataCache } from './utils/homeDataCache';
 
 const startServer = async (): Promise<void> => {
   try {
@@ -137,6 +138,9 @@ const gracefulShutdown = async (signal: string) => {
 
     // Close admin dashboard cache Redis connection
     await closeAdminDashboardCache();
+
+    // Close home data cache Redis connection
+    await closeHomeDataCache();
     
     // Disconnect database
     await disconnectDatabase();
