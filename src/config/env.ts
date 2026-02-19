@@ -136,6 +136,7 @@ export const config = {
   location: {
     defaultRadius: Number(process.env.DEFAULT_SEARCH_RADIUS_KM || 50), // Default search radius in kilometers
     maxRadius: Number(process.env.MAX_SEARCH_RADIUS_KM || 200), // Maximum allowed search radius in kilometers
+    googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '', // For Distance Matrix API (road distance); empty = use Haversine fallback
   },
   notification: {
     enabled: parseBoolean(process.env.NOTIFICATION_ENABLED, true),
