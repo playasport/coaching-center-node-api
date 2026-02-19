@@ -3,6 +3,7 @@ import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
 import * as adminCoachingCenterService from '../../services/admin/adminCoachingCenter.service';
+import type { DateRangeFilterKey } from '../../services/admin/adminCoachingCenter.service';
 import * as commonService from '../../services/common/coachingCenterCommon.service';
 import * as exportService from '../../services/admin/coachingCenterExport.service';
 
@@ -47,9 +48,10 @@ export const getAllCoachingCenters = async (req: Request, res: Response, next: N
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const { userId, status, search, sportId, isActive, approvalStatus, addedById, onlyForFemale, allowingDisabled, onlyForDisabled, sortBy, sortOrder } = req.query;
+    const { userId, status, search, sportId, isActive, approvalStatus, addedById, onlyForFemale, allowingDisabled, onlyForDisabled, sortBy, sortOrder, dateRange } = req.query;
 
     const parseBool = (v: unknown) => (v === 'true' ? true : v === 'false' ? false : undefined);
+    const validDateRangeKeys: DateRangeFilterKey[] = ['today', 'yesterday', 'this_week', 'this_month', 'last_7_days', 'last_30_days'];
     const filters = {
       userId: userId as string,
       status: status as string,
@@ -63,6 +65,7 @@ export const getAllCoachingCenters = async (req: Request, res: Response, next: N
       onlyForDisabled: parseBool(onlyForDisabled),
       sortBy: sortBy as string,
       sortOrder: sortOrder as 'asc' | 'desc',
+      dateRange: typeof dateRange === 'string' && validDateRangeKeys.includes(dateRange as DateRangeFilterKey) ? (dateRange as DateRangeFilterKey) : undefined,
     };
 
     const currentUserId = req.user?.id;
