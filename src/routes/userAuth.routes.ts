@@ -11,6 +11,7 @@ import {
   logout,
   logoutAll,
   updateUserFavoriteSports,
+  saveFcmToken,
 } from '../controllers/userAuth.controller';
 import { validate } from '../middleware/validation.middleware';
 import {
@@ -21,6 +22,7 @@ import {
   userProfileUpdateSchema,
   userAddressUpdateSchema,
   userFavoriteSportsUpdateSchema,
+  saveFcmTokenSchema,
 } from '../validations/auth.validation';
 import { authenticate, authorize } from '../middleware/auth.middleware';
 import { generalRateLimit } from '../middleware/rateLimit.middleware';
@@ -719,6 +721,49 @@ router.patch(
   authorize(DefaultRoles.USER),
   validate(userFavoriteSportsUpdateSchema),
   updateUserFavoriteSports
+);
+
+/**
+ * @swagger
+ * /user/auth/save-token:
+ *   post:
+ *     summary: Save FCM token for push notifications
+ *     description: Register or update the device FCM token for the authenticated user. Used for push notifications.
+ *     tags: [User Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SaveFcmTokenRequest'
+ *     responses:
+ *       200:
+ *         description: FCM token saved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SaveFcmTokenResponse'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post(
+  '/save-token',
+  authenticate,
+  authorize(DefaultRoles.USER),
+  validate(saveFcmTokenSchema),
+  saveFcmToken
 );
 
 /**

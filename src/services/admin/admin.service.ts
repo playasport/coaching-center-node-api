@@ -11,6 +11,8 @@ import { RoleModel } from '../../models/role.model';
 import { DefaultRoles } from '../../enums/defaultRoles.enum';
 import { Types } from 'mongoose';
 import { logger } from '../../utils/logger';
+import { getCachedAdminDashboardStats, cacheAdminDashboardStats } from '../../utils/adminDashboardCache';
+import { getCoachingCenterStats } from './adminCoachingCenter.service';
 
 /**
  * Get all available sections
@@ -33,10 +35,16 @@ export const getAllActions = (): Array<{ value: string; label: string }> => {
 };
 
 /**
- * Get dashboard statistics
+ * Get dashboard statistics (cached for 5 minutes to avoid DB hit on every request)
  */
 export const getDashboardStats = async () => {
   try {
+    const cached = await getCachedAdminDashboardStats();
+    if (cached) {
+      logger.debug('Returning cached admin dashboard stats');
+      return cached;
+    }
+
     // Get role IDs for user and academy roles (parallel queries)
     const [userRole, academyRole] = await Promise.all([
       RoleModel.findOne({ name: DefaultRoles.USER }).lean(),
@@ -61,6 +69,9 @@ export const getDashboardStats = async () => {
     const sevenDaysAgo = new Date(now);
     sevenDaysAgo.setDate(now.getDate() - 7);
     sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    // Academy stats (by state, city, sport, only for disabled, allowing disabled, only for female, etc.)
+    const academyStatsPromise = getCoachingCenterStats(undefined, undefined, undefined);
 
     const [
       totalUsers,
@@ -216,6 +227,8 @@ export const getDashboardStats = async () => {
         : Promise.resolve(0),
     ]);
 
+    const academyStats = await academyStatsPromise;
+
     // Process revenue aggregates
     const totalRevenueAmount = totalRevenue[0]?.total || 0;
     const todayRevenueAmount = todayRevenue[0]?.total || 0;
@@ -254,7 +267,7 @@ export const getDashboardStats = async () => {
       },
     };
 
-    return {
+    const stats = {
       users: {
         total: totalUsers,
         active: activeUsers,
@@ -264,6 +277,19 @@ export const getDashboardStats = async () => {
         total: totalCoachingCenters,
         active: activeCoachingCenters,
         inactive: totalCoachingCenters - activeCoachingCenters,
+        // Academy stats: by state, city, sport, only for disabled, allowing disabled, only for female, status, approval, etc.
+        academyStats: {
+          total: academyStats.total,
+          byStatus: academyStats.byStatus,
+          byActiveStatus: academyStats.byActiveStatus,
+          byApprovalStatus: academyStats.byApprovalStatus,
+          bySport: academyStats.bySport,
+          byCity: academyStats.byCity,
+          byState: academyStats.byState,
+          allowingDisabled: academyStats.allowingDisabled,
+          onlyForDisabled: academyStats.onlyForDisabled,
+          onlyForFemale: academyStats.onlyForFemale,
+        },
       },
       bookings: {
         total: totalBookings,
@@ -301,6 +327,9 @@ export const getDashboardStats = async () => {
         period: 'last_7_days',
       },
     };
+
+    await cacheAdminDashboardStats(stats);
+    return stats;
   } catch (error) {
     logger.error('Error getting dashboard stats:', {
       error: error instanceof Error ? error.message : error,

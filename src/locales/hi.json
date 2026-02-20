@@ -46,6 +46,9 @@
       "noToken": "कोई टोकन प्रदान नहीं किया गया या अमान्य प्रारूप",
       "invalidToken": "अमान्य या समाप्त टोकन"
     },
+    "fcmToken": {
+      "saved": "FCM टोकन सफलतापूर्वक सहेजा गया"
+    },
     "authorization": {
       "unauthorized": "अनधिकृत",
       "forbidden": "निषिद्ध: अपर्याप्त अनुमतियां",
@@ -199,7 +202,20 @@
   "errors": {
     "internalServerError": "आंतरिक सर्वर त्रुटि",
     "routeNotFound": "रूट {route} नहीं मिला",
-    "roleNotFound": "नाम '{role}' के साथ भूमिका नहीं मिली"
+    "roleNotFound": "नाम '{role}' के साथ भूमिका नहीं मिली",
+    "userNotFound": "उपयोगकर्ता नहीं मिला"
+  },
+  "coachingCenterRating": {
+    "invalidRating": "रेटिंग {min} और {max} के बीच होनी चाहिए",
+    "centerNotFound": "कोचिंग सेंटर नहीं मिला",
+    "ratingNotFound": "रेटिंग नहीं मिली",
+    "invalidStatus": "अमान्य स्थिति। approved, rejected या pending उपयोग करें",
+    "ratingsDisabled": "रेटिंग वर्तमान में अक्षम हैं",
+    "submitSuccess": "रेटिंग सफलतापूर्वक जमा की गई",
+    "updateSuccess": "रेटिंग सफलतापूर्वक अपडेट की गई",
+    "listSuccess": "रेटिंग सफलतापूर्वक प्राप्त की गईं",
+    "getSuccess": "रेटिंग सफलतापूर्वक प्राप्त की गई",
+    "statusUpdated": "रेटिंग स्थिति सफलतापूर्वक अपडेट की गई"
   },
   "health": {
     "serverRunning": "सर्वर चल रहा है"

@@ -1,5 +1,6 @@
 export enum Section {
   COACHING_CENTER = 'coaching_center',
+  COACHING_CENTER_RATINGS = 'coaching_center_ratings',
   EMPLOYEE = 'employee',
   BATCH = 'batch',
   BOOKING = 'booking',

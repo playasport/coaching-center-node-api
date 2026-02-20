@@ -87,6 +87,12 @@ export interface PaymentConfig {
   // Add other payment gateways as needed
 }
 
+// General settings interface
+export interface GeneralSettings {
+  /** When false, coaching center ratings are disabled (submit/view). Default true. */
+  ratings_enabled?: boolean | null;
+}
+
 // Basic information interface (extended)
 export interface BasicInfo {
   app_name?: string | null;
@@ -105,6 +111,9 @@ export interface Settings {
   app_logo?: string | null;
   contact?: ContactInfo | null;
   basic_info?: BasicInfo | null;
+
+  // General settings (e.g. ratings enabled/disabled)
+  general?: GeneralSettings | null;
   
   // Fee Configuration
   fees?: FeeConfig | null;
@@ -131,6 +140,14 @@ const contactAddressSchema = new Schema<ContactAddress>(
   { _id: false, strict: false } // strict: false allows additional fields
 );
 
+// General settings schema
+const generalSettingsSchema = new Schema<GeneralSettings>(
+  {
+    ratings_enabled: { type: Boolean, default: true },
+  },
+  { _id: false, strict: false }
+);
+
 // Contact info schema
 const contactInfoSchema = new Schema<ContactInfo>(
   {
@@ -151,6 +168,7 @@ const settingsSchema = new Schema<Settings>(
     app_name: { type: String, default: null, trim: true },
     app_logo: { type: String, default: null, trim: true },
     contact: { type: contactInfoSchema, default: null },
+    general: { type: generalSettingsSchema, default: null },
   },
   {
     timestamps: true,

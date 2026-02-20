@@ -648,3 +648,16 @@ export const userFavoriteSportsUpdateSchema = z.object({
 
 export type UserFavoriteSportsUpdateInput = z.infer<typeof userFavoriteSportsUpdateSchema>['body'];
 
+// Save FCM token (academy and user) - authenticated route
+export const saveFcmTokenSchema = z.object({
+  body: z.object({
+    fcmToken: z.string().min(1, 'FCM token is required'),
+    deviceType: z.enum(['web', 'android', 'ios']),
+    deviceId: z.string().optional(),
+    deviceName: z.string().optional(),
+    appVersion: z.string().optional(),
+  }),
+});
+
+export type SaveFcmTokenInput = z.infer<typeof saveFcmTokenSchema>['body'];
+

@@ -98,7 +98,29 @@ router.get(
  *           default: 50
  *     responses:
  *       200:
- *         description: Queue jobs retrieved successfully
+ *         description: Queue jobs retrieved successfully. Each job has progress (raw) and progressPercent (0-100) for progress bar; completed jobs have progressPercent 100.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     jobs:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id: { type: string }
+ *                           name: { type: string }
+ *                           state: { type: string }
+ *                           progress: { description: Raw progress from worker }
+ *                           progressPercent: { type: number, description: 0-100 for progress bar display }
+ *                     total: { type: number }
+ *                     page: { type: number }
+ *                     limit: { type: number }
+ *                     totalPages: { type: number }
  */
 router.get(
   '/:queueName/jobs',

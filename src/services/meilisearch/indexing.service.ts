@@ -214,6 +214,8 @@ class MeilisearchIndexingService {
       is_active: center.is_active !== false,
       is_admin_approve: center.approval_status === 'approved',
       approval_status: center.approval_status || 'pending_approval',
+      average_rating: center.averageRating ?? 0,
+      total_ratings: center.totalRatings ?? 0,
       created_at: center.createdAt || new Date(),
       updated_at: center.updatedAt || new Date(),
     };

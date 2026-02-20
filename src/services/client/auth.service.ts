@@ -905,9 +905,10 @@ export const sendAcademyOtp = async (data: {
   await otpService.createOtp({ channel: OtpChannel.MOBILE, identifier: mobile }, otp, otpMode);
   // add +91 to the mobile number
   const mobileNumber = `+91${mobile}`;
+  const expiryMinutes = config.otp.expiryMinutes;
   queueSms(
     mobileNumber,
-    `Your PlayAsport Academy OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Team Thank You.`,
+    `Your Play A Sport Academy OTP is ${otp} . This OTP will expire in ${expiryMinutes} minutes. Do not share this OTP with anyone. Play A Team Thank You.`,
     'high',
     { type: 'otp' }
   );
@@ -2094,9 +2095,10 @@ export const sendUserOtp = async (data: {
   await otpService.createOtp({ channel: OtpChannel.MOBILE, identifier: mobile }, otp, otpMode);
   // add +91 to the mobile number
   const mobileNumber = `+91${mobile}`;
+  const expiryMinutes = config.otp.expiryMinutes;
   queueSms(
     mobileNumber,
-    `Your PlayAsport Academy OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Team Thank You.`,
+    `Your Play A Sport Academy OTP is ${otp} . This OTP will expire in ${expiryMinutes} minutes. Do not share this OTP with anyone. Play A Team Thank You.`,
     'high',
     { type: 'otp' }
   );

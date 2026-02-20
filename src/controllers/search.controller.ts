@@ -421,22 +421,19 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
         const index = client!.index(indexName);
         const lowerIndex = indexName.toLowerCase();
         const isCoachingIndex = lowerIndex.includes('coaching') || lowerIndex.includes('centre');
-
         if (isCoachingIndex && latitude !== null && longitude !== null && !cityAutocomplete && !stateAutocomplete) {
-          const radiusForGeo = (radiusKmAutocomplete != null && Number.isFinite(radiusKmAutocomplete) && radiusKmAutocomplete > 0)
-            ? Math.max(radiusKmAutocomplete, 1)
-            : 50;
-          const radiusInMeters = radiusForGeo * 1000;
           const searchLimit = Math.max(sizePerIndex * 4, sizePerIndex + 10, 50);
-
-          const geoOptions = {
+          const geoOptions: any = {
             ...searchOptions,
             limit: searchLimit,
             offset: 0,
             aroundLatLng: `${latitude},${longitude}`,
-            filter: [`_geoRadius(${latitude}, ${longitude}, ${radiusInMeters})`],
           };
-
+          // Apply radius filter only when radius is present in request
+          if (radiusKmAutocomplete != null && Number.isFinite(radiusKmAutocomplete) && radiusKmAutocomplete > 0) {
+            const radiusInMeters = Math.max(radiusKmAutocomplete, 1) * 1000;
+            geoOptions.filter = [`_geoRadius(${latitude}, ${longitude}, ${radiusInMeters})`];
+          }
           try {
             const geoResults = await index.search(query, geoOptions);
             const hitsWithDistance = (geoResults.hits || []).map((hit) => {
@@ -512,6 +509,7 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
     // Transform results
     const transformedResults: any[] = [];
     const seenResultKeys = new Set<string>();
+    
 
     for (const { indexName, hits, success } of searchResults) {
       if (!success || !hits || hits.length === 0) continue;
@@ -692,8 +690,8 @@ export const search = async (req: Request, res: Response): Promise<void> => {
             // When city or state filter is applied, skip location filter (lat/long/radius)
             const useLocationSearch = !city && !state;
             searchResults = await mongodbFallback.searchCoachingCenters(searchQuery, {
-              size: size * 2, // Get more for proper sorting
-              from: 0,
+              size,
+              from,
               latitude: useLocationSearch ? latitude ?? undefined : undefined,
               longitude: useLocationSearch ? longitude ?? undefined : undefined,
               radius: useLocationSearch ? radiusKm : undefined,
@@ -708,16 +706,16 @@ export const search = async (req: Request, res: Response): Promise<void> => {
               sortByDistance,
             });
           } else if (lowerIndex.includes('sport') && !lowerIndex.includes('coaching')) {
-            searchResults = await mongodbFallback.searchSports(searchQuery, { size: size * 2, from: 0 });
+            searchResults = await mongodbFallback.searchSports(searchQuery, { size, from });
           } else if (lowerIndex.includes('reel')) {
-            searchResults = await mongodbFallback.searchReels(searchQuery, { size: size * 2, from: 0 });
+            searchResults = await mongodbFallback.searchReels(searchQuery, { size, from });
           } else if (lowerIndex.includes('live') || lowerIndex.includes('stream') || lowerIndex.includes('highlight')) {
-            searchResults = await mongodbFallback.searchStreamHighlights(searchQuery, { size: size * 2, from: 0 });
+            searchResults = await mongodbFallback.searchStreamHighlights(searchQuery, { size, from });
           }
 
-          // Transform results to match Meilisearch format
+          // Transform results to match Meilisearch format (fallback already returns the requested page)
           const normalizedIndexName = normalizeIndexName(indexName);
-          const transformedResults = searchResults.hits.slice(from, from + size).map((hit: any) => {
+          const transformedResults = searchResults.hits.slice(0, size).map((hit: any) => {
             const source: any = {
               id: hit.id,
               name: hit.name || hit.coaching_name || hit.title || '',
@@ -915,8 +913,6 @@ export const search = async (req: Request, res: Response): Promise<void> => {
 
         if (indexName.includes('coaching') || indexName.includes('centre')) {
           const index = client!.index(indexName);
-          const radiusForMeili = radiusKm ?? 50;
-          const radiusInMeters = radiusForMeili * 1000;
           const searchLimit = 200; // Fetch large set for proper distance sorting
 
           const searchOptionsForIndex = {
@@ -926,10 +922,14 @@ export const search = async (req: Request, res: Response): Promise<void> => {
           };
 
           // When city or state filter is applied, skip location filter (geo/radius)
+          // Apply radius filter only when radius is present in request
           if (latitude !== null && longitude !== null && !city && !state) {
             const geoFilterOptions: any = { ...searchOptionsForIndex };
-            geoFilterOptions.filter = [`_geoRadius(${latitude}, ${longitude}, ${radiusInMeters})`];
             geoFilterOptions.aroundLatLng = `${latitude},${longitude}`;
+            if (radiusKm != null && radiusKm > 0) {
+              const radiusInMeters = radiusKm * 1000;
+              geoFilterOptions.filter = [`_geoRadius(${latitude}, ${longitude}, ${radiusInMeters})`];
+            }
 
             try {
               const searchResults = await index.search(queryForMeilisearch, geoFilterOptions);
@@ -1274,18 +1274,20 @@ export const search = async (req: Request, res: Response): Promise<void> => {
       });
 
       // Filter and sort for coaching centres with location (skip when city or state filter applied)
+      // Apply radius filter only when radius is present in request
       let finalTransformedResults = transformedResults;
       if ((indexName.includes('coaching') || indexName.includes('centre')) && latitude !== null && longitude !== null && !city && !state) {
-        const radiusForFilter = radiusKm ?? 50;
-        const filteredResults = transformedResults.filter((result: any) => {
-          if (result.source.distance === null || result.source.distance === undefined) {
-            return false;
-          }
-          return result.source.distance <= radiusForFilter;
-        });
-
+        let resultsToSort = transformedResults;
+        if (radiusKm != null && radiusKm > 0) {
+          resultsToSort = transformedResults.filter((result: any) => {
+            if (result.source.distance === null || result.source.distance === undefined) {
+              return false;
+            }
+            return result.source.distance <= radiusKm;
+          });
+        }
         const queryLower = query.toLowerCase().trim();
-        finalTransformedResults = filteredResults.sort((a: any, b: any) => {
+        finalTransformedResults = resultsToSort.sort((a: any, b: any) => {
           const aSports = a.source.sports_names || [];
           const aSportsArray = Array.isArray(aSports) ? aSports : [];
           const aIsSportMatch = aSportsArray.some((sport: any) => {
@@ -1313,16 +1315,15 @@ export const search = async (req: Request, res: Response): Promise<void> => {
         let mergedResults = [...resultsByIndex[normalizedIndexName].results, ...finalTransformedResults];
 
         if ((indexName.includes('coaching') || indexName.includes('centre')) && latitude !== null && longitude !== null && !city && !state) {
-          const radiusForFilter = radiusKm ?? 50;
           const queryLower = query.toLowerCase().trim();
-
-          mergedResults = mergedResults.filter((result: any) => {
-            if (result.source.distance === null || result.source.distance === undefined) {
-              return false;
-            }
-            return result.source.distance <= radiusForFilter;
-          });
-
+          if (radiusKm != null && radiusKm > 0) {
+            mergedResults = mergedResults.filter((result: any) => {
+              if (result.source.distance === null || result.source.distance === undefined) {
+                return false;
+              }
+              return result.source.distance <= radiusKm;
+            });
+          }
           mergedResults.sort((a: any, b: any) => {
             const aSports = a.source.sports_names || [];
             const aSportsArray = Array.isArray(aSports) ? aSports : [];

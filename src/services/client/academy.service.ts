@@ -10,6 +10,7 @@ import { t } from '../../utils/i18n';
 import { config } from '../../config/env';
 import { calculateDistances, getBoundingBox } from '../../utils/distance';
 import { getUserObjectId } from '../../utils/userCache';
+import { getLatestRatingsForCenter } from './coachingCenterRating.service';
 import { CoachingCenterStatus } from '../../enums/coachingCenterStatus.enum';
 import { BatchStatus } from '../../enums/batchStatus.enum';
 
@@ -61,12 +62,34 @@ export interface AcademyListItem {
   allowed_disabled?: boolean; // Academy allows persons with disability
   is_only_for_disabled?: boolean; // Academy is only for persons with disability
   distance?: number; // Distance in km (if location provided)
+  averageRating?: number; // Average rating 0-5
+  totalRatings?: number; // Number of ratings
+}
+
+/** Single rating item as returned in academy detail (latest 5). */
+export interface AcademyRatingItem {
+  id: string;
+  rating: number;
+  comment?: string | null;
+  createdAt: Date;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName?: string | null;
+    profileImage?: string | null;
+  } | null;
 }
 
 export interface AcademyDetail extends AcademyListItem {
   mobile_number?: string | null;
   email?: string | null;
   rules_regulation?: string[] | null;
+  /** Latest 5 ratings; if user is logged in and has rated, their rating appears first */
+  ratings: AcademyRatingItem[];
+  /** Whether the current user has already rated this center (only when logged in) */
+  isAlreadyRated: boolean;
+  /** Whether the current user can update their rating (true if they have rated; only when logged in) */
+  canUpdateRating: boolean;
   sport_details: Array<{
     sport_id: {
       id: string;
@@ -295,7 +318,7 @@ export const getAllAcademies = async (
     // Use lean() for better performance and populate sports
     let academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo is_popular')
-      .select('id center_name logo location sports allowed_genders sport_details age allowed_disabled is_only_for_disabled createdAt')
+      .select('id center_name logo location sports allowed_genders sport_details age allowed_disabled is_only_for_disabled averageRating totalRatings createdAt')
       .sort({ createdAt: -1 }) // Default sort by creation date
       .limit(fetchLimit)
       .lean();
@@ -451,6 +474,8 @@ export const getAllAcademies = async (
           allowed_disabled: academy.allowed_disabled === true,
           is_only_for_disabled: academy.is_only_for_disabled === true,
           distance: academy.distance,
+          averageRating: (academy as any).averageRating ?? 0,
+          totalRatings: (academy as any).totalRatings ?? 0,
         };
       }) as AcademyListItem[],
       pagination: {
@@ -473,10 +498,12 @@ export const getAllAcademies = async (
  * 1. MongoDB ObjectId (_id) - 24 hex characters
  * 2. CoachingCenter UUID (id field) - UUID format
  * 3. User custom ID - searches by user's custom ID
+ * When userId is provided, response includes latest 5 ratings with that user's rating first (if any), and isAlreadyRated/canUpdateRating.
  */
 export const getAcademyById = async (
   id: string,
-  isUserLoggedIn: boolean = false
+  isUserLoggedIn: boolean = false,
+  userId?: string | null
 ): Promise<AcademyDetail | null> => {
   try {
     let coachingCenter = null;
@@ -577,17 +604,21 @@ export const getAcademyById = async (
     }
     
 
-    // Get batches for this coaching center
-    const batches = await BatchModel.find({
-      center: coachingCenter._id,
-      is_active: true,
-      is_deleted: false,
-      status: BatchStatus.PUBLISHED,
-    })
-      .populate('sport', 'custom_id name logo')
-      .populate('coach', 'fullName')
-      .select('name sport coach scheduled duration capacity age admission_fee base_price discounted_price certificate_issued status is_active is_allowed_disabled gender description')
-      .lean();
+    // Get batches and latest 5 ratings (with current user's rating first if logged in)
+    const centerIdForRatings = coachingCenter.id || (coachingCenter as any)._id?.toString();
+    const [batches, ratingData] = await Promise.all([
+      BatchModel.find({
+        center: coachingCenter._id,
+        is_active: true,
+        is_deleted: false,
+        status: BatchStatus.PUBLISHED,
+      })
+        .populate('sport', 'custom_id name logo')
+        .populate('coach', 'fullName')
+        .select('name sport coach scheduled duration capacity age admission_fee base_price discounted_price certificate_issued status is_active is_allowed_disabled gender description')
+        .lean(),
+      getLatestRatingsForCenter(centerIdForRatings, 5, userId),
+    ]);
 
     // Transform response: remove _id, status, is_active, transform sports, sport_details, facility, and batches
     const { _id, sports, sport_details, facility, status, is_active, ...coachingCenterData } = coachingCenter as any;
@@ -630,6 +661,11 @@ export const getAcademyById = async (
           coach: batch.coach ? (batch.coach as any).fullName : null,
         };
       }),
+      ratings: ratingData.ratings,
+      averageRating: ratingData.averageRating,
+      totalRatings: ratingData.totalRatings,
+      isAlreadyRated: ratingData.isAlreadyRated,
+      canUpdateRating: ratingData.canUpdateRating,
     };
 
     if (!isUserLoggedIn) {
@@ -690,7 +726,7 @@ export const getAcademiesByCity = async (
     // Fetch all academies (we'll filter and paginate after filtering deleted users)
     let academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo')
-      .select('id center_name logo location sports allowed_genders sport_details age allowed_disabled is_only_for_disabled')
+      .select('id center_name logo location sports allowed_genders sport_details age allowed_disabled is_only_for_disabled averageRating totalRatings')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -742,6 +778,8 @@ export const getAcademiesByCity = async (
           age: academy.age ? { min: academy.age.min, max: academy.age.max } : undefined,
           allowed_disabled: academy.allowed_disabled === true,
           is_only_for_disabled: academy.is_only_for_disabled === true,
+          averageRating: (academy as any).averageRating ?? 0,
+          totalRatings: (academy as any).totalRatings ?? 0,
         };
       }) as AcademyListItem[],
       pagination: {
@@ -811,7 +849,7 @@ export const getAcademiesBySport = async (
     // Fetch academies (total count will be calculated after filtering by radius)
     let academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo')
-      .select('id center_name logo location sports allowed_genders sport_details age allowed_disabled is_only_for_disabled')
+      .select('id center_name logo location sports allowed_genders sport_details age allowed_disabled is_only_for_disabled averageRating totalRatings')
       .lean();
 
     // Calculate distances if location provided
@@ -900,6 +938,8 @@ export const getAcademiesBySport = async (
           allowed_disabled: academy.allowed_disabled === true,
           is_only_for_disabled: academy.is_only_for_disabled === true,
           distance: academy.distance,
+          averageRating: (academy as any).averageRating ?? 0,
+          totalRatings: (academy as any).totalRatings ?? 0,
         };
       }) as AcademyListItem[],
       sport: {

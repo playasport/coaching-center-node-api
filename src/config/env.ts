@@ -57,9 +57,13 @@ export const config = {
   sms: {
     enabled: parseBoolean(process.env.SMS_ENABLED, true),
   },
+  otp: {
+    expiryMinutes: Number(process.env.OTP_EXPIRY_MINUTES || 10), // Used for both SMS and email OTP
+  },
   email: {
     enabled: parseBoolean(process.env.EMAIL_ENABLED, true),
     from: process.env.EMAIL_FROM || '',
+    fromName: process.env.EMAIL_SENDER_NAME || 'Play A Sport',
     host: process.env.EMAIL_HOST || 'smtp.gmail.com',
     port: Number(process.env.EMAIL_PORT) || 587,
     username: process.env.EMAIL_USERNAME || '',
@@ -132,6 +136,7 @@ export const config = {
   location: {
     defaultRadius: Number(process.env.DEFAULT_SEARCH_RADIUS_KM || 50), // Default search radius in kilometers
     maxRadius: Number(process.env.MAX_SEARCH_RADIUS_KM || 200), // Maximum allowed search radius in kilometers
+    googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '', // For Distance Matrix API (road distance); empty = use Haversine fallback
   },
   notification: {
     enabled: parseBoolean(process.env.NOTIFICATION_ENABLED, true),

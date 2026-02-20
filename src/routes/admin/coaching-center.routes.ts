@@ -253,6 +253,24 @@ router.use(authenticate, requireAdmin);
  *           type: string
  *         description: Filter by added-by admin/agent user ID (only centers added by this user)
  *       - in: query
+ *         name: onlyForFemale
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter academies only for female candidates (allowed_genders is exactly female)
+ *       - in: query
+ *         name: allowingDisabled
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter academies that allow disabled participants
+ *       - in: query
+ *         name: onlyForDisabled
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter academies only for disabled participants
+ *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string

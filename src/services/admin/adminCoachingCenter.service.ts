@@ -45,6 +45,85 @@ const getCenterObjectId = async (centerId: string): Promise<Types.ObjectId | nul
   }
 };
 
+/** Supported date range keys for filtering by createdAt */
+export type DateRangeFilterKey =
+  | 'today'
+  | 'yesterday'
+  | 'this_week'
+  | 'this_month'
+  | 'last_7_days'
+  | 'last_30_days';
+
+/**
+ * Get start and end UTC dates for a date range key.
+ * All boundaries are in UTC (start of day 00:00:00.000, end of day 23:59:59.999).
+ * this_week = Monday 00:00 to Sunday 23:59:59 of current week (ISO week).
+ * this_month = 1st 00:00 to last day 23:59:59 of current month.
+ */
+export const getDateRangeForKey = (
+  key: DateRangeFilterKey
+): { start: Date; end: Date } => {
+  const now = new Date();
+  const start = new Date(now);
+  const end = new Date(now);
+
+  const setStartOfDay = (d: Date) => {
+    d.setUTCHours(0, 0, 0, 0);
+  };
+  const setEndOfDay = (d: Date) => {
+    d.setUTCHours(23, 59, 59, 999);
+  };
+
+  switch (key) {
+    case 'today': {
+      setStartOfDay(start);
+      setEndOfDay(end);
+      return { start, end };
+    }
+    case 'yesterday': {
+      start.setUTCDate(start.getUTCDate() - 1);
+      end.setUTCDate(end.getUTCDate() - 1);
+      setStartOfDay(start);
+      setEndOfDay(end);
+      return { start, end };
+    }
+    case 'this_week': {
+      const day = start.getUTCDay();
+      const daysToMonday = day === 0 ? 6 : day - 1;
+      start.setUTCDate(start.getUTCDate() - daysToMonday);
+      setStartOfDay(start);
+      end.setTime(start.getTime());
+      end.setUTCDate(end.getUTCDate() + 6);
+      setEndOfDay(end);
+      return { start, end };
+    }
+    case 'this_month': {
+      start.setUTCDate(1);
+      setStartOfDay(start);
+      end.setUTCMonth(end.getUTCMonth() + 1, 0);
+      setEndOfDay(end);
+      return { start, end };
+    }
+    case 'last_7_days': {
+      end.setUTCHours(23, 59, 59, 999);
+      start.setUTCDate(start.getUTCDate() - 6);
+      setStartOfDay(start);
+      return { start, end };
+    }
+    case 'last_30_days': {
+      end.setUTCHours(23, 59, 59, 999);
+      start.setUTCDate(start.getUTCDate() - 29);
+      setStartOfDay(start);
+      return { start, end };
+    }
+    default: {
+      setStartOfDay(start);
+      setEndOfDay(end);
+      return { start, end };
+    }
+  }
+};
+
 export interface AdminPaginatedResult<T> {
   coachingCenters: T[];
   pagination: {
@@ -111,6 +190,7 @@ export interface CoachingCenterStats {
   byState: Record<string, number>;
   allowingDisabled: number;
   onlyForDisabled: number;
+  onlyForFemale: number;
 }
 
 /**
@@ -128,8 +208,13 @@ export const getAllCoachingCenters = async (
     isApproved?: boolean;
     approvalStatus?: 'approved' | 'rejected' | 'pending_approval'; // Direct approval status filter
     addedById?: string; // Filter by admin/agent user ID (who added the center)
+    onlyForFemale?: boolean; // Academies only for female candidates (allowed_genders === ['female'])
+    allowingDisabled?: boolean; // Academies that allow disabled participants
+    onlyForDisabled?: boolean; // Academies only for disabled participants
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    /** Filter by createdAt: today, yesterday, this_week, this_month, last_7_days, last_30_days */
+    dateRange?: DateRangeFilterKey;
   } = {},
   currentUserId?: string,
   currentUserRole?: string
@@ -202,6 +287,34 @@ export const getAllCoachingCenters = async (
         { mobile_number: searchRegex },
         { email: searchRegex }
       ];
+    }
+
+    if (filters.onlyForFemale === true) {
+      query.allowed_genders = ['female'];
+    }
+
+    if (filters.allowingDisabled === true) {
+      query.allowed_disabled = true;
+    }
+
+    if (filters.onlyForDisabled === true) {
+      query.is_only_for_disabled = true;
+    }
+
+    // Filter by date range (createdAt)
+    if (filters.dateRange) {
+      const validKeys: DateRangeFilterKey[] = [
+        'today',
+        'yesterday',
+        'this_week',
+        'this_month',
+        'last_7_days',
+        'last_30_days',
+      ];
+      if (validKeys.includes(filters.dateRange)) {
+        const { start, end } = getDateRangeForKey(filters.dateRange);
+        query.createdAt = { $gte: start, $lte: end };
+      }
     }
 
     // Handle sorting
@@ -1197,6 +1310,12 @@ export const getCoachingCenterStats = async (
 
     const onlyForDisabled = onlyDisabledCounts.find((item: any) => item._id === true)?.count || 0;
 
+    // Get centers only for female candidates (allowed_genders is exactly ['female'])
+    const onlyForFemale = await CoachingCenterModel.countDocuments({
+      ...dateQuery,
+      allowed_genders: ['female'],
+    });
+
     return {
       total,
       byStatus,
@@ -1207,6 +1326,7 @@ export const getCoachingCenterStats = async (
       byState,
       allowingDisabled,
       onlyForDisabled,
+      onlyForFemale,
     };
   } catch (error) {
     logger.error('Admin failed to get coaching center stats:', error);

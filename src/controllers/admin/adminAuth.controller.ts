@@ -79,6 +79,7 @@ export const loginAdmin = async (req: Request, res: Response): Promise<void> => 
         Section.USER,
         Section.ROLE,
         Section.COACHING_CENTER,
+        Section.COACHING_CENTER_RATINGS,
       ];
 
       const hasAdminPermission = await PermissionModel.exists({
@@ -335,6 +336,7 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
         Section.USER,
         Section.ROLE,
         Section.COACHING_CENTER,
+        Section.COACHING_CENTER_RATINGS,
       ];
 
       const hasAdminPermission = await PermissionModel.exists({

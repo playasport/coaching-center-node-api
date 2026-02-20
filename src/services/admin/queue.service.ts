@@ -20,7 +20,10 @@ export interface QueueJob {
   name: string;
   data: any;
   state: string;
+  /** Raw progress from BullMQ (number or object) */
   progress: number | string | boolean | object;
+  /** Normalized 0-100 number for progress bar display */
+  progressPercent: number;
   timestamp: number;
   processedOn?: number | null;
   finishedOn?: number | null;
@@ -28,6 +31,31 @@ export interface QueueJob {
   returnvalue?: any;
   attemptsMade: number;
   attempts: number;
+}
+
+/**
+ * Normalize job progress to a 0-100 number for progress bar display.
+ * Handles: number, object with percent/percentage/step+totalSteps, and job state (completed=100).
+ */
+function normalizeProgressPercent(state: string, progress: number | string | boolean | object): number {
+  if (state === 'completed') return 100;
+  if (state === 'failed' || state === 'delayed') return 0;
+
+  if (typeof progress === 'number' && !Number.isNaN(progress)) {
+    return Math.min(100, Math.max(0, Math.round(progress)));
+  }
+
+  if (progress && typeof progress === 'object' && !Array.isArray(progress)) {
+    const p = progress as Record<string, unknown>;
+    if (typeof p.percent === 'number') return Math.min(100, Math.max(0, Math.round(p.percent)));
+    if (typeof p.percentage === 'number') return Math.min(100, Math.max(0, Math.round(p.percentage)));
+    if (typeof p.progress === 'number') return Math.min(100, Math.max(0, Math.round(p.progress)));
+    if (typeof p.step === 'number' && typeof p.totalSteps === 'number' && (p.totalSteps as number) > 0) {
+      return Math.min(100, Math.round(((p.step as number) / (p.totalSteps as number)) * 100));
+    }
+  }
+
+  return 0;
 }
 
 export interface QueueListResponse {
@@ -228,16 +256,19 @@ export const getQueueJobs = async (
     // Paginate
     const paginatedJobs = jobs.slice(skip, skip + pageSize);
 
-    // Format jobs
+    // Format jobs (with normalized progress for progress bar)
     const formattedJobs: QueueJob[] = await Promise.all(
       paginatedJobs.map(async (job) => {
         const state = await job.getState();
+        const progress = job.progress ?? 0;
+        const progressPercent = normalizeProgressPercent(state, progress);
         return {
           id: job.id || '',
           name: job.name || '',
           data: job.data,
           state,
-          progress: job.progress || 0,
+          progress,
+          progressPercent,
           timestamp: job.timestamp || 0,
           processedOn: job.processedOn || null,
           finishedOn: job.finishedOn || null,
@@ -281,13 +312,16 @@ export const getQueueJob = async (
     }
 
     const state = await job.getState();
+    const progress = job.progress ?? 0;
+    const progressPercent = normalizeProgressPercent(state, progress);
 
     return {
       id: job.id || '',
       name: job.name || '',
       data: job.data,
       state,
-      progress: job.progress || 0,
+      progress,
+      progressPercent,
       timestamp: job.timestamp || 0,
       processedOn: job.processedOn || null,
       finishedOn: job.finishedOn || null,

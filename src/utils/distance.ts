@@ -160,7 +160,7 @@ export const calculateDistance = async (
     }
 
     // Try Google Maps API if configured
-    const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
+    const googleMapsApiKey = config.location.googleMapsApiKey;
     if (googleMapsApiKey) {
       try {
         const url = new URL('https://maps.googleapis.com/maps/api/distancematrix/json');
@@ -233,6 +233,138 @@ export const calculateDistance = async (
 };
 
 /**
+ * Result of distance calculation with debug info (which service was used)
+ */
+export type DistanceMethod = 'cache' | 'google_maps' | 'haversine';
+
+export interface DistanceDebugResult {
+  distance: number; // in kilometers
+  method: DistanceMethod;
+  origin: { lat: number; lon: number };
+  destination: { lat: number; lon: number };
+  /** True if GOOGLE_MAPS_API_KEY is configured */
+  googleMapsConfigured?: boolean;
+  /** Error or status from Google API when it fails (helps diagnose why haversine was used) */
+  googleMapsError?: string;
+}
+
+/**
+ * Calculate distance between two points with debug info (for testing).
+ * Returns distance in km and which service was used (cache, google_maps, or haversine).
+ * @param skipCache - If true, bypass Redis cache (useful for testing Google API)
+ */
+export const calculateDistanceDebug = async (
+  originLat: number,
+  originLon: number,
+  destLat: number,
+  destLon: number,
+  skipCache?: boolean
+): Promise<DistanceDebugResult> => {
+  const redis = getRedisClient();
+  const cacheKey = getCacheKey(originLat, originLon, destLat, destLon);
+
+  // Check cache first (unless skipCache)
+  if (redis && !skipCache) {
+    try {
+      const cachedDistance = await redis.get(cacheKey);
+      if (cachedDistance) {
+        const distance = parseFloat(cachedDistance);
+        if (!isNaN(distance) && distance >= 0) {
+          return {
+            distance: roundToTwoDecimals(distance),
+            method: 'cache',
+            origin: { lat: originLat, lon: originLon },
+            destination: { lat: destLat, lon: destLon },
+          };
+        }
+      }
+    } catch {
+      // Continue to other methods
+    }
+  }
+
+  // Try Google Maps API if configured
+  const googleMapsApiKey = config.location.googleMapsApiKey;
+  const googleMapsConfigured = !!(googleMapsApiKey && googleMapsApiKey.trim());
+  let googleMapsError: string | undefined;
+
+  if (googleMapsApiKey?.trim()) {
+    try {
+      const url = new URL('https://maps.googleapis.com/maps/api/distancematrix/json');
+      url.searchParams.append('origins', `${originLat},${originLon}`);
+      url.searchParams.append('destinations', `${destLat},${destLon}`);
+      url.searchParams.append('key', googleMapsApiKey.trim());
+      url.searchParams.append('units', 'metric');
+
+      const response = await fetch(url.toString());
+      const data = await response.json() as {
+        status: string;
+        error_message?: string;
+        rows?: Array<{
+          elements?: Array<{
+            status: string;
+            distance?: { value: number };
+          }>;
+        }>;
+      };
+
+      if (data.status === 'OK' && data.rows?.[0]?.elements?.[0]?.status === 'OK') {
+        const distanceInMeters = data.rows[0].elements[0].distance!.value;
+        const distanceInKm = roundToTwoDecimals(distanceInMeters / 1000);
+
+        if (redis && distanceInKm >= 0) {
+          try {
+            await redis.setex(cacheKey, CACHE_TTL, distanceInKm.toString());
+          } catch {
+            // ignore
+          }
+        }
+
+        return {
+          distance: distanceInKm,
+          method: 'google_maps',
+          origin: { lat: originLat, lon: originLon },
+          destination: { lat: destLat, lon: destLon },
+          googleMapsConfigured: true,
+        };
+      }
+
+      // Build error message for debugging
+      const elementStatus = data.rows?.[0]?.elements?.[0]?.status;
+      googleMapsError = data.status !== 'OK'
+        ? `status=${data.status}${data.error_message ? `, ${data.error_message}` : ''}`
+        : elementStatus
+          ? `element_status=${elementStatus}`
+          : 'unknown_response';
+    } catch (err) {
+      googleMapsError = err instanceof Error ? err.message : String(err);
+    }
+  } else {
+    googleMapsError = 'API key not configured or empty';
+  }
+
+  // Fallback to Haversine formula
+  const distance = calculateHaversineDistance(originLat, originLon, destLat, destLon);
+
+  if (redis && distance >= 0) {
+    try {
+      await redis.setex(cacheKey, CACHE_TTL, distance.toString());
+    } catch {
+      // ignore
+    }
+  }
+
+  return {
+    distance,
+    method: 'haversine',
+    origin: { lat: originLat, lon: originLon },
+    destination: { lat: destLat, lon: destLon },
+    googleMapsConfigured: googleMapsConfigured || undefined,
+    googleMapsError,
+  };
+};
+
+/**
  * Calculate distances for multiple destinations from a single origin
  * Uses batch processing for efficiency
  * 
@@ -285,7 +417,7 @@ export const calculateDistances = async (
     }
 
     // Try Google Maps API for uncached distances
-    const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
+    const googleMapsApiKey = config.location.googleMapsApiKey;
     if (googleMapsApiKey && uncachedIndices.length > 0) {
       try {
         // Google Maps API supports up to 25 destinations per request

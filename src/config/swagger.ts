@@ -351,6 +351,56 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        SaveFcmTokenRequest: {
+          type: 'object',
+          required: ['fcmToken', 'deviceType'],
+          description: 'Request body for saving FCM token (academy or user). Used for push notifications.',
+          properties: {
+            fcmToken: {
+              type: 'string',
+              example: 'fcm-token-from-firebase-cloud-messaging',
+              description: 'Firebase Cloud Messaging token for push notifications',
+            },
+            deviceType: {
+              type: 'string',
+              enum: ['web', 'android', 'ios'],
+              example: 'android',
+              description: 'Type of device (web, android, or ios)',
+            },
+            deviceId: {
+              type: 'string',
+              example: 'unique-device-identifier',
+              description: 'Optional unique device identifier',
+            },
+            deviceName: {
+              type: 'string',
+              example: 'Samsung Galaxy S21',
+              description: 'Optional device name/model',
+            },
+            appVersion: {
+              type: 'string',
+              example: '1.0.0',
+              description: 'Optional app version',
+            },
+          },
+        },
+        SaveFcmTokenResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'FCM token saved successfully',
+            },
+            data: {
+              type: 'object',
+              nullable: true,
+            },
+          },
+        },
         AcademyRegisterRequest: {
           type: 'object',
           required: ['firstName', 'email', 'password', 'mobile', 'otp'],
@@ -3471,6 +3521,16 @@ const options: swaggerJsdoc.Options = {
               example: 2.5,
               description: 'Distance in kilometers (if location provided)',
             },
+            averageRating: {
+              type: 'number',
+              example: 4.2,
+              description: 'Average rating (0-5)',
+            },
+            totalRatings: {
+              type: 'number',
+              example: 24,
+              description: 'Total number of ratings',
+            },
           },
         },
         PopularSport: {
@@ -3708,6 +3768,49 @@ const options: swaggerJsdoc.Options = {
                 },
                 allowed_disabled: { type: 'boolean' },
                 is_only_for_disabled: { type: 'boolean' },
+                ratings: {
+                  type: 'array',
+                  description: 'Latest 5 ratings; when user is logged in and has rated, their rating appears first',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      rating: { type: 'number', minimum: 1, maximum: 5 },
+                      comment: { type: 'string', nullable: true },
+                      createdAt: { type: 'string', format: 'date-time' },
+                      user: {
+                        type: 'object',
+                        nullable: true,
+                        properties: {
+                          id: { type: 'string' },
+                          firstName: { type: 'string' },
+                          lastName: { type: 'string', nullable: true },
+                          profileImage: { type: 'string', format: 'uri', nullable: true },
+                        },
+                      },
+                    },
+                  },
+                },
+                averageRating: {
+                  type: 'number',
+                  description: 'Average rating (0-5) across all ratings',
+                  example: 4.2,
+                },
+                totalRatings: {
+                  type: 'number',
+                  description: 'Total number of ratings',
+                  example: 24,
+                },
+                isAlreadyRated: {
+                  type: 'boolean',
+                  description: 'True if the current user has already rated this center (only when logged in)',
+                  example: false,
+                },
+                canUpdateRating: {
+                  type: 'boolean',
+                  description: 'True if the current user can update their rating (they have rated; only when logged in)',
+                  example: false,
+                },
                 batches: {
                   type: 'array',
                   items: {
