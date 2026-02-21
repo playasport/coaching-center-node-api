@@ -13,6 +13,11 @@ import { getUserObjectId } from '../../utils/userCache';
 import { getLatestRatingsForCenter } from './coachingCenterRating.service';
 import { CoachingCenterStatus } from '../../enums/coachingCenterStatus.enum';
 import { BatchStatus } from '../../enums/batchStatus.enum';
+import {
+  getCachedAcademyList,
+  cacheAcademyList,
+  type AcademyListCacheParams,
+} from '../../utils/homeDataCache';
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -211,6 +216,20 @@ export const getAllAcademies = async (
   try {
     const pageNumber = Math.max(1, Math.floor(page));
     const pageSize = Math.min(config.pagination.maxLimit, Math.max(1, Math.floor(limit)));
+
+    // Check cache first
+    const cacheParams: AcademyListCacheParams = {
+      page: pageNumber,
+      limit: pageSize,
+      latitude: userLocation?.latitude,
+      longitude: userLocation?.longitude,
+      radius,
+      userId,
+      ...filters,
+    };
+    const cached = await getCachedAcademyList(cacheParams);
+    if (cached) return cached as PaginatedResult<AcademyListItem>;
+
     const {
       city: filterCity,
       state: filterState,
@@ -396,9 +415,8 @@ export const getAllAcademies = async (
 
     const filterSportIdSet = new Set(filterSportObjectIds.map((id) => id.toString()));
 
-    return {
+    const result: PaginatedResult<AcademyListItem> = {
       data: paginatedAcademies.map((academy: any) => {
-        // Image: when sport filter applied, use that sport's sport_detail image (banner first); else first active image
         let image: string | null = null;
         if (academy.sport_details && Array.isArray(academy.sport_details)) {
           if (filterSportIdSet.size > 0) {
@@ -481,6 +499,11 @@ export const getAllAcademies = async (
         hasPrevPage: pageNumber > 1,
       },
     };
+
+    // Cache the result (non-blocking)
+    cacheAcademyList(cacheParams, result).catch(() => {});
+
+    return result;
   } catch (error) {
     logger.error('Failed to get all academies:', error);
     throw new ApiError(500, t('errors.internalServerError'));

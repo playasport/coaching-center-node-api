@@ -151,6 +151,82 @@ export const cacheGlobalHomeData = async (data: CachedGlobalHomeData): Promise<v
   }
 };
 
+/** ---- Academy list cache ---- */
+
+const ACADEMY_CACHE_PREFIX = 'academy:list:';
+const ACADEMY_CACHE_TTL = 3 * 60; // 3 minutes
+
+export interface AcademyListCacheParams {
+  page: number;
+  limit: number;
+  latitude?: number;
+  longitude?: number;
+  radius?: number;
+  userId?: string;
+  city?: string;
+  state?: string;
+  sportId?: string;
+  sportIds?: string;
+  gender?: string;
+  forDisabled?: boolean;
+  minAge?: number;
+  maxAge?: number;
+}
+
+const getAcademyCacheKey = (params: AcademyListCacheParams): string => {
+  const parts: string[] = [ACADEMY_CACHE_PREFIX];
+  parts.push(`p:${params.page}`);
+  parts.push(`l:${params.limit}`);
+  if (params.latitude !== undefined && params.longitude !== undefined) {
+    parts.push(`loc:${roundCoord(params.latitude)},${roundCoord(params.longitude)}`);
+  }
+  if (params.radius !== undefined) parts.push(`r:${params.radius}`);
+  if (params.userId) parts.push(`u:${params.userId}`);
+  if (params.city) parts.push(`city:${params.city.toLowerCase()}`);
+  if (params.state) parts.push(`state:${params.state.toLowerCase()}`);
+  if (params.sportId) parts.push(`sid:${params.sportId}`);
+  if (params.sportIds) parts.push(`sids:${params.sportIds}`);
+  if (params.gender) parts.push(`g:${params.gender}`);
+  if (params.forDisabled) parts.push('dis:1');
+  if (params.minAge !== undefined) parts.push(`mina:${params.minAge}`);
+  if (params.maxAge !== undefined) parts.push(`maxa:${params.maxAge}`);
+  return parts.join(':');
+};
+
+export const getCachedAcademyList = async (
+  params: AcademyListCacheParams
+): Promise<any | null> => {
+  try {
+    const redis = getRedisClient();
+    if (!redis) return null;
+    const key = getAcademyCacheKey(params);
+    const cached = await redis.get(key);
+    if (cached) {
+      logger.debug('Academy list cache hit', { page: params.page });
+      return JSON.parse(cached);
+    }
+    return null;
+  } catch (error) {
+    logger.warn('Failed to get academy list from cache', { error });
+    return null;
+  }
+};
+
+export const cacheAcademyList = async (
+  params: AcademyListCacheParams,
+  data: any
+): Promise<void> => {
+  try {
+    const redis = getRedisClient();
+    if (!redis || !data) return;
+    const key = getAcademyCacheKey(params);
+    await redis.setex(key, ACADEMY_CACHE_TTL, JSON.stringify(data));
+    logger.debug('Academy list cached', { page: params.page });
+  } catch (error) {
+    logger.warn('Failed to cache academy list', { error });
+  }
+};
+
 /**
  * Close Redis connection (for graceful shutdown)
  */
