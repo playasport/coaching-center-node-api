@@ -33,7 +33,6 @@ import cmsPageRoutes from './cmsPage.routes';
 import searchRoutes from './search.routes';
 import adminRoutes from './admin';
 import emailTemplateTestRoutes from './test/emailTemplate.routes';
-import distanceTestRoutes from './test/distance.routes';
 import * as academyController from '../controllers/academy.controller';
 import { optionalAuthenticate } from '../middleware/auth.middleware';
 import { t } from '../utils/i18n';
@@ -210,7 +209,6 @@ router.get('/city/:cityName', academyController.getAcademiesByCity);
 router.get('/sport/:slug', optionalAuthenticate, academyController.getAcademiesBySport);
 
 router.use('/test/email-templates', emailTemplateTestRoutes);
-router.use('/test/distance', distanceTestRoutes);
 router.use('/', basicRoutes);
 router.use('/academy/coaching-center', coachingCenterRoutes);
 router.use('/academy/employee', employeeRoutes);
