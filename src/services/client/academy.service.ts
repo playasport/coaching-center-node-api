@@ -310,18 +310,23 @@ export const getAllAcademies = async (
       query['location.longitude'] = { $gte: bbox.minLon, $lte: bbox.maxLon };
     }
 
-    // For location-based queries, fetch more records (5x page size) to ensure we have enough
-    // for proper sorting after distance calculation. For non-location queries, use a reasonable limit.
-    const fetchLimit = useLocationFilter ? Math.min(pageSize * 5, 200) : Math.min(pageSize * 5, 200);
+    // For location-based queries, fetch ALL records in the bounding box so we can
+    // sort by distance and paginate correctly. The bounding box already limits the
+    // geographic area so the result set is bounded. For non-location queries, use a
+    // reasonable limit based on page size.
+    const fetchLimit = useLocationFilter ? 0 : Math.min(pageSize * 5, 200);
 
-    // Fetch academies with database-level filtering and limit
-    // Use lean() for better performance and populate sports
-    let academies = await CoachingCenterModel.find(query)
+    // Fetch academies with database-level filtering
+    const academyQuery = CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo is_popular')
       .select('id center_name logo location sports allowed_genders sport_details age allowed_disabled is_only_for_disabled averageRating totalRatings createdAt')
-      .sort({ createdAt: -1 }) // Default sort by creation date
-      .limit(fetchLimit)
-      .lean();
+      .sort({ createdAt: -1 });
+
+    if (fetchLimit > 0) {
+      academyQuery.limit(fetchLimit);
+    }
+
+    let academies = await academyQuery.lean();
 
     // Calculate distances if location provided and not skipped by city/state filter
     if (useLocationFilter && academies.length > 0) {
@@ -374,24 +379,13 @@ export const getAllAcademies = async (
       return 0;
     });
 
-    // Get total count efficiently
+    // Get total count
     let filteredTotal: number;
     if (useLocationFilter) {
-      // For location queries, we use bounding box count as approximation
-      // Exact count would require calculating distances for all records (too slow)
-      // The bounding box count is close enough and much faster
-      filteredTotal = await CoachingCenterModel.countDocuments(query);
-      
-      // If we have fewer filtered results than the count, use the filtered count
-      // This handles the case where some records in bounding box are outside exact radius
-      if (academies.length < filteredTotal) {
-        // We can't know exact count without calculating all distances
-        // Use filtered length as minimum, but this might underestimate total
-        // For better UX, we'll use the bounding box count (might be slightly overestimated)
-        // In practice, the difference is usually small
-      }
+      // We already fetched all records in bounding box and filtered by exact radius,
+      // so academies.length is the accurate count
+      filteredTotal = academies.length;
     } else {
-      // For non-location queries, get accurate count
       filteredTotal = await CoachingCenterModel.countDocuments(query);
     }
 
