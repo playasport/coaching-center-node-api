@@ -23,6 +23,13 @@ const redis = new Redis({
     console.log(`Deleted ${deleted} home data cache keys`);
   }
 
+  const academyKeys = await redis.keys('academy:list:*');
+  console.log(`Found ${academyKeys.length} academy list cache keys`);
+  if (academyKeys.length > 0) {
+    const deleted = await redis.del(...academyKeys);
+    console.log(`Deleted ${deleted} academy list cache keys`);
+  }
+
   console.log('Cache flushed successfully');
   await redis.quit();
   process.exit(0);
