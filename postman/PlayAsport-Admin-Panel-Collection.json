@@ -3084,6 +3084,89 @@
           "response": []
         },
         {
+          "name": "Export Batches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/batches/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "batches", "export"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by Academy owner ID"
+                },
+                {
+                  "key": "centerId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by Coaching Center ID"
+                },
+                {
+                  "key": "sportId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by Sport ID"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by status (published, draft)"
+                },
+                {
+                  "key": "isActive",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by active status (true, false)"
+                }
+              ]
+            },
+            "description": "Export all batches to Excel (.xlsx) with full details. Edit values in Excel and re-import using Import Batches to bulk update. Supports same filters as Get All Batches. Requires batch:view permission.\n\n**Columns exported:** _id, name, description, sportId, sportName, centerId, Coaching Center Name, coachId, coachName, gender, certificate_issued, start_date, end_date, training_days, individual_timings, duration_count, duration_type, capacity_min, capacity_max, age_min, age_max, admission_fee, base_price, discounted_price, is_allowed_disabled, status, is_active\n\n**Note:** Blank cells during import = no update (preserve existing value). Do not modify _id column."
+          },
+          "response": []
+        },
+        {
+          "name": "Import Batches",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "description": "Excel file (.xlsx) from batch export - edit values and upload to bulk update",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/batches/import",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "batches", "import"]
+            },
+            "description": "Bulk update batches from Excel file. Use Export Batches first to get the template, edit values in Excel, then upload here. Matches batches by _id column. Requires batch:update permission.\n\n**Rules:**\n- Blank cell = skip (preserve existing value)\n- coachName: Add new coach name to create coach and assign (if not exists)\n- Do not modify _id column\n\n**Response:** { total, updated, skipped, errors[] }"
+          },
+          "response": []
+        },
+        {
           "name": "Get Batch by ID",
           "request": {
             "method": "GET",

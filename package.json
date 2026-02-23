@@ -28,6 +28,7 @@
     "meilisearch:index-reels": "tsx scripts/meilisearch-index-reels.ts",
     "meilisearch:index-highlights": "tsx scripts/meilisearch-index-highlights.ts",
     "migrate:coaching-centers": "tsx scripts/migration-script/coaching-center-migration.js",
+    "migrate:batches": "tsx scripts/migrate-batches-from-mysql.ts",
     "migrate:create-indexes": "tsx scripts/migration-script/coaching-center-migration.js indexes"
   },
   "keywords": [
