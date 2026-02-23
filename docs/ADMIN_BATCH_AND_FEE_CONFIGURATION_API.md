@@ -21,6 +21,8 @@ This document provides comprehensive API documentation for Admin Batch Managemen
    - [Update Batch](#6-update-batch)
    - [Toggle Batch Status](#7-toggle-batch-status)
    - [Delete Batch](#8-delete-batch)
+   - [Export Batches](#9-export-batches)
+   - [Import Batches (Bulk Update)](#10-import-batches-bulk-update)
 
 2. [Fee Configuration APIs](#fee-configuration-apis)
    - [Get All Fee Types](#1-get-all-fee-types)
@@ -906,6 +908,90 @@ curl -X DELETE "http://localhost:3001/api/v1/admin/batches/507f1f77bcf86cd799439
 - `404` - Batch not found
 - `403` - Forbidden (Insufficient permissions)
 - `401` - Unauthorized (Invalid or missing token)
+
+---
+
+### 9. Export Batches
+
+Export all batches to Excel (.xlsx) with full details. Edit values in Excel and re-import using Import Batches to bulk update.
+
+**Endpoint**: `GET /admin/batches/export`
+
+**Permission Required**: `batch:view`
+
+#### Query Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `userId` | string | No | Filter by Academy owner ID |
+| `centerId` | string | No | Filter by Coaching Center ID |
+| `sportId` | string | No | Filter by Sport ID |
+| `status` | string | No | Filter by status: `published`, `draft` |
+| `isActive` | string | No | Filter by active status: `true`, `false` |
+
+#### Response
+
+Returns Excel file (`batches-export-{timestamp}.xlsx`) with columns:
+`_id`, `name`, `description`, `sportId`, `sportName`, `centerId`, `Coaching Center Name`, `coachId`, `coachName`, `gender`, `certificate_issued`, `start_date`, `end_date`, `training_days`, `individual_timings`, `duration_count`, `duration_type`, `capacity_min`, `capacity_max`, `age_min`, `age_max`, `admission_fee`, `base_price`, `discounted_price`, `is_allowed_disabled`, `status`, `is_active`
+
+#### Request Example
+
+```bash
+curl -X GET "http://localhost:3001/api/v1/admin/batches/export?centerId=507f1f77bcf86cd799439011" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -o batches-export.xlsx
+```
+
+---
+
+### 10. Import Batches (Bulk Update)
+
+Upload Excel file (from Export Batches) with modified values to bulk update batches. Matches batches by `_id` column.
+
+**Endpoint**: `POST /admin/batches/import`
+
+**Permission Required**: `batch:update`
+
+**Content-Type**: `multipart/form-data`
+
+#### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `file` | file | Yes | Excel file (.xlsx) from batch export - edit values and upload |
+
+#### Import Rules
+
+- **Blank cell** = skip (preserve existing value)
+- **coachName**: Add new coach name to create coach and assign (if not exists)
+- **Do not modify** `_id` column
+
+#### Response Example
+
+```json
+{
+  "success": true,
+  "message": "Bulk update completed",
+  "data": {
+    "total": 50,
+    "updated": 48,
+    "skipped": 1,
+    "errors": [
+      {
+        "row": 12,
+        "_id": "507f1f77bcf86cd799439011",
+        "message": "Batch not found"
+      }
+    ]
+  }
+}
+```
+
+#### Response Status Codes
+
+- `200` - Bulk update completed (check `data.errors` for any failures)
+- `400` - No file or invalid file (only .xlsx, .xls allowed)
+- `403` - Forbidden (batch:update permission required)
 
 ---
 

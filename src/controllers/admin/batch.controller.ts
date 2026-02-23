@@ -3,6 +3,8 @@ import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
 import * as adminBatchService from '../../services/admin/adminBatch.service';
+import * as batchExportService from '../../services/admin/batchExport.service';
+import * as batchImportService from '../../services/admin/batchImport.service';
 import type { BatchCreateInput, BatchUpdateInput } from '../../validations/batch.validation';
 
 /**
@@ -219,6 +221,60 @@ export const toggleStatus = async (req: Request, res: Response, next: NextFuncti
     const batch = await adminBatchService.toggleBatchStatusByAdmin(id);
 
     const response = new ApiResponse(200, { batch }, t('admin.batches.statusToggled'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Export all batches to Excel (admin)
+ */
+export const exportBatches = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { userId, centerId, sportId, status, isActive } = req.query;
+    const currentUserId = req.user?.id;
+    const currentUserRole = await getUserRoleFromDatabase(currentUserId) || req.user?.role;
+
+    const filters: batchExportService.BatchExportFilters = {
+      userId: userId as string,
+      centerId: centerId as string,
+      sportId: sportId as string,
+      status: status as string,
+      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      agentUserId: currentUserRole === 'agent' ? currentUserId : undefined,
+    };
+
+    const buffer = await batchExportService.exportBatchesToExcel(filters);
+    const filename = `batches-export-${Date.now()}.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length.toString());
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Import batches from Excel and bulk update (admin)
+ */
+export const importBatches = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const file = req.file;
+    if (!file || !file.buffer) {
+      throw new ApiError(400, 'No file uploaded. Use field name: file');
+    }
+
+    const currentUserId = req.user?.id;
+    const currentUserRole = await getUserRoleFromDatabase(currentUserId) || req.user?.role;
+
+    const result = await batchImportService.importBatchesFromExcel(file.buffer, {
+      agentUserId: currentUserRole === 'agent' ? currentUserId : undefined,
+    });
+
+    const response = new ApiResponse(200, result, 'Bulk update completed');
     res.json(response);
   } catch (error) {
     next(error);

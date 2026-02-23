@@ -5,6 +5,7 @@ import { batchCreateSchema, batchUpdateSchema } from '../../validations/batch.va
 import { authenticate } from '../../middleware/auth.middleware';
 import { requireAdmin } from '../../middleware/admin.middleware';
 import { requirePermission } from '../../middleware/permission.middleware';
+import { uploadBatchImportFile } from '../../middleware/batchImportUpload.middleware';
 import { Section } from '../../enums/section.enum';
 import { Action } from '../../enums/section.enum';
 
@@ -438,6 +439,147 @@ router.get(
   '/',
   requirePermission(Section.BATCH, Action.VIEW),
   batchController.getAllBatches
+);
+
+/**
+ * @swagger
+ * /admin/batches/export:
+ *   get:
+ *     summary: Export all batches to Excel (admin)
+ *     description: |
+ *       Export all batches with full details to Excel (.xlsx). Edit values in Excel and re-import using POST /admin/batches/import to bulk update.
+ *       Supports same filters as Get All Batches.
+ *
+ *       **Columns exported:** _id, name, description, sportId, sportName, centerId, Coaching Center Name, coachId, coachName, gender, certificate_issued, start_date, end_date, training_days, individual_timings, duration_count, duration_type, capacity_min, capacity_max, age_min, age_max, admission_fee, base_price, discounted_price, is_allowed_disabled, status, is_active
+ *
+ *       **Import rules:** Blank cells = no update (preserve existing). Do not modify _id column.
+ *     tags: [Admin Batches]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Filter by Academy owner ID
+ *       - in: query
+ *         name: centerId
+ *         schema:
+ *           type: string
+ *         description: Filter by Coaching Center ID
+ *       - in: query
+ *         name: sportId
+ *         schema:
+ *           type: string
+ *         description: Filter by Sport ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [published, draft]
+ *         description: Filter by batch status
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter by active status
+ *     responses:
+ *       200:
+ *         description: Excel file with all batch details (batches-export-{timestamp}.xlsx)
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       403:
+ *         description: Forbidden - Insufficient permissions (batch:view required)
+ */
+router.get(
+  '/export',
+  requirePermission(Section.BATCH, Action.VIEW),
+  batchController.exportBatches
+);
+
+/**
+ * @swagger
+ * /admin/batches/import:
+ *   post:
+ *     summary: Bulk update batches from Excel (admin)
+ *     description: |
+ *       Upload Excel file (from Export Batches) with modified values to bulk update batches.
+ *       Matches batches by _id column. Use GET /admin/batches/export first to get the template.
+ *
+ *       **Rules:**
+ *       - Blank cell = skip (preserve existing value)
+ *       - coachName: Add new coach name to create coach and assign (if not exists)
+ *       - Do not modify _id column
+ *     tags: [Admin Batches]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: Excel file (.xlsx) from batch export - edit values and upload
+ *     responses:
+ *       200:
+ *         description: Bulk update completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Bulk update completed"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: number
+ *                       description: Total rows in file
+ *                     updated:
+ *                       type: number
+ *                       description: Successfully updated batches
+ *                     skipped:
+ *                       type: number
+ *                       description: Skipped rows (e.g. blank _id)
+ *                     errors:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           row:
+ *                             type: number
+ *                             description: Excel row number
+ *                           _id:
+ *                             type: string
+ *                             description: Batch _id that failed
+ *                           message:
+ *                             type: string
+ *                             description: Error message
+ *       400:
+ *         description: No file or invalid file (only .xlsx, .xls allowed)
+ *       403:
+ *         description: Forbidden - batch:update permission required
+ */
+router.post(
+  '/import',
+  requirePermission(Section.BATCH, Action.UPDATE),
+  uploadBatchImportFile,
+  batchController.importBatches
 );
 
 /**

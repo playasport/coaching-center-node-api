@@ -39,6 +39,22 @@ GET /admin/coaching-centers/export/csv
 GET /admin/coaching-centers/export/academies?format=excel
 ```
 
+### 5. Batch Export & Import (Admin)
+
+**Export Batches to Excel:**
+```
+GET /admin/batches/export
+```
+Query params: `userId`, `centerId`, `sportId`, `status`, `isActive`
+
+**Bulk Update Batches (Import):**
+```
+POST /admin/batches/import
+```
+Body: `multipart/form-data` with `file` (Excel .xlsx from export)
+
+Use Export first to get template → edit values → Import to bulk update. Blank cells = no change.
+
 ## Query Parameters
 
 | Parameter | Type | Description | Example |
