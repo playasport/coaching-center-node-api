@@ -39,7 +39,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 
 // Raw body middleware for webhooks (must be before express.json())
 app.use((req, _res, next) => {
