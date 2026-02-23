@@ -71,6 +71,7 @@ export const getAllAcademies = async (
 /**
  * Get academy details by ID
  * Supports: MongoDB ObjectId, CoachingCenter UUID, or User custom ID
+ * When latitude & longitude provided, returns distance in km
  */
 export const getAcademyById = async (
   req: Request,
@@ -79,16 +80,38 @@ export const getAcademyById = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
+    const latitude = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
+    const longitude = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
 
     if (!id) {
       throw new ApiError(400, t('academy.getById.idRequired'));
+    }
+
+    let userLocation: { latitude: number; longitude: number } | undefined;
+    if (latitude !== undefined && longitude !== undefined) {
+      if (
+        isNaN(latitude) ||
+        isNaN(longitude) ||
+        latitude < -90 ||
+        latitude > 90 ||
+        longitude < -180 ||
+        longitude > 180
+      ) {
+        throw new ApiError(400, 'Invalid latitude or longitude');
+      }
+      userLocation = { latitude, longitude };
     }
 
     // Check if user is logged in (for ratings: show their rating first, isAlreadyRated, canUpdateRating)
     const isUserLoggedIn = !!req.user;
     const userId = req.user?.id ?? null;
 
-    const academy = await academyService.getAcademyById(id, isUserLoggedIn, userId);
+    const academy = await academyService.getAcademyById(
+      id,
+      isUserLoggedIn,
+      userId,
+      userLocation
+    );
 
     if (!academy) {
       throw new ApiError(404, t('academy.getById.notFound'));
