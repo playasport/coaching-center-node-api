@@ -20,11 +20,25 @@ const app: Application = express();
 //   credentials: true
 // }));
 
-app.use(cors({
-  origin: config.cors.allowedOrigins,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+const allowedOrigins = config.cors.allowedOrigins;
+  
+const corsOptions = {
+  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    // allow server-to-server, mobile apps, Postman
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins === true || (Array.isArray(allowedOrigins) && allowedOrigins.includes(origin))) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('CORS blocked: ' + origin));
+  },
   credentials: true,
-}));
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
 
 // Raw body middleware for webhooks (must be before express.json())
 app.use((req, _res, next) => {

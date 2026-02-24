@@ -901,17 +901,24 @@ export const sendAcademyOtp = async (data: {
     }
   }
 
-  const otp = config.nodeEnv === 'development' ? '111111' : Math.floor(100000 + Math.random() * 900000).toString();
+  const isDemoAuth = config.demoAuth?.enabled && mobile === config.demoAuth.mobile;
+  const otp = isDemoAuth
+    ? config.demoAuth.otp
+    : config.nodeEnv === 'development'
+    ? '111111'
+    : Math.floor(100000 + Math.random() * 900000).toString();
   await otpService.createOtp({ channel: OtpChannel.MOBILE, identifier: mobile }, otp, otpMode);
   // add +91 to the mobile number
   const mobileNumber = `+91${mobile}`;
   const expiryMinutes = config.otp.expiryMinutes;
-  queueSms(
-    mobileNumber,
-    `Your Play A Sport Academy OTP is ${otp} . This OTP will expire in ${expiryMinutes} minutes. Do not share this OTP with anyone. Play A Team Thank You.`,
-    'high',
-    { type: 'otp' }
-  );
+  if (!isDemoAuth) {
+    queueSms(
+      mobileNumber,
+      `Your Play A Sport Academy OTP is ${otp} . This OTP will expire in ${expiryMinutes} minutes. Do not share this OTP with anyone. Play A Team Thank You.`,
+      'high',
+      { type: 'otp' }
+    );
+  }
 
   return {
     mobile: mobileNumber,
@@ -2091,17 +2098,24 @@ export const sendUserOtp = async (data: {
     }
   }
 
-  const otp = config.nodeEnv === 'development' ? '111111' : Math.floor(100000 + Math.random() * 900000).toString();
+  const isDemoAuth = config.demoAuth?.enabled && mobile === config.demoAuth.mobile;
+  const otp = isDemoAuth
+    ? config.demoAuth.otp
+    : config.nodeEnv === 'development'
+    ? '111111'
+    : Math.floor(100000 + Math.random() * 900000).toString();
   await otpService.createOtp({ channel: OtpChannel.MOBILE, identifier: mobile }, otp, otpMode);
   // add +91 to the mobile number
   const mobileNumber = `+91${mobile}`;
   const expiryMinutes = config.otp.expiryMinutes;
-  queueSms(
-    mobileNumber,
-    `Your Play A Sport Academy OTP is ${otp} . This OTP will expire in ${expiryMinutes} minutes. Do not share this OTP with anyone. Play A Team Thank You.`,
-    'high',
-    { type: 'otp' }
-  );
+  if (!isDemoAuth) {
+    queueSms(
+      mobileNumber,
+      `Your Play A Sport Academy OTP is ${otp} . This OTP will expire in ${expiryMinutes} minutes. Do not share this OTP with anyone. Play A Team Thank You.`,
+      'high',
+      { type: 'otp' }
+    );
+  }
 
   return {
     mobile: mobileNumber,

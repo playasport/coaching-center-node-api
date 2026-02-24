@@ -162,6 +162,7 @@ router.get('/', optionalAuthenticate, academyController.getAllAcademies);
  *       When user is logged in: their rating appears first in ratings (if they rated), isAlreadyRated and canUpdateRating indicate if they have rated and can update it.
  *       If user is not logged in, email and mobile number will be masked.
  *       Authentication is optional.
+ *       When latitude and longitude query params are provided, returns distance (km) from user to academy.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -185,6 +186,20 @@ router.get('/', optionalAuthenticate, academyController.getAllAcademies);
  *           userCustomId:
  *             value: "f316a86c-2909-4d32-8983-eb225c715bcb"
  *             summary: User custom ID
+ *       - in: query
+ *         name: latitude
+ *         schema:
+ *           type: number
+ *           minimum: -90
+ *           maximum: 90
+ *         description: User's latitude (optional, returns distance in km when provided with longitude)
+ *       - in: query
+ *         name: longitude
+ *         schema:
+ *           type: number
+ *           minimum: -180
+ *           maximum: 180
+ *         description: User's longitude (optional, returns distance in km when provided with latitude)
  *     responses:
  *       200:
  *         description: Academy retrieved successfully

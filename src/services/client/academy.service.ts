@@ -8,7 +8,7 @@ import { ApiError } from '../../utils/ApiError';
 import { logger } from '../../utils/logger';
 import { t } from '../../utils/i18n';
 import { config } from '../../config/env';
-import { calculateDistances, getBoundingBox } from '../../utils/distance';
+import { calculateDistances, getBoundingBox, calculateHaversineDistance } from '../../utils/distance';
 import { getUserObjectId } from '../../utils/userCache';
 import { getLatestRatingsForCenter } from './coachingCenterRating.service';
 import { CoachingCenterStatus } from '../../enums/coachingCenterStatus.enum';
@@ -516,11 +516,13 @@ export const getAllAcademies = async (
  * 2. CoachingCenter UUID (id field) - UUID format
  * 3. User custom ID - searches by user's custom ID
  * When userId is provided, response includes latest 5 ratings with that user's rating first (if any), and isAlreadyRated/canUpdateRating.
+ * When userLocation is provided, returns distance in km from user to academy.
  */
 export const getAcademyById = async (
   id: string,
   isUserLoggedIn: boolean = false,
-  userId?: string | null
+  userId?: string | null,
+  userLocation?: { latitude: number; longitude: number }
 ): Promise<AcademyDetail | null> => {
   try {
     let coachingCenter = null;
@@ -690,6 +692,28 @@ export const getAcademyById = async (
         ? maskMobile(coachingCenter.mobile_number)
         : null;
       result.email = coachingCenter.email ? maskEmail(coachingCenter.email) : null;
+    }
+
+    // Add distance when user location provided and academy has location
+    if (userLocation) {
+      const loc = (coachingCenter as any).location;
+      const acLat = loc?.latitude ?? loc?.lat;
+      const acLon = loc?.longitude ?? loc?.long;
+      if (
+        acLat != null &&
+        acLon != null &&
+        typeof acLat === 'number' &&
+        typeof acLon === 'number'
+      ) {
+        result.distance = Math.round(
+          calculateHaversineDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            acLat,
+            acLon
+          ) * 100
+        ) / 100;
+      }
     }
 
     return result as AcademyDetail;
