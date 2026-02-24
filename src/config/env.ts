@@ -151,6 +151,14 @@ export const config = {
   admin: {
     email: process.env.ADMIN_EMAIL || '',
   },
+  demoAuth: {
+    enabled: parseBoolean(
+      process.env.DEMO_AUTH_ENABLED,
+      process.env.NODE_ENV !== 'production'
+    ),
+    mobile: process.env.DEMO_AUTH_MOBILE || '987654310',
+    otp: process.env.DEMO_AUTH_OTP || '123456',
+  },
   videoProcessing: {
     concurrency: Number(process.env.VIDEO_PROCESSING_CONCURRENCY || 2), // Number of videos to process simultaneously
   },
