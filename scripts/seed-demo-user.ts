@@ -7,8 +7,8 @@ import { logger } from '../src/utils/logger';
 import { hashPassword } from '../src/utils/password';
 import { v4 as uuidv4 } from 'uuid';
 
-const DEMO_MOBILE = '987654310';
-const DEMO_EMAIL = 'demo987654310@playasport.in';
+const DEMO_MOBILE = '9876543210';
+const DEMO_EMAIL = 'demo9876543210@playasport.in';
 const DEMO_PASSWORD = 'Demo@123';
 
 const seedDemoUser = async () => {

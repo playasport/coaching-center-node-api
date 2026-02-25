@@ -9,6 +9,7 @@ import { Section } from '../../enums/section.enum';
 import { Action } from '../../enums/section.enum';
 import coachingCenterMediaRoutes from './coachingCenterMedia.routes';
 import { uploadThumbnail } from '../../middleware/coachingCenterUpload.middleware';
+import { uploadBatchImportFile } from '../../middleware/batchImportUpload.middleware';
 
 const router = Router();
 
@@ -1445,6 +1446,145 @@ router.get(
   '/export/csv',
   requirePermission(Section.COACHING_CENTER, Action.VIEW),
   coachingCenterController.exportToCSV
+);
+
+/**
+ * @swagger
+ * /admin/coaching-centers/export/basic-details:
+ *   get:
+ *     summary: Export basic details for bulk update (Excel)
+ *     description: |
+ *       Export coaching centers with only editable basic fields for bulk update.
+ *       Use this template - edit values in Excel - then import via POST /admin/coaching-centers/import.
+ *       Columns: Center ID, Center Name, Email, Age Min, Age Max, Allowed Genders, Allowed Disabled, Only For Disabled,
+ *       Address Line1, Address Line2, City, State, Country, Pincode, Latitude, Longitude.
+ *       Blank cells during import = no change.
+ *     tags: [Admin Coaching Centers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Filter by Academy owner ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [draft, published]
+ *         description: Filter by center status
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter by active status
+ *       - in: query
+ *         name: sportId
+ *         schema:
+ *           type: string
+ *         description: Filter by sport ID
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by center name, email, or mobile number
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by start date (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by end date (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Excel file with basic details for bulk update
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ */
+router.get(
+  '/export/basic-details',
+  requirePermission(Section.COACHING_CENTER, Action.VIEW),
+  coachingCenterController.exportForBulkUpdate
+);
+
+/**
+ * @swagger
+ * /admin/coaching-centers/import:
+ *   post:
+ *     summary: Bulk update basic details from Excel
+ *     description: |
+ *       Upload Excel file (from GET /admin/coaching-centers/export/basic-details) with modified values to bulk update.
+ *       Matches by Center ID (UUID or MongoDB ObjectId). Blank cells = no change.
+ *       Editable fields: Center Name, Email, Age Min/Max, Allowed Genders, Allowed Disabled, Only For Disabled, Address, Location.
+ *     tags: [Admin Coaching Centers]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: Excel file (.xlsx) from export/basic-details - edit values and upload
+ *     responses:
+ *       200:
+ *         description: Bulk update completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: number
+ *                     updated:
+ *                       type: number
+ *                     skipped:
+ *                       type: number
+ *                     errors:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           row:
+ *                             type: number
+ *                           centerId:
+ *                             type: string
+ *                           message:
+ *                             type: string
+ *       400:
+ *         description: No file or invalid file (only .xlsx, .xls allowed)
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ */
+router.post(
+  '/import',
+  requirePermission(Section.COACHING_CENTER, Action.UPDATE),
+  uploadBatchImportFile,
+  coachingCenterController.importBasicDetails
 );
 
 /**

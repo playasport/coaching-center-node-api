@@ -6,6 +6,7 @@ import * as adminCoachingCenterService from '../../services/admin/adminCoachingC
 import type { DateRangeFilterKey } from '../../services/admin/adminCoachingCenter.service';
 import * as commonService from '../../services/common/coachingCenterCommon.service';
 import * as exportService from '../../services/admin/coachingCenterExport.service';
+import * as bulkUpdateService from '../../services/admin/coachingCenterBulkUpdate.service';
 
 /**
  * Helper function to get user role from database (more reliable than JWT token)
@@ -495,6 +496,71 @@ export const exportToCSV = async (req: Request, res: Response, next: NextFunctio
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(csvContent);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Export coaching centers basic details to Excel for bulk update (editable fields only)
+ * Use this template to edit and re-import via POST /admin/coaching-centers/import
+ */
+export const exportForBulkUpdate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { userId, status, search, sportId, isActive, approvalStatus, startDate, endDate } = req.query;
+
+    const filters = {
+      userId: userId as string,
+      status: status as string,
+      search: search as string,
+      sportId: sportId as string,
+      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      approvalStatus: approvalStatus as 'approved' | 'rejected' | 'pending_approval' | undefined,
+      startDate: startDate as string,
+      endDate: endDate as string,
+    };
+
+    const currentUserId = req.user?.id;
+    const currentUserRole = await getUserRoleFromDatabase(currentUserId) || req.user?.role;
+
+    const buffer = await bulkUpdateService.exportForBulkUpdateToExcel(
+      filters,
+      currentUserId,
+      currentUserRole
+    );
+
+    const filename = `coaching-centers-basic-details-${new Date().toISOString().split('T')[0]}.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Import coaching centers basic details from Excel (bulk update)
+ * Use export from GET /admin/coaching-centers/export/basic-details first, edit, then upload here.
+ * Blank cells = no change.
+ */
+export const importBasicDetails = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const file = req.file;
+    if (!file || !file.buffer) {
+      throw new ApiError(400, 'No file uploaded. Use field name: file');
+    }
+
+    const currentUserId = req.user?.id;
+    const currentUserRole = await getUserRoleFromDatabase(currentUserId) || req.user?.role;
+
+    const result = await bulkUpdateService.importCoachingCenterBasicDetailsFromExcel(file.buffer, {
+      currentUserId,
+      currentUserRole,
+    });
+
+    const response = new ApiResponse(200, result, 'Bulk update completed');
+    res.json(response);
   } catch (error) {
     next(error);
   }
