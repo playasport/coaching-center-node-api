@@ -9,6 +9,7 @@ import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import { logger } from '../utils/logger';
 import { getCorrectedSearchQuery, buildSearchDictionary, normalizeSearchQuery } from '../utils';
+import { calculateDistance as getDistanceKm } from '../utils/distance';
 
 /** TTL for search correction dictionary cache (ms) – avoid DB hit on every request */
 const SEARCH_DICTIONARY_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -86,25 +87,6 @@ const getClient = (): MeiliSearch | null => {
   }
 
   return meilisearchClient.getClient();
-};
-
-/**
- * Calculate distance between two coordinates (Haversine formula)
- */
-const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
-  const R = 6371e3; // Earth radius in meters
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return (R * c) / 1000; // Distance in km
 };
 
 /**
@@ -436,24 +418,26 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
           }
           try {
             const geoResults = await index.search(query, geoOptions);
-            const hitsWithDistance = (geoResults.hits || []).map((hit) => {
-              const hitLat = hit.latitude ?? hit.lat ?? hit._geo?.lat ?? null;
-              const hitLng = hit.longitude ?? hit.long ?? hit._geo?.lng ?? null;
+            const hitsWithDistance = await Promise.all(
+              (geoResults.hits || []).map(async (hit) => {
+                const hitLat = hit.latitude ?? hit.lat ?? hit._geo?.lat ?? null;
+                const hitLng = hit.longitude ?? hit.long ?? hit._geo?.lng ?? null;
 
-              let distanceKm =
-                typeof hit._geoDistance === 'number' ? hit._geoDistance / 1000 : null;
+                let distanceKm =
+                  typeof hit._geoDistance === 'number' ? hit._geoDistance / 1000 : null;
 
-              if ((distanceKm === null || Number.isNaN(distanceKm)) && hitLat !== null && hitLng !== null) {
-                distanceKm = calculateDistance(latitude, longitude, hitLat, hitLng);
-              }
+                if ((distanceKm === null || Number.isNaN(distanceKm)) && hitLat !== null && hitLng !== null) {
+                  distanceKm = await getDistanceKm(latitude, longitude, hitLat, hitLng);
+                }
 
-              return {
-                ...hit,
-                _distanceKm: Number.isFinite(distanceKm) ? distanceKm : null,
-                _latitude: hitLat,
-                _longitude: hitLng,
-              };
-            });
+                return {
+                  ...hit,
+                  _distanceKm: Number.isFinite(distanceKm) ? distanceKm : null,
+                  _latitude: hitLat,
+                  _longitude: hitLng,
+                };
+              })
+            );
 
             hitsWithDistance.sort((a, b) => {
               const distA = a._distanceKm !== null && Number.isFinite(a._distanceKm) ? a._distanceKm : Number.POSITIVE_INFINITY;
@@ -514,7 +498,7 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
     for (const { indexName, hits, success } of searchResults) {
       if (!success || !hits || hits.length === 0) continue;
 
-      hits.forEach((hit) => {
+      for (const hit of hits) {
         let distanceCandidate =
           typeof hit._autocompleteDistance === 'number' && Number.isFinite(hit._autocompleteDistance)
             ? hit._autocompleteDistance
@@ -522,8 +506,8 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
             ? hit._distanceKm
             : null;
 
-        const latitudeCandidate = hit._latitude ?? hit.latitude ?? hit.lat ?? hit._geo?.lat ?? null;
-        const longitudeCandidate = hit._longitude ?? hit.longitude ?? hit.long ?? hit._geo?.lng ?? null;
+        const latitudeCandidate = (hit as any)._latitude ?? (hit as any).latitude ?? (hit as any).lat ?? (hit as any)._geo?.lat ?? null;
+        const longitudeCandidate = (hit as any)._longitude ?? (hit as any).longitude ?? (hit as any).long ?? (hit as any)._geo?.lng ?? null;
 
         if (
           distanceCandidate === null &&
@@ -532,7 +516,7 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
           latitudeCandidate !== null &&
           longitudeCandidate !== null
         ) {
-          distanceCandidate = calculateDistance(latitude, longitude, latitudeCandidate, longitudeCandidate);
+          distanceCandidate = await getDistanceKm(latitude, longitude, latitudeCandidate, longitudeCandidate);
         }
 
         const result = createAutocompleteResult(hit, indexName, {
@@ -540,14 +524,14 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
           distance: distanceCandidate !== null ? distanceCandidate : undefined,
         });
 
-        if (!result) return;
+        if (!result) continue;
 
         const key = `${result.index}|${result.id}`;
-        if (seenResultKeys.has(key)) return;
+        if (seenResultKeys.has(key)) continue;
 
         seenResultKeys.add(key);
         transformedResults.push(result);
-      });
+      }
     }
 
     // Sort results by priority first, then by distance for academies
@@ -990,18 +974,20 @@ export const search = async (req: Request, res: Response): Promise<void> => {
                 return { ...hit, isSportMatch, priority: isSportMatch ? 1 : 2 };
               });
 
-              const hitsWithDistance = prioritizedHits.map((hit: any) => {
-                let distance = hit._geoDistance !== undefined ? hit._geoDistance / 1000 : null;
+              const hitsWithDistance = await Promise.all(
+                prioritizedHits.map(async (hit: any) => {
+                  let distance = hit._geoDistance !== undefined ? hit._geoDistance / 1000 : null;
 
-                if (distance === null && latitude !== null && longitude !== null) {
-                  const hitLat = hit.latitude ?? hit.lat ?? hit._geo?.lat ?? null;
-                  const hitLng = hit.longitude ?? hit.long ?? hit._geo?.lng ?? null;
-                  if (hitLat && hitLng) {
-                    distance = calculateDistance(latitude, longitude, hitLat, hitLng);
+                  if (distance === null && latitude !== null && longitude !== null) {
+                    const hitLat = hit.latitude ?? hit.lat ?? hit._geo?.lat ?? null;
+                    const hitLng = hit.longitude ?? hit.long ?? hit._geo?.lng ?? null;
+                    if (hitLat && hitLng) {
+                      distance = await getDistanceKm(latitude, longitude, hitLat, hitLng);
+                    }
                   }
-                }
-                return { ...hit, calculatedDistance: distance };
-              });
+                  return { ...hit, calculatedDistance: distance };
+                })
+              );
 
               hitsWithDistance.sort((a: any, b: any) => {
                 if (a.priority !== b.priority) {
@@ -1140,25 +1126,27 @@ export const search = async (req: Request, res: Response): Promise<void> => {
         continue;
       }
 
-      const transformedResults = hits.map((hit: any) => {
-        let hitLatitude = hit.latitude ?? hit.lat ?? null;
-        let hitLongitude = hit.longitude ?? hit.long ?? null;
+      const transformedResults = await Promise.all(
+        hits.map(async (hit: any) => {
+          let hitLatitude = hit.latitude ?? hit.lat ?? null;
+          let hitLongitude = hit.longitude ?? hit.long ?? null;
 
-        if (!hitLatitude && hit._geo && hit._geo.lat) {
-          hitLatitude = hit._geo.lat;
-        }
-        if (!hitLongitude && hit._geo && hit._geo.lng) {
-          hitLongitude = hit._geo.lng;
-        }
+          if (!hitLatitude && hit._geo && hit._geo.lat) {
+            hitLatitude = hit._geo.lat;
+          }
+          if (!hitLongitude && hit._geo && hit._geo.lng) {
+            hitLongitude = hit._geo.lng;
+          }
 
-        let distanceInMeters = null;
-        if (hit._geoDistance !== undefined) {
-          distanceInMeters = hit._geoDistance;
-        } else if (hit.calculatedDistance !== null && hit.calculatedDistance !== undefined) {
-          distanceInMeters = hit.calculatedDistance * 1000;
-        } else if (latitude !== null && longitude !== null && hitLatitude && hitLongitude) {
-          distanceInMeters = calculateDistance(latitude, longitude, hitLatitude, hitLongitude) * 1000;
-        }
+          let distanceInMeters = null;
+          if (hit._geoDistance !== undefined) {
+            distanceInMeters = hit._geoDistance;
+          } else if (hit.calculatedDistance !== null && hit.calculatedDistance !== undefined) {
+            distanceInMeters = hit.calculatedDistance * 1000;
+          } else if (latitude !== null && longitude !== null && hitLatitude && hitLongitude) {
+            const distKm = await getDistanceKm(latitude, longitude, hitLatitude, hitLongitude);
+            distanceInMeters = distKm * 1000;
+          }
 
         // Process images - limit to 2, prioritize is_banner
         // If no images available, use logo as fallback
@@ -1271,7 +1259,8 @@ export const search = async (req: Request, res: Response): Promise<void> => {
           source,
           highlight: hit._formatted || {},
         };
-      });
+      })
+    );
 
       // Filter and sort for coaching centres with location (skip when city or state filter applied)
       // Apply radius filter only when radius is present in request
