@@ -8,7 +8,7 @@ import { ApiError } from '../../utils/ApiError';
 import { logger } from '../../utils/logger';
 import { t } from '../../utils/i18n';
 import { config } from '../../config/env';
-import { calculateDistances, getBoundingBox, calculateHaversineDistance } from '../../utils/distance';
+import { calculateDistances, getBoundingBox, calculateDistance } from '../../utils/distance';
 import { getUserObjectId } from '../../utils/userCache';
 import { getLatestRatingsForCenter } from './coachingCenterRating.service';
 import { CoachingCenterStatus } from '../../enums/coachingCenterStatus.enum';
@@ -694,7 +694,7 @@ export const getAcademyById = async (
       result.email = coachingCenter.email ? maskEmail(coachingCenter.email) : null;
     }
 
-    // Add distance when user location provided and academy has location
+    // Add distance when user location provided and academy has location (uses Google Maps + cache)
     if (userLocation) {
       const loc = (coachingCenter as any).location;
       const acLat = loc?.latitude ?? loc?.lat;
@@ -705,14 +705,13 @@ export const getAcademyById = async (
         typeof acLat === 'number' &&
         typeof acLon === 'number'
       ) {
-        result.distance = Math.round(
-          calculateHaversineDistance(
-            userLocation.latitude,
-            userLocation.longitude,
-            acLat,
-            acLon
-          ) * 100
-        ) / 100;
+        const distKm = await calculateDistance(
+          userLocation.latitude,
+          userLocation.longitude,
+          acLat,
+          acLon
+        );
+        result.distance = Math.round(distKm * 100) / 100;
       }
     }
 

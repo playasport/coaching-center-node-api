@@ -4,26 +4,7 @@ import { ReelModel } from '../../models/reel.model';
 import { StreamHighlightModel } from '../../models/streamHighlight.model';
 import { Types } from 'mongoose';
 import { logger } from '../../utils/logger';
-// Distance calculation is done inline using Haversine formula
-
-/**
- * Calculate distance between two coordinates (Haversine formula)
- */
-const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
-  const R = 6371e3; // Earth radius in meters
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return (R * c) / 1000; // Distance in km
-};
+import { calculateDistance } from '../../utils/distance';
 
 /**
  * MongoDB Fallback Search Service
@@ -178,7 +159,8 @@ class MongodbFallbackService {
         .lean();
 
       // Transform to match Meilisearch format
-      const transformed = centers.map((center: any) => {
+      const transformed = await Promise.all(
+        centers.map(async (center: any) => {
         const location = center.location || {};
         const sports = center.sports || [];
         const sportDetails = center.sport_details || [];
@@ -294,10 +276,10 @@ class MongodbFallbackService {
         const latitude = location.latitude || location.lat || null;
         const longitude = location.longitude || location.long || null;
 
-        // Calculate distance if location provided
+        // Calculate distance if location provided (uses Google Maps + cache)
         let distance: number | null = null;
         if (latitude && longitude && userLatitude && userLongitude) {
-          distance = calculateDistanceKm(
+          distance = await calculateDistance(
             userLatitude,
             userLongitude,
             latitude,
@@ -335,7 +317,8 @@ class MongodbFallbackService {
           is_only_for_disabled: center.is_only_for_disabled === true,
           age: center.age ? { min: center.age.min, max: center.age.max } : null,
         };
-      });
+        })
+      );
 
       // Optional radius filter: when radius (km) > 0 and user location provided, keep only centers within radius
       let filtered = transformed;
