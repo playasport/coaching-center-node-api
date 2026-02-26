@@ -156,23 +156,34 @@ export const getBookingStatusMessage = (
 
 /**
  * Check if payment link should be enabled based on booking and payment status
+ * Includes CANCELLED and FAILED so user can retry payment
  */
 export const isPaymentLinkEnabled = (
   bookingStatus: BookingStatus,
   paymentStatus: PaymentStatus
 ): boolean => {
-  // Payment link enabled when:
-  // 1. Booking is APPROVED and payment is NOT_INITIATED or INITIATED
+  const canRetryPayment =
+    paymentStatus === PaymentStatus.NOT_INITIATED ||
+    paymentStatus === PaymentStatus.INITIATED ||
+    paymentStatus === PaymentStatus.CANCELLED || // User cancelled - allow retry
+    paymentStatus === PaymentStatus.FAILED; // Payment failed - allow retry
+
+  // 1. Booking is APPROVED - enable payment when not yet paid
   if (bookingStatus === BookingStatus.APPROVED) {
-    return paymentStatus === PaymentStatus.NOT_INITIATED || paymentStatus === PaymentStatus.INITIATED;
+    return canRetryPayment;
   }
 
-  // 2. Booking is PAYMENT_PENDING (legacy) and payment is INITIATED or PENDING
+  // 2. Booking is PAYMENT_PENDING (legacy) and payment is INITIATED, PENDING, CANCELLED, or FAILED
   if (bookingStatus === BookingStatus.PAYMENT_PENDING || bookingStatus === BookingStatus.PENDING) {
-    return paymentStatus === PaymentStatus.INITIATED || paymentStatus === PaymentStatus.PENDING;
+    return (
+      paymentStatus === PaymentStatus.INITIATED ||
+      paymentStatus === PaymentStatus.PENDING ||
+      paymentStatus === PaymentStatus.CANCELLED ||
+      paymentStatus === PaymentStatus.FAILED
+    );
   }
 
-  // 3. Booking is CONFIRMED and payment is SUCCESS - payment link should be disabled after successful payment
+  // 3. Booking is CONFIRMED - payment link disabled after successful payment
   if (bookingStatus === BookingStatus.CONFIRMED) {
     return paymentStatus !== PaymentStatus.SUCCESS;
   }
