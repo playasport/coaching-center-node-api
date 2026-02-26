@@ -12,6 +12,9 @@ import {
   logoutAll,
   updateUserFavoriteSports,
   saveFcmToken,
+  getAcademyBookmarks,
+  addAcademyBookmark,
+  removeAcademyBookmark,
 } from '../controllers/userAuth.controller';
 import { validate } from '../middleware/validation.middleware';
 import {
@@ -23,6 +26,8 @@ import {
   userAddressUpdateSchema,
   userFavoriteSportsUpdateSchema,
   saveFcmTokenSchema,
+  addAcademyBookmarkSchema,
+  academyIdParamSchema,
 } from '../validations/auth.validation';
 import { authenticate, authorize } from '../middleware/auth.middleware';
 import { generalRateLimit } from '../middleware/rateLimit.middleware';
@@ -721,6 +726,119 @@ router.patch(
   authorize(DefaultRoles.USER),
   validate(userFavoriteSportsUpdateSchema),
   updateUserFavoriteSports
+);
+
+/**
+ * @swagger
+ * /user/auth/academy-bookmarks:
+ *   get:
+ *     summary: Get user's bookmarked academies
+ *     description: Returns all academies the authenticated user has bookmarked, with full academy details (AcademyListItem format). Ordered by most recently bookmarked first.
+ *     tags: [User Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Bookmarked academies retrieved successfully (populated with academy details)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AcademyBookmarksResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *   post:
+ *     summary: Add academy to bookmarks
+ *     description: |
+ *       Adds an academy to the user's bookmarks. Only published, active, and approved academies can be bookmarked.
+ *       Returns the **updated list of bookmarked academies** (populated) after the change.
+ *       If the academy is already bookmarked, returns current list with `added: false`.
+ *     tags: [User Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AddAcademyBookmarkRequest'
+ *     responses:
+ *       200:
+ *         description: Academy bookmarked. Returns updated list of bookmarked academies.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AddAcademyBookmarkResponse'
+ *       404:
+ *         description: Academy not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get(
+  '/academy-bookmarks',
+  authenticate,
+  authorize(DefaultRoles.USER),
+  getAcademyBookmarks
+);
+router.post(
+  '/academy-bookmarks',
+  authenticate,
+  authorize(DefaultRoles.USER),
+  validate(addAcademyBookmarkSchema),
+  addAcademyBookmark
+);
+
+/**
+ * @swagger
+ * /user/auth/academy-bookmarks/{academyId}:
+ *   delete:
+ *     summary: Remove academy from bookmarks
+ *     description: |
+ *       Removes an academy from the user's bookmarks.
+ *       Returns the **updated list of bookmarked academies** (populated) after the change.
+ *       If the academy was not bookmarked, returns current list with `removed: false`.
+ *     tags: [User Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: academyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: 'f316a86c-2909-4d32-8983-eb225c715bcb'
+ *         description: Academy ID - CoachingCenter UUID or MongoDB ObjectId
+ *     responses:
+ *       200:
+ *         description: Academy removed from bookmarks. Returns updated list of bookmarked academies.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RemoveAcademyBookmarkResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.delete(
+  '/academy-bookmarks/:academyId',
+  authenticate,
+  authorize(DefaultRoles.USER),
+  validate(academyIdParamSchema),
+  removeAcademyBookmark
 );
 
 /**

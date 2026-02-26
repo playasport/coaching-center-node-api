@@ -661,3 +661,18 @@ export const saveFcmTokenSchema = z.object({
 
 export type SaveFcmTokenInput = z.infer<typeof saveFcmTokenSchema>['body'];
 
+// Academy bookmark schemas
+export const addAcademyBookmarkSchema = z.object({
+  body: z.object({
+    academyId: z.string().min(1, 'Academy ID is required'),
+  }),
+});
+
+export const academyIdParamSchema = z.object({
+  params: z.object({
+    academyId: z.string().min(1, 'Academy ID is required'),
+  }),
+});
+
+export type AddAcademyBookmarkInput = z.infer<typeof addAcademyBookmarkSchema>['body'];
+
