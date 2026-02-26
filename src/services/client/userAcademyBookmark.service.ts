@@ -3,7 +3,6 @@ import { UserAcademyBookmarkModel } from '../../models/userAcademyBookmark.model
 import { CoachingCenterModel } from '../../models/coachingCenter.model';
 import { CoachingCenterStatus } from '../../enums/coachingCenterStatus.enum';
 import { ApiError } from '../../utils/ApiError';
-import { logger } from '../../utils/logger';
 import { t } from '../../utils/i18n';
 import { getUserObjectId } from '../../utils/userCache';
 import type { AcademyListItem } from './academy.service';
