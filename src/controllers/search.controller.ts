@@ -5,11 +5,14 @@ import { meilisearchClient } from '../services/meilisearch/meilisearch.client';
 import { mongodbFallback } from '../services/meilisearch/mongodb-fallback.service';
 import { SportModel } from '../models/sport.model';
 import { CoachingCenterModel } from '../models/coachingCenter.model';
+import { CoachingCenterRatingModel } from '../models/coachingCenterRating.model';
+import { UserAcademyBookmarkModel } from '../models/userAcademyBookmark.model';
 import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import { logger } from '../utils/logger';
 import { getCorrectedSearchQuery, buildSearchDictionary, normalizeSearchQuery } from '../utils';
 import { calculateDistance as getDistanceKm } from '../utils/distance';
+import { getUserObjectId } from '../utils/userCache';
 
 /** TTL for search correction dictionary cache (ms) – avoid DB hit on every request */
 const SEARCH_DICTIONARY_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -173,6 +176,76 @@ const createAutocompleteResult = (
   }
 
   return result;
+};
+
+/**
+ * Enrich coaching center results with averageRating, totalRatings, isAlreadyRated, isBookmarked.
+ * Works for both autocomplete results (flat array) and full search results (source-based).
+ */
+const enrichCoachingCenterResults = async (
+  centerIds: string[],
+  userId?: string | null
+): Promise<Map<string, { averageRating: number; totalRatings: number; isAlreadyRated: boolean; isBookmarked: boolean }>> => {
+  const enrichMap = new Map<string, { averageRating: number; totalRatings: number; isAlreadyRated: boolean; isBookmarked: boolean }>();
+  if (centerIds.length === 0) return enrichMap;
+
+  try {
+    const centers = await CoachingCenterModel.find({ id: { $in: centerIds }, is_deleted: false })
+      .select('id _id averageRating totalRatings')
+      .lean();
+
+    const idToObjectId = new Map<string, any>();
+    for (const c of centers as any[]) {
+      const centerId = c.id || c._id?.toString();
+      idToObjectId.set(centerId, c._id);
+      enrichMap.set(centerId, {
+        averageRating: c.averageRating ?? 0,
+        totalRatings: c.totalRatings ?? 0,
+        isAlreadyRated: false,
+        isBookmarked: false,
+      });
+    }
+
+    if (userId && centers.length > 0) {
+      const userObjectId = await getUserObjectId(userId);
+      if (userObjectId) {
+        const centerObjectIds = centers.map((c: any) => c._id);
+
+        const [userRatings, userBookmarks] = await Promise.all([
+          CoachingCenterRatingModel.find({
+            user: userObjectId,
+            coachingCenter: { $in: centerObjectIds },
+          })
+            .select('coachingCenter')
+            .lean(),
+          UserAcademyBookmarkModel.find({
+            user: userObjectId,
+            academy: { $in: centerObjectIds },
+          })
+            .select('academy')
+            .lean(),
+        ]);
+
+        const ratedSet = new Set(userRatings.map((r: any) => r.coachingCenter.toString()));
+        const bookmarkedSet = new Set(userBookmarks.map((b: any) => b.academy.toString()));
+
+        for (const c of centers as any[]) {
+          const centerId = c.id || c._id?.toString();
+          const existing = enrichMap.get(centerId);
+          if (existing) {
+            existing.isAlreadyRated = ratedSet.has(c._id.toString());
+            existing.isBookmarked = bookmarkedSet.has(c._id.toString());
+          }
+        }
+      }
+    }
+  } catch (error) {
+    logger.warn('Failed to enrich coaching center search results', {
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+
+  return enrichMap;
 };
 
 /**
@@ -351,6 +424,19 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
         return result;
       });
 
+      const coachingCenterIdsAuto = sanitizedResults
+        .filter((r: any) => r.type === 'coaching_center')
+        .map((r: any) => r.id);
+      const userId = (req as any).user?.id || null;
+      const enrichMapAuto = await enrichCoachingCenterResults(coachingCenterIdsAuto, userId);
+      const enrichedSanitizedResults = sanitizedResults.map((result: any) => {
+        if (result.type === 'coaching_center' && enrichMapAuto.has(result.id)) {
+          const data = enrichMapAuto.get(result.id)!;
+          return { ...result, ...data };
+        }
+        return result;
+      });
+
       res.status(200).json(
         new ApiResponse(
           200,
@@ -361,12 +447,12 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
             query_corrected: correction.wasCorrected ? correction.corrected : undefined,
             was_corrected: correction.wasCorrected,
             corrections: correction.corrections,
-            total: sanitizedResults.length,
+            total: enrichedSanitizedResults.length,
             total_available: totalAvailable,
-            size: sanitizedResults.length,
+            size: enrichedSanitizedResults.length,
             from: 0,
-            has_more: totalAvailable > sanitizedResults.length,
-            results: sanitizedResults,
+            has_more: totalAvailable > enrichedSanitizedResults.length,
+            results: enrichedSanitizedResults,
             totals_by_index: totalsByIndex,
             indices_searched: allIndices,
           },
@@ -569,18 +655,31 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
       return result;
     });
 
+    const coachingCenterIdsMeili = sanitizedResults
+      .filter((r: any) => r.type === 'coaching_center')
+      .map((r: any) => r.id);
+    const userIdMeili = (req as any).user?.id || null;
+    const enrichMapMeili = await enrichCoachingCenterResults(coachingCenterIdsMeili, userIdMeili);
+    const enrichedMeiliResults = sanitizedResults.map((result: any) => {
+      if (result.type === 'coaching_center' && enrichMapMeili.has(result.id)) {
+        const data = enrichMapMeili.get(result.id)!;
+        return { ...result, ...data };
+      }
+      return result;
+    });
+
     res.status(200).json(
       new ApiResponse(
         200,
         {
           success: true,
           query: query,
-          total: sanitizedResults.length,
+          total: enrichedMeiliResults.length,
           total_available: totalAvailable,
-          size: sanitizedResults.length,
+          size: enrichedMeiliResults.length,
           from: 0,
-          has_more: totalAvailable > sanitizedResults.length,
-          results: sanitizedResults,
+          has_more: totalAvailable > enrichedMeiliResults.length,
+          results: enrichedMeiliResults,
           totals_by_index: totalsByIndex,
           indices_searched: allIndices,
         },
@@ -810,6 +909,20 @@ export const search = async (req: Request, res: Response): Promise<void> => {
         (sum: number, data: any) => sum + data.total,
         0
       );
+
+      const ccResultsFallback = resultsByIndex['coaching_centres'];
+      if (ccResultsFallback && ccResultsFallback.results.length > 0) {
+        const ccIdsFallback = ccResultsFallback.results.map((r: any) => r.id);
+        const userIdFallback = (req as any).user?.id || null;
+        const enrichMapFallback = await enrichCoachingCenterResults(ccIdsFallback, userIdFallback);
+        ccResultsFallback.results = ccResultsFallback.results.map((r: any) => {
+          const data = enrichMapFallback.get(r.id);
+          if (data) {
+            r.source = { ...r.source, ...data };
+          }
+          return r;
+        });
+      }
 
       res.status(200).json(
         new ApiResponse(
@@ -1361,6 +1474,20 @@ export const search = async (req: Request, res: Response): Promise<void> => {
       (sum: number, data: any) => sum + data.total,
       0
     );
+
+    const ccResultsMeili = resultsByIndex['coaching_centres'];
+    if (ccResultsMeili && ccResultsMeili.results.length > 0) {
+      const ccIdsMeili = ccResultsMeili.results.map((r: any) => r.id);
+      const userIdSearch = (req as any).user?.id || null;
+      const enrichMapSearch = await enrichCoachingCenterResults(ccIdsMeili, userIdSearch);
+      ccResultsMeili.results = ccResultsMeili.results.map((r: any) => {
+        const data = enrichMapSearch.get(r.id);
+        if (data) {
+          r.source = { ...r.source, ...data };
+        }
+        return r;
+      });
+    }
 
     res.status(200).json(
       new ApiResponse(

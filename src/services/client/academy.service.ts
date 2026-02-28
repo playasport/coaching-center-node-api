@@ -11,6 +11,7 @@ import { config } from '../../config/env';
 import { calculateDistances, getBoundingBox, calculateDistance } from '../../utils/distance';
 import { getUserObjectId } from '../../utils/userCache';
 import { getLatestRatingsForCenter } from './coachingCenterRating.service';
+import { UserAcademyBookmarkModel } from '../../models/userAcademyBookmark.model';
 import { CoachingCenterStatus } from '../../enums/coachingCenterStatus.enum';
 import { BatchStatus } from '../../enums/batchStatus.enum';
 import {
@@ -95,6 +96,8 @@ export interface AcademyDetail extends AcademyListItem {
   isAlreadyRated: boolean;
   /** Whether the current user can update their rating (true if they have rated; only when logged in) */
   canUpdateRating: boolean;
+  /** Whether the current user has bookmarked this center (only when logged in) */
+  isBookmarked: boolean;
   sport_details: Array<{
     sport_id: {
       id: string;
@@ -623,9 +626,17 @@ export const getAcademyById = async (
     }
     
 
-    // Get batches and latest 5 ratings (with current user's rating first if logged in)
+    // Get batches, latest 5 ratings, and bookmark status in parallel
     const centerIdForRatings = coachingCenter.id || (coachingCenter as any)._id?.toString();
-    const [batches, ratingData] = await Promise.all([
+    const bookmarkCheckPromise = userId
+      ? getUserObjectId(userId).then((userObjId) =>
+          userObjId
+            ? UserAcademyBookmarkModel.exists({ user: userObjId, academy: coachingCenter._id })
+            : null
+        )
+      : Promise.resolve(null);
+
+    const [batches, ratingData, bookmarkDoc] = await Promise.all([
       BatchModel.find({
         center: coachingCenter._id,
         is_active: true,
@@ -637,6 +648,7 @@ export const getAcademyById = async (
         .select('name sport coach scheduled duration capacity age admission_fee base_price discounted_price certificate_issued status is_active is_allowed_disabled gender description')
         .lean(),
       getLatestRatingsForCenter(centerIdForRatings, 5, userId),
+      bookmarkCheckPromise,
     ]);
 
     // Transform response: remove _id, status, is_active, transform sports, sport_details, facility, and batches
@@ -685,6 +697,7 @@ export const getAcademyById = async (
       totalRatings: ratingData.totalRatings,
       isAlreadyRated: ratingData.isAlreadyRated,
       canUpdateRating: ratingData.canUpdateRating,
+      isBookmarked: !!bookmarkDoc,
     };
 
     if (!isUserLoggedIn) {

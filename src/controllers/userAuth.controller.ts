@@ -451,6 +451,72 @@ export const saveFcmToken = async (
 };
 
 /**
+ * List all active devices/sessions for the current user
+ */
+export const getUserDevices = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const devices = await deviceTokenService.getUserDeviceTokens(req.user.id);
+
+    const currentRefreshToken = req.body?.refreshToken || null;
+
+    const result = devices.map((d: any) => ({
+      id: d.id,
+      deviceType: d.deviceType,
+      deviceId: d.deviceId || null,
+      deviceName: d.deviceName || null,
+      appVersion: d.appVersion || null,
+      lastActiveAt: d.lastActiveAt,
+      createdAt: d.createdAt,
+      isCurrent: currentRefreshToken ? d.refreshToken === currentRefreshToken : false,
+    }));
+
+    const response = new ApiResponse(200, { devices: result }, 'Active devices retrieved successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Logout from a specific device by deviceToken id
+ */
+export const logoutDevice = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const { deviceTokenId } = req.params;
+    if (!deviceTokenId) {
+      throw new ApiError(400, 'Device token ID is required');
+    }
+
+    const removed = await authService.logoutDevice(req.user.id, deviceTokenId);
+
+    if (!removed) {
+      throw new ApiError(404, 'Device session not found or already logged out');
+    }
+
+    const response = new ApiResponse(200, null, 'Device logged out successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get user's bookmarked academies
  */
 export const getAcademyBookmarks = async (

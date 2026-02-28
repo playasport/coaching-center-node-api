@@ -159,7 +159,7 @@ router.get('/', optionalAuthenticate, academyController.getAllAcademies);
  *       - MongoDB ObjectId (_id): e.g., "693bc2d1d0b08eea0c31cc53"
  *       - User custom ID: searches by academy owner's user ID
  *       Response includes: ratings (latest 5), averageRating, totalRatings.
- *       When user is logged in: their rating appears first in ratings (if they rated), isAlreadyRated and canUpdateRating indicate if they have rated and can update it.
+ *       When user is logged in: their rating appears first in ratings (if they rated), isAlreadyRated and canUpdateRating indicate if they have rated and can update it. isBookmarked indicates if the user has bookmarked this academy.
  *       If user is not logged in, email and mobile number will be masked.
  *       Authentication is optional.
  *       When latitude and longitude query params are provided, returns distance (km) from user to academy.

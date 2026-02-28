@@ -1,5 +1,6 @@
 import { Schema, model, HydratedDocument, Types } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 
 // Transaction type enum
 export enum TransactionType {
@@ -25,9 +26,25 @@ export enum TransactionSource {
   MANUAL = 'manual',
 }
 
+/**
+ * Generate a unique transaction ID: TXN-YYYYMMDD-HHmmss-XXXXX
+ */
+function generateTransactionId(): string {
+  const now = new Date();
+  const date = now.getFullYear().toString()
+    + (now.getMonth() + 1).toString().padStart(2, '0')
+    + now.getDate().toString().padStart(2, '0');
+  const time = now.getHours().toString().padStart(2, '0')
+    + now.getMinutes().toString().padStart(2, '0')
+    + now.getSeconds().toString().padStart(2, '0');
+  const random = crypto.randomBytes(3).toString('hex').toUpperCase();
+  return `TXN-${date}-${time}-${random}`;
+}
+
 // Transaction interface
 export interface Transaction {
   id: string;
+  transaction_id: string;
   booking: Types.ObjectId; // Reference to Booking model
   user: Types.ObjectId; // Reference to User model
   razorpay_order_id: string;
@@ -59,6 +76,12 @@ const transactionSchema = new Schema<Transaction>(
       unique: true,
       index: true,
       default: () => uuidv4(),
+    },
+    transaction_id: {
+      type: String,
+      unique: true,
+      index: true,
+      default: generateTransactionId,
     },
     booking: {
       type: Schema.Types.ObjectId,

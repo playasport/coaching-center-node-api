@@ -4,6 +4,7 @@ import {
   CoachingCenterRatingModel,
   RATING_MIN_VALUE,
   RATING_MAX_VALUE,
+  type RatingStatus,
 } from '../../models/coachingCenterRating.model';
 import { UserModel } from '../../models/user.model';
 import { getUserObjectId } from '../../utils/userCache';
@@ -193,6 +194,87 @@ export const submitOrUpdateRating = async (
   });
 
   return result;
+};
+
+export interface UserRatingListItem {
+  id: string;
+  rating: number;
+  comment: string | null;
+  status: RatingStatus;
+  created_at: Date;
+  updated_at: Date;
+  coaching_center: {
+    id: string;
+    center_name: string;
+    logo: string | null;
+  } | null;
+}
+
+export interface UserRatingsListResponse {
+  ratings: UserRatingListItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
+export const getUserRatings = async (
+  userId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<UserRatingsListResponse> => {
+  const userObjectId = await getUserObjectId(userId);
+  if (!userObjectId) {
+    throw new ApiError(404, t('errors.userNotFound'));
+  }
+
+  const pageNumber = Math.max(1, page);
+  const pageSize = Math.min(100, Math.max(1, limit));
+  const skip = (pageNumber - 1) * pageSize;
+
+  const [ratings, total] = await Promise.all([
+    CoachingCenterRatingModel.find({ user: userObjectId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(pageSize)
+      .populate('coachingCenter', 'id center_name logo')
+      .lean(),
+    CoachingCenterRatingModel.countDocuments({ user: userObjectId }),
+  ]);
+
+  const totalPages = Math.ceil(total / pageSize);
+
+  const transformedRatings: UserRatingListItem[] = ratings.map((r: any) => ({
+    id: r.id ?? r._id?.toString(),
+    rating: r.rating,
+    comment: r.comment ?? null,
+    status: r.status,
+    created_at: r.createdAt,
+    updated_at: r.updatedAt,
+    coaching_center: r.coachingCenter
+      ? {
+          id: r.coachingCenter.id ?? r.coachingCenter._id?.toString(),
+          center_name: r.coachingCenter.center_name || 'N/A',
+          logo: r.coachingCenter.logo ?? null,
+        }
+      : null,
+  }));
+
+  return {
+    ratings: transformedRatings,
+    pagination: {
+      page: pageNumber,
+      limit: pageSize,
+      total,
+      totalPages,
+      hasNextPage: pageNumber < totalPages,
+      hasPrevPage: pageNumber > 1,
+    },
+  };
 };
 
 /** When user is not logged in, only this many ratings are returned. */

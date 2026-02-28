@@ -15,6 +15,8 @@ import {
   getAcademyBookmarks,
   addAcademyBookmark,
   removeAcademyBookmark,
+  getUserDevices,
+  logoutDevice,
 } from '../controllers/userAuth.controller';
 import { validate } from '../middleware/validation.middleware';
 import {
@@ -971,6 +973,149 @@ router.post('/logout', authenticate, authorize(DefaultRoles.USER), logout);
  *         description: Unauthorized
  */
 router.post('/logout-all', authenticate, authorize(DefaultRoles.USER), logoutAll);
+
+/**
+ * @swagger
+ * /user/auth/devices:
+ *   get:
+ *     summary: List all active devices/sessions
+ *     description: |
+ *       Returns all active device sessions for the authenticated user.
+ *       Each device entry includes device type, name, app version, and when it was last active.
+ *       Use the device `id` to logout from a specific device via `DELETE /user/auth/devices/:deviceTokenId`.
+ *     tags: [User Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Active devices retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Active devices retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     devices:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             description: Device token ID (use this to logout from this device)
+ *                             example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+ *                           deviceType:
+ *                             type: string
+ *                             enum: [web, android, ios]
+ *                             example: "android"
+ *                           deviceId:
+ *                             type: string
+ *                             nullable: true
+ *                             description: Unique device identifier
+ *                             example: "device_unique_id_123"
+ *                           deviceName:
+ *                             type: string
+ *                             nullable: true
+ *                             description: Device name/model
+ *                             example: "Samsung Galaxy S21"
+ *                           appVersion:
+ *                             type: string
+ *                             nullable: true
+ *                             description: App version on this device
+ *                             example: "1.2.0"
+ *                           lastActiveAt:
+ *                             type: string
+ *                             format: date-time
+ *                             description: Last time this device was active (login or token refresh)
+ *                             example: "2026-02-28T10:30:00.000Z"
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                             description: When the device session was first created
+ *                             example: "2026-02-20T08:00:00.000Z"
+ *                           isCurrent:
+ *                             type: boolean
+ *                             description: Whether this is the current device (only if refreshToken sent in body)
+ *                             example: false
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get(
+  '/devices',
+  authenticate,
+  authorize(DefaultRoles.USER),
+  getUserDevices
+);
+
+/**
+ * @swagger
+ * /user/auth/devices/{deviceTokenId}:
+ *   delete:
+ *     summary: Logout from a specific device
+ *     description: |
+ *       Logs out a specific device session by its device token ID.
+ *       This blacklists the device's refresh token and deactivates the device record.
+ *       The device token ID can be obtained from `GET /user/auth/devices`.
+ *     tags: [User Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: deviceTokenId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The device token ID to logout (from GET /user/auth/devices response)
+ *         example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+ *     responses:
+ *       200:
+ *         description: Device logged out successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Device logged out successfully"
+ *                 data:
+ *                   type: object
+ *                   nullable: true
+ *                   example: null
+ *       404:
+ *         description: Device session not found or already logged out
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.delete(
+  '/devices/:deviceTokenId',
+  authenticate,
+  authorize(DefaultRoles.USER),
+  logoutDevice
+);
 
 export default router;
 

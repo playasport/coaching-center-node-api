@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { autocomplete, search } from '../controllers/search.controller';
+import { optionalAuthenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -177,7 +178,7 @@ const router = Router();
  *       503:
  *         description: Service unavailable (Meilisearch disabled - will use MongoDB fallback)
  */
-router.get('/autocomplete', autocomplete);
+router.get('/autocomplete', optionalAuthenticate, autocomplete);
 
 /**
  * @swagger
@@ -393,6 +394,6 @@ router.get('/autocomplete', autocomplete);
  *       503:
  *         description: Service unavailable (Meilisearch disabled - will use MongoDB fallback)
  */
-router.get('/', search);
+router.get('/', optionalAuthenticate, search);
 
 export default router;

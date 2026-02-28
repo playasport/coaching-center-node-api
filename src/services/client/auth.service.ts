@@ -7,7 +7,7 @@ import { OtpMode } from '../../enums/otpMode.enum';
 import { config } from '../../config/env';
 import { comparePassword } from '../../utils';
 import { generateTokenPair, verifyRefreshToken, generateTempRegistrationToken, verifyTempRegistrationToken } from '../../utils/jwt';
-import { blacklistToken, blacklistUserTokens, clearUserBlacklist } from '../../utils/tokenBlacklist';
+import { blacklistToken, blacklistUserTokens, clearUserBlacklist, blacklistJti } from '../../utils/tokenBlacklist';
 import { queueSms, queueEmail } from '../common/notificationQueue.service';
 import { getOtpSms, getNewAcademyRegistrationAdminPush, getNewUserRegistrationAdminPush } from '../common/notificationMessages';
 import { sendPasswordResetEmail } from '../common/email.service';
@@ -36,6 +36,7 @@ import { firebaseAuthService } from '../common/firebaseAuth.service';
 import { uploadFileToS3, deleteFileFromS3 } from '../common/s3.service';
 import { User } from '../../models/user.model';
 import { deviceTokenService } from '../common/deviceToken.service';
+import { DeviceTokenModel } from '../../models/deviceToken.model';
 import { DeviceType } from '../../enums/deviceType.enum';
 import { getUserObjectId } from '../../utils/userCache';
 import jwt from 'jsonwebtoken';
@@ -90,44 +91,37 @@ const generateTokensAndStoreDeviceToken = async (
     deviceData?.deviceId
   );
 
-  // If device info is provided, store refresh token in device token
-  if (deviceData?.fcmToken && deviceData?.deviceType) {
-    try {
-      // Decode refresh token to get expiration
-      const decoded = jwt.decode(refreshToken) as jwt.JwtPayload | null;
-      const refreshTokenExpiresAt = decoded?.exp 
-        ? new Date(decoded.exp * 1000) 
-        : null;
+  // Always store device session for session tracking
+  try {
+    const decoded = jwt.decode(refreshToken) as jwt.JwtPayload | null;
+    const refreshTokenExpiresAt = decoded?.exp
+      ? new Date(decoded.exp * 1000)
+      : null;
 
-      // Get user's ObjectId (_id) for device token storage
-      // user.id is a UUID string, but DeviceToken needs ObjectId
-      const userObjectId = await getUserObjectId(user.id);
-      if (!userObjectId) {
-        logger.error('Failed to get user ObjectId for device token storage', {
-          userId: user.id,
-        });
-        // Don't throw - device token storage should not block login
-        return { accessToken, refreshToken };
-      }
-
-      await deviceTokenService.registerOrUpdateDeviceToken({
-        userId: userObjectId,
-        fcmToken: deviceData.fcmToken,
-        deviceType: deviceData.deviceType as DeviceType,
-        deviceId: deviceData.deviceId ?? null,
-        deviceName: deviceData.deviceName ?? null,
-        appVersion: deviceData.appVersion ?? null,
-        refreshToken,
-        refreshTokenExpiresAt,
-      });
-    } catch (error) {
-      // Don't fail if device token storage fails, but log the error
-      logger.error('Failed to store refresh token in device token', {
-        error: error instanceof Error ? error.message : error,
+    const userObjectId = await getUserObjectId(user.id);
+    if (!userObjectId) {
+      logger.error('Failed to get user ObjectId for device token storage', {
         userId: user.id,
-        deviceType: deviceData.deviceType,
       });
+      return { accessToken, refreshToken };
     }
+
+    await deviceTokenService.registerOrUpdateDeviceToken({
+      userId: userObjectId,
+      fcmToken: deviceData?.fcmToken ?? null,
+      deviceType: (deviceData?.deviceType as DeviceType) || DeviceType.WEB,
+      deviceId: deviceData?.deviceId ?? null,
+      deviceName: deviceData?.deviceName ?? null,
+      appVersion: deviceData?.appVersion ?? null,
+      refreshToken,
+      refreshTokenExpiresAt,
+    });
+  } catch (error) {
+    logger.error('Failed to store device session', {
+      error: error instanceof Error ? error.message : error,
+      userId: user.id,
+      deviceType: deviceData?.deviceType || 'web',
+    });
   }
 
   return { accessToken, refreshToken };
@@ -234,15 +228,13 @@ export const registerAcademyUser = async (data: AcademyRegisterInput): Promise<R
   const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
     user,
     roleName,
-    data.fcmToken && data.deviceType
-      ? {
-          fcmToken: data.fcmToken,
-          deviceType: data.deviceType as 'web' | 'android' | 'ios',
-          deviceId: data.deviceId ?? undefined,
-          deviceName: data.deviceName ?? undefined,
-          appVersion: data.appVersion ?? undefined,
-        }
-      : undefined
+    {
+      fcmToken: data.fcmToken ?? undefined,
+      deviceType: data.deviceType as 'web' | 'android' | 'ios' | undefined,
+      deviceId: data.deviceId ?? undefined,
+      deviceName: data.deviceName ?? undefined,
+      appVersion: data.appVersion ?? undefined,
+    }
   );
 
   // Send welcome email to academy owner
@@ -395,15 +387,13 @@ export const loginAcademyUser = async (data: AcademyLoginInput): Promise<LoginRe
   const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
     user,
     DefaultRoles.ACADEMY,
-    data.fcmToken && data.deviceType
-      ? {
-          fcmToken: data.fcmToken,
-          deviceType: data.deviceType as 'web' | 'android' | 'ios',
-          deviceId: data.deviceId ?? undefined,
-          deviceName: data.deviceName ?? undefined,
-          appVersion: data.appVersion ?? undefined,
-        }
-      : undefined
+    {
+      fcmToken: data.fcmToken ?? undefined,
+      deviceType: data.deviceType as 'web' | 'android' | 'ios' | undefined,
+      deviceId: data.deviceId ?? undefined,
+      deviceName: data.deviceName ?? undefined,
+      appVersion: data.appVersion ?? undefined,
+    }
   );
 
   return {
@@ -494,15 +484,13 @@ export const socialLoginAcademyUser = async (data: AcademySocialLoginInput): Pro
   const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
     user,
     DefaultRoles.ACADEMY,
-    payload.fcmToken && payload.deviceType
-      ? {
-          fcmToken: payload.fcmToken,
-          deviceType: payload.deviceType as 'web' | 'android' | 'ios',
-          deviceId: payload.deviceId ?? undefined,
-          deviceName: payload.deviceName ?? undefined,
-          appVersion: payload.appVersion ?? undefined,
-        }
-      : undefined
+    {
+      fcmToken: payload.fcmToken ?? undefined,
+      deviceType: payload.deviceType as 'web' | 'android' | 'ios' | undefined,
+      deviceId: payload.deviceId ?? undefined,
+      deviceName: payload.deviceName ?? undefined,
+      appVersion: payload.appVersion ?? undefined,
+    }
   );
 
   return {
@@ -1004,15 +992,13 @@ export const verifyAcademyOtp = async (data: {
     const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
       user,
       DefaultRoles.ACADEMY,
-      deviceData.fcmToken && deviceData.deviceType
-        ? {
-            fcmToken: deviceData.fcmToken,
-            deviceType: deviceData.deviceType as 'web' | 'android' | 'ios',
-            deviceId: deviceData.deviceId ?? undefined,
-            deviceName: deviceData.deviceName ?? undefined,
-            appVersion: deviceData.appVersion ?? undefined,
-          }
-        : undefined
+      {
+        fcmToken: deviceData.fcmToken ?? undefined,
+        deviceType: deviceData.deviceType as 'web' | 'android' | 'ios' | undefined,
+        deviceId: deviceData.deviceId ?? undefined,
+        deviceName: deviceData.deviceName ?? undefined,
+        appVersion: deviceData.appVersion ?? undefined,
+      }
     );
 
     return {
@@ -1179,6 +1165,71 @@ export const logoutAll = async (userId: string): Promise<void> => {
   await deviceTokenService.deactivateAllDeviceTokens(userId);
 };
 
+/**
+ * Logout from a specific device by deviceToken id.
+ * Blacklists the device's refresh token and deactivates the device record.
+ */
+export const logoutDevice = async (userId: string, deviceTokenId: string): Promise<boolean> => {
+  const userObjectId = await getUserObjectId(userId);
+  if (!userObjectId) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  const device = await DeviceTokenModel.findOne({
+    id: deviceTokenId,
+    userId: userObjectId,
+    isActive: true,
+  }).lean();
+
+  if (!device) {
+    return false;
+  }
+
+  if (device.refreshToken) {
+    try {
+      // Blacklist the refresh token itself
+      await blacklistToken(device.refreshToken);
+
+      // Decode the refresh token to extract the shared JTI and blacklist it.
+      // This instantly invalidates the matching access token as well.
+      const decoded = jwt.decode(device.refreshToken) as jwt.JwtPayload | null;
+      if (decoded?.jti) {
+        const ttl = decoded.exp ? decoded.exp - Math.floor(Date.now() / 1000) : undefined;
+        await blacklistJti(decoded.jti, ttl && ttl > 0 ? ttl : undefined);
+      }
+    } catch (error) {
+      logger.warn('Failed to blacklist tokens during device logout', {
+        userId,
+        deviceTokenId,
+        error: error instanceof Error ? error.message : error,
+      });
+    }
+  }
+
+  // Remove old inactive records for same user+device to avoid unique index conflicts
+  if (device.deviceId) {
+    await DeviceTokenModel.deleteMany({
+      userId: userObjectId,
+      deviceId: device.deviceId,
+      isActive: false,
+    });
+  }
+
+  await DeviceTokenModel.updateOne(
+    { id: deviceTokenId },
+    {
+      $set: {
+        isActive: false,
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
+      },
+    }
+  );
+
+  logger.info('Device logged out', { userId, deviceTokenId, deviceId: device.deviceId });
+  return true;
+};
+
 // ==================== USER AUTH FUNCTIONS ====================
 
 /**
@@ -1315,15 +1366,13 @@ export const registerUser = async (data: UserRegisterInput): Promise<RegisterRes
   const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
     user,
     roleName,
-    data.fcmToken && data.deviceType
-      ? {
-          fcmToken: data.fcmToken,
-          deviceType: data.deviceType as 'web' | 'android' | 'ios',
-          deviceId: data.deviceId ?? undefined,
-          deviceName: data.deviceName ?? undefined,
-          appVersion: data.appVersion ?? undefined,
-        }
-      : undefined
+    {
+      fcmToken: data.fcmToken ?? undefined,
+      deviceType: data.deviceType as 'web' | 'android' | 'ios' | undefined,
+      deviceId: data.deviceId ?? undefined,
+      deviceName: data.deviceName ?? undefined,
+      appVersion: data.appVersion ?? undefined,
+    }
   );
 
   // Send notification email to admin when new user registers
@@ -1470,15 +1519,13 @@ export const loginUser = async (data: UserLoginInput): Promise<LoginResult> => {
   const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
     user,
     userRole ?? DefaultRoles.USER,
-    data.fcmToken && data.deviceType
-      ? {
-          fcmToken: data.fcmToken,
-          deviceType: data.deviceType as 'web' | 'android' | 'ios',
-          deviceId: data.deviceId ?? undefined,
-          deviceName: data.deviceName ?? undefined,
-          appVersion: data.appVersion ?? undefined,
-        }
-      : undefined
+    {
+      fcmToken: data.fcmToken ?? undefined,
+      deviceType: data.deviceType as 'web' | 'android' | 'ios' | undefined,
+      deviceId: data.deviceId ?? undefined,
+      deviceName: data.deviceName ?? undefined,
+      appVersion: data.appVersion ?? undefined,
+    }
   );
 
   return {
@@ -1578,15 +1625,13 @@ export const socialLoginUser = async (data: UserSocialLoginInput): Promise<Socia
   const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
     user,
     DefaultRoles.USER,
-    payload.fcmToken && payload.deviceType
-      ? {
-          fcmToken: payload.fcmToken,
-          deviceType: payload.deviceType as 'web' | 'android' | 'ios',
-          deviceId: payload.deviceId ?? undefined,
-          deviceName: payload.deviceName ?? undefined,
-          appVersion: payload.appVersion ?? undefined,
-        }
-      : undefined
+    {
+      fcmToken: payload.fcmToken ?? undefined,
+      deviceType: payload.deviceType as 'web' | 'android' | 'ios' | undefined,
+      deviceId: payload.deviceId ?? undefined,
+      deviceName: payload.deviceName ?? undefined,
+      appVersion: payload.appVersion ?? undefined,
+    }
   );
 
   return {
@@ -1860,15 +1905,13 @@ export const verifyUserPasswordReset = async (
   const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
     updatedUser,
     getRoleName(updatedUser),
-    deviceData.fcmToken && deviceData.deviceType
-      ? {
-          fcmToken: deviceData.fcmToken,
-          deviceType: deviceData.deviceType as 'web' | 'android' | 'ios',
-          deviceId: deviceData.deviceId ?? undefined,
-          deviceName: deviceData.deviceName ?? undefined,
-          appVersion: deviceData.appVersion ?? undefined,
-        }
-      : undefined
+    {
+      fcmToken: deviceData.fcmToken ?? undefined,
+      deviceType: deviceData.deviceType as 'web' | 'android' | 'ios' | undefined,
+      deviceId: deviceData.deviceId ?? undefined,
+      deviceName: deviceData.deviceName ?? undefined,
+      appVersion: deviceData.appVersion ?? undefined,
+    }
   );
 
   return {
@@ -2214,15 +2257,13 @@ export const verifyUserOtp = async (data: {
     const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
       user,
       userRoleForToken,
-      deviceData.fcmToken && deviceData.deviceType
-        ? {
-            fcmToken: deviceData.fcmToken,
-            deviceType: deviceData.deviceType as 'web' | 'android' | 'ios',
-            deviceId: deviceData.deviceId ?? undefined,
-            deviceName: deviceData.deviceName ?? undefined,
-            appVersion: deviceData.appVersion ?? undefined,
-          }
-        : undefined
+      {
+        fcmToken: deviceData.fcmToken ?? undefined,
+        deviceType: deviceData.deviceType as 'web' | 'android' | 'ios' | undefined,
+        deviceId: deviceData.deviceId ?? undefined,
+        deviceName: deviceData.deviceName ?? undefined,
+        appVersion: deviceData.appVersion ?? undefined,
+      }
     );
 
     // Remove unwanted fields from user object before returning

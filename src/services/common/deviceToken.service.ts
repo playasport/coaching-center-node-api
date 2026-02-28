@@ -6,13 +6,13 @@ import { logger } from '../../utils/logger';
 
 export interface RegisterDeviceTokenData {
   userId: Types.ObjectId | string;
-  fcmToken: string;
+  fcmToken?: string | null;
   deviceType: DeviceType;
   deviceId?: string | null;
   deviceName?: string | null;
   appVersion?: string | null;
-  refreshToken?: string | null; // Optional: Refresh token for this device
-  refreshTokenExpiresAt?: Date | null; // Optional: Refresh token expiration
+  refreshToken?: string | null;
+  refreshTokenExpiresAt?: Date | null;
 }
 
 export interface UpdateDeviceTokenData {
@@ -68,43 +68,44 @@ export const deviceTokenService = {
         }
       }
 
-      // Check if the same FCM token already exists for this user
-      const existingFcmToken = await DeviceTokenModel.findOne({
-        userId,
-        fcmToken: data.fcmToken,
-        isActive: true,
-      });
-
-      if (existingFcmToken) {
-        // Update existing FCM token
-        await DeviceTokenModel.updateOne(
-          { id: existingFcmToken.id },
-          {
-            $set: {
-              deviceType: data.deviceType,
-              deviceId: data.deviceId ?? existingFcmToken.deviceId,
-              deviceName: data.deviceName ?? existingFcmToken.deviceName,
-              appVersion: data.appVersion ?? existingFcmToken.appVersion,
-              refreshToken: data.refreshToken ?? existingFcmToken.refreshToken,
-              refreshTokenExpiresAt: data.refreshTokenExpiresAt ?? existingFcmToken.refreshTokenExpiresAt,
-              lastActiveAt: new Date(),
-              isActive: true,
-            },
-          }
-        );
-        logger.info('FCM token updated', {
-          userId: userId.toString(),
-          fcmToken: data.fcmToken.substring(0, 20) + '...',
-          deviceType: data.deviceType,
+      // Check if the same FCM token already exists for this user (only when fcmToken is provided)
+      if (data.fcmToken) {
+        const existingFcmToken = await DeviceTokenModel.findOne({
+          userId,
+          fcmToken: data.fcmToken,
+          isActive: true,
         });
-        return;
+
+        if (existingFcmToken) {
+          await DeviceTokenModel.updateOne(
+            { id: existingFcmToken.id },
+            {
+              $set: {
+                deviceType: data.deviceType,
+                deviceId: data.deviceId ?? existingFcmToken.deviceId,
+                deviceName: data.deviceName ?? existingFcmToken.deviceName,
+                appVersion: data.appVersion ?? existingFcmToken.appVersion,
+                refreshToken: data.refreshToken ?? existingFcmToken.refreshToken,
+                refreshTokenExpiresAt: data.refreshTokenExpiresAt ?? existingFcmToken.refreshTokenExpiresAt,
+                lastActiveAt: new Date(),
+                isActive: true,
+              },
+            }
+          );
+          logger.info('FCM token updated', {
+            userId: userId.toString(),
+            fcmToken: data.fcmToken.substring(0, 20) + '...',
+            deviceType: data.deviceType,
+          });
+          return;
+        }
       }
 
       // Create new device token
       await DeviceTokenModel.create({
         id: uuidv4(),
         userId,
-        fcmToken: data.fcmToken,
+        fcmToken: data.fcmToken ?? null,
         deviceType: data.deviceType,
         deviceId: data.deviceId ?? null,
         deviceName: data.deviceName ?? null,
