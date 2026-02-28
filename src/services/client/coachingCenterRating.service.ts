@@ -23,6 +23,8 @@ export interface RatingListItem {
   id: string;
   rating: number;
   comment?: string | null;
+  status?: RatingStatus;
+  isOwn?: boolean;
   createdAt: Date;
   user?: {
     id: string;
@@ -129,7 +131,7 @@ export const submitOrUpdateRating = async (
   if (existing) {
     ratingDoc = await CoachingCenterRatingModel.findByIdAndUpdate(
       existing._id,
-      { rating, comment: comment ?? existing.comment ?? null },
+      { rating, comment: comment ?? existing.comment ?? null, status: 'pending' },
       { new: true }
     ).lean() as any;
     isUpdate = true;
@@ -420,10 +422,12 @@ export const getLatestRatingsForCenter = async (
     .populate('user', 'id firstName lastName profileImage')
     .lean();
 
-  const toListItem = (r: any): RatingListItem => ({
+  const toListItem = (r: any, isOwn = false): RatingListItem => ({
     id: r.id ?? r._id?.toString(),
     rating: r.rating,
     comment: r.comment ?? null,
+    status: isOwn ? r.status : undefined,
+    isOwn: isOwn || undefined,
     createdAt: r.createdAt,
     user: r.user
       ? {
@@ -435,21 +439,16 @@ export const getLatestRatingsForCenter = async (
       : null,
   });
 
-  let ratings: RatingListItem[] = latestRatings.map(toListItem);
+  let ratings: RatingListItem[] = latestRatings.map((r) => toListItem(r));
 
-  // Prepend current user's rating only if it is approved (or legacy without field)
-  const myIsApproved =
-    myRatingDoc &&
-    (myRatingDoc as any).status === 'approved';
-  if (myIsApproved) {
+  if (myRatingDoc) {
     const myId = (myRatingDoc as any).id ?? myRatingDoc._id?.toString();
     const existingIndex = ratings.findIndex((r) => r.id === myId);
     if (existingIndex >= 0) {
-      const [mine] = ratings.splice(existingIndex, 1);
-      ratings = [mine, ...ratings].slice(0, limit);
+      ratings.splice(existingIndex, 1);
+      ratings = [toListItem(myRatingDoc, true), ...ratings].slice(0, limit);
     } else {
-      const myItem = toListItem(myRatingDoc);
-      ratings = [myItem, ...ratings].slice(0, limit);
+      ratings = [toListItem(myRatingDoc, true), ...ratings].slice(0, limit);
     }
   } else {
     ratings = ratings.slice(0, limit);
