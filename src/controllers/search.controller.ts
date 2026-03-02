@@ -274,6 +274,7 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
     const forDisabledAutocomplete = req.query.for_disabled === 'true' || req.query.for_disabled === '1';
     const minAgeAutocomplete = req.query.min_age != null ? parseInt(req.query.min_age as string, 10) : undefined;
     const maxAgeAutocomplete = req.query.max_age != null ? parseInt(req.query.max_age as string, 10) : undefined;
+    const minRatingAutocomplete = req.query.min_rating != null ? parseFloat(req.query.min_rating as string) : undefined;
     const sortByDistanceAutocomplete = req.query.sort_by !== 'distance' ? true : req.query.sort_by === 'distance';
 
     if (!query || query.trim() === '') {
@@ -338,6 +339,7 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
               forDisabled: forDisabledAutocomplete,
               minAge: minAgeAutocomplete != null && !Number.isNaN(minAgeAutocomplete) ? minAgeAutocomplete : undefined,
               maxAge: maxAgeAutocomplete != null && !Number.isNaN(maxAgeAutocomplete) ? maxAgeAutocomplete : undefined,
+              minRating: minRatingAutocomplete != null && !Number.isNaN(minRatingAutocomplete) ? minRatingAutocomplete : undefined,
               sortByDistance: sortByDistanceAutocomplete,
             });
           } else if (lowerIndex.includes('sport') && !lowerIndex.includes('coaching')) {
@@ -660,13 +662,20 @@ export const autocomplete = async (req: Request, res: Response): Promise<void> =
       .map((r: any) => r.id);
     const userIdMeili = (req as any).user?.id || null;
     const enrichMapMeili = await enrichCoachingCenterResults(coachingCenterIdsMeili, userIdMeili);
-    const enrichedMeiliResults = sanitizedResults.map((result: any) => {
+    let enrichedMeiliResults = sanitizedResults.map((result: any) => {
       if (result.type === 'coaching_center' && enrichMapMeili.has(result.id)) {
         const data = enrichMapMeili.get(result.id)!;
         return { ...result, ...data };
       }
       return result;
     });
+
+    if (minRatingAutocomplete != null && !Number.isNaN(minRatingAutocomplete) && minRatingAutocomplete > 0) {
+      const threshold = Math.min(minRatingAutocomplete, 5);
+      enrichedMeiliResults = enrichedMeiliResults.filter((r: any) =>
+        r.type !== 'coaching_center' || (r.averageRating ?? 0) >= threshold
+      );
+    }
 
     res.status(200).json(
       new ApiResponse(
@@ -717,6 +726,7 @@ export const search = async (req: Request, res: Response): Promise<void> => {
     const forDisabled = req.query.for_disabled === 'true' || req.query.for_disabled === '1';
     const minAge = req.query.min_age != null ? parseInt(req.query.min_age as string, 10) : undefined;
     const maxAge = req.query.max_age != null ? parseInt(req.query.max_age as string, 10) : undefined;
+    const minRating = req.query.min_rating != null ? parseFloat(req.query.min_rating as string) : undefined;
     const sortByDistance = req.query.sort_by !== 'distance' ? true : req.query.sort_by === 'distance';
 
     if (!query || query.trim() === '') {
@@ -786,6 +796,7 @@ export const search = async (req: Request, res: Response): Promise<void> => {
               forDisabled,
               minAge: minAge != null && !Number.isNaN(minAge) ? minAge : undefined,
               maxAge: maxAge != null && !Number.isNaN(maxAge) ? maxAge : undefined,
+              minRating: minRating != null && !Number.isNaN(minRating) ? minRating : undefined,
               sortByDistance,
             });
           } else if (lowerIndex.includes('sport') && !lowerIndex.includes('coaching')) {
@@ -1487,6 +1498,14 @@ export const search = async (req: Request, res: Response): Promise<void> => {
         }
         return r;
       });
+
+      if (minRating != null && !Number.isNaN(minRating) && minRating > 0) {
+        const threshold = Math.min(minRating, 5);
+        ccResultsMeili.results = ccResultsMeili.results.filter((r: any) =>
+          (r.source?.averageRating ?? 0) >= threshold
+        );
+        ccResultsMeili.total = ccResultsMeili.results.length;
+      }
     }
 
     res.status(200).json(

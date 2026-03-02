@@ -39,7 +39,8 @@ export interface IPaymentGateway {
 export interface PaymentGatewayCredentials {
   keyId: string;
   keySecret: string;
-  [key: string]: any; // Allow additional gateway-specific credentials
+  webhookSecret?: string;
+  [key: string]: any;
 }
 
 /**

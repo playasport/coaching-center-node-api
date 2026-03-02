@@ -14,7 +14,8 @@ const router = Router();
  *       Get all published academies with pagination.
  *       If location (latitude, longitude) is provided, academies are sorted by distance (nearest first).
  *       If user is logged in and has favorite sports, academies with favorite sports are prioritized.
- *       Supports same filters as search API: city, state, sportId, sportIds, gender, for_disabled, min_age, max_age.
+ *       Supports same filters as search API: city, state, sportId, sportIds, gender, for_disabled, min_age, max_age, min_rating.
+ *       When a gender filter is applied, academies exclusive to that gender appear first, followed by mixed-gender academies.
  *       This is an unprotected route.
  *     parameters:
  *       - in: query
@@ -95,6 +96,13 @@ const router = Router();
  *           type: integer
  *           minimum: 0
  *         description: Filter by age range – maximum age (years). Academies whose age range overlaps [min_age, max_age] are included.
+ *       - in: query
+ *         name: min_rating
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *           maximum: 5
+ *         description: Filter by minimum average rating (0-5). Only academies with averageRating >= min_rating are returned.
  *     responses:
  *       200:
  *         description: Academies retrieved successfully
@@ -393,7 +401,7 @@ router.get('/:id/ratings', optionalAuthenticate, academyController.getRatingsByA
  *                           type: boolean
  *                           example: false
  */
-router.get('/city/:cityName', academyController.getAcademiesByCity);
+router.get('/city/:cityName', optionalAuthenticate, academyController.getAcademiesByCity);
 
 /**
  * @swagger

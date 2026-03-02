@@ -29,6 +29,7 @@ export const getAllAcademies = async (
     const forDisabled = req.query.for_disabled === 'true' || req.query.for_disabled === '1';
     const minAge = req.query.min_age != null ? parseInt(req.query.min_age as string, 10) : undefined;
     const maxAge = req.query.max_age != null ? parseInt(req.query.max_age as string, 10) : undefined;
+    const minRating = req.query.min_rating != null ? parseFloat(req.query.min_rating as string) : undefined;
 
     // Validate location if provided
     let userLocation: { latitude: number; longitude: number } | undefined;
@@ -58,6 +59,7 @@ export const getAllAcademies = async (
       forDisabled,
       minAge: minAge != null && !Number.isNaN(minAge) ? minAge : undefined,
       maxAge: maxAge != null && !Number.isNaN(maxAge) ? maxAge : undefined,
+      minRating: minRating != null && !Number.isNaN(minRating) ? minRating : undefined,
     };
     const result = await academyService.getAllAcademies(page, limit, userLocation, userId, radius, filters);
 
@@ -142,7 +144,8 @@ export const getAcademiesByCity = async (
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
 
-    const result = await academyService.getAcademiesByCity(cityName, page, limit);
+    const userId = req.user?.id;
+    const result = await academyService.getAcademiesByCity(cityName, page, limit, userId);
 
     const response = new ApiResponse(200, result, t('academy.getByCity.success'));
     res.json(response);
@@ -188,7 +191,8 @@ export const getAcademiesBySport = async (
       }
     }
 
-    const result = await academyService.getAcademiesBySport(slug, page, limit, userLocation, radius);
+    const userId = req.user?.id;
+    const result = await academyService.getAcademiesBySport(slug, page, limit, userLocation, radius, userId);
 
     const response = new ApiResponse(200, result, t('academy.getBySport.success'));
     res.json(response);

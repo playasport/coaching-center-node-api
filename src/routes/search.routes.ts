@@ -85,6 +85,14 @@ const router = Router();
  *           minimum: 0
  *         description: "Filter coaching centers by age range – maximum age (years). Centers whose age range overlaps [min_age, max_age] are included. Applied when MongoDB fallback is used."
  *         example: 18
+ *       - in: query
+ *         name: min_rating
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *           maximum: 5
+ *         description: "Filter coaching centers by minimum average rating (0-5). Only centers with averageRating >= min_rating are returned."
+ *         example: 4
  *     responses:
  *       200:
  *         description: Autocomplete results retrieved successfully
@@ -310,6 +318,14 @@ router.get('/autocomplete', optionalAuthenticate, autocomplete);
  *           minimum: 0
  *         description: "Filter coaching centers by age range – maximum age (years). Centers whose age range overlaps [min_age, max_age] are included. Applied when MongoDB fallback is used."
  *         example: 18
+ *       - in: query
+ *         name: min_rating
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *           maximum: 5
+ *         description: "Filter coaching centers by minimum average rating (0-5). Only centers with averageRating >= min_rating are returned."
+ *         example: 4
  *     responses:
  *       200:
  *         description: Search results retrieved successfully

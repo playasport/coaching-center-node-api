@@ -16,22 +16,23 @@ import { ApiError } from '../../../../utils/ApiError';
 export class RazorpayGateway implements IPaymentGateway {
   private razorpay: Razorpay | null = null;
   private keySecret: string = '';
+  private webhookSecret: string = '';
 
-  /**
-   * Initialize Razorpay with credentials
-   */
   initialize(credentials: PaymentGatewayCredentials): void {
     if (!credentials.keyId || !credentials.keySecret) {
       throw new Error('Razorpay keyId and keySecret are required');
     }
 
     this.keySecret = credentials.keySecret;
+    this.webhookSecret = credentials.webhookSecret || credentials.keySecret;
     this.razorpay = new Razorpay({
       key_id: credentials.keyId,
       key_secret: credentials.keySecret,
     });
 
-    logger.info('Razorpay gateway initialized successfully');
+    logger.info('Razorpay gateway initialized successfully', {
+      hasWebhookSecret: !!credentials.webhookSecret,
+    });
   }
 
   /**
@@ -169,21 +170,21 @@ export class RazorpayGateway implements IPaymentGateway {
     }
   }
 
-  /**
-   * Verify Razorpay webhook signature
-   */
   verifyWebhookSignature(payload: string, signature: string): boolean {
-    if (!this.keySecret) {
-      throw new Error('Razorpay gateway not initialized');
+    if (!this.webhookSecret) {
+      throw new Error('Razorpay gateway not initialized or webhook secret missing');
     }
 
     try {
       const generatedSignature = crypto
-        .createHmac('sha256', this.keySecret)
+        .createHmac('sha256', this.webhookSecret)
         .update(payload)
         .digest('hex');
 
-      return generatedSignature === signature;
+      return crypto.timingSafeEqual(
+        Buffer.from(generatedSignature, 'hex'),
+        Buffer.from(signature, 'hex'),
+      );
     } catch (error) {
       logger.error('Error verifying Razorpay webhook signature:', {
         error: error instanceof Error ? error.message : error,

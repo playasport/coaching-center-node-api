@@ -397,13 +397,16 @@ export const getConfigWithPriority = async <T = any>(
 export const getPaymentCredentials = async (): Promise<{
   keyId: string;
   keySecret: string;
+  webhookSecret: string;
 }> => {
   const keyId = await getConfigWithPriority<string>('payment.razorpay.key_id', config.razorpay.keyId);
   const keySecret = await getConfigWithPriority<string>('payment.razorpay.key_secret', config.razorpay.keySecret);
-  
+  const webhookSecret = await getConfigWithPriority<string>('payment.razorpay.webhook_secret', config.razorpay.webhookSecret);
+
   return {
     keyId: keyId || '',
     keySecret: keySecret || '',
+    webhookSecret: webhookSecret || '',
   };
 };
 

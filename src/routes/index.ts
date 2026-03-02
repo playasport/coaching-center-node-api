@@ -161,7 +161,7 @@ router.get('/top-cities', locationController.getTopCities);
  *                           type: boolean
  *                           example: false
  */
-router.get('/city/:cityName', academyController.getAcademiesByCity);
+router.get('/city/:cityName', optionalAuthenticate, academyController.getAcademiesByCity);
 
 /**
  * @swagger

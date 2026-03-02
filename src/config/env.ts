@@ -26,6 +26,7 @@ export const config = {
   port: process.env.PORT || 3000,
   nodeEnv: process.env.NODE_ENV || 'development',
   defaultLocale: (process.env.DEFAULT_LOCALE || 'en') as 'en' | 'hi',
+  mainSiteUrl: trimUrl(process.env.MAIN_SITE_URL),
   cors: {
     allowedOrigins: (() => {
       if (process.env.NODE_ENV !== 'production') return true;
@@ -121,6 +122,7 @@ export const config = {
   razorpay: {
     keyId: process.env.RAZORPAY_KEY_ID || '',
     keySecret: process.env.RAZORPAY_KEY_SECRET || '',
+    webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
   },
   payment: {
     gateway: (process.env.PAYMENT_GATEWAY || 'razorpay') as 'razorpay' | 'stripe' | 'payu' | 'cashfree',
