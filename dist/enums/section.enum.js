@@ -1,0 +1,40 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Action = exports.Section = void 0;
+var Section;
+(function (Section) {
+    Section["COACHING_CENTER"] = "coaching_center";
+    Section["COACHING_CENTER_RATINGS"] = "coaching_center_ratings";
+    Section["EMPLOYEE"] = "employee";
+    Section["BATCH"] = "batch";
+    Section["BOOKING"] = "booking";
+    Section["STUDENT"] = "student";
+    Section["PARTICIPANT"] = "participant";
+    Section["SPORT"] = "sport";
+    Section["FACILITY"] = "facility";
+    Section["LOCATION"] = "location";
+    Section["SETTINGS"] = "settings";
+    Section["REEL"] = "reel";
+    Section["ROLE"] = "role";
+    Section["USER"] = "user";
+    Section["OPERATIONAL_USER"] = "operational_user";
+    Section["ACADEMY_AUTH"] = "academy_auth";
+    Section["USER_AUTH"] = "user_auth";
+    Section["PERMISSION"] = "permission";
+    Section["DASHBOARD"] = "dashboard";
+    Section["TRANSACTION"] = "transaction";
+    Section["PAYMENT"] = "payment";
+    Section["PAYOUT"] = "payout";
+    Section["BANNER"] = "banner";
+    Section["CMS_PAGE"] = "cms_page";
+    Section["NOTIFICATION"] = "notification";
+    Section["HIGHLIGHT"] = "highlight";
+})(Section || (exports.Section = Section = {}));
+var Action;
+(function (Action) {
+    Action["VIEW"] = "view";
+    Action["CREATE"] = "create";
+    Action["UPDATE"] = "update";
+    Action["DELETE"] = "delete";
+})(Action || (exports.Action = Action = {}));
+//# sourceMappingURL=section.enum.js.map

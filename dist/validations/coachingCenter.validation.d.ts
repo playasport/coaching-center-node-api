@@ -1,0 +1,459 @@
+import { z } from 'zod';
+import { Gender } from '../enums/gender.enum';
+/**
+ * ACADEMY SCHEMAS (Has Bank Info)
+ */
+export declare const academyCoachingCenterCreateSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        center_name: z.ZodOptional<z.ZodString>;
+        mobile_number: z.ZodOptional<z.ZodString>;
+        email: z.ZodOptional<z.ZodString>;
+        rules_regulation: z.ZodNullable<z.ZodOptional<z.ZodArray<z.ZodString>>>;
+        logo: z.ZodOptional<z.ZodString>;
+        sports: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        sport_details: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            sport_id: z.ZodString;
+            description: z.ZodString;
+            images: z.ZodDefault<z.ZodArray<z.ZodObject<{
+                unique_id: z.ZodOptional<z.ZodString>;
+                url: z.ZodString;
+                is_active: z.ZodDefault<z.ZodBoolean>;
+                is_deleted: z.ZodDefault<z.ZodBoolean>;
+            }, z.core.$strip>>>;
+            videos: z.ZodDefault<z.ZodArray<z.ZodObject<{
+                unique_id: z.ZodOptional<z.ZodString>;
+                url: z.ZodString;
+                thumbnail: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                is_active: z.ZodDefault<z.ZodBoolean>;
+                is_deleted: z.ZodDefault<z.ZodBoolean>;
+            }, z.core.$strip>>>;
+        }, z.core.$strip>>>;
+        age: z.ZodOptional<z.ZodObject<{
+            min: z.ZodNumber;
+            max: z.ZodNumber;
+        }, z.core.$strip>>;
+        location: z.ZodOptional<z.ZodObject<{
+            latitude: z.ZodNumber;
+            longitude: z.ZodNumber;
+            address: z.ZodObject<{
+                line1: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                line2: z.ZodString;
+                city: z.ZodString;
+                state: z.ZodString;
+                country: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                pincode: z.ZodString;
+            }, z.core.$strip>;
+        }, z.core.$strip>>;
+        facility: z.ZodNullable<z.ZodOptional<z.ZodNullable<z.ZodOptional<z.ZodArray<z.ZodUnion<readonly [z.ZodString, z.ZodObject<{
+            name: z.ZodString;
+        }, z.core.$strip>]>>>>>>;
+        operational_timing: z.ZodOptional<z.ZodObject<{
+            operating_days: z.ZodArray<z.ZodEnum<{
+                monday: "monday";
+                tuesday: "tuesday";
+                wednesday: "wednesday";
+                thursday: "thursday";
+                friday: "friday";
+                saturday: "saturday";
+                sunday: "sunday";
+            }>>;
+            opening_time: z.ZodString;
+            closing_time: z.ZodString;
+        }, z.core.$strip>>;
+        documents: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodObject<{
+            unique_id: z.ZodOptional<z.ZodString>;
+            url: z.ZodString;
+            is_active: z.ZodDefault<z.ZodBoolean>;
+            is_deleted: z.ZodDefault<z.ZodBoolean>;
+        }, z.core.$strip>>>>;
+        status: z.ZodDefault<z.ZodEnum<{
+            draft: "draft";
+            published: "published";
+        }>>;
+        allowed_genders: z.ZodArray<z.ZodEnum<typeof Gender>>;
+        allowed_disabled: z.ZodBoolean;
+        is_only_for_disabled: z.ZodBoolean;
+        experience: z.ZodNumber;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const academyCoachingCenterUpdateSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        status: z.ZodOptional<z.ZodEnum<{
+            draft: "draft";
+            published: "published";
+        }>>;
+        center_name: z.ZodOptional<z.ZodString>;
+        mobile_number: z.ZodOptional<z.ZodString>;
+        email: z.ZodOptional<z.ZodString>;
+        rules_regulation: z.ZodNullable<z.ZodOptional<z.ZodArray<z.ZodString>>>;
+        logo: z.ZodOptional<z.ZodString>;
+        sports: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        sport_details: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            sport_id: z.ZodString;
+            description: z.ZodString;
+            images: z.ZodDefault<z.ZodArray<z.ZodObject<{
+                unique_id: z.ZodOptional<z.ZodString>;
+                url: z.ZodString;
+                is_active: z.ZodDefault<z.ZodBoolean>;
+                is_deleted: z.ZodDefault<z.ZodBoolean>;
+            }, z.core.$strip>>>;
+            videos: z.ZodDefault<z.ZodArray<z.ZodObject<{
+                unique_id: z.ZodOptional<z.ZodString>;
+                url: z.ZodString;
+                thumbnail: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                is_active: z.ZodDefault<z.ZodBoolean>;
+                is_deleted: z.ZodDefault<z.ZodBoolean>;
+            }, z.core.$strip>>>;
+        }, z.core.$strip>>>;
+        age: z.ZodOptional<z.ZodObject<{
+            min: z.ZodNumber;
+            max: z.ZodNumber;
+        }, z.core.$strip>>;
+        location: z.ZodOptional<z.ZodObject<{
+            latitude: z.ZodNumber;
+            longitude: z.ZodNumber;
+            address: z.ZodObject<{
+                line1: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                line2: z.ZodString;
+                city: z.ZodString;
+                state: z.ZodString;
+                country: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                pincode: z.ZodString;
+            }, z.core.$strip>;
+        }, z.core.$strip>>;
+        facility: z.ZodNullable<z.ZodOptional<z.ZodNullable<z.ZodOptional<z.ZodArray<z.ZodUnion<readonly [z.ZodString, z.ZodObject<{
+            name: z.ZodString;
+        }, z.core.$strip>]>>>>>>;
+        operational_timing: z.ZodOptional<z.ZodObject<{
+            operating_days: z.ZodArray<z.ZodEnum<{
+                monday: "monday";
+                tuesday: "tuesday";
+                wednesday: "wednesday";
+                thursday: "thursday";
+                friday: "friday";
+                saturday: "saturday";
+                sunday: "sunday";
+            }>>;
+            opening_time: z.ZodString;
+            closing_time: z.ZodString;
+        }, z.core.$strip>>;
+        documents: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodObject<{
+            unique_id: z.ZodOptional<z.ZodString>;
+            url: z.ZodString;
+            is_active: z.ZodDefault<z.ZodBoolean>;
+            is_deleted: z.ZodDefault<z.ZodBoolean>;
+        }, z.core.$strip>>>>;
+        allowed_genders: z.ZodArray<z.ZodEnum<typeof Gender>>;
+        allowed_disabled: z.ZodBoolean;
+        is_only_for_disabled: z.ZodBoolean;
+        experience: z.ZodNumber;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+/**
+ * ADMIN SCHEMAS (No Bank Info, Always Published, Minimal Validation)
+ */
+export declare const adminCoachingCenterCreateSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        status: z.ZodDefault<z.ZodLiteral<"published">>;
+        owner_id: z.ZodOptional<z.ZodString>;
+        academy_owner: z.ZodOptional<z.ZodObject<{
+            firstName: z.ZodString;
+            lastName: z.ZodOptional<z.ZodString>;
+            email: z.ZodString;
+            mobile: z.ZodString;
+        }, z.core.$strip>>;
+        center_name: z.ZodOptional<z.ZodString>;
+        mobile_number: z.ZodOptional<z.ZodString>;
+        email: z.ZodOptional<z.ZodString>;
+        rules_regulation: z.ZodNullable<z.ZodOptional<z.ZodArray<z.ZodString>>>;
+        logo: z.ZodOptional<z.ZodString>;
+        sports: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        sport_details: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            sport_id: z.ZodString;
+            description: z.ZodString;
+            images: z.ZodDefault<z.ZodArray<z.ZodObject<{
+                unique_id: z.ZodOptional<z.ZodString>;
+                url: z.ZodString;
+                is_active: z.ZodDefault<z.ZodBoolean>;
+                is_deleted: z.ZodDefault<z.ZodBoolean>;
+            }, z.core.$strip>>>;
+            videos: z.ZodDefault<z.ZodArray<z.ZodObject<{
+                unique_id: z.ZodOptional<z.ZodString>;
+                url: z.ZodString;
+                thumbnail: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                is_active: z.ZodDefault<z.ZodBoolean>;
+                is_deleted: z.ZodDefault<z.ZodBoolean>;
+            }, z.core.$strip>>>;
+        }, z.core.$strip>>>;
+        age: z.ZodOptional<z.ZodObject<{
+            min: z.ZodNumber;
+            max: z.ZodNumber;
+        }, z.core.$strip>>;
+        location: z.ZodOptional<z.ZodObject<{
+            latitude: z.ZodNumber;
+            longitude: z.ZodNumber;
+            address: z.ZodObject<{
+                line1: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                line2: z.ZodString;
+                city: z.ZodString;
+                state: z.ZodString;
+                country: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                pincode: z.ZodString;
+            }, z.core.$strip>;
+        }, z.core.$strip>>;
+        facility: z.ZodNullable<z.ZodOptional<z.ZodNullable<z.ZodOptional<z.ZodArray<z.ZodUnion<readonly [z.ZodString, z.ZodObject<{
+            name: z.ZodString;
+        }, z.core.$strip>]>>>>>>;
+        operational_timing: z.ZodOptional<z.ZodObject<{
+            operating_days: z.ZodArray<z.ZodEnum<{
+                monday: "monday";
+                tuesday: "tuesday";
+                wednesday: "wednesday";
+                thursday: "thursday";
+                friday: "friday";
+                saturday: "saturday";
+                sunday: "sunday";
+            }>>;
+            opening_time: z.ZodString;
+            closing_time: z.ZodString;
+        }, z.core.$strip>>;
+        documents: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodObject<{
+            unique_id: z.ZodOptional<z.ZodString>;
+            url: z.ZodString;
+            is_active: z.ZodDefault<z.ZodBoolean>;
+            is_deleted: z.ZodDefault<z.ZodBoolean>;
+        }, z.core.$strip>>>>;
+        allowed_genders: z.ZodArray<z.ZodEnum<typeof Gender>>;
+        allowed_disabled: z.ZodBoolean;
+        is_only_for_disabled: z.ZodBoolean;
+        experience: z.ZodNumber;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const adminCoachingCenterUpdateSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        status: z.ZodOptional<z.ZodLiteral<"published">>;
+        userId: z.ZodOptional<z.ZodString>;
+        center_name: z.ZodOptional<z.ZodString>;
+        mobile_number: z.ZodOptional<z.ZodString>;
+        email: z.ZodOptional<z.ZodString>;
+        rules_regulation: z.ZodNullable<z.ZodOptional<z.ZodArray<z.ZodString>>>;
+        logo: z.ZodOptional<z.ZodString>;
+        sports: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        sport_details: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            sport_id: z.ZodString;
+            description: z.ZodString;
+            images: z.ZodDefault<z.ZodArray<z.ZodObject<{
+                unique_id: z.ZodOptional<z.ZodString>;
+                url: z.ZodString;
+                is_active: z.ZodDefault<z.ZodBoolean>;
+                is_deleted: z.ZodDefault<z.ZodBoolean>;
+            }, z.core.$strip>>>;
+            videos: z.ZodDefault<z.ZodArray<z.ZodObject<{
+                unique_id: z.ZodOptional<z.ZodString>;
+                url: z.ZodString;
+                thumbnail: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                is_active: z.ZodDefault<z.ZodBoolean>;
+                is_deleted: z.ZodDefault<z.ZodBoolean>;
+            }, z.core.$strip>>>;
+        }, z.core.$strip>>>;
+        age: z.ZodOptional<z.ZodObject<{
+            min: z.ZodNumber;
+            max: z.ZodNumber;
+        }, z.core.$strip>>;
+        location: z.ZodOptional<z.ZodObject<{
+            latitude: z.ZodNumber;
+            longitude: z.ZodNumber;
+            address: z.ZodObject<{
+                line1: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                line2: z.ZodString;
+                city: z.ZodString;
+                state: z.ZodString;
+                country: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                pincode: z.ZodString;
+            }, z.core.$strip>;
+        }, z.core.$strip>>;
+        facility: z.ZodNullable<z.ZodOptional<z.ZodNullable<z.ZodOptional<z.ZodArray<z.ZodUnion<readonly [z.ZodString, z.ZodObject<{
+            name: z.ZodString;
+        }, z.core.$strip>]>>>>>>;
+        operational_timing: z.ZodOptional<z.ZodObject<{
+            operating_days: z.ZodArray<z.ZodEnum<{
+                monday: "monday";
+                tuesday: "tuesday";
+                wednesday: "wednesday";
+                thursday: "thursday";
+                friday: "friday";
+                saturday: "saturday";
+                sunday: "sunday";
+            }>>;
+            opening_time: z.ZodString;
+            closing_time: z.ZodString;
+        }, z.core.$strip>>;
+        documents: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodObject<{
+            unique_id: z.ZodOptional<z.ZodString>;
+            url: z.ZodString;
+            is_active: z.ZodDefault<z.ZodBoolean>;
+            is_deleted: z.ZodDefault<z.ZodBoolean>;
+        }, z.core.$strip>>>>;
+        allowed_genders: z.ZodArray<z.ZodEnum<typeof Gender>>;
+        allowed_disabled: z.ZodBoolean;
+        is_only_for_disabled: z.ZodBoolean;
+        experience: z.ZodNumber;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+/** Body for PATCH /admin/coaching-centers/:id/added-by - update the agent/admin who added the center */
+export declare const adminCoachingCenterUpdateAddedBySchema: z.ZodObject<{
+    body: z.ZodObject<{
+        addedById: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const coachingCenterCreateSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        center_name: z.ZodOptional<z.ZodString>;
+        mobile_number: z.ZodOptional<z.ZodString>;
+        email: z.ZodOptional<z.ZodString>;
+        rules_regulation: z.ZodNullable<z.ZodOptional<z.ZodArray<z.ZodString>>>;
+        logo: z.ZodOptional<z.ZodString>;
+        sports: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        sport_details: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            sport_id: z.ZodString;
+            description: z.ZodString;
+            images: z.ZodDefault<z.ZodArray<z.ZodObject<{
+                unique_id: z.ZodOptional<z.ZodString>;
+                url: z.ZodString;
+                is_active: z.ZodDefault<z.ZodBoolean>;
+                is_deleted: z.ZodDefault<z.ZodBoolean>;
+            }, z.core.$strip>>>;
+            videos: z.ZodDefault<z.ZodArray<z.ZodObject<{
+                unique_id: z.ZodOptional<z.ZodString>;
+                url: z.ZodString;
+                thumbnail: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                is_active: z.ZodDefault<z.ZodBoolean>;
+                is_deleted: z.ZodDefault<z.ZodBoolean>;
+            }, z.core.$strip>>>;
+        }, z.core.$strip>>>;
+        age: z.ZodOptional<z.ZodObject<{
+            min: z.ZodNumber;
+            max: z.ZodNumber;
+        }, z.core.$strip>>;
+        location: z.ZodOptional<z.ZodObject<{
+            latitude: z.ZodNumber;
+            longitude: z.ZodNumber;
+            address: z.ZodObject<{
+                line1: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                line2: z.ZodString;
+                city: z.ZodString;
+                state: z.ZodString;
+                country: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                pincode: z.ZodString;
+            }, z.core.$strip>;
+        }, z.core.$strip>>;
+        facility: z.ZodNullable<z.ZodOptional<z.ZodNullable<z.ZodOptional<z.ZodArray<z.ZodUnion<readonly [z.ZodString, z.ZodObject<{
+            name: z.ZodString;
+        }, z.core.$strip>]>>>>>>;
+        operational_timing: z.ZodOptional<z.ZodObject<{
+            operating_days: z.ZodArray<z.ZodEnum<{
+                monday: "monday";
+                tuesday: "tuesday";
+                wednesday: "wednesday";
+                thursday: "thursday";
+                friday: "friday";
+                saturday: "saturday";
+                sunday: "sunday";
+            }>>;
+            opening_time: z.ZodString;
+            closing_time: z.ZodString;
+        }, z.core.$strip>>;
+        documents: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodObject<{
+            unique_id: z.ZodOptional<z.ZodString>;
+            url: z.ZodString;
+            is_active: z.ZodDefault<z.ZodBoolean>;
+            is_deleted: z.ZodDefault<z.ZodBoolean>;
+        }, z.core.$strip>>>>;
+        status: z.ZodDefault<z.ZodEnum<{
+            draft: "draft";
+            published: "published";
+        }>>;
+        allowed_genders: z.ZodArray<z.ZodEnum<typeof Gender>>;
+        allowed_disabled: z.ZodBoolean;
+        is_only_for_disabled: z.ZodBoolean;
+        experience: z.ZodNumber;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const coachingCenterUpdateSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        status: z.ZodOptional<z.ZodEnum<{
+            draft: "draft";
+            published: "published";
+        }>>;
+        center_name: z.ZodOptional<z.ZodString>;
+        mobile_number: z.ZodOptional<z.ZodString>;
+        email: z.ZodOptional<z.ZodString>;
+        rules_regulation: z.ZodNullable<z.ZodOptional<z.ZodArray<z.ZodString>>>;
+        logo: z.ZodOptional<z.ZodString>;
+        sports: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        sport_details: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            sport_id: z.ZodString;
+            description: z.ZodString;
+            images: z.ZodDefault<z.ZodArray<z.ZodObject<{
+                unique_id: z.ZodOptional<z.ZodString>;
+                url: z.ZodString;
+                is_active: z.ZodDefault<z.ZodBoolean>;
+                is_deleted: z.ZodDefault<z.ZodBoolean>;
+            }, z.core.$strip>>>;
+            videos: z.ZodDefault<z.ZodArray<z.ZodObject<{
+                unique_id: z.ZodOptional<z.ZodString>;
+                url: z.ZodString;
+                thumbnail: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                is_active: z.ZodDefault<z.ZodBoolean>;
+                is_deleted: z.ZodDefault<z.ZodBoolean>;
+            }, z.core.$strip>>>;
+        }, z.core.$strip>>>;
+        age: z.ZodOptional<z.ZodObject<{
+            min: z.ZodNumber;
+            max: z.ZodNumber;
+        }, z.core.$strip>>;
+        location: z.ZodOptional<z.ZodObject<{
+            latitude: z.ZodNumber;
+            longitude: z.ZodNumber;
+            address: z.ZodObject<{
+                line1: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                line2: z.ZodString;
+                city: z.ZodString;
+                state: z.ZodString;
+                country: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                pincode: z.ZodString;
+            }, z.core.$strip>;
+        }, z.core.$strip>>;
+        facility: z.ZodNullable<z.ZodOptional<z.ZodNullable<z.ZodOptional<z.ZodArray<z.ZodUnion<readonly [z.ZodString, z.ZodObject<{
+            name: z.ZodString;
+        }, z.core.$strip>]>>>>>>;
+        operational_timing: z.ZodOptional<z.ZodObject<{
+            operating_days: z.ZodArray<z.ZodEnum<{
+                monday: "monday";
+                tuesday: "tuesday";
+                wednesday: "wednesday";
+                thursday: "thursday";
+                friday: "friday";
+                saturday: "saturday";
+                sunday: "sunday";
+            }>>;
+            opening_time: z.ZodString;
+            closing_time: z.ZodString;
+        }, z.core.$strip>>;
+        documents: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodObject<{
+            unique_id: z.ZodOptional<z.ZodString>;
+            url: z.ZodString;
+            is_active: z.ZodDefault<z.ZodBoolean>;
+            is_deleted: z.ZodDefault<z.ZodBoolean>;
+        }, z.core.$strip>>>>;
+        allowed_genders: z.ZodArray<z.ZodEnum<typeof Gender>>;
+        allowed_disabled: z.ZodBoolean;
+        is_only_for_disabled: z.ZodBoolean;
+        experience: z.ZodNumber;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export type CoachingCenterCreateInput = z.infer<typeof coachingCenterCreateSchema>['body'];
+export type CoachingCenterUpdateInput = z.infer<typeof coachingCenterUpdateSchema>['body'];
+export type AdminCoachingCenterCreateInput = z.infer<typeof adminCoachingCenterCreateSchema>['body'];
+export type AdminCoachingCenterUpdateInput = z.infer<typeof adminCoachingCenterUpdateSchema>['body'];
+//# sourceMappingURL=coachingCenter.validation.d.ts.map

@@ -1,0 +1,661 @@
+{
+    "auth": {
+        "register": {
+            "success": "Coaching centre registered successfully",
+            "emailExists": "Email already exists",
+            "mobileExists": "A user with this mobile number already exists",
+            "otpResend": "OTP not valid. Please resend OTP.",
+            "mobileNotVerified": "Mobile number not verified. Please verify mobile number.",
+            "mobileMismatch": "Mobile number in token does not match the provided mobile number",
+            "invalidTempToken": "Invalid or expired temporary registration token"
+        },
+        "social": {
+            "loginSuccess": "Social login successful",
+            "missingEmail": "Unable to retrieve an email address from the social account. Please ensure the provider supplies a verified email.",
+            "providerNotSupported": "The selected social provider is not supported."
+        },
+        "login": {
+            "success": "Login successful",
+            "invalidCredentials": "Invalid email or password",
+            "inactive": "Your account is inactive. Please contact support.",
+            "pendingApproval": "Your account is awaiting admin approval.",
+            "rejected": "Your account has been rejected by the admin.",
+            "invalidRole": "You do not have access to this resource.",
+            "mobileNotFound": "No user found with the provided mobile number.",
+            "otpNotFoundOrExpired": "OTP has expired. Please request a new one.",
+            "otpSent": "One-time password has been generated and sent.",
+            "otpUsed": "The OTP has already been used.",
+            "otpExpired": "The OTP has expired. Please request a new one.",
+            "invalidOtp": "The OTP you entered is invalid.",
+            "otpVerified": "OTP verified successfully."
+        },
+        "user": {
+            "notFound": "User not found"
+        },
+        "profile": {
+            "notFound": "Coaching centre not found",
+            "unauthorized": "Unauthorized",
+            "updateSuccess": "Profile updated successfully",
+            "passwordChanged": "Password updated successfully",
+            "invalidCurrentPassword": "Current password is incorrect",
+            "mobileVerificationFailed": "Failed to verify the mobile number. Please try again.",
+            "meSuccess": "User details fetched successfully",
+            "imageUploadFailed": "Failed to upload profile image. Please try again."
+        },
+        "token": {
+            "noToken": "No token provided or invalid format",
+            "invalidToken": "Invalid or expired token",
+            "refreshed": "Token refreshed successfully"
+        },
+        "logout": {
+            "success": "Logged out successfully",
+            "allSuccess": "Logged out from all devices successfully"
+        },
+        "fcmToken": {
+            "saved": "FCM token saved successfully"
+        },
+        "authorization": {
+            "unauthorized": "Unauthorized",
+            "forbidden": "Forbidden: Insufficient permissions",
+            "error": "Authorization error occurred"
+        },
+        "password": {
+            "changed": "Password changed successfully",
+            "currentPasswordIncorrect": "Current password is incorrect",
+            "sameAsCurrent": "New password must be different from the current password",
+            "resetOtpSent": "Password reset OTP sent successfully",
+            "resetSuccess": "Password reset successfully",
+            "resetUserNotFound": "No account found for the provided details",
+            "resetOtpInvalid": "Password reset OTP is invalid or has expired"
+        }
+    },
+    "rateLimit": {
+        "exceeded": "Too many requests. Please try again later.",
+        "loginExceeded": "Too many login attempts. Please try again later."
+    },
+    "validation": {
+        "failed": "Validation failed",
+        "email": {
+            "required": "Email is required",
+            "invalid": "Please provide a valid email"
+        },
+        "password": {
+            "required": "Password is required",
+            "minLength": "Password must be at least 8 characters long",
+            "invalidPattern": "Password must include at least one uppercase letter, one lowercase letter, one number, and one special character",
+            "sameAsCurrent": "New password must be different from the current password"
+        },
+        "coachingName": {
+            "required": "Coaching name is required",
+            "mustBeString": "Coaching name must be a string"
+        },
+        "firstName": {
+            "required": "First name is required",
+            "mustBeString": "First name must be a string",
+            "invalidFormat": "First name must start with a capital letter and contain only letters and spaces"
+        },
+        "lastName": {
+            "mustBeString": "Last name must be a string",
+            "invalidFormat": "Last name must start with a capital letter and contain only letters and spaces"
+        },
+        "mobileNumber": {
+            "required": "Mobile number is required",
+            "mustBeString": "Mobile number must be a string",
+            "minLength": "Mobile number must be exactly 10 digits long",
+            "invalidPattern": "Mobile number must start with 6, 7, 8, or 9 and contain only digits"
+        },
+        "otp": {
+            "required": "OTP is required",
+            "length": "OTP must be exactly 6 digits"
+        },
+        "address": {
+            "line1Required": "Address line 1 is required",
+            "line2Required": "Address line 2 is required",
+            "cityRequired": "City is required",
+            "stateRequired": "State is required",
+            "countryRequired": "Country is required",
+            "pincodeRequired": "Pincode is required",
+            "pincodeInvalid": "Pincode must be a 6-digit number"
+        },
+        "profile": {
+            "noChanges": "Please provide at least one field to update"
+        },
+        "file": {
+            "required": "Image file is required",
+            "invalidType": "Invalid file type. Allowed types: {types}",
+            "tooLarge": "File size exceeds the maximum limit of 5MB"
+        },
+        "contactEmail": {
+            "invalid": "Contact email must be a valid email"
+        },
+        "contactNumber": {
+            "mustBeString": "Contact number must be a string"
+        },
+        "isVerified": {
+            "required": "OTP verification status is required",
+            "mustBeTrue": "Please verify your mobile OTP before registering"
+        },
+        "locale": {
+            "invalid": "Invalid locale. Supported locales: en, hi"
+        },
+        "coachingCenter": {
+            "centerName": {
+                "required": "Center name is required",
+                "maxLength": "Center name must not exceed 255 characters"
+            },
+            "description": {
+                "required": "Description is required",
+                "minLength": "Description must be at least 5 characters",
+                "maxLength": "Description must not exceed 2000 characters"
+            },
+            "rulesRegulation": {
+                "maxLength": "Rules and regulations must not exceed 5000 characters"
+            },
+            "logo": {
+                "required": "Logo is required",
+                "invalidUrl": "Logo must be a valid URL",
+                "invalidAspectRatio": "Logo must have a 1:1 aspect ratio (square image)"
+            },
+            "sports": {
+                "required": "Sports are required",
+                "minOne": "At least one sport is required"
+            },
+            "age": {
+                "minRequired": "Minimum age is required",
+                "minInteger": "Minimum age must be an integer",
+                "minRange": "Minimum age must be between 0 and 100",
+                "maxRequired": "Maximum age is required",
+                "maxInteger": "Maximum age must be an integer",
+                "maxRange": "Maximum age must be between 0 and 100",
+                "maxGreaterThanMin": "Maximum age must be greater than or equal to minimum age"
+            },
+            "location": {
+                "latitudeRequired": "Latitude is required",
+                "latitudeRange": "Latitude must be between -90 and 90",
+                "longitudeRequired": "Longitude is required",
+                "longitudeRange": "Longitude must be between -180 and 180"
+            },
+            "facility": {
+                "required": "Facility is required",
+                "invalid": "Facility must be a valid facility ID"
+            },
+            "operationalTiming": {
+                "operatingDaysRequired": "Operating days are required",
+                "operatingDaysMinOne": "At least one operating day is required",
+                "openingTimeRequired": "Opening time is required",
+                "openingTimeFormat": "Opening time must be in HH:MM format",
+                "closingTimeRequired": "Closing time is required",
+                "closingTimeFormat": "Closing time must be in HH:MM format",
+                "closingAfterOpening": "Closing time must be after opening time"
+            },
+            "media": {
+                "urlRequired": "Media URL is required",
+                "urlInvalid": "Media URL must be a valid URL"
+            },
+            "bankInformation": {
+                "bankNameRequired": "Bank name is required",
+                "bankNameMaxLength": "Bank name must not exceed 100 characters",
+                "accountNumberRequired": "Account number is required",
+                "accountNumberMinLength": "Account number must be at least 9 digits",
+                "accountNumberMaxLength": "Account number must be at most 18 digits",
+                "accountNumberDigits": "Account number must contain only digits",
+                "ifscCodeRequired": "IFSC code is required",
+                "ifscCodeFormat": "IFSC code must be in valid format (e.g., ABCD0123456)",
+                "accountHolderNameRequired": "Account holder name is required",
+                "accountHolderNameMaxLength": "Account holder name must not exceed 100 characters",
+                "gstNumberFormat": "GST number must be in valid format"
+            },
+            "status": {
+                "invalid": "Status must be either 'draft' or 'published'"
+            }
+        },
+        "batch": {
+            "name": {
+                "required": "Batch name is required",
+                "maxLength": "Batch name must not exceed 255 characters"
+            },
+            "sportId": {
+                "required": "Sport ID is required",
+                "invalid": "Invalid sport ID"
+            },
+            "centerId": {
+                "required": "Center ID is required",
+                "invalid": "Invalid center ID"
+            },
+            "coach": {
+                "invalid": "Invalid coach ID"
+            },
+            "scheduled": {
+                "startDateRequired": "Start date is required",
+                "startDateInvalid": "Start date must be a valid date",
+                "startDateNotPast": "Start date must be today or in the future",
+                "startTimeRequired": "Start time is required",
+                "startTimeFormat": "Start time must be in HH:MM format (24-hour)",
+                "endTimeRequired": "End time is required",
+                "endTimeFormat": "End time must be in HH:MM format (24-hour)",
+                "endTimeAfterStart": "End time must be after start time",
+                "trainingDaysRequired": "Training days are required",
+                "trainingDaysMinOne": "At least one training day is required",
+                "trainingDaysInvalid": "Training days must be valid days (monday, tuesday, wednesday, thursday, friday, saturday, sunday)"
+            },
+            "duration": {
+                "countRequired": "Duration count is required",
+                "countInteger": "Duration count must be an integer",
+                "countMin": "Duration count must be at least 1",
+                "typeRequired": "Duration type is required",
+                "typeInvalid": "Duration type must be one of: day, month, week, year"
+            },
+            "capacity": {
+                "minRequired": "Minimum capacity is required",
+                "minInteger": "Minimum capacity must be an integer",
+                "minMin": "Minimum capacity must be at least 1",
+                "maxInteger": "Maximum capacity must be an integer",
+                "maxMin": "Maximum capacity must be at least 1",
+                "maxGreaterThanMin": "Maximum capacity must be greater than or equal to minimum capacity"
+            },
+            "admissionFee": {
+                "invalid": "Admission fee cannot be negative"
+            },
+            "age": {
+                "minRequired": "Minimum age is required",
+                "minInteger": "Minimum age must be an integer",
+                "minRange": "Minimum age must be between 3 and 18",
+                "maxRequired": "Maximum age is required",
+                "maxInteger": "Maximum age must be an integer",
+                "maxRange": "Maximum age must be between 3 and 18",
+                "maxGreaterThanMin": "Maximum age must be greater than or equal to minimum age"
+            },
+            "status": {
+                "invalid": "Status must be one of: published, draft"
+            }
+        },
+        "feeStructure": {
+            "batchId": {
+                "required": "Batch ID is required",
+                "invalid": "Invalid batch ID"
+            },
+            "name": {
+                "required": "Fee structure name is required",
+                "maxLength": "Fee structure name must not exceed 255 characters"
+            },
+            "description": {
+                "maxLength": "Description must not exceed 1000 characters"
+            },
+            "feeType": {
+                "required": "Fee type is required",
+                "invalid": "Invalid fee type"
+            },
+            "admissionFee": {
+                "invalid": "Admission fee cannot be negative"
+            },
+            "configuration": {
+                "basePriceRequired": "Base price is required for this fee type",
+                "basePriceOrOptionsRequired": "Base price or classes/sessions options are required for this fee type",
+                "packagesRequired": "At least one package is required for package-based fee type",
+                "ageGroupsRequired": "At least one age group is required for age-based fee type",
+                "coachLevelsRequired": "At least one coach level is required for coach license-based fee type",
+                "playerLevelsRequired": "At least one player level is required for player level-based fee type",
+                "seasonsRequired": "At least one season is required for seasonal fee type",
+                "groupDiscountsRequired": "At least one group discount is required for group discount fee type",
+                "membershipLevelsRequired": "At least one membership level is required for membership-based fee type",
+                "weekendPricingRequired": "Weekend multiplier or weekend price is required for weekend pricing fee type",
+                "peakHoursRequired": "Peak hours are required for peak hours fee type",
+                "peakHourPricingRequired": "Peak hour multiplier or peak hour price is required for peak hours fee type"
+            }
+        }
+    },
+    "errors": {
+        "internalServerError": "Internal Server Error",
+        "routeNotFound": "Route {route} not found",
+        "roleNotFound": "Role with name '{role}' not found",
+        "userNotFound": "User not found"
+    },
+    "coachingCenterRating": {
+        "invalidRating": "Rating must be between {min} and {max}",
+        "centerNotFound": "Coaching center not found",
+        "ratingNotFound": "Rating not found",
+        "invalidStatus": "Invalid status. Use approved, rejected, or pending",
+        "ratingsDisabled": "Ratings are currently disabled",
+        "submitSuccess": "Rating submitted successfully",
+        "updateSuccess": "Rating updated successfully",
+        "listSuccess": "Ratings retrieved successfully",
+        "getSuccess": "Rating retrieved successfully",
+        "statusUpdated": "Rating status updated successfully"
+    },
+    "health": {
+        "serverRunning": "Server is running"
+    },
+    "common": {
+        "success": "Success",
+        "error": "Error",
+        "notFound": "Not found",
+        "badRequest": "Bad request"
+    },
+    "locale": {
+        "changed": "Language changed to {locale}",
+        "invalid": "Invalid locale. Supported locales: en, hi"
+    },
+    "location": {
+        "countries": {
+            "success": "Countries retrieved successfully"
+        },
+        "states": {
+            "success": "States retrieved successfully",
+            "countryCodeRequired": "Country code is required"
+        },
+        "cities": {
+            "success": "Cities retrieved successfully",
+            "stateRequired": "State name or state ID is required"
+        }
+    },
+    "sport": {
+        "getAll": {
+            "success": "Sports retrieved successfully"
+        },
+        "getById": {
+            "success": "Sport retrieved successfully"
+        },
+        "create": {
+            "success": "Sport created successfully",
+            "failed": "Failed to create sport"
+        },
+        "update": {
+            "success": "Sport updated successfully",
+            "failed": "Failed to update sport"
+        },
+        "delete": {
+            "success": "Sport deleted successfully",
+            "failed": "Failed to delete sport"
+        },
+        "toggleStatus": {
+            "active": "Sport activated successfully",
+            "inactive": "Sport deactivated successfully",
+            "failed": "Failed to toggle sport active status"
+        },
+        "notFound": "Sport not found",
+        "alreadyExists": "Sport with this name already exists"
+    },
+    "coachingCenter": {
+        "create": {
+            "success": "Coaching center created successfully",
+            "failed": "Failed to create coaching center"
+        },
+        "get": {
+            "success": "Coaching center retrieved successfully",
+            "failed": "Failed to fetch coaching center"
+        },
+        "list": {
+            "success": "Coaching centers retrieved successfully",
+            "failed": "Failed to fetch coaching centers"
+        },
+        "update": {
+            "success": "Coaching center updated successfully",
+            "failed": "Failed to update coaching center"
+        },
+        "toggleStatus": {
+            "active": "Coaching center activated successfully",
+            "inactive": "Coaching center deactivated successfully",
+            "failed": "Failed to toggle coaching center active status"
+        },
+        "delete": {
+            "success": "Coaching center deleted successfully",
+            "failed": "Failed to delete coaching center"
+        },
+        "idRequired": "Coaching center ID is required",
+        "notFound": "Coaching center not found",
+        "emailExists": "Email already exists",
+        "mobileExists": "Coaching center with this mobile number already exists",
+        "sports": {
+            "invalid": "One or more sports are invalid"
+        },
+        "facility": {
+            "invalidId": "Invalid facility ID: {id}",
+            "notFound": "Facility not found: {id}",
+            "createFailed": "Failed to create facility"
+        },
+        "media": {
+            "uploadSuccess": "Media file uploaded successfully",
+            "uploadFailed": "Failed to upload media file",
+            "deleteSuccess": "Media file deleted successfully",
+            "deleteFailed": "Failed to delete media file",
+            "removeSuccess": "Media removed successfully",
+            "removeFailed": "Failed to remove media",
+            "notFound": "Media not found",
+            "missingParams": "Media type and unique ID are required",
+            "invalidType": "Invalid media type. Must be one of: logo, document, image, video",
+            "sportIdRequired": "Sport ID is required for image/video media types",
+            "sportDetailNotFound": "Sport detail not found for the provided sport ID"
+        }
+    },
+    "facility": {
+        "getAll": {
+            "success": "Facilities retrieved successfully"
+        }
+    },
+    "employee": {
+        "create": {
+            "success": "Employee created successfully",
+            "failed": "Failed to create employee"
+        },
+        "get": {
+            "success": "Employee retrieved successfully",
+            "failed": "Failed to fetch employee"
+        },
+        "list": {
+            "success": "Employees retrieved successfully",
+            "failed": "Failed to fetch employees"
+        },
+        "update": {
+            "success": "Employee updated successfully",
+            "failed": "Failed to update employee"
+        },
+        "toggleStatus": {
+            "active": "Employee activated successfully",
+            "inactive": "Employee deactivated successfully",
+            "failed": "Failed to toggle employee active status"
+        },
+        "delete": {
+            "success": "Employee deleted successfully",
+            "failed": "Failed to delete employee"
+        },
+        "idRequired": "Employee ID is required",
+        "notFound": "Employee not found",
+        "emailExists": "Employee with this email already exists",
+        "mobileExists": "Employee with this mobile number already exists",
+        "invalidId": "Invalid employee ID",
+        "unauthorizedUpdate": "You can only update your own employees",
+        "unauthorizedToggle": "You can only toggle status of your own employees",
+        "unauthorizedDelete": "You can only delete your own employees",
+        "media": {
+            "uploadSuccess": "Certification files uploaded successfully",
+            "uploadFailed": "Failed to upload certification files",
+            "fileRequired": "At least one certification file is required"
+        }
+    },
+    "participant": {
+        "create": {
+            "success": "Participant created successfully",
+            "failed": "Failed to create participant"
+        },
+        "get": {
+            "success": "Participant retrieved successfully",
+            "failed": "Failed to fetch participant"
+        },
+        "list": {
+            "success": "Participants retrieved successfully",
+            "failed": "Failed to fetch participants"
+        },
+        "update": {
+            "success": "Participant updated successfully",
+            "failed": "Failed to update participant"
+        },
+        "delete": {
+            "success": "Participant deleted successfully",
+            "failed": "Failed to delete participant"
+        },
+        "idRequired": "Participant ID is required",
+        "notFound": "Participant not found",
+        "age": {
+            "minRequired": "Participant must be at least 3 years old",
+            "maxExceeded": "Participant must be 18 years old or younger"
+        },
+        "dob": {
+            "invalid": "Date of birth cannot be in the future"
+        }
+    },
+    "role": {
+        "list": {
+            "success": "Roles retrieved successfully",
+            "failed": "Failed to fetch roles"
+        }
+    },
+    "academy": {
+        "getAll": {
+            "success": "Academies retrieved successfully"
+        },
+        "getById": {
+            "success": "Academy retrieved successfully",
+            "notFound": "Academy not found",
+            "idRequired": "Academy ID is required"
+        },
+        "getByCity": {
+            "success": "Academies retrieved successfully",
+            "cityNameRequired": "City name is required"
+        },
+        "getBySport": {
+            "success": "Academies retrieved successfully",
+            "slugRequired": "Sport slug is required",
+            "sportNotFound": "Sport not found"
+        },
+        "exists": "Academy already exists with this email or mobile number",
+        "userExists": "User already exists with this email or mobile number",
+        "validation": {
+            "invalidLocationCoordinates": "Invalid location coordinates",
+            "invalidRadius": "Invalid radius. Radius must be greater than 0 and not exceed the maximum allowed radius"
+        }
+    },
+    "home": {
+        "getHomeData": {
+            "success": "Home data retrieved successfully",
+            "failed": "Failed to get home data"
+        },
+        "getPopularSports": {
+            "failed": "Failed to get popular sports"
+        },
+        "getNearbyAcademies": {
+            "failed": "Failed to get nearby academies"
+        }
+    },
+    "sitemap": {
+        "getSuccess": "Sitemap data retrieved successfully"
+    },
+    "notification": {
+        "send": {
+            "success": "Notification sent successfully"
+        },
+        "list": {
+            "success": "Notifications retrieved successfully",
+            "failed": "Failed to retrieve notifications"
+        },
+        "markRead": {
+            "success": "Notification marked as read",
+            "failed": "Failed to mark notification as read"
+        },
+        "markUnread": {
+            "success": "Notification marked as unread",
+            "failed": "Failed to mark notification as unread"
+        },
+        "markAllRead": {
+            "success": "All notifications marked as read",
+            "failed": "Failed to mark all notifications as read"
+        },
+        "delete": {
+            "success": "Notification deleted successfully",
+            "failed": "Failed to delete notification"
+        },
+        "unreadCount": {
+            "success": "Unread count retrieved successfully"
+        },
+        "create": {
+            "failed": "Failed to create notification"
+        },
+        "recipientNotFound": "Recipient not found",
+        "userDetailsNotFound": "User details not found",
+        "notFound": "Notification not found"
+    },
+    "batch": {
+        "create": {
+            "success": "Batch created successfully",
+            "failed": "Failed to create batch"
+        },
+        "get": {
+            "success": "Batch retrieved successfully",
+            "failed": "Failed to fetch batch"
+        },
+        "list": {
+            "success": "Batches retrieved successfully",
+            "failed": "Failed to fetch batches"
+        },
+        "update": {
+            "success": "Batch updated successfully",
+            "failed": "Failed to update batch"
+        },
+        "toggleStatus": {
+            "active": "Batch activated successfully",
+            "inactive": "Batch deactivated successfully",
+            "failed": "Failed to toggle batch active status"
+        },
+        "delete": {
+            "success": "Batch deleted successfully",
+            "failed": "Failed to delete batch"
+        },
+        "idRequired": "Batch ID is required",
+        "notFound": "Batch not found",
+        "invalidId": "Invalid batch ID",
+        "unauthorizedUpdate": "You can only update your own batches",
+        "unauthorizedToggle": "You can only toggle status of your own batches",
+        "unauthorizedDelete": "You can only delete your own batches",
+        "centerIdRequired": "Center ID is required",
+        "centerNotFound": "Coaching center not found",
+        "centerNotOwned": "You can only create batches for your own coaching centers",
+        "sportNotFound": "Sport not found or inactive",
+        "coachNotFound": "Coach (employee) not found",
+        "coachNotInCenter": "Coach does not belong to the specified center"
+    },
+    "settings": {
+        "get": {
+            "success": "Settings retrieved successfully"
+        },
+        "update": {
+            "success": "Settings updated successfully",
+            "dataRequired": "Settings data is required"
+        },
+        "reset": {
+            "success": "Settings reset successfully"
+        }
+    },
+    "admin": {
+        "profile": {
+            "retrieved": "Profile retrieved successfully",
+            "updated": "Profile updated successfully",
+            "imageUpdated": "Profile image updated successfully"
+        },
+        "dashboard": {
+            "statsRetrieved": "Statistics retrieved successfully"
+        },
+        "users": {
+            "created": "User created successfully. Credentials have been sent to their email.",
+            "createFailed": "Failed to create user",
+            "retrieved": "Users retrieved successfully",
+            "updated": "User updated successfully",
+            "deleted": "User deleted successfully",
+            "statusActivated": "User activated successfully",
+            "statusDeactivated": "User deactivated successfully",
+            "emailExists": "Email already exists",
+            "mobileExists": "A user with this mobile number already exists",
+            "invalidRoles": "One or more roles are invalid",
+            "invalidRolesFormat": "Invalid roles format",
+            "onlySuperAdminCanUpdateEmail": "Only super admin can update email"
+        }
+    }
+}
