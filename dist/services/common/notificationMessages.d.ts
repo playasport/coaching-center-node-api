@@ -172,6 +172,7 @@ export declare const EmailTemplates: {
     readonly BOOKING_CANCELLED_USER: "booking-cancelled-user.html";
     readonly BOOKING_CANCELLED_ACADEMY: "booking-cancelled-academy.html";
     readonly BOOKING_CANCELLED_ADMIN: "booking-cancelled-admin.html";
+    readonly BOOKING_PAYMENT_REMINDER_USER: "booking-payment-reminder-user.html";
     readonly PAYOUT_ACCOUNT_CREATED: "payout-account-created.html";
     readonly PAYOUT_ACCOUNT_ACTIVATED: "payout-account-activated.html";
 };
@@ -189,6 +190,7 @@ export declare const EmailSubjects: {
     readonly BOOKING_CANCELLED_USER: "Booking Cancelled - Play A Sport";
     readonly BOOKING_CANCELLED_ACADEMY: "Booking Cancelled - Play A Sport";
     readonly BOOKING_CANCELLED_ADMIN: "Booking Cancelled - Play A Sport";
+    readonly BOOKING_PAYMENT_REMINDER_USER: "Complete your payment - Play A Sport";
     readonly BOOKING_REFUNDED_USER: "Booking Refunded - Play A Sport";
     readonly PAYOUT_ACCOUNT_CREATED: "Payout Account Created - Play A Sport";
     readonly PAYOUT_ACCOUNT_ACTIVATED: "Payout Account Activated - Play A Sport";
@@ -303,6 +305,22 @@ export declare const getBookingCancelledAcademyPush: (variables: NotificationMes
  * Booking Approved - User (Push Notification)
  */
 export declare const getBookingApprovedUserPush: (variables: NotificationMessageVariables) => PushNotificationTemplate;
+/**
+ * Payment reminder - User (SMS). Variables: batchName, centerName, bookingId, hoursLeft, paymentUrl
+ */
+export declare const getPaymentReminderUserSms: (variables: NotificationMessageVariables) => string;
+/**
+ * Payment reminder - User (WhatsApp)
+ */
+export declare const getPaymentReminderUserWhatsApp: (variables: NotificationMessageVariables) => string;
+/**
+ * Payment reminder - User (Email plain text)
+ */
+export declare const getPaymentReminderUserEmailText: (variables: NotificationMessageVariables) => string;
+/**
+ * Payment reminder - User (Push)
+ */
+export declare const getPaymentReminderUserPush: (variables: NotificationMessageVariables) => PushNotificationTemplate;
 /**
  * Booking Rejected - User (Push Notification)
  */

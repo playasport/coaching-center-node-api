@@ -37,6 +37,10 @@ const express_1 = require("express");
 const webhookController = __importStar(require("../controllers/webhook.controller"));
 const webhook_middleware_1 = require("../middleware/webhook.middleware");
 const router = (0, express_1.Router)();
+/** WhatsApp Cloud API: GET for webhook verification (Meta subscription) */
+router.get('/whatsapp', webhookController.handleWhatsAppWebhookVerify);
+/** WhatsApp Cloud API: POST for incoming messages */
+router.post('/whatsapp', webhookController.handleWhatsAppWebhook);
 /**
  * @swagger
  * /webhook/razorpay:

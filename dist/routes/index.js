@@ -57,6 +57,7 @@ const coachingCenterRating_routes_1 = __importDefault(require("./academy/coachin
 const role_routes_1 = __importDefault(require("./role.routes"));
 const participant_routes_1 = __importDefault(require("./participant.routes"));
 const booking_routes_2 = __importDefault(require("./booking.routes"));
+const publicBooking_routes_1 = __importDefault(require("./publicBooking.routes"));
 const transaction_routes_1 = __importDefault(require("./transaction.routes"));
 const dashboard_routes_2 = __importDefault(require("./dashboard.routes"));
 const rating_routes_1 = __importDefault(require("./rating.routes"));
@@ -84,6 +85,7 @@ router.use('/academy/auth', academyAuth_routes_1.default);
 router.use('/user/auth', userAuth_routes_1.default);
 router.use('/user/participant', participant_routes_1.default);
 router.use('/user/booking', booking_routes_2.default);
+router.use('/public/booking', publicBooking_routes_1.default);
 router.use('/user/transactions', transaction_routes_1.default);
 router.use('/user/dashboard', dashboard_routes_2.default);
 router.use('/user/ratings', rating_routes_1.default);

@@ -131,11 +131,30 @@ exports.config = {
     booking: {
         platformFee: Number(process.env.PLATFORM_FEE || 200), // Default platform fee
         gstPercentage: Number(process.env.GST_PERCENTAGE || 18), // Default GST percentage
+        // Payment link expiry (hours). After this, unpaid approved booking is auto-cancelled. Overridable via Settings.
+        paymentLinkExpiryHours: Number(process.env.BOOKING_PAYMENT_LINK_EXPIRY_HOURS || 24),
+        // Send payment reminder when X hours left before expiry (e.g. [12, 6, 2]). Overridable via Settings.
+        paymentReminderHoursBeforeExpiry: (() => {
+            const raw = process.env.BOOKING_PAYMENT_REMINDER_HOURS;
+            if (raw && /^[\d,\s]+$/.test(raw)) {
+                return raw.split(',').map((h) => Math.max(0, parseInt(h.trim(), 10))).filter((h) => h > 0).sort((a, b) => b - a);
+            }
+            return [12, 6, 2];
+        })(),
     },
     location: {
         defaultRadius: Number(process.env.DEFAULT_SEARCH_RADIUS_KM || 50), // Default search radius in kilometers
         maxRadius: Number(process.env.MAX_SEARCH_RADIUS_KM || 200), // Maximum allowed search radius in kilometers
         googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '', // For Distance Matrix API (road distance); empty = use Haversine fallback
+    },
+    /** Meta WhatsApp Cloud API (for admin chat + storing conversations). Separate from Twilio WhatsApp. */
+    whatsappCloud: {
+        enabled: parseBoolean(process.env.WHATSAPP_CLOUD_ENABLED, false),
+        phoneNumberId: process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID || '',
+        accessToken: process.env.WHATSAPP_CLOUD_ACCESS_TOKEN || '',
+        webhookVerifyToken: process.env.WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN || '',
+        appSecret: process.env.WHATSAPP_CLOUD_APP_SECRET || '',
+        apiVersion: process.env.WHATSAPP_CLOUD_API_VERSION || 'v21.0',
     },
     notification: {
         enabled: parseBoolean(process.env.NOTIFICATION_ENABLED, true),

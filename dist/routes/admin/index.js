@@ -27,6 +27,7 @@ const queue_routes_1 = __importDefault(require("./queue.routes"));
 const facility_routes_1 = __importDefault(require("./facility.routes"));
 const location_routes_1 = __importDefault(require("./location.routes"));
 const payout_routes_1 = __importDefault(require("./payout.routes"));
+const whatsappChat_routes_1 = __importDefault(require("./whatsappChat.routes"));
 const router = (0, express_1.Router)();
 // Admin routes
 router.use('/auth', auth_routes_1.default);
@@ -52,5 +53,6 @@ router.use('/queues', queue_routes_1.default);
 router.use('/facilities', facility_routes_1.default);
 router.use('/locations', location_routes_1.default);
 router.use('/payouts', payout_routes_1.default);
+router.use('/whatsapp-chat', whatsappChat_routes_1.default);
 exports.default = router;
 //# sourceMappingURL=index.js.map

@@ -33,9 +33,58 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.handleRazorpayWebhook = void 0;
+exports.handleRazorpayWebhook = exports.handleWhatsAppWebhook = exports.handleWhatsAppWebhookVerify = void 0;
 const logger_1 = require("../utils/logger");
 const webhookService = __importStar(require("../services/common/webhook.service"));
+const settings_service_1 = require("../services/common/settings.service");
+const metaWhatsApp_service_1 = require("../services/common/metaWhatsApp.service");
+/**
+ * WhatsApp Cloud API webhook verification (GET)
+ * Meta sends hub.mode=subscribe, hub.verify_token=YOUR_TOKEN, hub.challenge=RANDOM
+ */
+const handleWhatsAppWebhookVerify = async (req, res) => {
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+    const cfg = await (0, settings_service_1.getWhatsAppCloudConfig)();
+    const result = (0, metaWhatsApp_service_1.verifyWhatsAppWebhook)(mode, token, challenge, cfg.webhookVerifyToken);
+    if (result === null) {
+        res.status(403).send('Forbidden');
+        return;
+    }
+    res.status(200).send(result);
+};
+exports.handleWhatsAppWebhookVerify = handleWhatsAppWebhookVerify;
+/**
+ * WhatsApp Cloud API webhook (POST) - incoming messages
+ */
+const handleWhatsAppWebhook = async (req, res) => {
+    try {
+        const signature = req.headers['x-hub-signature-256'];
+        const rawBody = req.rawBody;
+        const cfg = await (0, settings_service_1.getWhatsAppCloudConfig)();
+        if (rawBody && signature && cfg.appSecret) {
+            const valid = (0, metaWhatsApp_service_1.verifyWhatsAppWebhookSignature)(rawBody, signature, cfg.appSecret);
+            if (!valid) {
+                logger_1.logger.warn('WhatsApp webhook invalid signature');
+                res.status(401).send('Invalid signature');
+                return;
+            }
+        }
+        const payload = req.body;
+        if (payload?.object === 'whatsapp_business_account') {
+            (0, metaWhatsApp_service_1.processWhatsAppWebhookPayload)(payload).catch((err) => {
+                logger_1.logger.error('WhatsApp webhook process error', { error: err });
+            });
+        }
+        res.status(200).send('OK');
+    }
+    catch (error) {
+        logger_1.logger.error('WhatsApp webhook handler error', { error });
+        res.status(200).send('OK');
+    }
+};
+exports.handleWhatsAppWebhook = handleWhatsAppWebhook;
 /**
  * Handle Razorpay webhook
  */

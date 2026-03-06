@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cancelBooking = exports.deleteOrder = exports.downloadBookingInvoice = exports.getBookingDetails = exports.getUserBookings = exports.verifyPayment = exports.createPaymentOrder = exports.bookSlot = exports.getBookingSummary = exports.calculateAge = exports.generateBookingId = void 0;
+exports.cancelBookingBySystem = exports.PAYMENT_EXPIRED_CANCELLATION_REASON = exports.cancelBooking = exports.deleteOrder = exports.downloadBookingInvoice = exports.getBookingDetails = exports.getUserBookings = exports.verifyPayment = exports.createOrderByPaymentToken = exports.getBookingByPaymentToken = exports.createPaymentOrder = exports.bookSlot = exports.getBookingSummary = exports.calculateAge = exports.generateBookingId = void 0;
 const mongoose_1 = require("mongoose");
 const booking_model_1 = require("../../models/booking.model");
 const transaction_model_1 = require("../../models/transaction.model");
@@ -357,20 +357,20 @@ const bookSlot = async (data, userId) => {
                             recipient: 'academy',
                         });
                     }
-                    // WhatsApp notification (async)
-                    if (academyMobile) {
-                        const whatsappMessage = (0, notificationMessages_1.getBookingRequestAcademyWhatsApp)({
-                            batchName,
-                            userName,
-                            participants: participantNames,
-                            bookingId: booking.booking_id ?? undefined,
-                        });
-                        (0, notificationQueue_service_1.queueWhatsApp)(academyMobile, whatsappMessage, 'high', {
-                            type: 'booking_request',
-                            bookingId: booking.booking_id ?? undefined,
-                            recipient: 'academy',
-                        });
-                    }
+                    // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+                    // if (academyMobile) {
+                    //   const whatsappMessage = getBookingRequestAcademyWhatsApp({
+                    //     batchName,
+                    //     userName,
+                    //     participants: participantNames,
+                    //     bookingId: booking.booking_id ?? undefined,
+                    //   });
+                    //   queueWhatsApp(academyMobile, whatsappMessage, 'high', {
+                    //     type: 'booking_request',
+                    //     bookingId: booking.booking_id ?? undefined,
+                    //     recipient: 'academy',
+                    //   });
+                    // }
                 }
                 catch (error) {
                     logger_1.logger.error('Failed to send academy notifications', { error, bookingId: booking.booking_id ?? booking.id });
@@ -436,20 +436,20 @@ const bookSlot = async (data, userId) => {
                 recipient: 'user',
             });
         }
-        // WhatsApp notification (async)
-        if (userDetails?.mobile) {
-            const whatsappMessage = (0, notificationMessages_1.getBookingRequestSentUserWhatsApp)({
-                batchName,
-                centerName,
-                participants: participantNames,
-                bookingId: booking.booking_id ?? undefined,
-            });
-            (0, notificationQueue_service_1.queueWhatsApp)(userDetails.mobile, whatsappMessage, 'medium', {
-                type: 'booking_request_sent',
-                bookingId: booking.id,
-                recipient: 'user',
-            });
-        }
+        // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+        // if (userDetails?.mobile) {
+        //   const whatsappMessage = getBookingRequestSentUserWhatsApp({
+        //     batchName,
+        //     centerName,
+        //     participants: participantNames,
+        //     bookingId: booking.booking_id ?? undefined,
+        //   });
+        //   queueWhatsApp(userDetails.mobile, whatsappMessage, 'medium', {
+        //     type: 'booking_request_sent',
+        //     bookingId: booking.id,
+        //     recipient: 'user',
+        //   });
+        // }
         // Notification to Admin (role-based) - fire-and-forget
         const adminPushNotification = (0, notificationMessages_1.getBookingRequestAdminPush)({
             userName: userDetails?.firstName || 'User',
@@ -678,6 +678,197 @@ const createPaymentOrder = async (bookingId, userId) => {
     }
 };
 exports.createPaymentOrder = createPaymentOrder;
+/**
+ * Get booking by payment token for public pay page (no auth).
+ * Returns booking details and payment_enabled so frontend can show Pay button or already paid/cancelled/expired state.
+ */
+const getBookingByPaymentToken = async (token) => {
+    if (!token || token.trim() === '') {
+        throw new ApiError_1.ApiError(400, 'Invalid or missing payment token');
+    }
+    const booking = await booking_model_1.BookingModel.findOne({
+        payment_token: token.trim(),
+        is_deleted: false,
+    })
+        .populate('participants', 'id firstName lastName dob profilePhoto')
+        .populate({
+        path: 'batch',
+        select: 'id name scheduled duration center sport',
+        populate: [
+            { path: 'sport', select: 'id name logo' },
+            { path: 'center', select: 'id center_name logo' },
+        ],
+    })
+        .select('id booking_id participants batch amount currency status payment payment_token payment_token_expires_at rejection_reason cancellation_reason createdAt')
+        .lean();
+    if (!booking) {
+        throw new ApiError_1.ApiError(404, 'Payment link is invalid or has expired');
+    }
+    const now = new Date();
+    const expiresAt = booking.payment_token_expires_at ? new Date(booking.payment_token_expires_at) : null;
+    if (expiresAt && expiresAt.getTime() < now.getTime()) {
+        throw new ApiError_1.ApiError(400, 'This payment link has expired. Please request a new link or log in to pay.');
+    }
+    const bookingStatus = booking.status || booking_model_1.BookingStatus.PENDING;
+    const paymentStatus = booking.payment?.status || booking_model_1.PaymentStatus.PENDING;
+    return {
+        id: booking.id,
+        booking_id: booking.booking_id || booking.id,
+        batch: {
+            id: booking.batch?._id?.toString() || booking.batch?.id || '',
+            name: booking.batch?.name || 'N/A',
+            scheduled: booking.batch?.scheduled || { start_date: new Date(), start_time: '', end_time: '', training_days: [] },
+            duration: booking.batch?.duration || { count: 0, type: '' },
+        },
+        participants: (booking.participants || []).map((p) => {
+            const dob = p.dob ? new Date(p.dob) : null;
+            const age = dob ? (0, booking_helpers_utils_1.calculateAge)(dob, new Date()) : null;
+            return {
+                id: p._id?.toString() || p.id || '',
+                firstName: p.firstName || '',
+                lastName: p.lastName || '',
+                age: age ?? null,
+                profilePhoto: p.profilePhoto ?? null,
+            };
+        }),
+        center: {
+            id: booking.batch?.center?._id?.toString() || booking.batch?.center?.id || '',
+            center_name: booking.batch?.center?.center_name || 'N/A',
+            logo: booking.batch?.center?.logo ?? null,
+        },
+        sport: {
+            id: booking.batch?.sport?._id?.toString() || booking.batch?.sport?.id || '',
+            name: booking.batch?.sport?.name || 'N/A',
+            logo: booking.batch?.sport?.logo ?? null,
+        },
+        amount: booking.amount || 0,
+        currency: booking.currency || 'INR',
+        status: bookingStatus,
+        status_message: (0, booking_helpers_utils_1.getBookingStatusMessage)(bookingStatus, paymentStatus),
+        payment_status: paymentStatus === booking_model_1.PaymentStatus.SUCCESS ? 'paid' : paymentStatus,
+        payment_enabled: (0, booking_helpers_utils_1.isPaymentLinkEnabled)(bookingStatus, paymentStatus),
+        can_download_invoice: (0, booking_helpers_utils_1.canDownloadInvoice)(bookingStatus, paymentStatus),
+        rejection_reason: bookingStatus === booking_model_1.BookingStatus.REJECTED ? booking.rejection_reason || null : null,
+        cancellation_reason: bookingStatus === booking_model_1.BookingStatus.CANCELLED ? booking.cancellation_reason || null : null,
+        token_expires_at: expiresAt,
+        razorpay_key_id: env_1.config.razorpay?.keyId || '',
+    };
+};
+exports.getBookingByPaymentToken = getBookingByPaymentToken;
+/**
+ * Create Razorpay order by payment token (public, no auth).
+ * Use when user clicks Pay on the public pay page. Webhook will verify payment.
+ */
+const createOrderByPaymentToken = async (token) => {
+    if (!token || token.trim() === '') {
+        throw new ApiError_1.ApiError(400, 'Invalid or missing payment token');
+    }
+    const booking = await booking_model_1.BookingModel.findOne({
+        payment_token: token.trim(),
+        status: booking_model_1.BookingStatus.APPROVED,
+        is_deleted: false,
+    }).lean();
+    if (!booking) {
+        throw new ApiError_1.ApiError(404, 'Booking not found or payment is not available for this link');
+    }
+    const now = new Date();
+    const expiresAt = booking.payment_token_expires_at ? new Date(booking.payment_token_expires_at) : null;
+    if (expiresAt && expiresAt.getTime() < now.getTime()) {
+        throw new ApiError_1.ApiError(400, 'This payment link has expired. Please request a new link.');
+    }
+    if (booking.payment?.status === booking_model_1.PaymentStatus.SUCCESS) {
+        throw new ApiError_1.ApiError(400, 'This booking has already been paid.');
+    }
+    if (!booking.amount || booking.amount <= 0) {
+        throw new ApiError_1.ApiError(400, 'Invalid booking amount. Cannot create payment order.');
+    }
+    if (!booking.currency || booking.currency.trim() === '') {
+        throw new ApiError_1.ApiError(400, 'Booking currency is required.');
+    }
+    const currentInitiatedCount = booking.payment?.payment_initiated_count || 0;
+    const receipt = `booking_${Date.now()}_${booking.user?.toString?.()?.slice(-6) || 'pub'}`;
+    const amountInPaise = Math.round(booking.amount * 100);
+    if (amountInPaise <= 0 || amountInPaise < 100) {
+        throw new ApiError_1.ApiError(400, 'Payment amount must be at least ₹1.00 (100 paise).');
+    }
+    const paymentOrder = await paymentService.createOrder({
+        amount: amountInPaise,
+        currency: booking.currency.toUpperCase(),
+        receipt,
+        notes: {
+            bookingId: booking.id,
+            batchId: booking.batch.toString(),
+            centerId: booking.center.toString(),
+        },
+    });
+    const updatedBooking = await booking_model_1.BookingModel.findByIdAndUpdate(booking._id, {
+        $set: {
+            'payment.razorpay_order_id': paymentOrder.id,
+            'payment.status': booking_model_1.PaymentStatus.INITIATED,
+            'payment.payment_initiated_count': currentInitiatedCount + 1,
+        },
+    }, { new: true })
+        .select('id booking_id status amount currency payment')
+        .lean();
+    if (!updatedBooking) {
+        throw new ApiError_1.ApiError(500, 'Failed to update booking with payment order');
+    }
+    try {
+        await transaction_model_1.TransactionModel.findOneAndUpdate({ booking: booking._id, razorpay_order_id: paymentOrder.id }, {
+            $set: {
+                razorpay_payment_id: null,
+                razorpay_signature: null,
+                payment_method: null,
+                processed_at: null,
+            },
+            $setOnInsert: {
+                user: booking.user,
+                booking: booking._id,
+                razorpay_order_id: paymentOrder.id,
+                amount: booking.amount,
+                currency: booking.currency,
+                type: transaction_model_1.TransactionType.PAYMENT,
+                status: transaction_model_1.TransactionStatus.PENDING,
+                source: transaction_model_1.TransactionSource.USER_VERIFICATION,
+            },
+        }, { upsert: true, new: true, lean: true });
+    }
+    catch (transactionError) {
+        logger_1.logger.error('Failed to create transaction record for public payment', {
+            bookingId: booking.id,
+            razorpay_order_id: paymentOrder.id,
+            error: transactionError instanceof Error ? transactionError.message : transactionError,
+        });
+    }
+    (0, auditTrail_service_1.createAuditTrail)(auditTrail_model_1.ActionType.PAYMENT_INITIATED, auditTrail_model_1.ActionScale.MEDIUM, `Payment order created (public link) for booking ${booking.booking_id || booking.id}`, 'Booking', booking._id, {
+        userId: booking.user,
+        academyId: booking.center,
+        bookingId: booking._id,
+        metadata: { razorpayOrderId: paymentOrder.id, amount: booking.amount },
+    }).catch(() => { });
+    return {
+        booking: {
+            id: updatedBooking.id || updatedBooking._id?.toString() || '',
+            booking_id: updatedBooking.booking_id || '',
+            status: updatedBooking.status,
+            amount: updatedBooking.amount,
+            currency: updatedBooking.currency,
+            payment: {
+                razorpay_order_id: updatedBooking.payment.razorpay_order_id || paymentOrder.id,
+                status: updatedBooking.payment.status,
+            },
+        },
+        razorpayOrder: {
+            id: paymentOrder.id,
+            amount: paymentOrder.amount,
+            currency: paymentOrder.currency,
+            receipt: paymentOrder.receipt,
+            status: paymentOrder.status,
+            created_at: paymentOrder.created_at,
+        },
+    };
+};
+exports.createOrderByPaymentToken = createOrderByPaymentToken;
 /**
  * Verify Razorpay payment and update booking status
  */
@@ -1268,59 +1459,55 @@ const verifyPayment = async (data, userId) => {
                         bookingId: booking.booking_id ?? undefined,
                     });
                 }
-                // Prepare WhatsApp messages using notification messages
-                const userWhatsAppMessage = (0, notificationMessages_1.getPaymentVerifiedUserWhatsApp)({
-                    userName: userName || 'User',
-                    bookingId: updatedBooking.booking_id ?? undefined,
-                    batchName,
-                    sportName,
-                    centerName,
-                    participants: participantNames,
-                    startDate,
-                    startTime,
-                    endTime,
-                    currency: updatedBooking.currency,
-                    amount: updatedBooking.amount.toFixed(2),
-                });
-                const centerWhatsAppMessage = (0, notificationMessages_1.getPaymentVerifiedAcademyWhatsApp)({
-                    bookingId: updatedBooking.booking_id ?? undefined,
-                    batchName,
-                    sportName,
-                    userName: userName || 'N/A',
-                    participants: participantNames,
-                    startDate,
-                    startTime,
-                    endTime,
-                    currency: updatedBooking.currency,
-                    amount: updatedBooking.amount.toFixed(2),
-                });
-                // Queue WhatsApp notifications using notification queue (non-blocking)
-                // Send WhatsApp to user
-                if (userMobile) {
-                    (0, notificationQueue_service_1.queueWhatsApp)(userMobile, userWhatsAppMessage, 'high', {
-                        type: 'booking_confirmation',
-                        bookingId: updatedBooking.id,
-                        recipient: 'user',
-                    });
-                }
-                else {
-                    logger_1.logger.warn('User mobile number not available for WhatsApp', {
-                        bookingId: booking.booking_id ?? undefined,
-                    });
-                }
-                // Send WhatsApp to coaching center
-                if (centerMobile) {
-                    (0, notificationQueue_service_1.queueWhatsApp)(centerMobile, centerWhatsAppMessage, 'high', {
-                        type: 'booking_confirmation',
-                        bookingId: updatedBooking.booking_id ?? undefined,
-                        recipient: 'coaching_center',
-                    });
-                }
-                else {
-                    logger_1.logger.warn('Coaching center mobile number not available for WhatsApp', {
-                        bookingId: booking.booking_id ?? undefined,
-                    });
-                }
+                // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+                // const userWhatsAppMessage = getPaymentVerifiedUserWhatsApp({
+                //   userName: userName || 'User',
+                //   bookingId: updatedBooking.booking_id ?? undefined,
+                //   batchName,
+                //   sportName,
+                //   centerName,
+                //   participants: participantNames,
+                //   startDate,
+                //   startTime,
+                //   endTime,
+                //   currency: updatedBooking.currency,
+                //   amount: updatedBooking.amount.toFixed(2),
+                // });
+                // const centerWhatsAppMessage = getPaymentVerifiedAcademyWhatsApp({
+                //   bookingId: updatedBooking.booking_id ?? undefined,
+                //   batchName,
+                //   sportName,
+                //   userName: userName || 'N/A',
+                //   participants: participantNames,
+                //   startDate,
+                //   startTime,
+                //   endTime,
+                //   currency: updatedBooking.currency,
+                //   amount: updatedBooking.amount.toFixed(2),
+                // });
+                // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+                // if (userMobile) {
+                //   queueWhatsApp(userMobile, userWhatsAppMessage, 'high', {
+                //     type: 'booking_confirmation',
+                //     bookingId: updatedBooking.id,
+                //     recipient: 'user',
+                //   });
+                // } else {
+                //   logger.warn('User mobile number not available for WhatsApp', {
+                //     bookingId: booking.booking_id ?? undefined,
+                //   });
+                // }
+                // if (centerMobile) {
+                //   queueWhatsApp(centerMobile, centerWhatsAppMessage, 'high', {
+                //     type: 'booking_confirmation',
+                //     bookingId: updatedBooking.booking_id ?? undefined,
+                //     recipient: 'coaching_center',
+                //   });
+                // } else {
+                //   logger.warn('Coaching center mobile number not available for WhatsApp', {
+                //     bookingId: booking.booking_id ?? undefined,
+                //   });
+                // }
                 // Push notifications (fire-and-forget)
                 // Push notification to User
                 if (user?.id) {
@@ -2031,20 +2218,20 @@ const cancelBooking = async (bookingId, reason, userId) => {
                             recipient: 'user',
                         });
                     }
-                    // WhatsApp notification (async)
-                    if (user.mobile) {
-                        const whatsappMessage = (0, notificationMessages_1.getBookingCancelledUserWhatsApp)({
-                            batchName,
-                            centerName,
-                            bookingId: booking.booking_id ?? undefined,
-                            reason: reason || null,
-                        });
-                        (0, notificationQueue_service_1.queueWhatsApp)(user.mobile, whatsappMessage, 'medium', {
-                            type: 'booking_cancelled',
-                            bookingId: booking.id,
-                            recipient: 'user',
-                        });
-                    }
+                    // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+                    // if (user.mobile) {
+                    //   const whatsappMessage = getBookingCancelledUserWhatsApp({
+                    //     batchName,
+                    //     centerName,
+                    //     bookingId: booking.booking_id ?? undefined,
+                    //     reason: reason || null,
+                    //   });
+                    //   queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
+                    //     type: 'booking_cancelled',
+                    //     bookingId: booking.id,
+                    //     recipient: 'user',
+                    //   });
+                    // }
                 }
                 // Notification to Academy Owner (Push + Email + SMS + WhatsApp)
                 if (centerOwnerId) {
@@ -2114,20 +2301,20 @@ const cancelBooking = async (bookingId, reason, userId) => {
                                 recipient: 'academy',
                             });
                         }
-                        // WhatsApp notification (async)
-                        if (academyMobile) {
-                            const whatsappMessage = (0, notificationMessages_1.getBookingCancelledAcademyWhatsApp)({
-                                bookingId: booking.booking_id ?? undefined,
-                                batchName,
-                                userName,
-                                reason: reason || null,
-                            });
-                            (0, notificationQueue_service_1.queueWhatsApp)(academyMobile, whatsappMessage, 'medium', {
-                                type: 'booking_cancelled',
-                                bookingId: booking.booking_id ?? undefined,
-                                recipient: 'academy',
-                            });
-                        }
+                        // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+                        // if (academyMobile) {
+                        //   const whatsappMessage = getBookingCancelledAcademyWhatsApp({
+                        //     bookingId: booking.booking_id ?? undefined,
+                        //     batchName,
+                        //     userName,
+                        //     reason: reason || null,
+                        //   });
+                        //   queueWhatsApp(academyMobile, whatsappMessage, 'medium', {
+                        //     type: 'booking_cancelled',
+                        //     bookingId: booking.booking_id ?? undefined,
+                        //     recipient: 'academy',
+                        //   });
+                        // }
                     }
                 }
                 // Notification to Admin (Email only, async)
@@ -2217,4 +2404,193 @@ const cancelBooking = async (bookingId, reason, userId) => {
     }
 };
 exports.cancelBooking = cancelBooking;
+/** Default reason when system auto-cancels due to payment not completed in time */
+exports.PAYMENT_EXPIRED_CANCELLATION_REASON = 'Payment not completed within the allowed time. Your booking has been automatically cancelled.';
+/**
+ * Cancel an approved booking by system (e.g. payment link expired). Sends same notifications as user cancellation.
+ * Used by the booking payment expiry cron job.
+ */
+const cancelBookingBySystem = async (bookingId, reason = exports.PAYMENT_EXPIRED_CANCELLATION_REASON) => {
+    const booking = await booking_model_1.BookingModel.findOne({
+        id: bookingId,
+        status: booking_model_1.BookingStatus.APPROVED,
+        is_deleted: false,
+    })
+        .populate('batch', 'id name')
+        .populate('center', 'id center_name')
+        .populate('sport', 'id name')
+        .lean();
+    if (!booking) {
+        logger_1.logger.warn('cancelBookingBySystem: booking not found or not eligible', { bookingId });
+        return;
+    }
+    if (booking.payment?.status === booking_model_1.PaymentStatus.SUCCESS) {
+        logger_1.logger.warn('cancelBookingBySystem: booking already paid', { bookingId });
+        return;
+    }
+    await booking_model_1.BookingModel.findByIdAndUpdate(booking._id, {
+        $set: {
+            status: booking_model_1.BookingStatus.CANCELLED,
+            'payment.status': [booking_model_1.PaymentStatus.INITIATED, booking_model_1.PaymentStatus.PENDING].includes(booking.payment?.status)
+                ? booking_model_1.PaymentStatus.CANCELLED
+                : booking.payment?.status,
+            'payment.failure_reason': reason,
+            cancellation_reason: reason,
+            cancelled_by: 'system',
+        },
+    });
+    if (booking.payment?.razorpay_order_id) {
+        await transaction_model_1.TransactionModel.findOneAndUpdate({ booking: booking._id, razorpay_order_id: booking.payment.razorpay_order_id }, { $set: { status: transaction_model_1.TransactionStatus.CANCELLED, failure_reason: reason } }, { upsert: false });
+    }
+    await (0, auditTrail_service_1.createAuditTrail)(auditTrail_model_1.ActionType.BOOKING_CANCELLED, auditTrail_model_1.ActionScale.MEDIUM, `Booking auto-cancelled by system (payment not completed in time): ${reason}`, 'Booking', booking._id, {
+        userId: booking.user,
+        academyId: booking.center,
+        bookingId: booking._id,
+        metadata: { reason, cancelledBy: 'system' },
+    });
+    (async () => {
+        try {
+            const [userDetails, centerDetails, batchDetails] = await Promise.all([
+                user_model_1.UserModel.findById(booking.user).select('id firstName lastName email mobile').lean(),
+                coachingCenter_model_1.CoachingCenterModel.findById(booking.center).select('id center_name user email mobile_number').lean(),
+                batch_model_1.BatchModel.findById(booking.batch).select('id name').lean(),
+            ]);
+            const batchName = batchDetails?.name || 'batch';
+            const centerName = centerDetails?.center_name || 'Academy';
+            const user = userDetails;
+            const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'User' : 'User';
+            const centerOwnerId = centerDetails?.user?.toString();
+            if (user?.id) {
+                const userPushNotification = (0, notificationMessages_1.getBookingCancelledUserPush)({ batchName, reason: reason || null });
+                await (0, notification_service_1.createAndSendNotification)({
+                    recipientType: 'user',
+                    recipientId: user.id,
+                    title: userPushNotification.title,
+                    body: userPushNotification.body,
+                    channels: ['push'],
+                    priority: 'medium',
+                    data: { type: 'booking_cancelled', bookingId: booking.id, batchId: booking.batch.toString(), reason: reason || null },
+                });
+                if (user.email) {
+                    (0, notificationQueue_service_1.queueEmail)(user.email, notificationMessages_1.EmailSubjects.BOOKING_CANCELLED_USER, {
+                        template: notificationMessages_1.EmailTemplates.BOOKING_CANCELLED_USER,
+                        text: (0, notificationMessages_1.getBookingCancelledUserEmailText)({ batchName, centerName, reason: reason || null }),
+                        templateVariables: {
+                            userName,
+                            batchName,
+                            centerName,
+                            bookingId: booking.booking_id ?? booking.id,
+                            reason: reason || null,
+                            year: new Date().getFullYear(),
+                        },
+                        priority: 'medium',
+                        metadata: { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' },
+                    });
+                }
+                if (user.mobile) {
+                    (0, notificationQueue_service_1.queueSms)(user.mobile, (0, notificationMessages_1.getBookingCancelledUserSms)({
+                        batchName,
+                        centerName,
+                        bookingId: booking.booking_id ?? undefined,
+                        reason: reason || null,
+                    }), 'medium', { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' });
+                    // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+                    // queueWhatsApp(user.mobile, getBookingCancelledUserWhatsApp({
+                    //   batchName,
+                    //   centerName,
+                    //   bookingId: booking.booking_id ?? undefined,
+                    //   reason: reason || null,
+                    // }), 'medium', { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' });
+                }
+            }
+            if (centerOwnerId) {
+                const academyOwner = await user_model_1.UserModel.findById(centerOwnerId).select('id email mobile').lean();
+                if (academyOwner) {
+                    const academyPushNotification = (0, notificationMessages_1.getBookingCancelledAcademyPush)({
+                        bookingId: booking.booking_id || booking.id,
+                        batchName,
+                        userName,
+                        reason: reason || null,
+                    });
+                    await (0, notification_service_1.createAndSendNotification)({
+                        recipientType: 'academy',
+                        recipientId: academyOwner.id,
+                        title: academyPushNotification.title,
+                        body: academyPushNotification.body,
+                        channels: ['push'],
+                        priority: 'medium',
+                        data: { type: 'booking_cancelled_academy', bookingId: booking.id, batchId: booking.batch.toString(), reason: reason || null },
+                    });
+                    const academyEmail = centerDetails?.email || academyOwner.email;
+                    if (academyEmail) {
+                        (0, notificationQueue_service_1.queueEmail)(academyEmail, notificationMessages_1.EmailSubjects.BOOKING_CANCELLED_ACADEMY, {
+                            template: notificationMessages_1.EmailTemplates.BOOKING_CANCELLED_ACADEMY,
+                            text: (0, notificationMessages_1.getBookingCancelledAcademyEmailText)({
+                                bookingId: booking.booking_id ?? undefined,
+                                batchName,
+                                userName,
+                                reason: reason || null,
+                            }),
+                            templateVariables: {
+                                centerName,
+                                batchName,
+                                userName,
+                                userEmail: user?.email || 'N/A',
+                                bookingId: booking.booking_id ?? undefined,
+                                reason: reason || null,
+                                year: new Date().getFullYear(),
+                            },
+                            priority: 'medium',
+                            metadata: { type: 'booking_cancelled', bookingId: booking.booking_id ?? undefined, recipient: 'academy' },
+                        });
+                    }
+                    const academyMobile = centerDetails?.mobile_number || academyOwner.mobile;
+                    if (academyMobile) {
+                        (0, notificationQueue_service_1.queueSms)(academyMobile, (0, notificationMessages_1.getBookingCancelledAcademySms)({
+                            bookingId: booking.booking_id ?? undefined,
+                            batchName,
+                            userName,
+                            reason: reason || null,
+                        }), 'medium', { type: 'booking_cancelled', bookingId: booking.booking_id ?? undefined, recipient: 'academy' });
+                        // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+                        // queueWhatsApp(academyMobile, getBookingCancelledAcademyWhatsApp({
+                        //   bookingId: booking.booking_id ?? undefined,
+                        //   batchName,
+                        //   userName,
+                        //   reason: reason || null,
+                        // }), 'medium', { type: 'booking_cancelled', bookingId: booking.booking_id ?? undefined, recipient: 'academy' });
+                    }
+                }
+            }
+            if (env_1.config.admin.email) {
+                (0, notificationQueue_service_1.queueEmail)(env_1.config.admin.email, notificationMessages_1.EmailSubjects.BOOKING_CANCELLED_ADMIN, {
+                    template: notificationMessages_1.EmailTemplates.BOOKING_CANCELLED_ADMIN,
+                    text: (0, notificationMessages_1.getBookingCancelledAdminEmailText)({
+                        bookingId: booking.booking_id ?? undefined,
+                        batchName,
+                        centerName,
+                        userName,
+                        reason: reason || null,
+                    }),
+                    templateVariables: {
+                        userName,
+                        userEmail: user?.email || 'N/A',
+                        batchName,
+                        centerName,
+                        bookingId: booking.booking_id ?? undefined,
+                        reason: reason || null,
+                        year: new Date().getFullYear(),
+                    },
+                    priority: 'medium',
+                    metadata: { type: 'booking_cancelled', bookingId: booking.booking_id ?? undefined, recipient: 'admin' },
+                });
+            }
+            logger_1.logger.info('Booking cancellation (system) notifications queued', { bookingId: booking.id });
+        }
+        catch (err) {
+            logger_1.logger.error('Error sending system cancellation notifications', { bookingId: booking.id, error: err });
+        }
+    })().catch(() => { });
+};
+exports.cancelBookingBySystem = cancelBookingBySystem;
 //# sourceMappingURL=booking.service.js.map

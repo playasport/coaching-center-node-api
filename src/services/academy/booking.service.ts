@@ -8,15 +8,15 @@ import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
 import { getUserObjectId } from '../../utils/userCache';
 import { createAndSendNotification } from '../common/notification.service';
-import { queueEmail, queueSms, queueWhatsApp } from '../common/notificationQueue.service';
+import { queueEmail, queueSms /* , queueWhatsApp */ } from '../common/notificationQueue.service';
 import { createAuditTrail } from '../common/auditTrail.service';
 import { ActionType, ActionScale } from '../../models/auditTrail.model';
 import { getBookingPaymentConfig } from '../common/settings.service';
 import {
   getBookingApprovedUserSms,
-  getBookingApprovedUserWhatsApp,
+  // getBookingApprovedUserWhatsApp,
   getBookingRejectedUserSms,
-  getBookingRejectedUserWhatsApp,
+  // getBookingRejectedUserWhatsApp,
   EmailTemplates,
   EmailSubjects,
   getBookingApprovedUserEmailText,
@@ -636,19 +636,19 @@ export const approveBookingRequest = async (
         });
       }
 
-      // WhatsApp notification (async)
-      if (user.mobile) {
-        const whatsappMessage = getBookingApprovedUserWhatsApp({
-          batchName,
-          centerName,
-          bookingId: booking.booking_id ?? undefined,
-        });
-        queueWhatsApp(user.mobile, whatsappMessage, 'high', {
-          type: 'booking_approved',
-          bookingId: booking.id,
-          recipient: 'user',
-        });
-      }
+      // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+      // if (user.mobile) {
+      //   const whatsappMessage = getBookingApprovedUserWhatsApp({
+      //     batchName,
+      //     centerName,
+      //     bookingId: booking.booking_id ?? undefined,
+      //   });
+      //   queueWhatsApp(user.mobile, whatsappMessage, 'high', {
+      //     type: 'booking_approved',
+      //     bookingId: booking.id,
+      //     recipient: 'user',
+      //   });
+      // }
     }
 
     logger.info(`Booking request approved: ${bookingId} by academy user ${userId}`);
@@ -844,20 +844,20 @@ export const rejectBookingRequest = async (
         });
       }
 
-      // WhatsApp notification (async)
-      if (user.mobile) {
-        const whatsappMessage = getBookingRejectedUserWhatsApp({
-          batchName,
-          centerName,
-          bookingId: booking.booking_id ?? undefined,
-          reason: reason || null,
-        });
-        queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
-          type: 'booking_rejected',
-          bookingId: booking.id,
-          recipient: 'user',
-        });
-      }
+      // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+      // if (user.mobile) {
+      //   const whatsappMessage = getBookingRejectedUserWhatsApp({
+      //     batchName,
+      //     centerName,
+      //     bookingId: booking.booking_id ?? undefined,
+      //     reason: reason || null,
+      //   });
+      //   queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
+      //     type: 'booking_rejected',
+      //     bookingId: booking.id,
+      //     recipient: 'user',
+      //   });
+      // }
     }
 
     logger.info(`Booking request rejected: ${bookingId} by academy user ${userId}`);

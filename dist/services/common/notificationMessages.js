@@ -6,7 +6,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getPayoutAccountActionRequiredAcademyEmailText = exports.getPayoutAccountActivatedAcademyEmailText = exports.getBankDetailsUpdatedAcademyEmailText = exports.getPayoutAccountCreatedAcademyEmailText = exports.getBookingRefundedUserEmailText = exports.getBookingRejectedUserEmailText = exports.getBookingApprovedUserEmailText = exports.getBookingCancelledAdminEmailText = exports.getBookingCancelledAcademyEmailText = exports.getBookingCancelledUserEmailText = exports.getBookingConfirmationAdminEmailText = exports.getBookingConfirmationCenterEmailText = exports.getBookingConfirmationUserEmailText = exports.getBookingRequestSentUserEmailText = exports.getBookingRequestAcademyEmailText = exports.EmailSubjects = exports.EmailTemplates = exports.getPayoutTransferFailedAcademyWhatsApp = exports.getPayoutTransferFailedAcademySms = exports.getPayoutTransferCompletedAcademyWhatsApp = exports.getPayoutTransferCompletedAcademySms = exports.getPayoutTransferInitiatedAcademyWhatsApp = exports.getPayoutTransferInitiatedAcademySms = exports.getBankDetailsUpdatedAcademyWhatsApp = exports.getBankDetailsUpdatedAcademySms = exports.getPayoutAccountRejectedAcademyWhatsApp = exports.getPayoutAccountRejectedAcademySms = exports.getPayoutAccountNeedsClarificationAcademyWhatsApp = exports.getPayoutAccountNeedsClarificationAcademySms = exports.getPayoutAccountActivatedAcademyWhatsApp = exports.getPayoutAccountActivatedAcademySms = exports.getPayoutAccountCreatedAcademyWhatsApp = exports.getPayoutAccountCreatedAcademySms = exports.getOtpSms = exports.getPaymentVerifiedAcademyWhatsApp = exports.getPaymentVerifiedUserWhatsApp = exports.getPaymentVerifiedAcademySms = exports.getPaymentVerifiedUserSms = exports.getBookingCancelledAcademyWhatsApp = exports.getBookingCancelledAcademySms = exports.getBookingCancelledUserWhatsApp = exports.getBookingCancelledUserSms = exports.getBookingRejectedUserWhatsApp = exports.getBookingRejectedUserSms = exports.getBookingApprovedUserWhatsApp = exports.getBookingApprovedUserSms = exports.getBookingRequestSentUserWhatsApp = exports.getBookingRequestSentUserSms = exports.getBookingRequestAcademyWhatsApp = exports.getBookingRequestAcademySms = void 0;
-exports.getNewUserRegistrationAdminPush = exports.getNewAcademyRegistrationAdminPush = exports.getPayoutTransferCompletedAcademyPush = exports.getPayoutTransferInitiatedAcademyPush = exports.getPayoutAccountRejectedAcademyPush = exports.getPayoutAccountActionRequiredAcademyPush = exports.getPayoutAccountActivatedAcademyPush = exports.getBankDetailsUpdatedAcademyPush = exports.getPayoutAccountCreatedAcademyPush = exports.getBookingRefundedAcademyPush = exports.getBookingRefundedUserPush = exports.getBookingRejectedUserPush = exports.getBookingApprovedUserPush = exports.getBookingCancelledAcademyPush = exports.getBookingCancelledUserPush = exports.getBookingConfirmationAdminPush = exports.getBookingConfirmationAcademyPush = exports.getBookingConfirmationUserPush = exports.getBookingRequestAdminPush = exports.getBookingRequestSentUserPush = exports.getBookingRequestAcademyPush = exports.getPayoutAccountRejectedAcademyEmailText = void 0;
+exports.getNewUserRegistrationAdminPush = exports.getNewAcademyRegistrationAdminPush = exports.getPayoutTransferCompletedAcademyPush = exports.getPayoutTransferInitiatedAcademyPush = exports.getPayoutAccountRejectedAcademyPush = exports.getPayoutAccountActionRequiredAcademyPush = exports.getPayoutAccountActivatedAcademyPush = exports.getBankDetailsUpdatedAcademyPush = exports.getPayoutAccountCreatedAcademyPush = exports.getBookingRefundedAcademyPush = exports.getBookingRefundedUserPush = exports.getBookingRejectedUserPush = exports.getPaymentReminderUserPush = exports.getPaymentReminderUserEmailText = exports.getPaymentReminderUserWhatsApp = exports.getPaymentReminderUserSms = exports.getBookingApprovedUserPush = exports.getBookingCancelledAcademyPush = exports.getBookingCancelledUserPush = exports.getBookingConfirmationAdminPush = exports.getBookingConfirmationAcademyPush = exports.getBookingConfirmationUserPush = exports.getBookingRequestAdminPush = exports.getBookingRequestSentUserPush = exports.getBookingRequestAcademyPush = exports.getPayoutAccountRejectedAcademyEmailText = void 0;
 const env_1 = require("../../config/env");
 /**
  * Replace template variables in a message
@@ -311,6 +311,7 @@ exports.EmailTemplates = {
     BOOKING_CANCELLED_USER: 'booking-cancelled-user.html',
     BOOKING_CANCELLED_ACADEMY: 'booking-cancelled-academy.html',
     BOOKING_CANCELLED_ADMIN: 'booking-cancelled-admin.html',
+    BOOKING_PAYMENT_REMINDER_USER: 'booking-payment-reminder-user.html',
     PAYOUT_ACCOUNT_CREATED: 'payout-account-created.html',
     PAYOUT_ACCOUNT_ACTIVATED: 'payout-account-activated.html',
 };
@@ -328,6 +329,7 @@ exports.EmailSubjects = {
     BOOKING_CANCELLED_USER: 'Booking Cancelled - Play A Sport',
     BOOKING_CANCELLED_ACADEMY: 'Booking Cancelled - Play A Sport',
     BOOKING_CANCELLED_ADMIN: 'Booking Cancelled - Play A Sport',
+    BOOKING_PAYMENT_REMINDER_USER: 'Complete your payment - Play A Sport',
     BOOKING_REFUNDED_USER: 'Booking Refunded - Play A Sport',
     PAYOUT_ACCOUNT_CREATED: 'Payout Account Created - Play A Sport',
     PAYOUT_ACCOUNT_ACTIVATED: 'Payout Account Activated - Play A Sport',
@@ -559,6 +561,40 @@ const getBookingApprovedUserPush = (variables) => {
     };
 };
 exports.getBookingApprovedUserPush = getBookingApprovedUserPush;
+/**
+ * Payment reminder - User (SMS). Variables: batchName, centerName, bookingId, hoursLeft, paymentUrl
+ */
+const getPaymentReminderUserSms = (variables) => {
+    const template = `Reminder: Complete payment for your booking "{{batchName}}" at "{{centerName}}". {{hoursLeft}} hours left. Booking ID: {{bookingId}}. - Play A Sport`;
+    return replaceVariables(template, variables);
+};
+exports.getPaymentReminderUserSms = getPaymentReminderUserSms;
+/**
+ * Payment reminder - User (WhatsApp)
+ */
+const getPaymentReminderUserWhatsApp = (variables) => {
+    const template = `*Payment reminder*\n\nComplete payment for your booking *"{{batchName}}"* at *"{{centerName}}"*.\n\n*Time left:* {{hoursLeft}} hours\n*Booking ID:* {{bookingId}}\n\nPay now to confirm your slot.\n\n- Play A Sport`;
+    return replaceVariables(template, variables);
+};
+exports.getPaymentReminderUserWhatsApp = getPaymentReminderUserWhatsApp;
+/**
+ * Payment reminder - User (Email plain text)
+ */
+const getPaymentReminderUserEmailText = (variables) => {
+    const template = `Reminder: Your booking for "{{batchName}}" at "{{centerName}}" is pending payment. You have {{hoursLeft}} hours left to pay. Booking ID: {{bookingId}}.`;
+    return replaceVariables(template, variables);
+};
+exports.getPaymentReminderUserEmailText = getPaymentReminderUserEmailText;
+/**
+ * Payment reminder - User (Push)
+ */
+const getPaymentReminderUserPush = (variables) => {
+    return {
+        title: 'Complete your payment',
+        body: replaceVariables(`Your booking for "{{batchName}}" has {{hoursLeft}} hours left to pay.`, variables),
+    };
+};
+exports.getPaymentReminderUserPush = getPaymentReminderUserPush;
 /**
  * Booking Rejected - User (Push Notification)
  */

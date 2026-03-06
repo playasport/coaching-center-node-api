@@ -15,10 +15,8 @@ const SENSITIVE_FIELDS = [
   'notifications.sms.api_secret',
   'notifications.email.username',
   'notifications.email.password',
-  'notifications.whatsapp.api_key',
-  'notifications.whatsapp.api_secret',
-  'notifications.whatsapp.account_sid',
-  'notifications.whatsapp.auth_token',
+  'notifications.whatsapp.access_token',
+  'notifications.whatsapp.app_secret',
   'payment.razorpay.key_id',
   'payment.razorpay.key_secret',
   'payment.stripe.api_key',
@@ -75,12 +73,10 @@ export const getPublicSettings = async (): Promise<Settings> => {
       delete publicSettings.notifications.email.password;
     }
     if (publicSettings.notifications?.whatsapp) {
-      delete publicSettings.notifications.whatsapp.api_key;
-      delete publicSettings.notifications.whatsapp.api_secret;
-      delete publicSettings.notifications.whatsapp.account_sid;
-      delete publicSettings.notifications.whatsapp.auth_token;
+      delete publicSettings.notifications.whatsapp.access_token;
+      delete publicSettings.notifications.whatsapp.app_secret;
     }
-    
+
     // Remove sensitive payment fields
     if (publicSettings.payment?.razorpay) {
       delete publicSettings.payment.razorpay.key_id;
@@ -201,13 +197,12 @@ const createDefaultSettings = async (): Promise<Settings> => {
         secure: config.email.secure,
       },
       whatsapp: {
-        enabled: config.notification.whatsapp.enabled,
-        provider: 'twilio',
-        account_sid: config.twilio.accountSid || null,
-        auth_token: config.twilio.authToken || null,
-        from_number: config.twilio.fromPhone || null,
-        api_key: null,
-        api_secret: null,
+        enabled: config.whatsappCloud.enabled,
+        phone_number_id: config.whatsappCloud.phoneNumberId || null,
+        access_token: config.whatsappCloud.accessToken || null,
+        webhook_verify_token: config.whatsappCloud.webhookVerifyToken || null,
+        app_secret: config.whatsappCloud.appSecret || null,
+        api_version: config.whatsappCloud.apiVersion || null,
       },
       push: {
         enabled: config.notification.push.enabled,
@@ -440,43 +435,68 @@ export const getPaymentCredentials = async (): Promise<{
 };
 
 /**
- * Get SMS/Twilio credentials with settings priority
+ * Get SMS/Twilio credentials with settings priority (SMS only; WhatsApp uses Meta Cloud)
  */
 export const getSmsCredentials = async (): Promise<{
   accountSid: string;
   authToken: string;
   fromPhone: string;
 }> => {
-  // For Twilio, check both sms and whatsapp settings (they use same provider)
   const accountSid = await getConfigWithPriority<string>(
-    'notifications.sms.api_key', 
-    config.twilio.accountSid
-  ) || await getConfigWithPriority<string>(
-    'notifications.whatsapp.account_sid',
+    'notifications.sms.api_key',
     config.twilio.accountSid
   );
-  
   const authToken = await getConfigWithPriority<string>(
     'notifications.sms.api_secret',
     config.twilio.authToken
-  ) || await getConfigWithPriority<string>(
-    'notifications.whatsapp.auth_token',
-    config.twilio.authToken
   );
-  
   const fromPhone = await getConfigWithPriority<string>(
     'notifications.sms.from_number',
     config.twilio.fromPhone
-  ) || await getConfigWithPriority<string>(
-    'notifications.whatsapp.from_number',
-    config.twilio.fromPhone
   );
-  
   return {
     accountSid: accountSid || '',
     authToken: authToken || '',
     fromPhone: fromPhone || '',
   };
+};
+
+/** WhatsApp Cloud config (Settings override env). Used for admin chat and notification WhatsApp. */
+export interface WhatsAppCloudConfig {
+  enabled: boolean;
+  phoneNumberId: string;
+  accessToken: string;
+  webhookVerifyToken: string;
+  appSecret: string;
+  apiVersion: string;
+}
+
+/**
+ * Get Meta WhatsApp Cloud API config (Settings first, then env)
+ */
+export const getWhatsAppCloudConfig = async (): Promise<WhatsAppCloudConfig> => {
+  try {
+    const settings = await getSettings(true);
+    const wc = settings.notifications?.whatsapp;
+    return {
+      enabled: wc?.enabled ?? config.whatsappCloud.enabled,
+      phoneNumberId: (wc?.phone_number_id ?? config.whatsappCloud.phoneNumberId) || '',
+      accessToken: (wc?.access_token ?? config.whatsappCloud.accessToken) || '',
+      webhookVerifyToken: (wc?.webhook_verify_token ?? config.whatsappCloud.webhookVerifyToken) || '',
+      appSecret: (wc?.app_secret ?? config.whatsappCloud.appSecret) || '',
+      apiVersion: (wc?.api_version ?? config.whatsappCloud.apiVersion) || 'v21.0',
+    };
+  } catch (error) {
+    logger.error('Failed to get WhatsApp Cloud config', error);
+    return {
+      enabled: config.whatsappCloud.enabled,
+      phoneNumberId: config.whatsappCloud.phoneNumberId,
+      accessToken: config.whatsappCloud.accessToken,
+      webhookVerifyToken: config.whatsappCloud.webhookVerifyToken,
+      appSecret: config.whatsappCloud.appSecret,
+      apiVersion: config.whatsappCloud.apiVersion || 'v21.0',
+    };
+  }
 };
 
 /**

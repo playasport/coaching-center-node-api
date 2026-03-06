@@ -22,6 +22,7 @@ import queueRoutes from './queue.routes';
 import facilityRoutes from './facility.routes';
 import locationRoutes from './location.routes';
 import payoutRoutes from './payout.routes';
+import whatsappChatRoutes from './whatsappChat.routes';
 
 const router = Router();
 
@@ -49,5 +50,6 @@ router.use('/queues', queueRoutes);
 router.use('/facilities', facilityRoutes);
 router.use('/locations', locationRoutes);
 router.use('/payouts', payoutRoutes);
+router.use('/whatsapp-chat', whatsappChatRoutes);
 
 export default router;

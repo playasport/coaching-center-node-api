@@ -93,11 +93,22 @@ export declare const config: {
     booking: {
         platformFee: number;
         gstPercentage: number;
+        paymentLinkExpiryHours: number;
+        paymentReminderHoursBeforeExpiry: number[];
     };
     location: {
         defaultRadius: number;
         maxRadius: number;
         googleMapsApiKey: string;
+    };
+    /** Meta WhatsApp Cloud API (for admin chat + storing conversations). Separate from Twilio WhatsApp. */
+    whatsappCloud: {
+        enabled: boolean;
+        phoneNumberId: string;
+        accessToken: string;
+        webhookVerifyToken: string;
+        appSecret: string;
+        apiVersion: string;
     };
     notification: {
         enabled: boolean;

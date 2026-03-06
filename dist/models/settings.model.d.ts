@@ -37,20 +37,19 @@ export interface EmailConfig {
     from_name?: string | null;
     secure?: boolean | null;
 }
-export interface WhatsAppConfig {
+export interface WhatsAppCloudSettings {
     enabled?: boolean | null;
-    provider?: string | null;
-    api_key?: string | null;
-    api_secret?: string | null;
-    from_number?: string | null;
-    account_sid?: string | null;
-    auth_token?: string | null;
+    phone_number_id?: string | null;
+    access_token?: string | null;
+    webhook_verify_token?: string | null;
+    app_secret?: string | null;
+    api_version?: string | null;
 }
 export interface NotificationConfig {
     enabled?: boolean | null;
     sms?: SmsConfig | null;
     email?: EmailConfig | null;
-    whatsapp?: WhatsAppConfig | null;
+    whatsapp?: WhatsAppCloudSettings | null;
     push?: {
         enabled?: boolean | null;
     } | null;
@@ -73,6 +72,12 @@ export interface GeneralSettings {
     /** When false, coaching center ratings are disabled (submit/view). Default true. */
     ratings_enabled?: boolean | null;
 }
+export interface BookingPaymentSettings {
+    /** Hours after approval before payment link expires and booking is auto-cancelled if unpaid. Default 24. */
+    payment_link_expiry_hours?: number | null;
+    /** Send reminder when X hours left before expiry (e.g. [12, 6, 2]). Default [12, 6, 2]. */
+    payment_reminder_hours_before_expiry?: number[] | null;
+}
 export interface BasicInfo {
     app_name?: string | null;
     app_logo?: string | null;
@@ -88,6 +93,7 @@ export interface Settings {
     contact?: ContactInfo | null;
     basic_info?: BasicInfo | null;
     general?: GeneralSettings | null;
+    booking?: BookingPaymentSettings | null;
     fees?: FeeConfig | null;
     notifications?: NotificationConfig | null;
     payment?: PaymentConfig | null;

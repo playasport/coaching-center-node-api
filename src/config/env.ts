@@ -151,6 +151,15 @@ export const config = {
     maxRadius: Number(process.env.MAX_SEARCH_RADIUS_KM || 200), // Maximum allowed search radius in kilometers
     googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '', // For Distance Matrix API (road distance); empty = use Haversine fallback
   },
+  /** Meta WhatsApp Cloud API (for admin chat + storing conversations). Separate from Twilio WhatsApp. */
+  whatsappCloud: {
+    enabled: parseBoolean(process.env.WHATSAPP_CLOUD_ENABLED, false),
+    phoneNumberId: process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID || '',
+    accessToken: process.env.WHATSAPP_CLOUD_ACCESS_TOKEN || '',
+    webhookVerifyToken: process.env.WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN || '',
+    appSecret: process.env.WHATSAPP_CLOUD_APP_SECRET || '',
+    apiVersion: process.env.WHATSAPP_CLOUD_API_VERSION || 'v21.0',
+  },
   notification: {
     enabled: parseBoolean(process.env.NOTIFICATION_ENABLED, true),
     maxRetries: Number(process.env.NOTIFICATION_MAX_RETRIES || 3),

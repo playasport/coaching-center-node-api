@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getBookingDetailsSchema = exports.cancelBookingSchema = exports.academyBookingActionSchema = exports.createPaymentOrderSchema = exports.bookSlotSchema = exports.deleteOrderSchema = exports.userBookingListSchema = exports.academyEnrolledUsersSchema = exports.academyBookingExportSchema = exports.academyEnrolledStudentsSchema = exports.academyBookingListSchema = exports.verifyPaymentSchema = exports.bookingSummarySchema = void 0;
+exports.publicCreateOrderSchema = exports.publicPayQuerySchema = exports.getBookingDetailsSchema = exports.cancelBookingSchema = exports.academyBookingActionSchema = exports.createPaymentOrderSchema = exports.bookSlotSchema = exports.deleteOrderSchema = exports.userBookingListSchema = exports.academyEnrolledUsersSchema = exports.academyBookingExportSchema = exports.academyEnrolledStudentsSchema = exports.academyBookingListSchema = exports.verifyPaymentSchema = exports.bookingSummarySchema = void 0;
 const zod_1 = require("zod");
 // Booking summary request schema
 exports.bookingSummarySchema = zod_1.z.object({
@@ -190,6 +190,18 @@ exports.cancelBookingSchema = zod_1.z.object({
 exports.getBookingDetailsSchema = zod_1.z.object({
     params: zod_1.z.object({
         bookingId: zod_1.z.string().min(1, 'Booking ID is required'),
+    }),
+});
+// Public pay-by-token (no auth): get booking details
+exports.publicPayQuerySchema = zod_1.z.object({
+    query: zod_1.z.object({
+        token: zod_1.z.string().min(1, 'Payment token is required'),
+    }),
+});
+// Public pay-by-token: create order
+exports.publicCreateOrderSchema = zod_1.z.object({
+    body: zod_1.z.object({
+        token: zod_1.z.string().min(1, 'Payment token is required'),
     }),
 });
 //# sourceMappingURL=booking.validation.js.map

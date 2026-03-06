@@ -24,6 +24,14 @@ export declare const bookSlot: (req: Request, res: Response, next: NextFunction)
  */
 export declare const createPaymentOrder: (req: Request, res: Response, next: NextFunction) => Promise<void>;
 /**
+ * Get booking by payment token (public, no auth). For pay page: shows details and payment_enabled / status.
+ */
+export declare const getPublicPayBooking: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+/**
+ * Create Razorpay order by payment token (public, no auth). Webhook will verify payment.
+ */
+export declare const createPublicOrder: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+/**
  * Cancel booking by user with reason
  */
 export declare const cancelBooking: (req: Request, res: Response, next: NextFunction) => Promise<void>;

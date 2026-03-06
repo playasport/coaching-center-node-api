@@ -17,7 +17,7 @@ import { sendTemplatedEmail } from './email.service';
 import { sendWhatsApp } from '../../utils/whatsapp';
 import { sendPushNotification, sendMulticastPushNotification } from '../../utils/fcm';
 import { deviceTokenService } from './deviceToken.service';
-import { getSmsEnabled, getEmailConfig, getSmsCredentials, getConfigWithPriority } from './settings.service';
+import { getSmsEnabled, getEmailConfig, getSmsCredentials, getWhatsAppCloudConfig, getConfigWithPriority } from './settings.service';
 
 class PriorityQueue<T extends Notification> {
   private queues: Record<NotificationPriority, T[]> = {
@@ -77,16 +77,8 @@ const isChannelEnabled = async (channel: NotificationChannel): Promise<boolean> 
       return emailConfig.enabled;
     }
     case 'whatsapp': {
-      const whatsappEnabled = await getConfigWithPriority<boolean>(
-        'notifications.whatsapp.enabled',
-        config.notification.whatsapp.enabled
-      ) ?? config.notification.whatsapp.enabled;
-      
-      const smsEnabled = await getSmsEnabled();
-      const credentials = await getSmsCredentials();
-      
-      // WhatsApp uses Twilio/SMS provider, so need SMS enabled and credentials
-      return whatsappEnabled && smsEnabled && !!credentials.accountSid;
+      const cfg = await getWhatsAppCloudConfig();
+      return cfg.enabled && !!cfg.phoneNumberId && !!cfg.accessToken;
     }
     case 'push': {
       const pushEnabled = await getConfigWithPriority<boolean>(

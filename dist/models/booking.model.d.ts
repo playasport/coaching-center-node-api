@@ -86,6 +86,11 @@ export interface Booking {
     is_active: boolean;
     is_deleted: boolean;
     deletedAt?: Date | null;
+    /** Token for public payment URL (no login). Set when booking is APPROVED, expires per settings. */
+    payment_token?: string | null;
+    payment_token_expires_at?: Date | null;
+    /** Hours-before-expiry at which we already sent a payment reminder (e.g. [12, 6, 2]). */
+    payment_reminder_sent_hours?: number[] | null;
     createdAt: Date;
     updatedAt: Date;
 }

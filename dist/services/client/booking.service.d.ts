@@ -296,6 +296,63 @@ export declare const bookSlot: (data: BookSlotInput, userId: string) => Promise<
  * This is called after academy approves the booking request
  */
 export declare const createPaymentOrder: (bookingId: string, userId: string) => Promise<PaymentOrderResponse>;
+/** Response for public pay-by-token page (no auth). Same shape as list item + token_expires_at, razorpay_key_id. */
+export interface PublicPayBookingResponse {
+    id: string;
+    booking_id: string;
+    batch: {
+        id: string;
+        name: string;
+        scheduled: {
+            start_date: Date;
+            start_time: string;
+            end_time: string;
+            training_days: string[];
+        };
+        duration: {
+            count: number;
+            type: string;
+        };
+    };
+    participants: Array<{
+        id: string;
+        firstName: string;
+        lastName: string;
+        age?: number | null;
+        profilePhoto?: string | null;
+    }>;
+    center: {
+        id: string;
+        center_name: string;
+        logo?: string | null;
+    };
+    sport: {
+        id: string;
+        name: string;
+        logo?: string | null;
+    };
+    amount: number;
+    currency: string;
+    status: BookingStatus;
+    status_message: string;
+    payment_status: PaymentStatus | string;
+    payment_enabled: boolean;
+    can_download_invoice: boolean;
+    rejection_reason?: string | null;
+    cancellation_reason?: string | null;
+    token_expires_at: Date | null;
+    razorpay_key_id: string;
+}
+/**
+ * Get booking by payment token for public pay page (no auth).
+ * Returns booking details and payment_enabled so frontend can show Pay button or already paid/cancelled/expired state.
+ */
+export declare const getBookingByPaymentToken: (token: string) => Promise<PublicPayBookingResponse>;
+/**
+ * Create Razorpay order by payment token (public, no auth).
+ * Use when user clicks Pay on the public pay page. Webhook will verify payment.
+ */
+export declare const createOrderByPaymentToken: (token: string) => Promise<PaymentOrderResponse>;
 /**
  * Verify Razorpay payment and update booking status
  */
@@ -448,4 +505,11 @@ export declare const deleteOrder: (data: DeleteOrderInput, userId: string) => Pr
  * Prevents cancellation after payment success
  */
 export declare const cancelBooking: (bookingId: string, reason: string, userId: string) => Promise<CancelBookingResponse>;
+/** Default reason when system auto-cancels due to payment not completed in time */
+export declare const PAYMENT_EXPIRED_CANCELLATION_REASON = "Payment not completed within the allowed time. Your booking has been automatically cancelled.";
+/**
+ * Cancel an approved booking by system (e.g. payment link expired). Sends same notifications as user cancellation.
+ * Used by the booking payment expiry cron job.
+ */
+export declare const cancelBookingBySystem: (bookingId: string, reason?: string) => Promise<void>;
 //# sourceMappingURL=booking.service.d.ts.map

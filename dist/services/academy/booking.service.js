@@ -1,8 +1,13 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rejectBookingRequest = exports.approveBookingRequest = exports.getAcademyBookingById = exports.getAcademyBookings = void 0;
+const crypto_1 = __importDefault(require("crypto"));
 const mongoose_1 = require("mongoose");
 const booking_model_1 = require("../../models/booking.model");
+const env_1 = require("../../config/env");
 const coachingCenter_model_1 = require("../../models/coachingCenter.model");
 const logger_1 = require("../../utils/logger");
 const ApiError_1 = require("../../utils/ApiError");
@@ -12,6 +17,7 @@ const notification_service_1 = require("../common/notification.service");
 const notificationQueue_service_1 = require("../common/notificationQueue.service");
 const auditTrail_service_1 = require("../common/auditTrail.service");
 const auditTrail_model_1 = require("../../models/auditTrail.model");
+const settings_service_1 = require("../common/settings.service");
 const notificationMessages_1 = require("../common/notificationMessages");
 /**
  * Get academy-friendly status message based on booking status and payment status
@@ -391,9 +397,17 @@ const approveBookingRequest = async (bookingId, userId) => {
         if (!booking) {
             throw new ApiError_1.ApiError(404, 'Booking request not found or already processed');
         }
-        // Update booking status to APPROVED
+        const paymentConfig = await (0, settings_service_1.getBookingPaymentConfig)();
+        const expiryHours = paymentConfig.paymentLinkExpiryHours;
+        const paymentToken = crypto_1.default.randomBytes(32).toString('hex');
+        const paymentTokenExpiresAt = new Date(Date.now() + expiryHours * 60 * 60 * 1000);
+        // Update booking status to APPROVED and set payment token
         const updatedBooking = await booking_model_1.BookingModel.findByIdAndUpdate(booking._id, {
-            $set: { status: booking_model_1.BookingStatus.APPROVED },
+            $set: {
+                status: booking_model_1.BookingStatus.APPROVED,
+                payment_token: paymentToken,
+                payment_token_expires_at: paymentTokenExpiresAt,
+            },
         }, { new: true })
             .populate('batch', 'id name')
             .populate('center', 'id center_name')
@@ -450,6 +464,7 @@ const approveBookingRequest = async (bookingId, userId) => {
                         centerName,
                         bookingId: booking.booking_id ?? booking.id,
                         year: new Date().getFullYear(),
+                        paymentUrl: env_1.config.mainSiteUrl ? `${env_1.config.mainSiteUrl}/pay?token=${paymentToken}` : '',
                     },
                     priority: 'high',
                     metadata: {
@@ -472,19 +487,19 @@ const approveBookingRequest = async (bookingId, userId) => {
                     recipient: 'user',
                 });
             }
-            // WhatsApp notification (async)
-            if (user.mobile) {
-                const whatsappMessage = (0, notificationMessages_1.getBookingApprovedUserWhatsApp)({
-                    batchName,
-                    centerName,
-                    bookingId: booking.booking_id ?? undefined,
-                });
-                (0, notificationQueue_service_1.queueWhatsApp)(user.mobile, whatsappMessage, 'high', {
-                    type: 'booking_approved',
-                    bookingId: booking.id,
-                    recipient: 'user',
-                });
-            }
+            // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+            // if (user.mobile) {
+            //   const whatsappMessage = getBookingApprovedUserWhatsApp({
+            //     batchName,
+            //     centerName,
+            //     bookingId: booking.booking_id ?? undefined,
+            //   });
+            //   queueWhatsApp(user.mobile, whatsappMessage, 'high', {
+            //     type: 'booking_approved',
+            //     bookingId: booking.id,
+            //     recipient: 'user',
+            //   });
+            // }
         }
         logger_1.logger.info(`Booking request approved: ${bookingId} by academy user ${userId}`);
         // Return only relevant data
@@ -650,20 +665,20 @@ const rejectBookingRequest = async (bookingId, userId, reason) => {
                     recipient: 'user',
                 });
             }
-            // WhatsApp notification (async)
-            if (user.mobile) {
-                const whatsappMessage = (0, notificationMessages_1.getBookingRejectedUserWhatsApp)({
-                    batchName,
-                    centerName,
-                    bookingId: booking.booking_id ?? undefined,
-                    reason: reason || null,
-                });
-                (0, notificationQueue_service_1.queueWhatsApp)(user.mobile, whatsappMessage, 'medium', {
-                    type: 'booking_rejected',
-                    bookingId: booking.id,
-                    recipient: 'user',
-                });
-            }
+            // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+            // if (user.mobile) {
+            //   const whatsappMessage = getBookingRejectedUserWhatsApp({
+            //     batchName,
+            //     centerName,
+            //     bookingId: booking.booking_id ?? undefined,
+            //     reason: reason || null,
+            //   });
+            //   queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
+            //     type: 'booking_rejected',
+            //     bookingId: booking.id,
+            //     recipient: 'user',
+            //   });
+            // }
         }
         logger_1.logger.info(`Booking request rejected: ${bookingId} by academy user ${userId}`);
         // Return only relevant data

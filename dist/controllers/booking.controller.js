@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.downloadInvoice = exports.getBookingDetails = exports.cancelBooking = exports.createPaymentOrder = exports.bookSlot = exports.deleteOrder = exports.getUserBookings = exports.verifyPayment = exports.getSummary = void 0;
+exports.downloadInvoice = exports.getBookingDetails = exports.cancelBooking = exports.createPublicOrder = exports.getPublicPayBooking = exports.createPaymentOrder = exports.bookSlot = exports.deleteOrder = exports.getUserBookings = exports.verifyPayment = exports.getSummary = void 0;
 const ApiResponse_1 = require("../utils/ApiResponse");
 const ApiError_1 = require("../utils/ApiError");
 const i18n_1 = require("../utils/i18n");
@@ -155,6 +155,39 @@ const createPaymentOrder = async (req, res, next) => {
     }
 };
 exports.createPaymentOrder = createPaymentOrder;
+/**
+ * Get booking by payment token (public, no auth). For pay page: shows details and payment_enabled / status.
+ */
+const getPublicPayBooking = async (req, res, next) => {
+    try {
+        const { token } = req.query;
+        const data = await bookingService.getBookingByPaymentToken(token);
+        const response = new ApiResponse_1.ApiResponse(200, data, 'Booking details retrieved');
+        res.json(response);
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getPublicPayBooking = getPublicPayBooking;
+/**
+ * Create Razorpay order by payment token (public, no auth). Webhook will verify payment.
+ */
+const createPublicOrder = async (req, res, next) => {
+    try {
+        const { token } = req.body;
+        const result = await bookingService.createOrderByPaymentToken(token);
+        const response = new ApiResponse_1.ApiResponse(201, {
+            booking: result.booking,
+            razorpayOrder: result.razorpayOrder,
+        }, 'Payment order created successfully');
+        res.status(201).json(response);
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.createPublicOrder = createPublicOrder;
 /**
  * Cancel booking by user with reason
  */

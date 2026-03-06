@@ -140,23 +140,22 @@ exports.payoutTransferWorker = new bullmq_1.Worker(payoutTransferQueue_1.PAYOUT_
                     logger_1.logger.error('Failed to queue SMS for transfer initiation', { error, payoutId });
                 }
             }
-            // WhatsApp notification
-            if (academyUser.mobile) {
-                try {
-                    const whatsappMessage = (0, notificationMessages_1.getPayoutTransferInitiatedAcademyWhatsApp)({
-                        amount: amount.toFixed(2),
-                        transferId: transfer.id,
-                    });
-                    (0, notificationQueue_service_1.queueWhatsApp)(academyUser.mobile, whatsappMessage, 'high', {
-                        type: 'payout_transfer_initiated',
-                        payoutId: payout.id,
-                        recipient: 'academy',
-                    });
-                }
-                catch (error) {
-                    logger_1.logger.error('Failed to queue WhatsApp for transfer initiation', { error, payoutId });
-                }
-            }
+            // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+            // if (academyUser.mobile) {
+            //   try {
+            //     const whatsappMessage = getPayoutTransferInitiatedAcademyWhatsApp({
+            //       amount: amount.toFixed(2),
+            //       transferId: transfer.id,
+            //     });
+            //     queueWhatsApp(academyUser.mobile, whatsappMessage, 'high', {
+            //       type: 'payout_transfer_initiated',
+            //       payoutId: payout.id,
+            //       recipient: 'academy',
+            //     });
+            //   } catch (error: unknown) {
+            //     logger.error('Failed to queue WhatsApp for transfer initiation', { error, payoutId });
+            //   }
+            // }
         }
         logger_1.logger.info('Payout transfer job completed successfully', {
             jobId: job.id,

@@ -4,6 +4,11 @@ import { verifyWebhookSignature } from '../middleware/webhook.middleware';
 
 const router = Router();
 
+/** WhatsApp Cloud API: GET for webhook verification (Meta subscription) */
+router.get('/whatsapp', webhookController.handleWhatsAppWebhookVerify);
+/** WhatsApp Cloud API: POST for incoming messages */
+router.post('/whatsapp', webhookController.handleWhatsAppWebhook);
+
 /**
  * @swagger
  * /webhook/razorpay:

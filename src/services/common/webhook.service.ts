@@ -504,10 +504,10 @@ const handleTransferProcessed = async (
     const { createAndSendNotification } = await import('./notification.service');
     const {
       getPayoutTransferCompletedAcademySms,
-      getPayoutTransferCompletedAcademyWhatsApp,
+      // getPayoutTransferCompletedAcademyWhatsApp,
       getPayoutTransferCompletedAcademyPush,
     } = await import('./notificationMessages');
-    const { queueSms, queueWhatsApp } = await import('./notificationQueue.service');
+    const { queueSms /* , queueWhatsApp */ } = await import('./notificationQueue.service');
     const academyUser = await UserModel.findById(payout.academy_user).lean();
 
     if (academyUser) {
@@ -553,22 +553,22 @@ const handleTransferProcessed = async (
         }
       }
 
-      // WhatsApp notification
-      if (academyUser.mobile) {
-        try {
-          const whatsappMessage = getPayoutTransferCompletedAcademyWhatsApp({
-            amount: amount.toFixed(2),
-            transferId,
-          });
-          queueWhatsApp(academyUser.mobile, whatsappMessage, 'high', {
-            type: 'payout_transfer_completed',
-            payoutId: payout.id,
-            recipient: 'academy',
-          });
-        } catch (error: unknown) {
-          logger.error('Failed to queue WhatsApp for transfer completion', { error, payoutId: payout.id });
-        }
-      }
+      // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+      // if (academyUser.mobile) {
+      //   try {
+      //     const whatsappMessage = getPayoutTransferCompletedAcademyWhatsApp({
+      //       amount: amount.toFixed(2),
+      //       transferId,
+      //     });
+      //     queueWhatsApp(academyUser.mobile, whatsappMessage, 'high', {
+      //       type: 'payout_transfer_completed',
+      //       payoutId: payout.id,
+      //       recipient: 'academy',
+      //     });
+      //   } catch (error: unknown) {
+      //     logger.error('Failed to queue WhatsApp for transfer completion', { error, payoutId: payout.id });
+      //   }
+      // }
     }
 
     logger.info(`Transfer processed via webhook for payout: ${payout.id}, transfer: ${transferId}`);

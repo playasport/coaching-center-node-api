@@ -221,6 +221,25 @@ router.get('/', (0, permission_middleware_1.requirePermission)(section_enum_1.Se
  *                     nullable: true
  *                     example: 0.10
  *                     description: Commission rate (0-1, e.g., 0.10 for 10%). Used to calculate commission on batch amount for academy payouts.
+ *               booking:
+ *                 type: object
+ *                 nullable: true
+ *                 description: "Booking payment link expiry and reminder schedule. Used when academy approves a booking: payment link expires after payment_link_expiry_hours; reminders are sent at payment_reminder_hours_before_expiry hours before expiry."
+ *                 properties:
+ *                   payment_link_expiry_hours:
+ *                     type: number
+ *                     minimum: 1
+ *                     nullable: true
+ *                     example: 24
+ *                     description: "Hours after approval before payment link expires and booking is auto-cancelled if unpaid. Default 24."
+ *                   payment_reminder_hours_before_expiry:
+ *                     type: array
+ *                     items:
+ *                       type: number
+ *                       minimum: 0
+ *                     nullable: true
+ *                     example: [12, 6, 2]
+ *                     description: "Send reminder when X hours left before expiry (e.g. [12, 6, 2]). Sorted descending. Default [12, 6, 2]."
  *               notifications:
  *                 type: object
  *                 nullable: true
@@ -236,6 +255,9 @@ router.get('/', (0, permission_middleware_1.requirePermission)(section_enum_1.Se
  *               gst_percentage: 18
  *               gst_enabled: true
  *               currency: "INR"
+ *             booking:
+ *               payment_link_expiry_hours: 24
+ *               payment_reminder_hours_before_expiry: [12, 6, 2]
  *             notifications:
  *               enabled: true
  *               sms:

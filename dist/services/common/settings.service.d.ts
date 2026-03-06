@@ -16,6 +16,15 @@ export declare const getPublicSettings: () => Promise<Settings>;
  * Excludes: basic_info, fees, notifications details, payment details, and all sensitive data
  */
 export declare const getLimitedPublicSettings: () => Promise<Partial<Settings>>;
+/** Booking payment config (expiry hours, reminder schedule). From Settings or config. */
+export interface BookingPaymentConfig {
+    paymentLinkExpiryHours: number;
+    paymentReminderHoursBeforeExpiry: number[];
+}
+/**
+ * Get booking payment config (payment link expiry, reminder hours). Uses Settings.booking if set, else config.
+ */
+export declare const getBookingPaymentConfig: () => Promise<BookingPaymentConfig>;
 /**
  * Update application settings
  * Merges new data with existing settings
@@ -46,13 +55,26 @@ export declare const getPaymentCredentials: () => Promise<{
     webhookSecret: string;
 }>;
 /**
- * Get SMS/Twilio credentials with settings priority
+ * Get SMS/Twilio credentials with settings priority (SMS only; WhatsApp uses Meta Cloud)
  */
 export declare const getSmsCredentials: () => Promise<{
     accountSid: string;
     authToken: string;
     fromPhone: string;
 }>;
+/** WhatsApp Cloud config (Settings override env). Used for admin chat and notification WhatsApp. */
+export interface WhatsAppCloudConfig {
+    enabled: boolean;
+    phoneNumberId: string;
+    accessToken: string;
+    webhookVerifyToken: string;
+    appSecret: string;
+    apiVersion: string;
+}
+/**
+ * Get Meta WhatsApp Cloud API config (Settings first, then env)
+ */
+export declare const getWhatsAppCloudConfig: () => Promise<WhatsAppCloudConfig>;
 /**
  * Get Email credentials with settings priority
  */

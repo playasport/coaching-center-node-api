@@ -48,15 +48,14 @@ export interface EmailConfig {
   secure?: boolean | null;
 }
 
-// WhatsApp configuration interface
-export interface WhatsAppConfig {
+// Meta WhatsApp Cloud API (under notifications). Admin panel + WhatsApp notifications. Managed via Settings.
+export interface WhatsAppCloudSettings {
   enabled?: boolean | null;
-  provider?: string | null;
-  api_key?: string | null; // Encrypted
-  api_secret?: string | null; // Encrypted
-  from_number?: string | null;
-  account_sid?: string | null; // Encrypted (for Twilio)
-  auth_token?: string | null; // Encrypted (for Twilio)
+  phone_number_id?: string | null;
+  access_token?: string | null; // Encrypted
+  webhook_verify_token?: string | null;
+  app_secret?: string | null; // Encrypted
+  api_version?: string | null;
 }
 
 // Notification configuration interface
@@ -64,7 +63,7 @@ export interface NotificationConfig {
   enabled?: boolean | null;
   sms?: SmsConfig | null;
   email?: EmailConfig | null;
-  whatsapp?: WhatsAppConfig | null;
+  whatsapp?: WhatsAppCloudSettings | null; // Meta Cloud API config (enable + credentials)
   push?: {
     enabled?: boolean | null;
   } | null;
@@ -125,7 +124,7 @@ export interface Settings {
 
   // Booking payment (payment link expiry, auto-cancel, reminders). Overrides config/env.
   booking?: BookingPaymentSettings | null;
-  
+
   // Fee Configuration
   fees?: FeeConfig | null;
   

@@ -57,11 +57,8 @@ const isChannelEnabled = async (channel) => {
             return emailConfig.enabled;
         }
         case 'whatsapp': {
-            const whatsappEnabled = await (0, settings_service_1.getConfigWithPriority)('notifications.whatsapp.enabled', env_1.config.notification.whatsapp.enabled) ?? env_1.config.notification.whatsapp.enabled;
-            const smsEnabled = await (0, settings_service_1.getSmsEnabled)();
-            const credentials = await (0, settings_service_1.getSmsCredentials)();
-            // WhatsApp uses Twilio/SMS provider, so need SMS enabled and credentials
-            return whatsappEnabled && smsEnabled && !!credentials.accountSid;
+            const cfg = await (0, settings_service_1.getWhatsAppCloudConfig)();
+            return cfg.enabled && !!cfg.phoneNumberId && !!cfg.accessToken;
         }
         case 'push': {
             const pushEnabled = await (0, settings_service_1.getConfigWithPriority)('notifications.push.enabled', env_1.config.notification.push.enabled) ?? env_1.config.notification.push.enabled;

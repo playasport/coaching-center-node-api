@@ -451,23 +451,22 @@ const createPayoutAccount = async (userId, data, options) => {
                 logger_1.logger.error('Failed to queue SMS for payout account creation', { error, accountId });
             }
         }
-        // WhatsApp notification (async)
-        if (user.mobile) {
-            try {
-                const whatsappMessage = (0, notificationMessages_1.getPayoutAccountCreatedAcademyWhatsApp)({
-                    accountId: accountId,
-                    status: activationStatus,
-                });
-                (0, notificationQueue_service_1.queueWhatsApp)(user.mobile, whatsappMessage, 'high', {
-                    type: 'payout_account_created',
-                    accountId: accountId,
-                    recipient: 'academy',
-                });
-            }
-            catch (error) {
-                logger_1.logger.error('Failed to queue WhatsApp for payout account creation', { error, accountId });
-            }
-        }
+        // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+        // if (user.mobile) {
+        //   try {
+        //     const whatsappMessage = getPayoutAccountCreatedAcademyWhatsApp({
+        //       accountId: accountId,
+        //       status: activationStatus,
+        //     });
+        //     queueWhatsApp(user.mobile, whatsappMessage, 'high', {
+        //       type: 'payout_account_created',
+        //       accountId: accountId,
+        //       recipient: 'academy',
+        //     });
+        //   } catch (error: unknown) {
+        //     logger.error('Failed to queue WhatsApp for payout account creation', { error, accountId });
+        //   }
+        // }
         // Bank details are not stored in DB; they were already enqueued above for Razorpay submission
         return sanitizePayoutAccountResponse(payoutAccount);
     }
@@ -699,22 +698,21 @@ const updateBankDetails = async (userId, bankDetails, options) => {
                 logger_1.logger.error('Failed to queue SMS for bank details update', { error, accountId });
             }
         }
-        // WhatsApp notification (async)
-        if (user.mobile) {
-            try {
-                const whatsappMessage = (0, notificationMessages_1.getBankDetailsUpdatedAcademyWhatsApp)({
-                    accountId: accountId,
-                });
-                (0, notificationQueue_service_1.queueWhatsApp)(user.mobile, whatsappMessage, 'high', {
-                    type: 'bank_details_updated',
-                    accountId: accountId,
-                    recipient: 'academy',
-                });
-            }
-            catch (error) {
-                logger_1.logger.error('Failed to queue WhatsApp for bank details update', { error, accountId });
-            }
-        }
+        // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+        // if (user.mobile) {
+        //   try {
+        //     const whatsappMessage = getBankDetailsUpdatedAcademyWhatsApp({
+        //       accountId: accountId,
+        //     });
+        //     queueWhatsApp(user.mobile, whatsappMessage, 'high', {
+        //       type: 'bank_details_updated',
+        //       accountId: accountId,
+        //       recipient: 'academy',
+        //     });
+        //   } catch (error: unknown) {
+        //     logger.error('Failed to queue WhatsApp for bank details update', { error, accountId });
+        //   }
+        // }
         return sanitizePayoutAccountResponse(account);
     }
     catch (error) {
@@ -891,22 +889,21 @@ const syncAccountStatus = async (accountId) => {
                             logger_1.logger.error('Failed to queue SMS for account activation', { error, accountId: account.id });
                         }
                     }
-                    // WhatsApp
-                    if (user.mobile) {
-                        try {
-                            const whatsappMessage = (0, notificationMessages_1.getPayoutAccountActivatedAcademyWhatsApp)({
-                                accountId: account.id,
-                            });
-                            (0, notificationQueue_service_1.queueWhatsApp)(user.mobile, whatsappMessage, 'high', {
-                                type: 'payout_account_activated',
-                                accountId: account.id,
-                                recipient: 'academy',
-                            });
-                        }
-                        catch (error) {
-                            logger_1.logger.error('Failed to queue WhatsApp for account activation', { error, accountId: account.id });
-                        }
-                    }
+                    // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+                    // if (user.mobile) {
+                    //   try {
+                    //     const whatsappMessage = getPayoutAccountActivatedAcademyWhatsApp({
+                    //       accountId: account.id,
+                    //     });
+                    //     queueWhatsApp(user.mobile, whatsappMessage, 'high', {
+                    //       type: 'payout_account_activated',
+                    //       accountId: account.id,
+                    //       recipient: 'academy',
+                    //     });
+                    //   } catch (error: unknown) {
+                    //     logger.error('Failed to queue WhatsApp for account activation', { error, accountId: account.id });
+                    //   }
+                    // }
                 }
                 else if (newStatus === academyPayoutAccount_model_1.PayoutAccountActivationStatus.NEEDS_CLARIFICATION) {
                     // Needs clarification
@@ -967,23 +964,22 @@ const syncAccountStatus = async (accountId) => {
                             logger_1.logger.error('Failed to queue SMS for needs clarification', { error, accountId: account.id });
                         }
                     }
-                    // WhatsApp
-                    if (user.mobile) {
-                        try {
-                            const whatsappMessage = (0, notificationMessages_1.getPayoutAccountNeedsClarificationAcademyWhatsApp)({
-                                accountId: account.id,
-                                requirements: requirementsText,
-                            });
-                            (0, notificationQueue_service_1.queueWhatsApp)(user.mobile, whatsappMessage, 'high', {
-                                type: 'payout_account_needs_clarification',
-                                accountId: account.id,
-                                recipient: 'academy',
-                            });
-                        }
-                        catch (error) {
-                            logger_1.logger.error('Failed to queue WhatsApp for needs clarification', { error, accountId: account.id });
-                        }
-                    }
+                    // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+                    // if (user.mobile) {
+                    //   try {
+                    //     const whatsappMessage = getPayoutAccountNeedsClarificationAcademyWhatsApp({
+                    //       accountId: account.id,
+                    //       requirements: requirementsText,
+                    //     });
+                    //     queueWhatsApp(user.mobile, whatsappMessage, 'high', {
+                    //       type: 'payout_account_needs_clarification',
+                    //       accountId: account.id,
+                    //       recipient: 'academy',
+                    //     });
+                    //   } catch (error: unknown) {
+                    //     logger.error('Failed to queue WhatsApp for needs clarification', { error, accountId: account.id });
+                    //   }
+                    // }
                 }
                 else if (newStatus === academyPayoutAccount_model_1.PayoutAccountActivationStatus.REJECTED) {
                     // Rejected
@@ -1045,23 +1041,22 @@ const syncAccountStatus = async (accountId) => {
                             logger_1.logger.error('Failed to queue SMS for account rejection', { error, accountId: account.id });
                         }
                     }
-                    // WhatsApp
-                    if (user.mobile) {
-                        try {
-                            const whatsappMessage = (0, notificationMessages_1.getPayoutAccountRejectedAcademyWhatsApp)({
-                                accountId: account.id,
-                                reason: rejectionReason,
-                            });
-                            (0, notificationQueue_service_1.queueWhatsApp)(user.mobile, whatsappMessage, 'high', {
-                                type: 'payout_account_rejected',
-                                accountId: account.id,
-                                recipient: 'academy',
-                            });
-                        }
-                        catch (error) {
-                            logger_1.logger.error('Failed to queue WhatsApp for account rejection', { error, accountId: account.id });
-                        }
-                    }
+                    // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+                    // if (user.mobile) {
+                    //   try {
+                    //     const whatsappMessage = getPayoutAccountRejectedAcademyWhatsApp({
+                    //       accountId: account.id,
+                    //       reason: rejectionReason,
+                    //     });
+                    //     queueWhatsApp(user.mobile, whatsappMessage, 'high', {
+                    //       type: 'payout_account_rejected',
+                    //       accountId: account.id,
+                    //       recipient: 'academy',
+                    //     });
+                    //   } catch (error: unknown) {
+                    //     logger.error('Failed to queue WhatsApp for account rejection', { error, accountId: account.id });
+                    //   }
+                    // }
                 }
             }
         }

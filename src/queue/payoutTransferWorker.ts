@@ -11,10 +11,10 @@ import { createAndSendNotification } from '../services/common/notification.servi
 import { UserModel } from '../models/user.model';
 import {
   getPayoutTransferInitiatedAcademySms,
-  getPayoutTransferInitiatedAcademyWhatsApp,
+  // getPayoutTransferInitiatedAcademyWhatsApp,
   getPayoutTransferInitiatedAcademyPush,
 } from '../services/common/notificationMessages';
-import { queueSms, queueWhatsApp } from '../services/common/notificationQueue.service';
+import { queueSms /* , queueWhatsApp */ } from '../services/common/notificationQueue.service';
 
 // Redis connection for BullMQ
 const connection = new Redis({
@@ -167,22 +167,22 @@ export const payoutTransferWorker = new Worker<PayoutTransferJobData>(
           }
         }
 
-        // WhatsApp notification
-        if (academyUser.mobile) {
-          try {
-            const whatsappMessage = getPayoutTransferInitiatedAcademyWhatsApp({
-              amount: amount.toFixed(2),
-              transferId: transfer.id,
-            });
-            queueWhatsApp(academyUser.mobile, whatsappMessage, 'high', {
-              type: 'payout_transfer_initiated',
-              payoutId: payout.id,
-              recipient: 'academy',
-            });
-          } catch (error: unknown) {
-            logger.error('Failed to queue WhatsApp for transfer initiation', { error, payoutId });
-          }
-        }
+        // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+        // if (academyUser.mobile) {
+        //   try {
+        //     const whatsappMessage = getPayoutTransferInitiatedAcademyWhatsApp({
+        //       amount: amount.toFixed(2),
+        //       transferId: transfer.id,
+        //     });
+        //     queueWhatsApp(academyUser.mobile, whatsappMessage, 'high', {
+        //       type: 'payout_transfer_initiated',
+        //       payoutId: payout.id,
+        //       recipient: 'academy',
+        //     });
+        //   } catch (error: unknown) {
+        //     logger.error('Failed to queue WhatsApp for transfer initiation', { error, payoutId });
+        //   }
+        // }
       }
 
       logger.info('Payout transfer job completed successfully', {

@@ -183,4 +183,16 @@ export declare const getBookingDetailsSchema: z.ZodObject<{
     }, z.core.$strip>;
 }, z.core.$strip>;
 export type GetBookingDetailsInput = z.infer<typeof getBookingDetailsSchema>['params'];
+export declare const publicPayQuerySchema: z.ZodObject<{
+    query: z.ZodObject<{
+        token: z.ZodString;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export type PublicPayQueryInput = z.infer<typeof publicPayQuerySchema>['query'];
+export declare const publicCreateOrderSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        token: z.ZodString;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export type PublicCreateOrderInput = z.infer<typeof publicCreateOrderSchema>['body'];
 //# sourceMappingURL=booking.validation.d.ts.map

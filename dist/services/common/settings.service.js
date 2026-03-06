@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getSmsEnabled = exports.getEmailConfig = exports.getSmsCredentials = exports.getPaymentCredentials = exports.getConfigWithPriority = exports.getSettingValue = exports.resetSettings = exports.updateSettings = exports.getLimitedPublicSettings = exports.getPublicSettings = exports.getSettings = void 0;
+exports.getSmsEnabled = exports.getEmailConfig = exports.getWhatsAppCloudConfig = exports.getSmsCredentials = exports.getPaymentCredentials = exports.getConfigWithPriority = exports.getSettingValue = exports.resetSettings = exports.updateSettings = exports.getBookingPaymentConfig = exports.getLimitedPublicSettings = exports.getPublicSettings = exports.getSettings = void 0;
 const settings_model_1 = require("../../models/settings.model");
 const logger_1 = require("../../utils/logger");
 const ApiError_1 = require("../../utils/ApiError");
@@ -17,10 +17,8 @@ const SENSITIVE_FIELDS = [
     'notifications.sms.api_secret',
     'notifications.email.username',
     'notifications.email.password',
-    'notifications.whatsapp.api_key',
-    'notifications.whatsapp.api_secret',
-    'notifications.whatsapp.account_sid',
-    'notifications.whatsapp.auth_token',
+    'notifications.whatsapp.access_token',
+    'notifications.whatsapp.app_secret',
     'payment.razorpay.key_id',
     'payment.razorpay.key_secret',
     'payment.stripe.api_key',
@@ -71,10 +69,8 @@ const getPublicSettings = async () => {
             delete publicSettings.notifications.email.password;
         }
         if (publicSettings.notifications?.whatsapp) {
-            delete publicSettings.notifications.whatsapp.api_key;
-            delete publicSettings.notifications.whatsapp.api_secret;
-            delete publicSettings.notifications.whatsapp.account_sid;
-            delete publicSettings.notifications.whatsapp.auth_token;
+            delete publicSettings.notifications.whatsapp.access_token;
+            delete publicSettings.notifications.whatsapp.app_secret;
         }
         // Remove sensitive payment fields
         if (publicSettings.payment?.razorpay) {
@@ -119,6 +115,30 @@ const getLimitedPublicSettings = async () => {
     }
 };
 exports.getLimitedPublicSettings = getLimitedPublicSettings;
+/**
+ * Get booking payment config (payment link expiry, reminder hours). Uses Settings.booking if set, else config.
+ */
+const getBookingPaymentConfig = async () => {
+    try {
+        const settings = await (0, exports.getSettings)(false);
+        const expiry = settings.booking?.payment_link_expiry_hours ?? env_1.config.booking.paymentLinkExpiryHours;
+        const reminders = settings.booking?.payment_reminder_hours_before_expiry ?? env_1.config.booking.paymentReminderHoursBeforeExpiry;
+        return {
+            paymentLinkExpiryHours: Math.max(1, Number(expiry) || 24),
+            paymentReminderHoursBeforeExpiry: Array.isArray(reminders) && reminders.length > 0
+                ? [...reminders].map((h) => Math.max(0, Number(h))).filter((h) => h > 0).sort((a, b) => b - a)
+                : [12, 6, 2],
+        };
+    }
+    catch (error) {
+        logger_1.logger.error('Failed to get booking payment config', error);
+        return {
+            paymentLinkExpiryHours: env_1.config.booking.paymentLinkExpiryHours,
+            paymentReminderHoursBeforeExpiry: env_1.config.booking.paymentReminderHoursBeforeExpiry,
+        };
+    }
+};
+exports.getBookingPaymentConfig = getBookingPaymentConfig;
 /**
  * Create default settings with values from config
  */
@@ -165,13 +185,12 @@ const createDefaultSettings = async () => {
                 secure: env_1.config.email.secure,
             },
             whatsapp: {
-                enabled: env_1.config.notification.whatsapp.enabled,
-                provider: 'twilio',
-                account_sid: env_1.config.twilio.accountSid || null,
-                auth_token: env_1.config.twilio.authToken || null,
-                from_number: env_1.config.twilio.fromPhone || null,
-                api_key: null,
-                api_secret: null,
+                enabled: env_1.config.whatsappCloud.enabled,
+                phone_number_id: env_1.config.whatsappCloud.phoneNumberId || null,
+                access_token: env_1.config.whatsappCloud.accessToken || null,
+                webhook_verify_token: env_1.config.whatsappCloud.webhookVerifyToken || null,
+                app_secret: env_1.config.whatsappCloud.appSecret || null,
+                api_version: env_1.config.whatsappCloud.apiVersion || null,
             },
             push: {
                 enabled: env_1.config.notification.push.enabled,
@@ -373,13 +392,12 @@ const getPaymentCredentials = async () => {
 };
 exports.getPaymentCredentials = getPaymentCredentials;
 /**
- * Get SMS/Twilio credentials with settings priority
+ * Get SMS/Twilio credentials with settings priority (SMS only; WhatsApp uses Meta Cloud)
  */
 const getSmsCredentials = async () => {
-    // For Twilio, check both sms and whatsapp settings (they use same provider)
-    const accountSid = await (0, exports.getConfigWithPriority)('notifications.sms.api_key', env_1.config.twilio.accountSid) || await (0, exports.getConfigWithPriority)('notifications.whatsapp.account_sid', env_1.config.twilio.accountSid);
-    const authToken = await (0, exports.getConfigWithPriority)('notifications.sms.api_secret', env_1.config.twilio.authToken) || await (0, exports.getConfigWithPriority)('notifications.whatsapp.auth_token', env_1.config.twilio.authToken);
-    const fromPhone = await (0, exports.getConfigWithPriority)('notifications.sms.from_number', env_1.config.twilio.fromPhone) || await (0, exports.getConfigWithPriority)('notifications.whatsapp.from_number', env_1.config.twilio.fromPhone);
+    const accountSid = await (0, exports.getConfigWithPriority)('notifications.sms.api_key', env_1.config.twilio.accountSid);
+    const authToken = await (0, exports.getConfigWithPriority)('notifications.sms.api_secret', env_1.config.twilio.authToken);
+    const fromPhone = await (0, exports.getConfigWithPriority)('notifications.sms.from_number', env_1.config.twilio.fromPhone);
     return {
         accountSid: accountSid || '',
         authToken: authToken || '',
@@ -387,6 +405,35 @@ const getSmsCredentials = async () => {
     };
 };
 exports.getSmsCredentials = getSmsCredentials;
+/**
+ * Get Meta WhatsApp Cloud API config (Settings first, then env)
+ */
+const getWhatsAppCloudConfig = async () => {
+    try {
+        const settings = await (0, exports.getSettings)(true);
+        const wc = settings.notifications?.whatsapp;
+        return {
+            enabled: wc?.enabled ?? env_1.config.whatsappCloud.enabled,
+            phoneNumberId: (wc?.phone_number_id ?? env_1.config.whatsappCloud.phoneNumberId) || '',
+            accessToken: (wc?.access_token ?? env_1.config.whatsappCloud.accessToken) || '',
+            webhookVerifyToken: (wc?.webhook_verify_token ?? env_1.config.whatsappCloud.webhookVerifyToken) || '',
+            appSecret: (wc?.app_secret ?? env_1.config.whatsappCloud.appSecret) || '',
+            apiVersion: (wc?.api_version ?? env_1.config.whatsappCloud.apiVersion) || 'v21.0',
+        };
+    }
+    catch (error) {
+        logger_1.logger.error('Failed to get WhatsApp Cloud config', error);
+        return {
+            enabled: env_1.config.whatsappCloud.enabled,
+            phoneNumberId: env_1.config.whatsappCloud.phoneNumberId,
+            accessToken: env_1.config.whatsappCloud.accessToken,
+            webhookVerifyToken: env_1.config.whatsappCloud.webhookVerifyToken,
+            appSecret: env_1.config.whatsappCloud.appSecret,
+            apiVersion: env_1.config.whatsappCloud.apiVersion || 'v21.0',
+        };
+    }
+};
+exports.getWhatsAppCloudConfig = getWhatsAppCloudConfig;
 /**
  * Get Email credentials with settings priority
  */

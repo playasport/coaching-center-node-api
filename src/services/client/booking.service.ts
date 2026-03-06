@@ -13,23 +13,23 @@ import { getUserObjectId } from '../../utils/userCache';
 import { getPaymentService } from '../common/payment/PaymentService';
 import { config } from '../../config/env';
 import type { BookingSummaryInput, VerifyPaymentInput, DeleteOrderInput, BookSlotInput } from '../../validations/booking.validation';
-import { queueEmail, queueSms, queueWhatsApp } from '../common/notificationQueue.service';
+import { queueEmail, queueSms /* , queueWhatsApp */ } from '../common/notificationQueue.service';
 import { createAndSendNotification } from '../common/notification.service';
 import { createAuditTrail } from '../common/auditTrail.service';
 import { ActionType, ActionScale } from '../../models/auditTrail.model';
 import {
   getBookingRequestAcademySms,
-  getBookingRequestAcademyWhatsApp,
+  // getBookingRequestAcademyWhatsApp,
   getBookingRequestSentUserSms,
-  getBookingRequestSentUserWhatsApp,
+  // getBookingRequestSentUserWhatsApp,
   getBookingCancelledUserSms,
-  getBookingCancelledUserWhatsApp,
+  // getBookingCancelledUserWhatsApp,
   getBookingCancelledAcademySms,
-  getBookingCancelledAcademyWhatsApp,
+  // getBookingCancelledAcademyWhatsApp,
   getPaymentVerifiedUserSms,
   getPaymentVerifiedAcademySms,
-  getPaymentVerifiedUserWhatsApp,
-  getPaymentVerifiedAcademyWhatsApp,
+  // getPaymentVerifiedUserWhatsApp,
+  // getPaymentVerifiedAcademyWhatsApp,
   EmailTemplates,
   EmailSubjects,
   getBookingRequestAcademyEmailText,
@@ -729,20 +729,20 @@ export const bookSlot = async (
             });
           }
 
-          // WhatsApp notification (async)
-          if (academyMobile) {
-            const whatsappMessage = getBookingRequestAcademyWhatsApp({
-              batchName,
-              userName,
-              participants: participantNames,
-              bookingId: booking.booking_id ?? undefined,
-            });
-            queueWhatsApp(academyMobile, whatsappMessage, 'high', {
-              type: 'booking_request',
-              bookingId: booking.booking_id ?? undefined,
-              recipient: 'academy',
-            });
-          }
+          // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+          // if (academyMobile) {
+          //   const whatsappMessage = getBookingRequestAcademyWhatsApp({
+          //     batchName,
+          //     userName,
+          //     participants: participantNames,
+          //     bookingId: booking.booking_id ?? undefined,
+          //   });
+          //   queueWhatsApp(academyMobile, whatsappMessage, 'high', {
+          //     type: 'booking_request',
+          //     bookingId: booking.booking_id ?? undefined,
+          //     recipient: 'academy',
+          //   });
+          // }
         } catch (error) {
           logger.error('Failed to send academy notifications', { error, bookingId: booking.booking_id ?? booking.id });
         }
@@ -811,20 +811,20 @@ export const bookSlot = async (
       });
     }
 
-    // WhatsApp notification (async)
-    if (userDetails?.mobile) {
-      const whatsappMessage = getBookingRequestSentUserWhatsApp({
-        batchName,
-        centerName,
-        participants: participantNames,
-        bookingId: booking.booking_id ?? undefined,
-      });
-      queueWhatsApp(userDetails.mobile, whatsappMessage, 'medium', {
-        type: 'booking_request_sent',
-        bookingId: booking.id,
-        recipient: 'user',
-      });
-    }
+    // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+    // if (userDetails?.mobile) {
+    //   const whatsappMessage = getBookingRequestSentUserWhatsApp({
+    //     batchName,
+    //     centerName,
+    //     participants: participantNames,
+    //     bookingId: booking.booking_id ?? undefined,
+    //   });
+    //   queueWhatsApp(userDetails.mobile, whatsappMessage, 'medium', {
+    //     type: 'booking_request_sent',
+    //     bookingId: booking.id,
+    //     recipient: 'user',
+    //   });
+    // }
 
     // Notification to Admin (role-based) - fire-and-forget
     const adminPushNotification = getBookingRequestAdminPush({
@@ -2000,60 +2000,56 @@ export const verifyPayment = async (
           });
         }
 
-        // Prepare WhatsApp messages using notification messages
-        const userWhatsAppMessage = getPaymentVerifiedUserWhatsApp({
-          userName: userName || 'User',
-          bookingId: updatedBooking.booking_id ?? undefined,
-          batchName,
-          sportName,
-          centerName,
-          participants: participantNames,
-          startDate,
-          startTime,
-          endTime,
-          currency: updatedBooking.currency,
-          amount: updatedBooking.amount.toFixed(2),
-        });
-        
-        const centerWhatsAppMessage = getPaymentVerifiedAcademyWhatsApp({
-          bookingId: updatedBooking.booking_id ?? undefined,
-          batchName,
-          sportName,
-          userName: userName || 'N/A',
-          participants: participantNames,
-          startDate,
-          startTime,
-          endTime,
-          currency: updatedBooking.currency,
-          amount: updatedBooking.amount.toFixed(2),
-        });
+        // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+        // const userWhatsAppMessage = getPaymentVerifiedUserWhatsApp({
+        //   userName: userName || 'User',
+        //   bookingId: updatedBooking.booking_id ?? undefined,
+        //   batchName,
+        //   sportName,
+        //   centerName,
+        //   participants: participantNames,
+        //   startDate,
+        //   startTime,
+        //   endTime,
+        //   currency: updatedBooking.currency,
+        //   amount: updatedBooking.amount.toFixed(2),
+        // });
+        // const centerWhatsAppMessage = getPaymentVerifiedAcademyWhatsApp({
+        //   bookingId: updatedBooking.booking_id ?? undefined,
+        //   batchName,
+        //   sportName,
+        //   userName: userName || 'N/A',
+        //   participants: participantNames,
+        //   startDate,
+        //   startTime,
+        //   endTime,
+        //   currency: updatedBooking.currency,
+        //   amount: updatedBooking.amount.toFixed(2),
+        // });
 
-        // Queue WhatsApp notifications using notification queue (non-blocking)
-        // Send WhatsApp to user
-        if (userMobile) {
-          queueWhatsApp(userMobile, userWhatsAppMessage, 'high', {
-            type: 'booking_confirmation',
-            bookingId: updatedBooking.id,
-            recipient: 'user',
-          });
-        } else {
-          logger.warn('User mobile number not available for WhatsApp', {
-            bookingId: booking.booking_id ?? undefined,
-          });
-        }
-
-        // Send WhatsApp to coaching center
-        if (centerMobile) {
-          queueWhatsApp(centerMobile, centerWhatsAppMessage, 'high', {
-            type: 'booking_confirmation',
-            bookingId: updatedBooking.booking_id ?? undefined,
-            recipient: 'coaching_center',
-          });
-        } else {
-          logger.warn('Coaching center mobile number not available for WhatsApp', {
-            bookingId: booking.booking_id ?? undefined,
-          });
-        }
+        // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+        // if (userMobile) {
+        //   queueWhatsApp(userMobile, userWhatsAppMessage, 'high', {
+        //     type: 'booking_confirmation',
+        //     bookingId: updatedBooking.id,
+        //     recipient: 'user',
+        //   });
+        // } else {
+        //   logger.warn('User mobile number not available for WhatsApp', {
+        //     bookingId: booking.booking_id ?? undefined,
+        //   });
+        // }
+        // if (centerMobile) {
+        //   queueWhatsApp(centerMobile, centerWhatsAppMessage, 'high', {
+        //     type: 'booking_confirmation',
+        //     bookingId: updatedBooking.booking_id ?? undefined,
+        //     recipient: 'coaching_center',
+        //   });
+        // } else {
+        //   logger.warn('Coaching center mobile number not available for WhatsApp', {
+        //     bookingId: booking.booking_id ?? undefined,
+        //   });
+        // }
 
         // Push notifications (fire-and-forget)
         // Push notification to User
@@ -2986,20 +2982,20 @@ export const cancelBooking = async (
             });
           }
 
-          // WhatsApp notification (async)
-          if (user.mobile) {
-            const whatsappMessage = getBookingCancelledUserWhatsApp({
-              batchName,
-              centerName,
-              bookingId: booking.booking_id ?? undefined,
-              reason: reason || null,
-            });
-            queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
-              type: 'booking_cancelled',
-              bookingId: booking.id,
-              recipient: 'user',
-            });
-          }
+          // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+          // if (user.mobile) {
+          //   const whatsappMessage = getBookingCancelledUserWhatsApp({
+          //     batchName,
+          //     centerName,
+          //     bookingId: booking.booking_id ?? undefined,
+          //     reason: reason || null,
+          //   });
+          //   queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
+          //     type: 'booking_cancelled',
+          //     bookingId: booking.id,
+          //     recipient: 'user',
+          //   });
+          // }
         }
 
         // Notification to Academy Owner (Push + Email + SMS + WhatsApp)
@@ -3073,20 +3069,20 @@ export const cancelBooking = async (
               });
             }
 
-            // WhatsApp notification (async)
-            if (academyMobile) {
-              const whatsappMessage = getBookingCancelledAcademyWhatsApp({
-                bookingId: booking.booking_id ?? undefined,
-                batchName,
-                userName,
-                reason: reason || null,
-              });
-              queueWhatsApp(academyMobile, whatsappMessage, 'medium', {
-                type: 'booking_cancelled',
-                bookingId: booking.booking_id ?? undefined,
-                recipient: 'academy',
-              });
-            }
+            // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+            // if (academyMobile) {
+            //   const whatsappMessage = getBookingCancelledAcademyWhatsApp({
+            //     bookingId: booking.booking_id ?? undefined,
+            //     batchName,
+            //     userName,
+            //     reason: reason || null,
+            //   });
+            //   queueWhatsApp(academyMobile, whatsappMessage, 'medium', {
+            //     type: 'booking_cancelled',
+            //     bookingId: booking.booking_id ?? undefined,
+            //     recipient: 'academy',
+            //   });
+            // }
           }
         }
 
@@ -3291,12 +3287,13 @@ export const cancelBookingBySystem = async (
             bookingId: booking.booking_id ?? undefined,
             reason: reason || null,
           }), 'medium', { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' });
-          queueWhatsApp(user.mobile, getBookingCancelledUserWhatsApp({
-            batchName,
-            centerName,
-            bookingId: booking.booking_id ?? undefined,
-            reason: reason || null,
-          }), 'medium', { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' });
+          // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+          // queueWhatsApp(user.mobile, getBookingCancelledUserWhatsApp({
+          //   batchName,
+          //   centerName,
+          //   bookingId: booking.booking_id ?? undefined,
+          //   reason: reason || null,
+          // }), 'medium', { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' });
         }
       }
 
@@ -3349,12 +3346,13 @@ export const cancelBookingBySystem = async (
               userName,
               reason: reason || null,
             }), 'medium', { type: 'booking_cancelled', bookingId: booking.booking_id ?? undefined, recipient: 'academy' });
-            queueWhatsApp(academyMobile, getBookingCancelledAcademyWhatsApp({
-              bookingId: booking.booking_id ?? undefined,
-              batchName,
-              userName,
-              reason: reason || null,
-            }), 'medium', { type: 'booking_cancelled', bookingId: booking.booking_id ?? undefined, recipient: 'academy' });
+            // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+            // queueWhatsApp(academyMobile, getBookingCancelledAcademyWhatsApp({
+            //   bookingId: booking.booking_id ?? undefined,
+            //   batchName,
+            //   userName,
+            //   reason: reason || null,
+            // }), 'medium', { type: 'booking_cancelled', bookingId: booking.booking_id ?? undefined, recipient: 'academy' });
           }
         }
       }

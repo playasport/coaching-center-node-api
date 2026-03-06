@@ -6,11 +6,11 @@ import {
   EmailTemplates,
   EmailSubjects,
   getPaymentReminderUserSms,
-  getPaymentReminderUserWhatsApp,
+  // getPaymentReminderUserWhatsApp,
   getPaymentReminderUserEmailText,
   getPaymentReminderUserPush,
 } from '../services/common/notificationMessages';
-import { queueEmail, queueSms, queueWhatsApp } from '../services/common/notificationQueue.service';
+import { queueEmail, queueSms /* , queueWhatsApp */ } from '../services/common/notificationQueue.service';
 import { createAndSendNotification } from '../services/common/notification.service';
 import { config } from '../config/env';
 import { logger } from '../utils/logger';
@@ -121,10 +121,11 @@ export const executeBookingPaymentExpiryJob = async (): Promise<void> => {
               type: 'payment_reminder',
               bookingId: booking.id,
             });
-            queueWhatsApp(user.mobile, getPaymentReminderUserWhatsApp(variables), 'high', {
-              type: 'payment_reminder',
-              bookingId: booking.id,
-            });
+            // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+            // queueWhatsApp(user.mobile, getPaymentReminderUserWhatsApp(variables), 'high', {
+            //   type: 'payment_reminder',
+            //   bookingId: booking.id,
+            // });
           }
 
           await BookingModel.updateOne(

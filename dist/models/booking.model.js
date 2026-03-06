@@ -309,6 +309,19 @@ const bookingSchema = new mongoose_1.Schema({
         type: Date,
         default: null,
     },
+    payment_token: {
+        type: String,
+        default: null,
+        sparse: true,
+    },
+    payment_token_expires_at: {
+        type: Date,
+        default: null,
+    },
+    payment_reminder_sent_hours: {
+        type: [Number],
+        default: null,
+    },
 }, {
     timestamps: true,
     versionKey: false,
@@ -345,5 +358,6 @@ bookingSchema.index({ is_deleted: 1, is_active: 1 }); // For active bookings cou
 bookingSchema.index({ is_deleted: 1, sport: 1 }); // For users with enrolled batch sports
 bookingSchema.index({ is_deleted: 1, user: 1 }); // For distinct user queries
 bookingSchema.index({ id: 1, user: 1, is_deleted: 1 }); // Optimize getBookingDetails query
+bookingSchema.index({ payment_token: 1 }, { sparse: true }); // Public pay-by-token lookup
 exports.BookingModel = (0, mongoose_1.model)('Booking', bookingSchema);
 //# sourceMappingURL=booking.model.js.map
