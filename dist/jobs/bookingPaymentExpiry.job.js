@@ -83,6 +83,12 @@ const executeBookingPaymentExpiryJob = async () => {
                     paymentUrl,
                 };
                 try {
+                    // Mark this reminder slot as sent FIRST so we never send duplicate if job runs again in 15 min
+                    const updateResult = await booking_model_1.BookingModel.updateOne({ _id: booking._id }, { $addToSet: { payment_reminder_sent_hours: H } });
+                    if (updateResult.modifiedCount === 0 && updateResult.matchedCount === 0) {
+                        logger_1.logger.warn('Booking not found for reminder update', { bookingId: booking.id });
+                        continue;
+                    }
                     if (user?.id) {
                         const pushNotification = (0, notificationMessages_1.getPaymentReminderUserPush)(variables);
                         await (0, notification_service_1.createAndSendNotification)({
@@ -118,7 +124,6 @@ const executeBookingPaymentExpiryJob = async () => {
                         //   bookingId: booking.id,
                         // });
                     }
-                    await booking_model_1.BookingModel.updateOne({ _id: booking._id }, { $addToSet: { payment_reminder_sent_hours: H } });
                     logger_1.logger.info('Payment reminder sent', { bookingId: booking.id, hoursBeforeExpiry: H });
                 }
                 catch (err) {

@@ -92,6 +92,16 @@ export const executeBookingPaymentExpiryJob = async (): Promise<void> => {
         };
 
         try {
+          // Mark this reminder slot as sent FIRST so we never send duplicate if job runs again in 15 min
+          const updateResult = await BookingModel.updateOne(
+            { _id: (booking as any)._id },
+            { $addToSet: { payment_reminder_sent_hours: H } }
+          );
+          if (updateResult.modifiedCount === 0 && updateResult.matchedCount === 0) {
+            logger.warn('Booking not found for reminder update', { bookingId: booking.id });
+            continue;
+          }
+
           if (user?.id) {
             const pushNotification = getPaymentReminderUserPush(variables);
             await createAndSendNotification({
@@ -128,10 +138,6 @@ export const executeBookingPaymentExpiryJob = async (): Promise<void> => {
             // });
           }
 
-          await BookingModel.updateOne(
-            { _id: (booking as any)._id },
-            { $addToSet: { payment_reminder_sent_hours: H } }
-          );
           logger.info('Payment reminder sent', { bookingId: booking.id, hoursBeforeExpiry: H });
         } catch (err) {
           logger.error('Failed to send payment reminder', { bookingId: booking.id, hoursBeforeExpiry: H, error: err });

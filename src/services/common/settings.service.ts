@@ -140,7 +140,7 @@ export const getBookingPaymentConfig = async (): Promise<BookingPaymentConfig> =
       paymentLinkExpiryHours: Math.max(1, Number(expiry) || 24),
       paymentReminderHoursBeforeExpiry: Array.isArray(reminders) && reminders.length > 0
         ? [...reminders].map((h) => Math.max(0, Number(h))).filter((h) => h > 0).sort((a, b) => b - a)
-        : [12, 6, 2],
+        : [],
     };
   } catch (error) {
     logger.error('Failed to get booking payment config', error);
