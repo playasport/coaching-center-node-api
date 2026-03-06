@@ -1089,6 +1089,254 @@ export const createPaymentOrder = async (
   }
 };
 
+/** Response for public pay-by-token page (no auth). Same shape as list item + token_expires_at, razorpay_key_id. */
+export interface PublicPayBookingResponse {
+  id: string;
+  booking_id: string;
+  batch: {
+    id: string;
+    name: string;
+    scheduled: { start_date: Date; start_time: string; end_time: string; training_days: string[] };
+    duration: { count: number; type: string };
+  };
+  participants: Array<{ id: string; firstName: string; lastName: string; age?: number | null; profilePhoto?: string | null }>;
+  center: { id: string; center_name: string; logo?: string | null };
+  sport: { id: string; name: string; logo?: string | null };
+  amount: number;
+  currency: string;
+  status: BookingStatus;
+  status_message: string;
+  payment_status: PaymentStatus | string;
+  payment_enabled: boolean;
+  can_download_invoice: boolean;
+  rejection_reason?: string | null;
+  cancellation_reason?: string | null;
+  token_expires_at: Date | null;
+  razorpay_key_id: string;
+}
+
+/**
+ * Get booking by payment token for public pay page (no auth).
+ * Returns booking details and payment_enabled so frontend can show Pay button or already paid/cancelled/expired state.
+ */
+export const getBookingByPaymentToken = async (token: string): Promise<PublicPayBookingResponse> => {
+  if (!token || token.trim() === '') {
+    throw new ApiError(400, 'Invalid or missing payment token');
+  }
+
+  const booking = await BookingModel.findOne({
+    payment_token: token.trim(),
+    is_deleted: false,
+  })
+    .populate('participants', 'id firstName lastName dob profilePhoto')
+    .populate({
+      path: 'batch',
+      select: 'id name scheduled duration center sport',
+      populate: [
+        { path: 'sport', select: 'id name logo' },
+        { path: 'center', select: 'id center_name logo' },
+      ],
+    })
+    .select('id booking_id participants batch amount currency status payment payment_token payment_token_expires_at rejection_reason cancellation_reason createdAt')
+    .lean();
+
+  if (!booking) {
+    throw new ApiError(404, 'Payment link is invalid or has expired');
+  }
+
+  const now = new Date();
+  const expiresAt = booking.payment_token_expires_at ? new Date(booking.payment_token_expires_at) : null;
+  if (expiresAt && expiresAt.getTime() < now.getTime()) {
+    throw new ApiError(400, 'This payment link has expired. Please request a new link or log in to pay.');
+  }
+
+  const bookingStatus = booking.status || BookingStatus.PENDING;
+  const paymentStatus = booking.payment?.status || PaymentStatus.PENDING;
+
+  return {
+    id: booking.id,
+    booking_id: booking.booking_id || booking.id,
+    batch: {
+      id: (booking.batch as any)?._id?.toString() || (booking.batch as any)?.id || '',
+      name: (booking.batch as any)?.name || 'N/A',
+      scheduled: (booking.batch as any)?.scheduled || { start_date: new Date(), start_time: '', end_time: '', training_days: [] },
+      duration: (booking.batch as any)?.duration || { count: 0, type: '' },
+    },
+    participants: (booking.participants || []).map((p: any) => {
+      const dob = p.dob ? new Date(p.dob) : null;
+      const age = dob ? calculateAge(dob, new Date()) : null;
+      return {
+        id: p._id?.toString() || p.id || '',
+        firstName: p.firstName || '',
+        lastName: p.lastName || '',
+        age: age ?? null,
+        profilePhoto: p.profilePhoto ?? null,
+      };
+    }),
+    center: {
+      id: (booking.batch as any)?.center?._id?.toString() || (booking.batch as any)?.center?.id || '',
+      center_name: (booking.batch as any)?.center?.center_name || 'N/A',
+      logo: (booking.batch as any)?.center?.logo ?? null,
+    },
+    sport: {
+      id: (booking.batch as any)?.sport?._id?.toString() || (booking.batch as any)?.sport?.id || '',
+      name: (booking.batch as any)?.sport?.name || 'N/A',
+      logo: (booking.batch as any)?.sport?.logo ?? null,
+    },
+    amount: booking.amount || 0,
+    currency: booking.currency || 'INR',
+    status: bookingStatus,
+    status_message: getBookingStatusMessage(bookingStatus, paymentStatus),
+    payment_status: paymentStatus === PaymentStatus.SUCCESS ? 'paid' : paymentStatus,
+    payment_enabled: isPaymentLinkEnabled(bookingStatus, paymentStatus),
+    can_download_invoice: canDownloadInvoice(bookingStatus, paymentStatus),
+    rejection_reason: bookingStatus === BookingStatus.REJECTED ? booking.rejection_reason || null : null,
+    cancellation_reason: bookingStatus === BookingStatus.CANCELLED ? booking.cancellation_reason || null : null,
+    token_expires_at: expiresAt,
+    razorpay_key_id: config.razorpay?.keyId || '',
+  };
+};
+
+/**
+ * Create Razorpay order by payment token (public, no auth).
+ * Use when user clicks Pay on the public pay page. Webhook will verify payment.
+ */
+export const createOrderByPaymentToken = async (token: string): Promise<PaymentOrderResponse> => {
+  if (!token || token.trim() === '') {
+    throw new ApiError(400, 'Invalid or missing payment token');
+  }
+
+  const booking = await BookingModel.findOne({
+    payment_token: token.trim(),
+    status: BookingStatus.APPROVED,
+    is_deleted: false,
+  }).lean();
+
+  if (!booking) {
+    throw new ApiError(404, 'Booking not found or payment is not available for this link');
+  }
+
+  const now = new Date();
+  const expiresAt = booking.payment_token_expires_at ? new Date(booking.payment_token_expires_at) : null;
+  if (expiresAt && expiresAt.getTime() < now.getTime()) {
+    throw new ApiError(400, 'This payment link has expired. Please request a new link.');
+  }
+
+  if (booking.payment?.status === PaymentStatus.SUCCESS) {
+    throw new ApiError(400, 'This booking has already been paid.');
+  }
+
+  if (!booking.amount || booking.amount <= 0) {
+    throw new ApiError(400, 'Invalid booking amount. Cannot create payment order.');
+  }
+  if (!booking.currency || booking.currency.trim() === '') {
+    throw new ApiError(400, 'Booking currency is required.');
+  }
+
+  const currentInitiatedCount = booking.payment?.payment_initiated_count || 0;
+  const receipt = `booking_${Date.now()}_${(booking.user as any)?.toString?.()?.slice(-6) || 'pub'}`;
+  const amountInPaise = Math.round(booking.amount * 100);
+  if (amountInPaise <= 0 || amountInPaise < 100) {
+    throw new ApiError(400, 'Payment amount must be at least ₹1.00 (100 paise).');
+  }
+
+  const paymentOrder = await paymentService.createOrder({
+    amount: amountInPaise,
+    currency: booking.currency.toUpperCase(),
+    receipt,
+    notes: {
+      bookingId: booking.id,
+      batchId: booking.batch.toString(),
+      centerId: booking.center.toString(),
+    },
+  });
+
+  const updatedBooking = await BookingModel.findByIdAndUpdate(
+    booking._id,
+    {
+      $set: {
+        'payment.razorpay_order_id': paymentOrder.id,
+        'payment.status': PaymentStatus.INITIATED,
+        'payment.payment_initiated_count': currentInitiatedCount + 1,
+      },
+    },
+    { new: true }
+  )
+    .select('id booking_id status amount currency payment')
+    .lean();
+
+  if (!updatedBooking) {
+    throw new ApiError(500, 'Failed to update booking with payment order');
+  }
+
+  try {
+    await TransactionModel.findOneAndUpdate(
+      { booking: booking._id, razorpay_order_id: paymentOrder.id },
+      {
+        $set: {
+          razorpay_payment_id: null,
+          razorpay_signature: null,
+          payment_method: null,
+          processed_at: null,
+        },
+        $setOnInsert: {
+          user: booking.user,
+          booking: booking._id,
+          razorpay_order_id: paymentOrder.id,
+          amount: booking.amount,
+          currency: booking.currency,
+          type: TransactionType.PAYMENT,
+          status: TransactionStatus.PENDING,
+          source: TransactionSource.USER_VERIFICATION,
+        },
+      },
+      { upsert: true, new: true, lean: true }
+    );
+  } catch (transactionError: any) {
+    logger.error('Failed to create transaction record for public payment', {
+      bookingId: booking.id,
+      razorpay_order_id: paymentOrder.id,
+      error: transactionError instanceof Error ? transactionError.message : transactionError,
+    });
+  }
+
+  createAuditTrail(
+    ActionType.PAYMENT_INITIATED,
+    ActionScale.MEDIUM,
+    `Payment order created (public link) for booking ${booking.booking_id || booking.id}`,
+    'Booking',
+    booking._id,
+    {
+      userId: booking.user,
+      academyId: booking.center,
+      bookingId: booking._id,
+      metadata: { razorpayOrderId: paymentOrder.id, amount: booking.amount },
+    }
+  ).catch(() => {});
+
+  return {
+    booking: {
+      id: updatedBooking.id || (updatedBooking._id as any)?.toString() || '',
+      booking_id: updatedBooking.booking_id || '',
+      status: updatedBooking.status as BookingStatus,
+      amount: updatedBooking.amount,
+      currency: updatedBooking.currency,
+      payment: {
+        razorpay_order_id: updatedBooking.payment.razorpay_order_id || paymentOrder.id,
+        status: updatedBooking.payment.status,
+      },
+    },
+    razorpayOrder: {
+      id: paymentOrder.id,
+      amount: paymentOrder.amount,
+      currency: paymentOrder.currency,
+      receipt: paymentOrder.receipt,
+      status: paymentOrder.status,
+      created_at: paymentOrder.created_at,
+    },
+  };
+};
+
 /**
  * Verify Razorpay payment and update booking status
  */
@@ -2929,6 +3177,216 @@ export const cancelBooking = async (
     });
     throw new ApiError(500, 'Failed to cancel booking');
   }
+};
+
+/** Default reason when system auto-cancels due to payment not completed in time */
+export const PAYMENT_EXPIRED_CANCELLATION_REASON = 'Payment not completed within the allowed time. Your booking has been automatically cancelled.';
+
+/**
+ * Cancel an approved booking by system (e.g. payment link expired). Sends same notifications as user cancellation.
+ * Used by the booking payment expiry cron job.
+ */
+export const cancelBookingBySystem = async (
+  bookingId: string,
+  reason: string = PAYMENT_EXPIRED_CANCELLATION_REASON
+): Promise<void> => {
+  const booking = await BookingModel.findOne({
+    id: bookingId,
+    status: BookingStatus.APPROVED,
+    is_deleted: false,
+  })
+    .populate('batch', 'id name')
+    .populate('center', 'id center_name')
+    .populate('sport', 'id name')
+    .lean();
+
+  if (!booking) {
+    logger.warn('cancelBookingBySystem: booking not found or not eligible', { bookingId });
+    return;
+  }
+
+  if (booking.payment?.status === PaymentStatus.SUCCESS) {
+    logger.warn('cancelBookingBySystem: booking already paid', { bookingId });
+    return;
+  }
+
+  await BookingModel.findByIdAndUpdate(booking._id, {
+    $set: {
+      status: BookingStatus.CANCELLED,
+      'payment.status': [PaymentStatus.INITIATED, PaymentStatus.PENDING].includes(booking.payment?.status as PaymentStatus)
+        ? PaymentStatus.CANCELLED
+        : booking.payment?.status,
+      'payment.failure_reason': reason,
+      cancellation_reason: reason,
+      cancelled_by: 'system',
+    },
+  });
+
+  if (booking.payment?.razorpay_order_id) {
+    await TransactionModel.findOneAndUpdate(
+      { booking: booking._id, razorpay_order_id: booking.payment.razorpay_order_id },
+      { $set: { status: TransactionStatus.CANCELLED, failure_reason: reason } },
+      { upsert: false }
+    );
+  }
+
+  await createAuditTrail(
+    ActionType.BOOKING_CANCELLED,
+    ActionScale.MEDIUM,
+    `Booking auto-cancelled by system (payment not completed in time): ${reason}`,
+    'Booking',
+    booking._id,
+    {
+      userId: booking.user,
+      academyId: booking.center,
+      bookingId: booking._id,
+      metadata: { reason, cancelledBy: 'system' },
+    }
+  );
+
+  (async () => {
+    try {
+      const [userDetails, centerDetails, batchDetails] = await Promise.all([
+        UserModel.findById(booking.user).select('id firstName lastName email mobile').lean(),
+        CoachingCenterModel.findById(booking.center).select('id center_name user email mobile_number').lean(),
+        BatchModel.findById(booking.batch).select('id name').lean(),
+      ]);
+      const batchName = batchDetails?.name || 'batch';
+      const centerName = (centerDetails as any)?.center_name || 'Academy';
+      const user = userDetails as any;
+      const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'User' : 'User';
+      const centerOwnerId = (centerDetails as any)?.user?.toString();
+
+      if (user?.id) {
+        const userPushNotification = getBookingCancelledUserPush({ batchName, reason: reason || null });
+        await createAndSendNotification({
+          recipientType: 'user',
+          recipientId: user.id,
+          title: userPushNotification.title,
+          body: userPushNotification.body,
+          channels: ['push'],
+          priority: 'medium',
+          data: { type: 'booking_cancelled', bookingId: booking.id, batchId: booking.batch.toString(), reason: reason || null },
+        });
+        if (user.email) {
+          queueEmail(user.email, EmailSubjects.BOOKING_CANCELLED_USER, {
+            template: EmailTemplates.BOOKING_CANCELLED_USER,
+            text: getBookingCancelledUserEmailText({ batchName, centerName, reason: reason || null }),
+            templateVariables: {
+              userName,
+              batchName,
+              centerName,
+              bookingId: booking.booking_id ?? booking.id,
+              reason: reason || null,
+              year: new Date().getFullYear(),
+            },
+            priority: 'medium',
+            metadata: { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' },
+          });
+        }
+        if (user.mobile) {
+          queueSms(user.mobile, getBookingCancelledUserSms({
+            batchName,
+            centerName,
+            bookingId: booking.booking_id ?? undefined,
+            reason: reason || null,
+          }), 'medium', { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' });
+          queueWhatsApp(user.mobile, getBookingCancelledUserWhatsApp({
+            batchName,
+            centerName,
+            bookingId: booking.booking_id ?? undefined,
+            reason: reason || null,
+          }), 'medium', { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' });
+        }
+      }
+
+      if (centerOwnerId) {
+        const academyOwner = await UserModel.findById(centerOwnerId).select('id email mobile').lean();
+        if (academyOwner) {
+          const academyPushNotification = getBookingCancelledAcademyPush({
+            bookingId: booking.booking_id || booking.id,
+            batchName,
+            userName,
+            reason: reason || null,
+          });
+          await createAndSendNotification({
+            recipientType: 'academy',
+            recipientId: academyOwner.id,
+            title: academyPushNotification.title,
+            body: academyPushNotification.body,
+            channels: ['push'],
+            priority: 'medium',
+            data: { type: 'booking_cancelled_academy', bookingId: booking.id, batchId: booking.batch.toString(), reason: reason || null },
+          });
+          const academyEmail = (centerDetails as any)?.email || academyOwner.email;
+          if (academyEmail) {
+            queueEmail(academyEmail, EmailSubjects.BOOKING_CANCELLED_ACADEMY, {
+              template: EmailTemplates.BOOKING_CANCELLED_ACADEMY,
+              text: getBookingCancelledAcademyEmailText({
+                bookingId: booking.booking_id ?? undefined,
+                batchName,
+                userName,
+                reason: reason || null,
+              }),
+              templateVariables: {
+                centerName,
+                batchName,
+                userName,
+                userEmail: user?.email || 'N/A',
+                bookingId: booking.booking_id ?? undefined,
+                reason: reason || null,
+                year: new Date().getFullYear(),
+              },
+              priority: 'medium',
+              metadata: { type: 'booking_cancelled', bookingId: booking.booking_id ?? undefined, recipient: 'academy' },
+            });
+          }
+          const academyMobile = (centerDetails as any)?.mobile_number || academyOwner.mobile;
+          if (academyMobile) {
+            queueSms(academyMobile, getBookingCancelledAcademySms({
+              bookingId: booking.booking_id ?? undefined,
+              batchName,
+              userName,
+              reason: reason || null,
+            }), 'medium', { type: 'booking_cancelled', bookingId: booking.booking_id ?? undefined, recipient: 'academy' });
+            queueWhatsApp(academyMobile, getBookingCancelledAcademyWhatsApp({
+              bookingId: booking.booking_id ?? undefined,
+              batchName,
+              userName,
+              reason: reason || null,
+            }), 'medium', { type: 'booking_cancelled', bookingId: booking.booking_id ?? undefined, recipient: 'academy' });
+          }
+        }
+      }
+
+      if (config.admin.email) {
+        queueEmail(config.admin.email, EmailSubjects.BOOKING_CANCELLED_ADMIN, {
+          template: EmailTemplates.BOOKING_CANCELLED_ADMIN,
+          text: getBookingCancelledAdminEmailText({
+            bookingId: booking.booking_id ?? undefined,
+            batchName,
+            centerName,
+            userName,
+            reason: reason || null,
+          }),
+          templateVariables: {
+            userName,
+            userEmail: user?.email || 'N/A',
+            batchName,
+            centerName,
+            bookingId: booking.booking_id ?? undefined,
+            reason: reason || null,
+            year: new Date().getFullYear(),
+          },
+          priority: 'medium',
+          metadata: { type: 'booking_cancelled', bookingId: booking.booking_id ?? undefined, recipient: 'admin' },
+        });
+      }
+      logger.info('Booking cancellation (system) notifications queued', { bookingId: booking.id });
+    } catch (err) {
+      logger.error('Error sending system cancellation notifications', { bookingId: booking.id, error: err });
+    }
+  })().catch(() => {});
 };
 
 

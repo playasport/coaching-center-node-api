@@ -3,7 +3,7 @@ import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
 import * as bookingService from '../services/client/booking.service';
-import type { BookingSummaryInput, VerifyPaymentInput, UserBookingListInput, DeleteOrderInput, BookSlotInput, CreatePaymentOrderInput, CancelBookingInput, GetBookingDetailsInput } from '../validations/booking.validation';
+import type { BookingSummaryInput, VerifyPaymentInput, UserBookingListInput, DeleteOrderInput, BookSlotInput, CreatePaymentOrderInput, CancelBookingInput, GetBookingDetailsInput, PublicPayQueryInput, PublicCreateOrderInput } from '../validations/booking.validation';
 import { BookingStatus, PaymentStatus } from '../models/booking.model';
 
 /**
@@ -163,6 +163,47 @@ export const createPaymentOrder = async (
       },
       'Payment order created successfully'
     );
+    res.status(201).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get booking by payment token (public, no auth). For pay page: shows details and payment_enabled / status.
+ */
+export const getPublicPayBooking = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { token } = req.query as unknown as PublicPayQueryInput;
+    const data = await bookingService.getBookingByPaymentToken(token);
+
+    const response = new ApiResponse(200, data, 'Booking details retrieved');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Create Razorpay order by payment token (public, no auth). Webhook will verify payment.
+ */
+export const createPublicOrder = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { token } = req.body as PublicCreateOrderInput;
+    const result = await bookingService.createOrderByPaymentToken(token);
+
+    const response = new ApiResponse(201, {
+      booking: result.booking,
+      razorpayOrder: result.razorpayOrder,
+    }, 'Payment order created successfully');
     res.status(201).json(response);
   } catch (error) {
     next(error);

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment Reminder - Play A Sport</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f7fa; margin: 0; padding: 0; line-height: 1.6; }
+      .email-wrapper { width: 100%; padding: 40px 20px; }
+      .email-container { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(10, 37, 64, 0.1); }
+      .header { background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%); padding: 30px; text-align: center; }
+      .header-title { color: #fff; font-size: 22px; font-weight: 600; margin: 0; }
+      .content { padding: 30px; color: #333; }
+      .greeting { font-size: 16px; margin-bottom: 16px; }
+      .message { font-size: 15px; color: #555; margin-bottom: 20px; }
+      .info-box { background: #FFF3E0; border-left: 4px solid #FF6B35; padding: 16px; margin: 20px 0; border-radius: 8px; }
+      .info-box strong { color: #E65100; }
+      .cta-button { display: inline-block; background: #FF6B35; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin-top: 10px; }
+      .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 13px; color: #666; }
+    </style>
+  </head>
+  <body>
+    <div class="email-wrapper">
+      <div class="email-container">
+        <div class="header">
+          <h1 class="header-title">Payment reminder – complete your booking</h1>
+        </div>
+        <div class="content">
+          <p class="greeting">Dear {{userName}},</p>
+          <p class="message">This is a reminder that your booking for <strong>{{batchName}}</strong> at <strong>{{centerName}}</strong> is still pending payment.</p>
+          <div class="info-box">
+            <p><strong>Booking ID:</strong> {{bookingId}}</p>
+            <p><strong>Time left to pay:</strong> {{hoursLeft}} hours</p>
+          </div>
+          <p class="message">Complete payment before the link expires to confirm your slot.</p>
+          <p><a href="{{paymentUrl}}" class="cta-button">Pay now</a></p>
+          <p class="message">Best regards,<br /><strong>Play A Sport</strong></p>
+        </div>
+        <div class="footer">© {{year}} Play A Sport. All rights reserved.</div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -19,6 +19,7 @@ import academyCoachingCenterRatingRoutes from './academy/coachingCenterRating.ro
 import roleRoutes from './role.routes';
 import participantRoutes from './participant.routes';
 import bookingRoutes from './booking.routes';
+import publicBookingRoutes from './publicBooking.routes';
 import transactionRoutes from './transaction.routes';
 import userDashboardRoutes from './dashboard.routes';
 import userRatingRoutes from './rating.routes';
@@ -48,6 +49,7 @@ router.use('/academy/auth', academyAuthRoutes);
 router.use('/user/auth', userAuthRoutes);
 router.use('/user/participant', participantRoutes);
 router.use('/user/booking', bookingRoutes);
+router.use('/public/booking', publicBookingRoutes);
 router.use('/user/transactions', transactionRoutes);
 router.use('/user/dashboard', userDashboardRoutes);
 router.use('/user/ratings', userRatingRoutes);

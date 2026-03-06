@@ -135,6 +135,16 @@ export const config = {
   booking: {
     platformFee: Number(process.env.PLATFORM_FEE || 200), // Default platform fee
     gstPercentage: Number(process.env.GST_PERCENTAGE || 18), // Default GST percentage
+    // Payment link expiry (hours). After this, unpaid approved booking is auto-cancelled. Overridable via Settings.
+    paymentLinkExpiryHours: Number(process.env.BOOKING_PAYMENT_LINK_EXPIRY_HOURS || 24),
+    // Send payment reminder when X hours left before expiry (e.g. [12, 6, 2]). Overridable via Settings.
+    paymentReminderHoursBeforeExpiry: (() => {
+      const raw = process.env.BOOKING_PAYMENT_REMINDER_HOURS;
+      if (raw && /^[\d,\s]+$/.test(raw)) {
+        return raw.split(',').map((h) => Math.max(0, parseInt(h.trim(), 10))).filter((h) => h > 0).sort((a, b) => b - a);
+      }
+      return [12, 6, 2];
+    })(),
   },
   location: {
     defaultRadius: Number(process.env.DEFAULT_SEARCH_RADIUS_KM || 50), // Default search radius in kilometers

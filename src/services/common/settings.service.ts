@@ -126,6 +126,35 @@ export const getLimitedPublicSettings = async (): Promise<Partial<Settings>> => 
   }
 };
 
+/** Booking payment config (expiry hours, reminder schedule). From Settings or config. */
+export interface BookingPaymentConfig {
+  paymentLinkExpiryHours: number;
+  paymentReminderHoursBeforeExpiry: number[];
+}
+
+/**
+ * Get booking payment config (payment link expiry, reminder hours). Uses Settings.booking if set, else config.
+ */
+export const getBookingPaymentConfig = async (): Promise<BookingPaymentConfig> => {
+  try {
+    const settings = await getSettings(false);
+    const expiry = settings.booking?.payment_link_expiry_hours ?? config.booking.paymentLinkExpiryHours;
+    const reminders = settings.booking?.payment_reminder_hours_before_expiry ?? config.booking.paymentReminderHoursBeforeExpiry;
+    return {
+      paymentLinkExpiryHours: Math.max(1, Number(expiry) || 24),
+      paymentReminderHoursBeforeExpiry: Array.isArray(reminders) && reminders.length > 0
+        ? [...reminders].map((h) => Math.max(0, Number(h))).filter((h) => h > 0).sort((a, b) => b - a)
+        : [12, 6, 2],
+    };
+  } catch (error) {
+    logger.error('Failed to get booking payment config', error);
+    return {
+      paymentLinkExpiryHours: config.booking.paymentLinkExpiryHours,
+      paymentReminderHoursBeforeExpiry: config.booking.paymentReminderHoursBeforeExpiry,
+    };
+  }
+};
+
 /**
  * Create default settings with values from config
  */

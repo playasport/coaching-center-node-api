@@ -331,6 +331,7 @@ export const EmailTemplates = {
   BOOKING_CANCELLED_USER: 'booking-cancelled-user.html',
   BOOKING_CANCELLED_ACADEMY: 'booking-cancelled-academy.html',
   BOOKING_CANCELLED_ADMIN: 'booking-cancelled-admin.html',
+  BOOKING_PAYMENT_REMINDER_USER: 'booking-payment-reminder-user.html',
   PAYOUT_ACCOUNT_CREATED: 'payout-account-created.html',
   PAYOUT_ACCOUNT_ACTIVATED: 'payout-account-activated.html',
 } as const;
@@ -349,6 +350,7 @@ export const EmailSubjects = {
   BOOKING_CANCELLED_USER: 'Booking Cancelled - Play A Sport',
   BOOKING_CANCELLED_ACADEMY: 'Booking Cancelled - Play A Sport',
   BOOKING_CANCELLED_ADMIN: 'Booking Cancelled - Play A Sport',
+  BOOKING_PAYMENT_REMINDER_USER: 'Complete your payment - Play A Sport',
   BOOKING_REFUNDED_USER: 'Booking Refunded - Play A Sport',
   PAYOUT_ACCOUNT_CREATED: 'Payout Account Created - Play A Sport',
   PAYOUT_ACCOUNT_ACTIVATED: 'Payout Account Activated - Play A Sport',
@@ -586,6 +588,40 @@ export const getBookingApprovedUserPush = (variables: NotificationMessageVariabl
   return {
     title: 'Booking Approved!',
     body: replaceVariables(`Your booking request for "{{batchName}}" has been approved. Please proceed with payment.`, variables),
+  };
+};
+
+/**
+ * Payment reminder - User (SMS). Variables: batchName, centerName, bookingId, hoursLeft, paymentUrl
+ */
+export const getPaymentReminderUserSms = (variables: NotificationMessageVariables): string => {
+  const template = `Reminder: Complete payment for your booking "{{batchName}}" at "{{centerName}}". {{hoursLeft}} hours left. Booking ID: {{bookingId}}. - Play A Sport`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payment reminder - User (WhatsApp)
+ */
+export const getPaymentReminderUserWhatsApp = (variables: NotificationMessageVariables): string => {
+  const template = `*Payment reminder*\n\nComplete payment for your booking *"{{batchName}}"* at *"{{centerName}}"*.\n\n*Time left:* {{hoursLeft}} hours\n*Booking ID:* {{bookingId}}\n\nPay now to confirm your slot.\n\n- Play A Sport`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payment reminder - User (Email plain text)
+ */
+export const getPaymentReminderUserEmailText = (variables: NotificationMessageVariables): string => {
+  const template = `Reminder: Your booking for "{{batchName}}" at "{{centerName}}" is pending payment. You have {{hoursLeft}} hours left to pay. Booking ID: {{bookingId}}.`;
+  return replaceVariables(template, variables);
+};
+
+/**
+ * Payment reminder - User (Push)
+ */
+export const getPaymentReminderUserPush = (variables: NotificationMessageVariables): PushNotificationTemplate => {
+  return {
+    title: 'Complete your payment',
+    body: replaceVariables(`Your booking for "{{batchName}}" has {{hoursLeft}} hours left to pay.`, variables),
   };
 };
 

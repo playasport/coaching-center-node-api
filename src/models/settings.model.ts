@@ -93,6 +93,14 @@ export interface GeneralSettings {
   ratings_enabled?: boolean | null;
 }
 
+// Booking payment settings (payment link expiry, reminders). Managed via Settings API.
+export interface BookingPaymentSettings {
+  /** Hours after approval before payment link expires and booking is auto-cancelled if unpaid. Default 24. */
+  payment_link_expiry_hours?: number | null;
+  /** Send reminder when X hours left before expiry (e.g. [12, 6, 2]). Default [12, 6, 2]. */
+  payment_reminder_hours_before_expiry?: number[] | null;
+}
+
 // Basic information interface (extended)
 export interface BasicInfo {
   app_name?: string | null;
@@ -114,6 +122,9 @@ export interface Settings {
 
   // General settings (e.g. ratings enabled/disabled)
   general?: GeneralSettings | null;
+
+  // Booking payment (payment link expiry, auto-cancel, reminders). Overrides config/env.
+  booking?: BookingPaymentSettings | null;
   
   // Fee Configuration
   fees?: FeeConfig | null;

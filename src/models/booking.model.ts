@@ -107,6 +107,11 @@ export interface Booking {
   is_active: boolean;
   is_deleted: boolean;
   deletedAt?: Date | null;
+  /** Token for public payment URL (no login). Set when booking is APPROVED, expires per settings. */
+  payment_token?: string | null;
+  payment_token_expires_at?: Date | null;
+  /** Hours-before-expiry at which we already sent a payment reminder (e.g. [12, 6, 2]). */
+  payment_reminder_sent_hours?: number[] | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -395,6 +400,19 @@ const bookingSchema = new Schema<Booking>(
       type: Date,
       default: null,
     },
+    payment_token: {
+      type: String,
+      default: null,
+      sparse: true,
+    },
+    payment_token_expires_at: {
+      type: Date,
+      default: null,
+    },
+    payment_reminder_sent_hours: {
+      type: [Number],
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -435,6 +453,7 @@ bookingSchema.index({ is_deleted: 1, is_active: 1 }); // For active bookings cou
 bookingSchema.index({ is_deleted: 1, sport: 1 }); // For users with enrolled batch sports
 bookingSchema.index({ is_deleted: 1, user: 1 }); // For distinct user queries
 bookingSchema.index({ id: 1, user: 1, is_deleted: 1 }); // Optimize getBookingDetails query
+bookingSchema.index({ payment_token: 1 }, { sparse: true }); // Public pay-by-token lookup
 
 export const BookingModel = model<Booking>('Booking', bookingSchema);
 

@@ -1,5 +1,7 @@
+import crypto from 'crypto';
 import { Types } from 'mongoose';
 import { BookingModel, Booking, PaymentStatus, BookingStatus } from '../../models/booking.model';
+import { config } from '../../config/env';
 import { CoachingCenterModel } from '../../models/coachingCenter.model';
 import { logger } from '../../utils/logger';
 import { ApiError } from '../../utils/ApiError';
@@ -9,6 +11,7 @@ import { createAndSendNotification } from '../common/notification.service';
 import { queueEmail, queueSms, queueWhatsApp } from '../common/notificationQueue.service';
 import { createAuditTrail } from '../common/auditTrail.service';
 import { ActionType, ActionScale } from '../../models/auditTrail.model';
+import { getBookingPaymentConfig } from '../common/settings.service';
 import {
   getBookingApprovedUserSms,
   getBookingApprovedUserWhatsApp,
@@ -524,11 +527,20 @@ export const approveBookingRequest = async (
       throw new ApiError(404, 'Booking request not found or already processed');
     }
 
-    // Update booking status to APPROVED
+    const paymentConfig = await getBookingPaymentConfig();
+    const expiryHours = paymentConfig.paymentLinkExpiryHours;
+    const paymentToken = crypto.randomBytes(32).toString('hex');
+    const paymentTokenExpiresAt = new Date(Date.now() + expiryHours * 60 * 60 * 1000);
+
+    // Update booking status to APPROVED and set payment token
     const updatedBooking = await BookingModel.findByIdAndUpdate(
       booking._id,
       {
-        $set: { status: BookingStatus.APPROVED },
+        $set: {
+          status: BookingStatus.APPROVED,
+          payment_token: paymentToken,
+          payment_token_expires_at: paymentTokenExpiresAt,
+        },
       },
       { new: true }
     )
@@ -599,6 +611,7 @@ export const approveBookingRequest = async (
             centerName,
             bookingId: booking.booking_id ?? booking.id,
             year: new Date().getFullYear(),
+            paymentUrl: config.mainSiteUrl ? `${config.mainSiteUrl}/pay?token=${paymentToken}` : '',
           },
           priority: 'high',
           metadata: {

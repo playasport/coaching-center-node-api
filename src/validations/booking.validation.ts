@@ -224,3 +224,21 @@ export const getBookingDetailsSchema = z.object({
 
 export type GetBookingDetailsInput = z.infer<typeof getBookingDetailsSchema>['params'];
 
+// Public pay-by-token (no auth): get booking details
+export const publicPayQuerySchema = z.object({
+  query: z.object({
+    token: z.string().min(1, 'Payment token is required'),
+  }),
+});
+
+export type PublicPayQueryInput = z.infer<typeof publicPayQuerySchema>['query'];
+
+// Public pay-by-token: create order
+export const publicCreateOrderSchema = z.object({
+  body: z.object({
+    token: z.string().min(1, 'Payment token is required'),
+  }),
+});
+
+export type PublicCreateOrderInput = z.infer<typeof publicCreateOrderSchema>['body'];
+
