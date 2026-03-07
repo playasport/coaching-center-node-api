@@ -2,7 +2,7 @@ import { Schema, model, HydratedDocument, Types } from 'mongoose';
 
 export type WhatsAppMessageDirection = 'in' | 'out';
 
-export type WhatsAppMessageType = 'text' | 'image' | 'audio' | 'video' | 'document' | 'unknown';
+export type WhatsAppMessageType = 'text' | 'image' | 'audio' | 'video' | 'document' | 'reaction' | 'interactive' | 'unknown';
 
 export interface WhatsAppMessage {
   conversation: Types.ObjectId;
@@ -20,6 +20,8 @@ export interface WhatsAppMessage {
   mediaUrl?: string | null;
   /** True if sent from admin panel (our app) */
   fromAdmin: boolean;
+  /** For reactions: the waMessageId this reaction refers to */
+  repliedToWaMessageId?: string | null;
   /** Raw payload snippet for debugging (optional) */
   rawPayload?: Record<string, unknown> | null;
   createdAt: Date;
@@ -44,7 +46,7 @@ const schema = new Schema<WhatsAppMessage>(
     },
     type: {
       type: String,
-      enum: ['text', 'image', 'audio', 'video', 'document', 'unknown'],
+      enum: ['text', 'image', 'audio', 'video', 'document', 'reaction', 'interactive', 'unknown'],
       default: 'text',
     },
     content: { type: String, default: '', trim: true },
@@ -52,6 +54,7 @@ const schema = new Schema<WhatsAppMessage>(
     waTimestamp: { type: Number, required: true },
     status: { type: String, default: null },
     mediaUrl: { type: String, default: null },
+    repliedToWaMessageId: { type: String, default: null },
     fromAdmin: { type: Boolean, default: false },
     rawPayload: { type: Schema.Types.Mixed, default: null },
   },
