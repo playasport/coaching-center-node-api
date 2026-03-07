@@ -1,12 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getQueueStatus = exports.queueMultiChannel = exports.queuePush = exports.queueWhatsApp = exports.queueEmail = exports.queueSms = exports.queueNotification = void 0;
+exports.getQueueStatus = exports.queueMultiChannel = exports.queuePush = exports.queueWhatsAppTemplate = exports.queueWhatsApp = exports.queueEmail = exports.queueSms = exports.queueNotification = void 0;
 const uuid_1 = require("uuid");
 const logger_1 = require("../../utils/logger");
 const env_1 = require("../../config/env");
 const twilio_1 = require("../../utils/twilio");
 const email_service_1 = require("./email.service");
 const whatsapp_1 = require("../../utils/whatsapp");
+const metaWhatsApp_service_1 = require("./metaWhatsApp.service");
 const fcm_1 = require("../../utils/fcm");
 const deviceToken_service_1 = require("./deviceToken.service");
 const settings_service_1 = require("./settings.service");
@@ -194,7 +195,7 @@ const processEmail = async (notification) => {
         };
     }
 };
-// Process WhatsApp notification
+// Process WhatsApp notification (plain text or Meta template)
 const processWhatsApp = async (notification) => {
     if (!(await isChannelEnabled('whatsapp'))) {
         logger_1.logger.info('WhatsApp channel disabled. Notification skipped.', {
@@ -208,23 +209,82 @@ const processWhatsApp = async (notification) => {
             retryable: false,
         };
     }
-    const result = await (0, whatsapp_1.sendWhatsApp)({
-        to: notification.to,
-        body: notification.body,
-    });
-    if (result.success) {
+    let success = false;
+    let messageId;
+    let error;
+    let retryable = true;
+    if (notification.template) {
+        try {
+            const name = notification.template.name;
+            const params = notification.template.params;
+            if (name === 'payment_request') {
+                const res = await (0, metaWhatsApp_service_1.sendWhatsAppCloudPaymentRequestTemplate)(notification.to, {
+                    userName: params.userName ?? '',
+                    academyName: params.academyName ?? '',
+                    bookingId: params.bookingId ?? '',
+                    paymentUrl: params.paymentUrl ?? '',
+                    numberOfHours: params.numberOfHours ?? '',
+                    buttonUrlParameter: params.buttonUrlParameter ?? '',
+                });
+                success = true;
+                messageId = res.messageId;
+            }
+            else if (name === 'payment_reminder') {
+                const res = await (0, metaWhatsApp_service_1.sendWhatsAppCloudPaymentReminderTemplate)(notification.to, {
+                    batchName: params.batchName ?? '',
+                    academyName: params.academyName ?? '',
+                    hoursLeft: params.hoursLeft ?? '',
+                    bookingId: params.bookingId ?? '',
+                    paymentLink: params.paymentLink ?? '',
+                    buttonUrlParameter: params.buttonUrlParameter ?? '',
+                });
+                success = true;
+                messageId = res.messageId;
+            }
+            else if (name === 'booking_cancelled') {
+                const res = await (0, metaWhatsApp_service_1.sendWhatsAppCloudBookingCancelledTemplate)(notification.to, {
+                    batchName: params.batchName ?? '',
+                    academyName: params.academyName ?? '',
+                    bookingId: params.bookingId ?? '',
+                    cancelReason: params.cancelReason ?? '—',
+                });
+                success = true;
+                messageId = res.messageId;
+            }
+            else {
+                error = `Unknown WhatsApp template: ${name}`;
+                retryable = false;
+            }
+        }
+        catch (err) {
+            error = err instanceof Error ? err.message : String(err);
+            retryable = !error.includes('invalid') && !error.includes('unsubscribed');
+            logger_1.logger.error('WhatsApp template send failed', { to: notification.to, template: notification.template.name, error });
+        }
+    }
+    else {
+        const result = await (0, whatsapp_1.sendWhatsApp)({
+            to: notification.to,
+            body: notification.body ?? '',
+        });
+        success = result.success;
+        messageId = result.messageId;
+        error = result.error;
+        retryable = result.retryable ?? true;
+    }
+    if (success) {
         logger_1.logger.info('WhatsApp sent successfully', {
-            messageId: result.messageId,
+            messageId,
             to: notification.to,
             priority: notification.priority,
         });
     }
     return {
-        success: result.success,
+        success,
         channel: 'whatsapp',
-        messageId: result.messageId,
-        error: result.error,
-        retryable: result.retryable ?? true, // Default to retryable if not specified
+        messageId,
+        error,
+        retryable,
     };
 };
 // Process Push notification
@@ -423,6 +483,20 @@ const queueWhatsApp = (to, body, priority = 'medium', metadata) => {
     });
 };
 exports.queueWhatsApp = queueWhatsApp;
+/**
+ * Queue a Meta WhatsApp template message.
+ * Params: payment_request → userName, academyName, bookingId, paymentUrl, numberOfHours, buttonUrlParameter; payment_reminder → batchName, academyName, hoursLeft, bookingId, paymentLink, buttonUrlParameter; booking_cancelled → batchName, academyName, bookingId, cancelReason.
+ */
+const queueWhatsAppTemplate = (to, templateName, params, priority = 'medium', metadata) => {
+    (0, exports.queueNotification)({
+        channel: 'whatsapp',
+        to,
+        template: { name: templateName, params },
+        priority,
+        metadata,
+    });
+};
+exports.queueWhatsAppTemplate = queueWhatsAppTemplate;
 const queuePush = (userId, title, body, options = {}) => {
     (0, exports.queueNotification)({
         channel: 'push',

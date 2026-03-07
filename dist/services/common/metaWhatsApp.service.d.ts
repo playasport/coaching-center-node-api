@@ -14,6 +14,55 @@ export declare function verifyWhatsAppWebhookSignature(rawBody: string, signatur
 export declare function sendWhatsAppCloudText(to: string, text: string): Promise<{
     messageId: string;
 }>;
+/** Parameters for the approved-booking payment_request WhatsApp template */
+export interface PaymentRequestTemplateParams {
+    userName: string;
+    academyName: string;
+    bookingId: string;
+    paymentUrl: string;
+    /** Hours until payment link expires (e.g. "24") */
+    numberOfHours: string;
+    /** Dynamic part for the CTA button URL (e.g. payment token if URL is pay?token={{1}}) */
+    buttonUrlParameter: string;
+}
+/**
+ * Send approved-booking payment request via Meta WhatsApp template "payment_request".
+ * Template: header (image), body (user_name, academy_name, booking_id, payment_url, number_hours), button (url with dynamic param).
+ */
+export declare function sendWhatsAppCloudPaymentRequestTemplate(to: string, params: PaymentRequestTemplateParams): Promise<{
+    messageId: string;
+}>;
+/** Parameters for the payment_reminder WhatsApp template (Meta approved) */
+export interface PaymentReminderTemplateParams {
+    batchName: string;
+    academyName: string;
+    hoursLeft: string;
+    bookingId: string;
+    paymentLink: string;
+    /** Dynamic part for the CTA button URL (e.g. payment token if URL is pay?token={{1}}) */
+    buttonUrlParameter: string;
+}
+/**
+ * Send payment reminder via Meta WhatsApp template "payment_reminder".
+ * Body: batch_name, academy_name, hours_left, booking_id, payment_link. Button: URL with dynamic param.
+ */
+export declare function sendWhatsAppCloudPaymentReminderTemplate(to: string, params: PaymentReminderTemplateParams): Promise<{
+    messageId: string;
+}>;
+/** Parameters for the booking_cancelled WhatsApp template (user; body only, no button) */
+export interface BookingCancelledTemplateParams {
+    batchName: string;
+    academyName: string;
+    bookingId: string;
+    cancelReason: string;
+}
+/**
+ * Send booking cancelled notification via Meta WhatsApp template "booking_cancelled".
+ * Body only: batch_name, academy_name, booking_id, cancel_reason. No buttons.
+ */
+export declare function sendWhatsAppCloudBookingCancelledTemplate(to: string, params: BookingCancelledTemplateParams): Promise<{
+    messageId: string;
+}>;
 /** Incoming message from webhook value.messages[] item */
 interface IncomingMessage {
     id: string;

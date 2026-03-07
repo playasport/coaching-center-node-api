@@ -33,7 +33,8 @@ Variables are replaced by `replaceVariables(template, variables)` in the same fi
 |---|-------------------|--------------------|----------------------|
 | 1 | `getBookingRequestAcademyWhatsApp` | New booking request → academy owner | `src/services/client/booking.service.ts`: after slot book |
 | 2 | `getBookingRequestSentUserWhatsApp` | Booking request sent → user | `src/services/client/booking.service.ts`: after slot book |
-| 3 | `getBookingApprovedUserWhatsApp` | Booking approved → user (pay now) | `src/services/academy/booking.service.ts`: approve booking |
+| 3 | **Meta template `payment_request`** (booking approved) | Booking approved → user (pay now) with CTA | `src/services/academy/booking.service.ts`: approve booking — sends template via `sendWhatsAppCloudPaymentRequestTemplate` (header image, body params, URL button). |
+| 3b | `getBookingApprovedUserWhatsApp` | (Legacy in-app text; not used when template is sent.) | — |
 | 4 | `getBookingRejectedUserWhatsApp` | Booking rejected → user | `src/services/academy/booking.service.ts`: reject booking |
 | 5 | `getBookingCancelledUserWhatsApp` | Booking cancelled → user | `src/services/client/booking.service.ts`: cancel (user + academy flow) |
 | 6 | `getBookingCancelledAcademyWhatsApp` | Booking cancelled → academy | `src/services/client/booking.service.ts`: cancel (both flows) |

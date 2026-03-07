@@ -1,4 +1,5 @@
 import { Notification, NotificationPriority, NotificationChannel, NotificationResult, EmailAttachment } from '../../types/notification.types';
+import type { WhatsAppTemplateName } from '../../types/notification.types';
 export declare const queueNotification: (notification: Notification) => void;
 export declare const queueSms: (to: string, body: string, priority?: NotificationPriority, metadata?: Record<string, unknown>) => void;
 export declare const queueEmail: (to: string, subject: string, options?: {
@@ -11,6 +12,11 @@ export declare const queueEmail: (to: string, subject: string, options?: {
     attachments?: EmailAttachment[];
 }) => void;
 export declare const queueWhatsApp: (to: string, body: string, priority?: NotificationPriority, metadata?: Record<string, unknown>) => void;
+/**
+ * Queue a Meta WhatsApp template message.
+ * Params: payment_request → userName, academyName, bookingId, paymentUrl, numberOfHours, buttonUrlParameter; payment_reminder → batchName, academyName, hoursLeft, bookingId, paymentLink, buttonUrlParameter; booking_cancelled → batchName, academyName, bookingId, cancelReason.
+ */
+export declare const queueWhatsAppTemplate: (to: string, templateName: WhatsAppTemplateName, params: Record<string, string>, priority?: NotificationPriority, metadata?: Record<string, unknown>) => void;
 export declare const queuePush: (userId: string, title: string, body: string, options?: {
     data?: Record<string, string>;
     imageUrl?: string;

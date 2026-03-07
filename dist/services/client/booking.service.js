@@ -2218,20 +2218,14 @@ const cancelBooking = async (bookingId, reason, userId) => {
                             recipient: 'user',
                         });
                     }
-                    // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
-                    // if (user.mobile) {
-                    //   const whatsappMessage = getBookingCancelledUserWhatsApp({
-                    //     batchName,
-                    //     centerName,
-                    //     bookingId: booking.booking_id ?? undefined,
-                    //     reason: reason || null,
-                    //   });
-                    //   queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
-                    //     type: 'booking_cancelled',
-                    //     bookingId: booking.id,
-                    //     recipient: 'user',
-                    //   });
-                    // }
+                    if (user.mobile) {
+                        (0, notificationQueue_service_1.queueWhatsAppTemplate)(user.mobile, 'booking_cancelled', {
+                            batchName,
+                            academyName: centerName,
+                            bookingId: booking.booking_id ?? String(booking.id),
+                            cancelReason: reason || '—',
+                        }, 'medium', { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' });
+                    }
                 }
                 // Notification to Academy Owner (Push + Email + SMS + WhatsApp)
                 if (centerOwnerId) {
@@ -2494,13 +2488,12 @@ const cancelBookingBySystem = async (bookingId, reason = exports.PAYMENT_EXPIRED
                         bookingId: booking.booking_id ?? undefined,
                         reason: reason || null,
                     }), 'medium', { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' });
-                    // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
-                    // queueWhatsApp(user.mobile, getBookingCancelledUserWhatsApp({
-                    //   batchName,
-                    //   centerName,
-                    //   bookingId: booking.booking_id ?? undefined,
-                    //   reason: reason || null,
-                    // }), 'medium', { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' });
+                    (0, notificationQueue_service_1.queueWhatsAppTemplate)(user.mobile, 'booking_cancelled', {
+                        batchName,
+                        academyName: centerName,
+                        bookingId: booking.booking_id ?? String(booking.id),
+                        cancelReason: reason || '—',
+                    }, 'medium', { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' });
                 }
             }
             if (centerOwnerId) {

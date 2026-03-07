@@ -487,19 +487,19 @@ const approveBookingRequest = async (bookingId, userId) => {
                     recipient: 'user',
                 });
             }
-            // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
-            // if (user.mobile) {
-            //   const whatsappMessage = getBookingApprovedUserWhatsApp({
-            //     batchName,
-            //     centerName,
-            //     bookingId: booking.booking_id ?? undefined,
-            //   });
-            //   queueWhatsApp(user.mobile, whatsappMessage, 'high', {
-            //     type: 'booking_approved',
-            //     bookingId: booking.id,
-            //     recipient: 'user',
-            //   });
-            // }
+            // WhatsApp: queue payment_request template (Meta approved template)
+            if (user.mobile) {
+                const mainSiteUrl = env_1.config.mainSiteUrl || 'https://playasport.in';
+                const paymentUrl = `${mainSiteUrl}/pay?token=${paymentToken}`;
+                (0, notificationQueue_service_1.queueWhatsAppTemplate)(user.mobile, 'payment_request', {
+                    userName,
+                    academyName: centerName,
+                    bookingId: updatedBooking.booking_id || booking.booking_id || String(booking.id),
+                    paymentUrl,
+                    numberOfHours: String(expiryHours),
+                    buttonUrlParameter: paymentToken,
+                }, 'high', { type: 'booking_approved', bookingId: booking.id, recipient: 'user' });
+            }
         }
         logger_1.logger.info(`Booking request approved: ${bookingId} by academy user ${userId}`);
         // Return only relevant data

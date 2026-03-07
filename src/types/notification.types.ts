@@ -34,10 +34,19 @@ export interface EmailNotification extends BaseNotification {
   attachments?: EmailAttachment[];
 }
 
+/** Meta WhatsApp template name (approved in Business Manager) */
+export type WhatsAppTemplateName = 'payment_request' | 'payment_reminder' | 'booking_cancelled';
+
 export interface WhatsAppNotification extends BaseNotification {
   channel: 'whatsapp';
   to: string;
-  body: string;
+  /** Plain text message (use when template is not set) */
+  body?: string;
+  /** Meta template message (use when body is not set) */
+  template?: {
+    name: WhatsAppTemplateName;
+    params: Record<string, string>;
+  };
 }
 
 export interface PushNotification extends BaseNotification {

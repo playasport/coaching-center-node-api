@@ -10,7 +10,7 @@ import {
   getPaymentReminderUserEmailText,
   getPaymentReminderUserPush,
 } from '../services/common/notificationMessages';
-import { queueEmail, queueSms /* , queueWhatsApp */ } from '../services/common/notificationQueue.service';
+import { queueEmail, queueSms, queueWhatsAppTemplate } from '../services/common/notificationQueue.service';
 import { createAndSendNotification } from '../services/common/notification.service';
 import { config } from '../config/env';
 import { logger } from '../utils/logger';
@@ -131,11 +131,20 @@ export const executeBookingPaymentExpiryJob = async (): Promise<void> => {
               type: 'payment_reminder',
               bookingId: booking.id,
             });
-            // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
-            // queueWhatsApp(user.mobile, getPaymentReminderUserWhatsApp(variables), 'high', {
-            //   type: 'payment_reminder',
-            //   bookingId: booking.id,
-            // });
+            queueWhatsAppTemplate(
+              user.mobile,
+              'payment_reminder',
+              {
+                batchName,
+                academyName: centerName,
+                hoursLeft: variables.hoursLeft,
+                bookingId: String(bookingId),
+                paymentLink: paymentUrl,
+                buttonUrlParameter: String(booking.payment_token),
+              },
+              'high',
+              { type: 'payment_reminder', bookingId: booking.id }
+            );
           }
 
           logger.info('Payment reminder sent', { bookingId: booking.id, hoursBeforeExpiry: H });

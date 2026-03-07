@@ -118,11 +118,14 @@ const executeBookingPaymentExpiryJob = async () => {
                             type: 'payment_reminder',
                             bookingId: booking.id,
                         });
-                        // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
-                        // queueWhatsApp(user.mobile, getPaymentReminderUserWhatsApp(variables), 'high', {
-                        //   type: 'payment_reminder',
-                        //   bookingId: booking.id,
-                        // });
+                        (0, notificationQueue_service_1.queueWhatsAppTemplate)(user.mobile, 'payment_reminder', {
+                            batchName,
+                            academyName: centerName,
+                            hoursLeft: variables.hoursLeft,
+                            bookingId: String(bookingId),
+                            paymentLink: paymentUrl,
+                            buttonUrlParameter: String(booking.payment_token),
+                        }, 'high', { type: 'payment_reminder', bookingId: booking.id });
                     }
                     logger_1.logger.info('Payment reminder sent', { bookingId: booking.id, hoursBeforeExpiry: H });
                 }

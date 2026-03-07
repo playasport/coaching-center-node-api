@@ -8,7 +8,7 @@ import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
 import { getUserObjectId } from '../../utils/userCache';
 import { createAndSendNotification } from '../common/notification.service';
-import { queueEmail, queueSms /* , queueWhatsApp */ } from '../common/notificationQueue.service';
+import { queueEmail, queueSms, queueWhatsAppTemplate } from '../common/notificationQueue.service';
 import { createAuditTrail } from '../common/auditTrail.service';
 import { ActionType, ActionScale } from '../../models/auditTrail.model';
 import { getBookingPaymentConfig } from '../common/settings.service';
@@ -636,19 +636,25 @@ export const approveBookingRequest = async (
         });
       }
 
-      // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
-      // if (user.mobile) {
-      //   const whatsappMessage = getBookingApprovedUserWhatsApp({
-      //     batchName,
-      //     centerName,
-      //     bookingId: booking.booking_id ?? undefined,
-      //   });
-      //   queueWhatsApp(user.mobile, whatsappMessage, 'high', {
-      //     type: 'booking_approved',
-      //     bookingId: booking.id,
-      //     recipient: 'user',
-      //   });
-      // }
+      // WhatsApp: queue payment_request template (Meta approved template)
+      if (user.mobile) {
+        const mainSiteUrl = config.mainSiteUrl || 'https://playasport.in';
+        const paymentUrl = `${mainSiteUrl}/pay?token=${paymentToken}`;
+        queueWhatsAppTemplate(
+          user.mobile,
+          'payment_request',
+          {
+            userName,
+            academyName: centerName,
+            bookingId: (updatedBooking as any).booking_id || booking.booking_id || String(booking.id),
+            paymentUrl,
+            numberOfHours: String(expiryHours),
+            buttonUrlParameter: paymentToken,
+          },
+          'high',
+          { type: 'booking_approved', bookingId: booking.id, recipient: 'user' }
+        );
+      }
     }
 
     logger.info(`Booking request approved: ${bookingId} by academy user ${userId}`);

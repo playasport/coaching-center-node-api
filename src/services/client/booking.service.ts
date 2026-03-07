@@ -13,7 +13,7 @@ import { getUserObjectId } from '../../utils/userCache';
 import { getPaymentService } from '../common/payment/PaymentService';
 import { config } from '../../config/env';
 import type { BookingSummaryInput, VerifyPaymentInput, DeleteOrderInput, BookSlotInput } from '../../validations/booking.validation';
-import { queueEmail, queueSms /* , queueWhatsApp */ } from '../common/notificationQueue.service';
+import { queueEmail, queueSms, queueWhatsAppTemplate } from '../common/notificationQueue.service';
 import { createAndSendNotification } from '../common/notification.service';
 import { createAuditTrail } from '../common/auditTrail.service';
 import { ActionType, ActionScale } from '../../models/auditTrail.model';
@@ -2982,20 +2982,20 @@ export const cancelBooking = async (
             });
           }
 
-          // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
-          // if (user.mobile) {
-          //   const whatsappMessage = getBookingCancelledUserWhatsApp({
-          //     batchName,
-          //     centerName,
-          //     bookingId: booking.booking_id ?? undefined,
-          //     reason: reason || null,
-          //   });
-          //   queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
-          //     type: 'booking_cancelled',
-          //     bookingId: booking.id,
-          //     recipient: 'user',
-          //   });
-          // }
+          if (user.mobile) {
+            queueWhatsAppTemplate(
+              user.mobile,
+              'booking_cancelled',
+              {
+                batchName,
+                academyName: centerName,
+                bookingId: booking.booking_id ?? String(booking.id),
+                cancelReason: reason || '—',
+              },
+              'medium',
+              { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' }
+            );
+          }
         }
 
         // Notification to Academy Owner (Push + Email + SMS + WhatsApp)
@@ -3287,13 +3287,18 @@ export const cancelBookingBySystem = async (
             bookingId: booking.booking_id ?? undefined,
             reason: reason || null,
           }), 'medium', { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' });
-          // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
-          // queueWhatsApp(user.mobile, getBookingCancelledUserWhatsApp({
-          //   batchName,
-          //   centerName,
-          //   bookingId: booking.booking_id ?? undefined,
-          //   reason: reason || null,
-          // }), 'medium', { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' });
+          queueWhatsAppTemplate(
+            user.mobile,
+            'booking_cancelled',
+            {
+              batchName,
+              academyName: centerName,
+              bookingId: booking.booking_id ?? String(booking.id),
+              cancelReason: reason || '—',
+            },
+            'medium',
+            { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' }
+          );
         }
       }
 

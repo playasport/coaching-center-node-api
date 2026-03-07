@@ -6,7 +6,17 @@ import { WhatsAppConversationModel } from '../../models/whatsappConversation.mod
 import { WhatsAppMessageModel } from '../../models/whatsappMessage.model';
 import type { WhatsAppMessageType } from '../../models/whatsappMessage.model';
 
-const GRAPH_BASE = 'https://graph.facebook.com';
+/** Meta WhatsApp Cloud API base URL – used for all template/text sends */
+const WHATSAPP_GRAPH_BASE = 'https://graph.facebook.com';
+const DEFAULT_API_VERSION = 'v25.0';
+
+/**
+ * Build the common messages API URL for WhatsApp Cloud (used by text and template sends).
+ */
+function getWhatsAppMessagesUrl(phoneNumberId: string, apiVersion?: string): string {
+  const version = apiVersion || DEFAULT_API_VERSION;
+  return `${WHATSAPP_GRAPH_BASE}/${version}/${phoneNumberId}/messages`;
+}
 
 /**
  * Normalize phone to digits only (E.164 without +)
@@ -66,7 +76,7 @@ export async function sendWhatsAppCloudText(
   }
 
   const toNormalized = normalizePhone(to);
-  const url = `${GRAPH_BASE}/${version || 'v21.0'}/${phoneNumberId}/messages`;
+  const url = getWhatsAppMessagesUrl(phoneNumberId, version);
 
   const body = {
     messaging_product: 'whatsapp',
@@ -99,6 +109,285 @@ export async function sendWhatsAppCloudText(
     throw new ApiError(
       res.status >= 500 ? 502 : 400,
       data.error?.message || 'Failed to send WhatsApp message'
+    );
+  }
+
+  const messageId = data.messages?.[0]?.id;
+  if (!messageId) {
+    throw new ApiError(502, 'WhatsApp API did not return message id');
+  }
+
+  return { messageId };
+}
+
+/** Parameters for the approved-booking payment_request WhatsApp template */
+export interface PaymentRequestTemplateParams {
+  userName: string;
+  academyName: string;
+  bookingId: string;
+  paymentUrl: string;
+  /** Hours until payment link expires (e.g. "24") */
+  numberOfHours: string;
+  /** Dynamic part for the CTA button URL (e.g. payment token if URL is pay?token={{1}}) */
+  buttonUrlParameter: string;
+}
+
+/**
+ * Send approved-booking payment request via Meta WhatsApp template "payment_request".
+ * Template: header (image), body (user_name, academy_name, booking_id, payment_url, number_hours), button (url with dynamic param).
+ */
+export async function sendWhatsAppCloudPaymentRequestTemplate(
+  to: string,
+  params: PaymentRequestTemplateParams
+): Promise<{ messageId: string }> {
+  const cfg = await getWhatsAppCloudConfig();
+  const phoneNumberId = cfg.phoneNumberId;
+  const accessToken = cfg.accessToken;
+  const version = cfg.apiVersion;
+
+  if (!cfg.enabled || !phoneNumberId || !accessToken) {
+    throw new ApiError(500, 'WhatsApp Cloud API is not configured');
+  }
+
+  const toNormalized = normalizePhone(to);
+  const url = getWhatsAppMessagesUrl(phoneNumberId, version);
+
+  const body = {
+    messaging_product: 'whatsapp',
+    to: toNormalized,
+    type: 'template',
+    template: {
+      name: 'payment_request',
+      language: { code: 'en' },
+      components: [
+        {
+          type: 'header',
+          parameters: [
+            {
+              type: 'image',
+              image: { link: 'https://playasport.in/images/logo-light1.png' },
+            },
+          ],
+        },
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: params.userName },
+            { type: 'text', text: params.academyName },
+            { type: 'text', text: params.bookingId },
+            { type: 'text', text: params.paymentUrl },
+            { type: 'text', text: params.numberOfHours },
+          ],
+        },
+        {
+          type: 'button',
+          sub_type: 'url',
+          index: '0',
+          parameters: [{ type: 'text', text: params.buttonUrlParameter }],
+        },
+      ],
+    },
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = (await res.json().catch(() => ({}))) as {
+    error?: { message?: string };
+    messages?: Array<{ id?: string }>;
+  };
+
+  if (!res.ok) {
+    logger.error('WhatsApp Cloud API template send failed', {
+      status: res.status,
+      to: toNormalized,
+      error: data.error || data,
+    });
+    throw new ApiError(
+      res.status >= 500 ? 502 : 400,
+      data.error?.message || 'Failed to send WhatsApp template message'
+    );
+  }
+
+  const messageId = data.messages?.[0]?.id;
+  if (!messageId) {
+    throw new ApiError(502, 'WhatsApp API did not return message id');
+  }
+
+  return { messageId };
+}
+
+/** Parameters for the payment_reminder WhatsApp template (Meta approved) */
+export interface PaymentReminderTemplateParams {
+  batchName: string;
+  academyName: string;
+  hoursLeft: string;
+  bookingId: string;
+  paymentLink: string;
+  /** Dynamic part for the CTA button URL (e.g. payment token if URL is pay?token={{1}}) */
+  buttonUrlParameter: string;
+}
+
+/**
+ * Send payment reminder via Meta WhatsApp template "payment_reminder".
+ * Body: batch_name, academy_name, hours_left, booking_id, payment_link. Button: URL with dynamic param.
+ */
+export async function sendWhatsAppCloudPaymentReminderTemplate(
+  to: string,
+  params: PaymentReminderTemplateParams
+): Promise<{ messageId: string }> {
+  const cfg = await getWhatsAppCloudConfig();
+  const phoneNumberId = cfg.phoneNumberId;
+  const accessToken = cfg.accessToken;
+  const version = cfg.apiVersion;
+
+  if (!cfg.enabled || !phoneNumberId || !accessToken) {
+    throw new ApiError(500, 'WhatsApp Cloud API is not configured');
+  }
+
+  const toNormalized = normalizePhone(to);
+  const url = getWhatsAppMessagesUrl(phoneNumberId, version);
+
+  const body = {
+    messaging_product: 'whatsapp',
+    to: toNormalized,
+    type: 'template',
+    template: {
+      name: 'payment_reminder',
+      language: { code: 'en' },
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: params.batchName },
+            { type: 'text', text: params.academyName },
+            { type: 'text', text: params.hoursLeft },
+            { type: 'text', text: params.bookingId },
+            { type: 'text', text: params.paymentLink },
+          ],
+        },
+        {
+          type: 'button',
+          sub_type: 'url',
+          index: '0',
+          parameters: [{ type: 'text', text: params.buttonUrlParameter }],
+        },
+      ],
+    },
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = (await res.json().catch(() => ({}))) as {
+    error?: { message?: string };
+    messages?: Array<{ id?: string }>;
+  };
+
+  if (!res.ok) {
+    logger.error('WhatsApp Cloud API payment_reminder template send failed', {
+      status: res.status,
+      to: toNormalized,
+      error: data.error || data,
+    });
+    throw new ApiError(
+      res.status >= 500 ? 502 : 400,
+      data.error?.message || 'Failed to send WhatsApp payment reminder template'
+    );
+  }
+
+  const messageId = data.messages?.[0]?.id;
+  if (!messageId) {
+    throw new ApiError(502, 'WhatsApp API did not return message id');
+  }
+
+  return { messageId };
+}
+
+/** Parameters for the booking_cancelled WhatsApp template (user; body only, no button) */
+export interface BookingCancelledTemplateParams {
+  batchName: string;
+  academyName: string;
+  bookingId: string;
+  cancelReason: string;
+}
+
+/**
+ * Send booking cancelled notification via Meta WhatsApp template "booking_cancelled".
+ * Body only: batch_name, academy_name, booking_id, cancel_reason. No buttons.
+ */
+export async function sendWhatsAppCloudBookingCancelledTemplate(
+  to: string,
+  params: BookingCancelledTemplateParams
+): Promise<{ messageId: string }> {
+  const cfg = await getWhatsAppCloudConfig();
+  const phoneNumberId = cfg.phoneNumberId;
+  const accessToken = cfg.accessToken;
+  const version = cfg.apiVersion;
+
+  if (!cfg.enabled || !phoneNumberId || !accessToken) {
+    throw new ApiError(500, 'WhatsApp Cloud API is not configured');
+  }
+
+  const toNormalized = normalizePhone(to);
+  const url = getWhatsAppMessagesUrl(phoneNumberId, version);
+
+  const body = {
+    messaging_product: 'whatsapp',
+    to: toNormalized,
+    type: 'template',
+    template: {
+      name: 'booking_cancelled',
+      language: { code: 'en' },
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: params.batchName },
+            { type: 'text', text: params.academyName },
+            { type: 'text', text: params.bookingId },
+            { type: 'text', text: params.cancelReason },
+          ],
+        },
+      ],
+    },
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = (await res.json().catch(() => ({}))) as {
+    error?: { message?: string };
+    messages?: Array<{ id?: string }>;
+  };
+
+  if (!res.ok) {
+    logger.error('WhatsApp Cloud API booking_cancelled template send failed', {
+      status: res.status,
+      to: toNormalized,
+      error: data.error || data,
+    });
+    throw new ApiError(
+      res.status >= 500 ? 502 : 400,
+      data.error?.message || 'Failed to send WhatsApp booking_cancelled template'
     );
   }
 
