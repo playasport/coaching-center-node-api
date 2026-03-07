@@ -21,6 +21,7 @@ import {
   sendWhatsAppCloudBookingCancelledTemplate,
 } from './metaWhatsApp.service';
 import type { WhatsAppTemplateName } from '../../types/notification.types';
+import { WhatsAppTemplateMessageModel } from '../../models/whatsappTemplateMessage.model';
 import { sendPushNotification, sendMulticastPushNotification } from '../../utils/fcm';
 import { deviceTokenService } from './deviceToken.service';
 import { getSmsEnabled, getEmailConfig, getSmsCredentials, getWhatsAppCloudConfig, getConfigWithPriority } from './settings.service';
@@ -295,6 +296,16 @@ const processWhatsApp = async (notification: WhatsAppNotification): Promise<Noti
       } else {
         error = `Unknown WhatsApp template: ${name}`;
         retryable = false;
+      }
+      if (success && messageId) {
+        const phone = String(notification.to).replace(/\D/g, '');
+        WhatsAppTemplateMessageModel.create({
+          phone,
+          templateName: name,
+          waMessageId: messageId,
+          status: 'sent',
+          metadata: notification.metadata ?? null,
+        }).catch((e) => logger.warn('Failed to store WhatsApp template message record', { messageId, error: e }));
       }
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);

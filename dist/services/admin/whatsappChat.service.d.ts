@@ -62,4 +62,32 @@ export type SendMessagePayload = {
 };
 export declare function sendMessage(conversationId: string, payload: SendMessagePayload): Promise<MessageListItem>;
 export declare function markConversationRead(conversationId: string): Promise<void>;
+export interface ListTemplateMessagesParams {
+    page?: number;
+    limit?: number;
+    templateName?: 'payment_request' | 'payment_reminder' | 'booking_cancelled';
+    status?: 'sent' | 'delivered' | 'read' | 'failed';
+    phone?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+}
+export interface TemplateMessageListItem {
+    id: string;
+    phone: string;
+    templateName: string;
+    waMessageId: string;
+    status: string;
+    metadata: Record<string, unknown> | null;
+    createdAt: Date;
+}
+export declare function listTemplateMessages(params?: ListTemplateMessagesParams): Promise<{
+    data: TemplateMessageListItem[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNextPage: boolean;
+    };
+}>;
 //# sourceMappingURL=whatsappChat.service.d.ts.map

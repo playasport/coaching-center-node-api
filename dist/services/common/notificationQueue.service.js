@@ -8,6 +8,7 @@ const twilio_1 = require("../../utils/twilio");
 const email_service_1 = require("./email.service");
 const whatsapp_1 = require("../../utils/whatsapp");
 const metaWhatsApp_service_1 = require("./metaWhatsApp.service");
+const whatsappTemplateMessage_model_1 = require("../../models/whatsappTemplateMessage.model");
 const fcm_1 = require("../../utils/fcm");
 const deviceToken_service_1 = require("./deviceToken.service");
 const settings_service_1 = require("./settings.service");
@@ -254,6 +255,16 @@ const processWhatsApp = async (notification) => {
             else {
                 error = `Unknown WhatsApp template: ${name}`;
                 retryable = false;
+            }
+            if (success && messageId) {
+                const phone = String(notification.to).replace(/\D/g, '');
+                whatsappTemplateMessage_model_1.WhatsAppTemplateMessageModel.create({
+                    phone,
+                    templateName: name,
+                    waMessageId: messageId,
+                    status: 'sent',
+                    metadata: notification.metadata ?? null,
+                }).catch((e) => logger_1.logger.warn('Failed to store WhatsApp template message record', { messageId, error: e }));
             }
         }
         catch (err) {

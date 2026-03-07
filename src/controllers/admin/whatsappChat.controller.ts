@@ -74,3 +74,34 @@ export const markConversationRead = async (
     next(error);
   }
 };
+
+export const listTemplateMessages = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const query = req.query as {
+      page?: number;
+      limit?: number;
+      templateName?: 'payment_request' | 'payment_reminder' | 'booking_cancelled';
+      status?: 'sent' | 'delivered' | 'read' | 'failed';
+      phone?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    };
+    const result = await whatsappChatService.listTemplateMessages({
+      page: query.page,
+      limit: query.limit,
+      templateName: query.templateName,
+      status: query.status,
+      phone: query.phone,
+      dateFrom: query.dateFrom ? new Date(query.dateFrom) : undefined,
+      dateTo: query.dateTo ? new Date(query.dateTo) : undefined,
+    });
+    const response = new ApiResponse(200, result, 'Template messages retrieved');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};

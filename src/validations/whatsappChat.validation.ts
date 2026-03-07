@@ -53,3 +53,23 @@ export const markReadSchema = z.object({
     conversationId: z.string().min(1, 'Conversation ID is required'),
   }),
 });
+
+export const listTemplateMessagesSchema = z.object({
+  query: z.object({
+    page: z
+      .preprocess((v) => (typeof v === 'string' ? parseInt(v, 10) : v), z.number().int().min(1).optional())
+      .optional(),
+    limit: z
+      .preprocess((v) => (typeof v === 'string' ? parseInt(v, 10) : v), z.number().int().min(1).max(100).optional())
+      .optional(),
+    templateName: z.enum(['payment_request', 'payment_reminder', 'booking_cancelled']).optional(),
+    status: z.enum(['sent', 'delivered', 'read', 'failed']).optional(),
+    phone: z.string().max(20).optional(),
+    dateFrom: z
+      .preprocess((v) => (typeof v === 'string' ? new Date(v) : v), z.coerce.date().optional())
+      .optional(),
+    dateTo: z
+      .preprocess((v) => (typeof v === 'string' ? new Date(v) : v), z.coerce.date().optional())
+      .optional(),
+  }),
+});

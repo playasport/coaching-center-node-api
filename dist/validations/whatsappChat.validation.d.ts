@@ -34,4 +34,24 @@ export declare const markReadSchema: z.ZodObject<{
         conversationId: z.ZodString;
     }, z.core.$strip>;
 }, z.core.$strip>;
+export declare const listTemplateMessagesSchema: z.ZodObject<{
+    query: z.ZodObject<{
+        page: z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodNumber>>>;
+        limit: z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodNumber>>>;
+        templateName: z.ZodOptional<z.ZodEnum<{
+            payment_request: "payment_request";
+            payment_reminder: "payment_reminder";
+            booking_cancelled: "booking_cancelled";
+        }>>;
+        status: z.ZodOptional<z.ZodEnum<{
+            read: "read";
+            sent: "sent";
+            delivered: "delivered";
+            failed: "failed";
+        }>>;
+        phone: z.ZodOptional<z.ZodString>;
+        dateFrom: z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodCoercedDate<unknown>>>>;
+        dateTo: z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodCoercedDate<unknown>>>>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
 //# sourceMappingURL=whatsappChat.validation.d.ts.map

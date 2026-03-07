@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.markConversationRead = exports.sendMessage = exports.getConversationMessages = exports.listConversations = void 0;
+exports.listTemplateMessages = exports.markConversationRead = exports.sendMessage = exports.getConversationMessages = exports.listConversations = void 0;
 const ApiResponse_1 = require("../../utils/ApiResponse");
 const whatsappChatService = __importStar(require("../../services/admin/whatsappChat.service"));
 const listConversations = async (req, res, next) => {
@@ -96,4 +96,24 @@ const markConversationRead = async (req, res, next) => {
     }
 };
 exports.markConversationRead = markConversationRead;
+const listTemplateMessages = async (req, res, next) => {
+    try {
+        const query = req.query;
+        const result = await whatsappChatService.listTemplateMessages({
+            page: query.page,
+            limit: query.limit,
+            templateName: query.templateName,
+            status: query.status,
+            phone: query.phone,
+            dateFrom: query.dateFrom ? new Date(query.dateFrom) : undefined,
+            dateTo: query.dateTo ? new Date(query.dateTo) : undefined,
+        });
+        const response = new ApiResponse_1.ApiResponse(200, result, 'Template messages retrieved');
+        res.json(response);
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.listTemplateMessages = listTemplateMessages;
 //# sourceMappingURL=whatsappChat.controller.js.map

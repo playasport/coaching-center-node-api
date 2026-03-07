@@ -4,6 +4,7 @@ import { ApiError } from '../../utils/ApiError';
 import { getWhatsAppCloudConfig } from './settings.service';
 import { WhatsAppConversationModel } from '../../models/whatsappConversation.model';
 import { WhatsAppMessageModel } from '../../models/whatsappMessage.model';
+import { WhatsAppTemplateMessageModel } from '../../models/whatsappTemplateMessage.model';
 import type { WhatsAppMessageType } from '../../models/whatsappMessage.model';
 
 /** Meta WhatsApp Cloud API base URL – used for all template/text sends */
@@ -640,10 +641,16 @@ export async function processWhatsAppWebhookPayload(payload: {
       if (Array.isArray(statuses)) {
         for (const st of statuses) {
           if (!st.id || !st.status) continue;
-          await WhatsAppMessageModel.updateOne(
-            { waMessageId: st.id },
-            { $set: { status: st.status } }
-          ).exec();
+          await Promise.all([
+            WhatsAppMessageModel.updateOne(
+              { waMessageId: st.id },
+              { $set: { status: st.status } }
+            ).exec(),
+            WhatsAppTemplateMessageModel.updateOne(
+              { waMessageId: st.id },
+              { $set: { status: st.status } }
+            ).exec(),
+          ]);
         }
       }
 

@@ -6,6 +6,7 @@ import {
   getConversationMessagesSchema,
   sendMessageSchema,
   markReadSchema,
+  listTemplateMessagesSchema,
 } from '../../validations/whatsappChat.validation';
 import { authenticate } from '../../middleware/auth.middleware';
 import { requireAdmin } from '../../middleware/admin.middleware';
@@ -17,6 +18,17 @@ const router = Router();
 
 router.use(authenticate);
 router.use(requireAdmin);
+
+/**
+ * GET /admin/whatsapp-chat/template-messages
+ * List WhatsApp template messages (payment_request, payment_reminder, booking_cancelled) with delivery status
+ */
+router.get(
+  '/template-messages',
+  requirePermission(Section.NOTIFICATION, Action.VIEW),
+  validate(listTemplateMessagesSchema),
+  whatsappChatController.listTemplateMessages
+);
 
 /**
  * GET /admin/whatsapp-chat/conversations

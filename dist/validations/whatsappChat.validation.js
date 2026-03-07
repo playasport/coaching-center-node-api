@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.markReadSchema = exports.sendMessageSchema = exports.getConversationMessagesSchema = exports.listConversationsSchema = void 0;
+exports.listTemplateMessagesSchema = exports.markReadSchema = exports.sendMessageSchema = exports.getConversationMessagesSchema = exports.listConversationsSchema = void 0;
 const zod_1 = require("zod");
 exports.listConversationsSchema = zod_1.z.object({
     query: zod_1.z.object({
@@ -47,6 +47,25 @@ exports.sendMessageSchema = zod_1.z.object({
 exports.markReadSchema = zod_1.z.object({
     params: zod_1.z.object({
         conversationId: zod_1.z.string().min(1, 'Conversation ID is required'),
+    }),
+});
+exports.listTemplateMessagesSchema = zod_1.z.object({
+    query: zod_1.z.object({
+        page: zod_1.z
+            .preprocess((v) => (typeof v === 'string' ? parseInt(v, 10) : v), zod_1.z.number().int().min(1).optional())
+            .optional(),
+        limit: zod_1.z
+            .preprocess((v) => (typeof v === 'string' ? parseInt(v, 10) : v), zod_1.z.number().int().min(1).max(100).optional())
+            .optional(),
+        templateName: zod_1.z.enum(['payment_request', 'payment_reminder', 'booking_cancelled']).optional(),
+        status: zod_1.z.enum(['sent', 'delivered', 'read', 'failed']).optional(),
+        phone: zod_1.z.string().max(20).optional(),
+        dateFrom: zod_1.z
+            .preprocess((v) => (typeof v === 'string' ? new Date(v) : v), zod_1.z.coerce.date().optional())
+            .optional(),
+        dateTo: zod_1.z
+            .preprocess((v) => (typeof v === 'string' ? new Date(v) : v), zod_1.z.coerce.date().optional())
+            .optional(),
     }),
 });
 //# sourceMappingURL=whatsappChat.validation.js.map

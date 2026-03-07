@@ -58,3 +58,43 @@ Messages returned by conversation/message APIs may now include:
 - **Types:** Extend shared `WhatsAppMessage` type with new `type` values and optional fields above.
 
 No breaking changes: new fields are optional; existing behaviour unchanged.
+
+---
+
+## 5. How message status is stored and how to view it
+
+### How the webhook stores status
+
+1. **Meta sends status updates** in the same webhook payload as messages. When `change.field === 'messages'`, the payload can contain **`value.statuses`** (array).
+2. **Each status item** has:
+   - `id` – WhatsApp message ID (`wamid`, same as `waMessageId` in our DB)
+   - `status` – one of `sent` | `delivered` | `read` | `failed`
+3. **Backend** runs for each status:
+   ```text
+   WhatsAppMessageModel.updateOne(
+     { waMessageId: st.id },
+     { $set: { status: st.status } }
+   )
+   ```
+   So any **existing** message in our DB with that `waMessageId` gets its `status` field updated.
+
+### Which messages get status updated
+
+| Message source | Stored in DB? | Status updated by webhook? |
+|----------------|----------------|----------------------------|
+| **Admin chat – sent from panel** | Yes (we create a row when admin sends) | Yes – `sent` → `delivered` → `read` (or `failed`) |
+| **Incoming messages** (user to business) | Yes (we create from webhook) | No – status is for outbound only |
+| **Template messages** (e.g. payment_request, payment_reminder from backend) | No – we don’t create a chat message row for these | Webhook runs but no row matches, so nothing to update |
+
+So **message status is stored and updated only for messages that exist in `WhatsAppMessage` collection** – in practice, **outbound messages sent from the admin chat** (and any future flow that creates a message with `waMessageId` when sending).
+
+### How to view message status
+
+- **API:** `GET /api/v1/admin/whatsapp-chat/conversations/:conversationId/messages`  
+  Each message in the response has a **`status`** field: `"sent"` | `"delivered"` | `"read"` | `"failed"` | `null`.
+- **Frontend:** For **outbound** messages (`direction === 'out'`), show delivery state using `status`, e.g.:
+  - `sent` – single tick
+  - `delivered` – double tick
+  - `read` – double tick (e.g. blue)
+  - `failed` – error icon
+  - `null` – pending or not applicable (e.g. inbound messages)

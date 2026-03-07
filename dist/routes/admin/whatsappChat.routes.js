@@ -46,6 +46,11 @@ const router = (0, express_1.Router)();
 router.use(auth_middleware_1.authenticate);
 router.use(admin_middleware_1.requireAdmin);
 /**
+ * GET /admin/whatsapp-chat/template-messages
+ * List WhatsApp template messages (payment_request, payment_reminder, booking_cancelled) with delivery status
+ */
+router.get('/template-messages', (0, permission_middleware_1.requirePermission)(section_enum_1.Section.NOTIFICATION, section_enum_2.Action.VIEW), (0, validation_middleware_1.validate)(whatsappChat_validation_1.listTemplateMessagesSchema), whatsappChatController.listTemplateMessages);
+/**
  * GET /admin/whatsapp-chat/conversations
  * List WhatsApp conversations (Meta Cloud API stored chats)
  */

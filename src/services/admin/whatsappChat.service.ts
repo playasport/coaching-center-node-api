@@ -1,5 +1,6 @@
 import { WhatsAppConversationModel } from '../../models/whatsappConversation.model';
 import { WhatsAppMessageModel } from '../../models/whatsappMessage.model';
+import { WhatsAppTemplateMessageModel } from '../../models/whatsappTemplateMessage.model';
 import { sendWhatsAppCloudText, sendWhatsAppCloudImage } from '../common/metaWhatsApp.service';
 import { getWhatsAppCloudConfig } from '../common/settings.service';
 import { ApiError } from '../../utils/ApiError';
@@ -263,4 +264,84 @@ export async function markConversationRead(conversationId: string): Promise<void
     { _id: conversationId },
     { $set: { unreadCount: 0 } }
   );
+}
+
+export interface ListTemplateMessagesParams {
+  page?: number;
+  limit?: number;
+  templateName?: 'payment_request' | 'payment_reminder' | 'booking_cancelled';
+  status?: 'sent' | 'delivered' | 'read' | 'failed';
+  phone?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+}
+
+export interface TemplateMessageListItem {
+  id: string;
+  phone: string;
+  templateName: string;
+  waMessageId: string;
+  status: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: Date;
+}
+
+export async function listTemplateMessages(
+  params: ListTemplateMessagesParams = {}
+): Promise<{
+  data: TemplateMessageListItem[];
+  pagination: { page: number; limit: number; total: number; totalPages: number; hasNextPage: boolean };
+}> {
+  const cfg = await getWhatsAppCloudConfig();
+  if (!cfg.enabled) {
+    throw new ApiError(503, 'WhatsApp Cloud chat is not enabled');
+  }
+
+  const page = Math.max(1, params.page || 1);
+  const limit = Math.min(100, Math.max(1, params.limit || 20));
+
+  const query: Record<string, unknown> = {};
+  if (params.templateName) query.templateName = params.templateName;
+  if (params.status) query.status = params.status;
+  if (params.phone?.trim()) {
+    const s = params.phone.trim().replace(/\D/g, '');
+    if (s) query.phone = new RegExp(s, 'i');
+  }
+  if (params.dateFrom || params.dateTo) {
+    query.createdAt = {};
+    if (params.dateFrom) (query.createdAt as Record<string, Date>).$gte = params.dateFrom;
+    if (params.dateTo) (query.createdAt as Record<string, Date>).$lte = params.dateTo;
+  }
+
+  const [total, list] = await Promise.all([
+    WhatsAppTemplateMessageModel.countDocuments(query),
+    WhatsAppTemplateMessageModel.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+  ]);
+
+  const data: TemplateMessageListItem[] = (list as any[]).map((m) => ({
+    id: m._id.toString(),
+    phone: m.phone,
+    templateName: m.templateName,
+    waMessageId: m.waMessageId,
+    status: m.status,
+    metadata: m.metadata ?? null,
+    createdAt: m.createdAt,
+  }));
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    data,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNextPage: page < totalPages,
+    },
+  };
 }

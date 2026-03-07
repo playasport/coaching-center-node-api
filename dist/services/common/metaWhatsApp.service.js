@@ -50,6 +50,7 @@ const ApiError_1 = require("../../utils/ApiError");
 const settings_service_1 = require("./settings.service");
 const whatsappConversation_model_1 = require("../../models/whatsappConversation.model");
 const whatsappMessage_model_1 = require("../../models/whatsappMessage.model");
+const whatsappTemplateMessage_model_1 = require("../../models/whatsappTemplateMessage.model");
 /** Meta WhatsApp Cloud API base URL – used for all template/text sends */
 const WHATSAPP_GRAPH_BASE = 'https://graph.facebook.com';
 const DEFAULT_API_VERSION = 'v25.0';
@@ -482,7 +483,10 @@ async function processWhatsAppWebhookPayload(payload) {
                 for (const st of statuses) {
                     if (!st.id || !st.status)
                         continue;
-                    await whatsappMessage_model_1.WhatsAppMessageModel.updateOne({ waMessageId: st.id }, { $set: { status: st.status } }).exec();
+                    await Promise.all([
+                        whatsappMessage_model_1.WhatsAppMessageModel.updateOne({ waMessageId: st.id }, { $set: { status: st.status } }).exec(),
+                        whatsappTemplateMessage_model_1.WhatsAppTemplateMessageModel.updateOne({ waMessageId: st.id }, { $set: { status: st.status } }).exec(),
+                    ]);
                 }
             }
             // ----- Incoming messages -----
