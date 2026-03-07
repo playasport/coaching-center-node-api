@@ -72,9 +72,12 @@ export interface WhatsAppCloudConfig {
     apiVersion: string;
 }
 /**
- * Get Meta WhatsApp Cloud API config (Settings first, then env)
+ * Get Meta WhatsApp Cloud API config (Settings first, then env).
+ * Result is cached for 1 minute to reduce Settings DB load on chat APIs.
  */
 export declare const getWhatsAppCloudConfig: () => Promise<WhatsAppCloudConfig>;
+/** Invalidate WhatsApp config cache (call after admin updates WhatsApp settings). */
+export declare const invalidateWhatsAppCloudConfigCache: () => void;
 /**
  * Get Email credentials with settings priority
  */

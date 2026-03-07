@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getSmsEnabled = exports.getEmailConfig = exports.getWhatsAppCloudConfig = exports.getSmsCredentials = exports.getPaymentCredentials = exports.getConfigWithPriority = exports.getSettingValue = exports.resetSettings = exports.updateSettings = exports.getBookingPaymentConfig = exports.getLimitedPublicSettings = exports.getPublicSettings = exports.getSettings = void 0;
+exports.getSmsEnabled = exports.getEmailConfig = exports.invalidateWhatsAppCloudConfigCache = exports.getWhatsAppCloudConfig = exports.getSmsCredentials = exports.getPaymentCredentials = exports.getConfigWithPriority = exports.getSettingValue = exports.resetSettings = exports.updateSettings = exports.getBookingPaymentConfig = exports.getLimitedPublicSettings = exports.getPublicSettings = exports.getSettings = void 0;
 const settings_model_1 = require("../../models/settings.model");
 const logger_1 = require("../../utils/logger");
 const ApiError_1 = require("../../utils/ApiError");
@@ -299,6 +299,10 @@ const updateSettings = async (data, includeSensitive = false) => {
             (0, email_service_1.resetEmailTransporter)();
             logger_1.logger.info('Email transporter reset due to email settings update');
         }
+        const hasWhatsAppSettings = dataToMerge.notifications?.whatsapp !== undefined;
+        if (hasWhatsAppSettings) {
+            (0, exports.invalidateWhatsAppCloudConfigCache)();
+        }
         // Return decrypted settings if sensitive data was included
         if (includeSensitive) {
             return (0, encryption_1.decryptObjectFields)(updatedSettings, SENSITIVE_FIELDS);
@@ -408,14 +412,21 @@ const getSmsCredentials = async () => {
     };
 };
 exports.getSmsCredentials = getSmsCredentials;
+const WHATSAPP_CONFIG_CACHE_TTL_MS = 60 * 1000; // 1 minute
+let whatsAppConfigCache = null;
 /**
- * Get Meta WhatsApp Cloud API config (Settings first, then env)
+ * Get Meta WhatsApp Cloud API config (Settings first, then env).
+ * Result is cached for 1 minute to reduce Settings DB load on chat APIs.
  */
 const getWhatsAppCloudConfig = async () => {
+    const now = Date.now();
+    if (whatsAppConfigCache && now - whatsAppConfigCache.at < WHATSAPP_CONFIG_CACHE_TTL_MS) {
+        return whatsAppConfigCache.value;
+    }
     try {
         const settings = await (0, exports.getSettings)(true);
         const wc = settings.notifications?.whatsapp;
-        return {
+        const value = {
             enabled: wc?.enabled ?? env_1.config.whatsappCloud.enabled,
             phoneNumberId: (wc?.phone_number_id ?? env_1.config.whatsappCloud.phoneNumberId) || '',
             accessToken: (wc?.access_token ?? env_1.config.whatsappCloud.accessToken) || '',
@@ -423,10 +434,12 @@ const getWhatsAppCloudConfig = async () => {
             appSecret: (wc?.app_secret ?? env_1.config.whatsappCloud.appSecret) || '',
             apiVersion: (wc?.api_version ?? env_1.config.whatsappCloud.apiVersion) || 'v21.0',
         };
+        whatsAppConfigCache = { at: now, value };
+        return value;
     }
     catch (error) {
         logger_1.logger.error('Failed to get WhatsApp Cloud config', error);
-        return {
+        const fallback = {
             enabled: env_1.config.whatsappCloud.enabled,
             phoneNumberId: env_1.config.whatsappCloud.phoneNumberId,
             accessToken: env_1.config.whatsappCloud.accessToken,
@@ -434,9 +447,15 @@ const getWhatsAppCloudConfig = async () => {
             appSecret: env_1.config.whatsappCloud.appSecret,
             apiVersion: env_1.config.whatsappCloud.apiVersion || 'v21.0',
         };
+        return fallback;
     }
 };
 exports.getWhatsAppCloudConfig = getWhatsAppCloudConfig;
+/** Invalidate WhatsApp config cache (call after admin updates WhatsApp settings). */
+const invalidateWhatsAppCloudConfigCache = () => {
+    whatsAppConfigCache = null;
+};
+exports.invalidateWhatsAppCloudConfigCache = invalidateWhatsAppCloudConfigCache;
 /**
  * Get Email credentials with settings priority
  */

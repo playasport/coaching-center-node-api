@@ -334,6 +334,11 @@ export const updateSettings = async (
       logger.info('Email transporter reset due to email settings update');
     }
 
+    const hasWhatsAppSettings = dataToMerge.notifications?.whatsapp !== undefined;
+    if (hasWhatsAppSettings) {
+      invalidateWhatsAppCloudConfigCache();
+    }
+
     // Return decrypted settings if sensitive data was included
     if (includeSensitive) {
       return decryptObjectFields(updatedSettings, SENSITIVE_FIELDS) as Settings;
@@ -474,14 +479,22 @@ export interface WhatsAppCloudConfig {
   apiVersion: string;
 }
 
+const WHATSAPP_CONFIG_CACHE_TTL_MS = 60 * 1000; // 1 minute
+let whatsAppConfigCache: { at: number; value: WhatsAppCloudConfig } | null = null;
+
 /**
- * Get Meta WhatsApp Cloud API config (Settings first, then env)
+ * Get Meta WhatsApp Cloud API config (Settings first, then env).
+ * Result is cached for 1 minute to reduce Settings DB load on chat APIs.
  */
 export const getWhatsAppCloudConfig = async (): Promise<WhatsAppCloudConfig> => {
+  const now = Date.now();
+  if (whatsAppConfigCache && now - whatsAppConfigCache.at < WHATSAPP_CONFIG_CACHE_TTL_MS) {
+    return whatsAppConfigCache.value;
+  }
   try {
     const settings = await getSettings(true);
     const wc = settings.notifications?.whatsapp;
-    return {
+    const value: WhatsAppCloudConfig = {
       enabled: wc?.enabled ?? config.whatsappCloud.enabled,
       phoneNumberId: (wc?.phone_number_id ?? config.whatsappCloud.phoneNumberId) || '',
       accessToken: (wc?.access_token ?? config.whatsappCloud.accessToken) || '',
@@ -489,9 +502,11 @@ export const getWhatsAppCloudConfig = async (): Promise<WhatsAppCloudConfig> => 
       appSecret: (wc?.app_secret ?? config.whatsappCloud.appSecret) || '',
       apiVersion: (wc?.api_version ?? config.whatsappCloud.apiVersion) || 'v21.0',
     };
+    whatsAppConfigCache = { at: now, value };
+    return value;
   } catch (error) {
     logger.error('Failed to get WhatsApp Cloud config', error);
-    return {
+    const fallback: WhatsAppCloudConfig = {
       enabled: config.whatsappCloud.enabled,
       phoneNumberId: config.whatsappCloud.phoneNumberId,
       accessToken: config.whatsappCloud.accessToken,
@@ -499,7 +514,13 @@ export const getWhatsAppCloudConfig = async (): Promise<WhatsAppCloudConfig> => 
       appSecret: config.whatsappCloud.appSecret,
       apiVersion: config.whatsappCloud.apiVersion || 'v21.0',
     };
+    return fallback;
   }
+};
+
+/** Invalidate WhatsApp config cache (call after admin updates WhatsApp settings). */
+export const invalidateWhatsAppCloudConfigCache = (): void => {
+  whatsAppConfigCache = null;
 };
 
 /**

@@ -3,6 +3,7 @@ import { WhatsAppMessageModel } from '../../models/whatsappMessage.model';
 import { sendWhatsAppCloudText, sendWhatsAppCloudImage } from '../common/metaWhatsApp.service';
 import { getWhatsAppCloudConfig } from '../common/settings.service';
 import { ApiError } from '../../utils/ApiError';
+import { logger } from '../../utils/logger';
 
 export interface ListConversationsParams {
   page?: number;
@@ -70,6 +71,7 @@ export async function listConversations(
   const [total, list] = await Promise.all([
     WhatsAppConversationModel.countDocuments(query),
     WhatsAppConversationModel.find(query)
+      .select('phone displayName lastMessageAt lastMessagePreview lastMessageFromUs unreadCount createdAt')
       .sort({ lastMessageAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -113,7 +115,9 @@ export async function getConversationMessages(
     throw new ApiError(503, 'WhatsApp Cloud chat is not enabled');
   }
 
-  const conversation = await WhatsAppConversationModel.findById(conversationId).lean();
+  const conversation = await WhatsAppConversationModel.findById(conversationId)
+    .select('phone unreadCount')
+    .lean();
   if (!conversation) {
     throw new ApiError(404, 'Conversation not found');
   }
@@ -124,6 +128,7 @@ export async function getConversationMessages(
   const [total, list] = await Promise.all([
     WhatsAppMessageModel.countDocuments({ conversation: conversationId }),
     WhatsAppMessageModel.find({ conversation: conversationId })
+      .select('direction type content waMessageId waTimestamp status fromAdmin createdAt mediaUrl repliedToWaMessageId')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -146,12 +151,14 @@ export async function getConversationMessages(
 
   const totalPages = Math.ceil(total / limit);
 
-  // Mark unread as read when admin opens conversation
+  // Mark unread as read when admin opens conversation (fire-and-forget to avoid blocking response)
   if ((conversation as any).unreadCount > 0) {
-    await WhatsAppConversationModel.updateOne(
+    WhatsAppConversationModel.updateOne(
       { _id: conversationId },
       { $set: { unreadCount: 0 } }
-    );
+    ).catch((err) => {
+      logger.warn('WhatsApp chat: failed to mark conversation read', { conversationId, err });
+    });
   }
 
   return {
@@ -212,28 +219,29 @@ export async function sendMessage(
   const timestampSec = Math.floor(now.getTime() / 1000);
   const preview = content.slice(0, 100);
 
-  const msg = await WhatsAppMessageModel.create({
-    conversation: conversationId,
-    direction: 'out',
-    type: contentType,
-    content,
-    waMessageId: messageId,
-    waTimestamp: timestampSec,
-    status: 'sent',
-    fromAdmin: true,
-    mediaUrl: mediaUrl ?? null,
-  });
-
-  await WhatsAppConversationModel.updateOne(
-    { _id: conversationId },
-    {
-      $set: {
-        lastMessageAt: now,
-        lastMessagePreview: preview,
-        lastMessageFromUs: true,
-      },
-    }
-  );
+  const [msg] = await Promise.all([
+    WhatsAppMessageModel.create({
+      conversation: conversationId,
+      direction: 'out',
+      type: contentType,
+      content,
+      waMessageId: messageId,
+      waTimestamp: timestampSec,
+      status: 'sent',
+      fromAdmin: true,
+      mediaUrl: mediaUrl ?? null,
+    }),
+    WhatsAppConversationModel.updateOne(
+      { _id: conversationId },
+      {
+        $set: {
+          lastMessageAt: now,
+          lastMessagePreview: preview,
+          lastMessageFromUs: true,
+        },
+      }
+    ),
+  ]);
 
   return {
     id: msg._id.toString(),
