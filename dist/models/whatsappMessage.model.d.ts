@@ -1,6 +1,6 @@
 import { HydratedDocument, Types } from 'mongoose';
 export type WhatsAppMessageDirection = 'in' | 'out';
-export type WhatsAppMessageType = 'text' | 'image' | 'audio' | 'video' | 'document' | 'unknown';
+export type WhatsAppMessageType = 'text' | 'image' | 'audio' | 'video' | 'document' | 'reaction' | 'interactive' | 'unknown';
 export interface WhatsAppMessage {
     conversation: Types.ObjectId;
     direction: WhatsAppMessageDirection;
@@ -17,6 +17,8 @@ export interface WhatsAppMessage {
     mediaUrl?: string | null;
     /** True if sent from admin panel (our app) */
     fromAdmin: boolean;
+    /** For reactions: the waMessageId this reaction refers to */
+    repliedToWaMessageId?: string | null;
     /** Raw payload snippet for debugging (optional) */
     rawPayload?: Record<string, unknown> | null;
     createdAt: Date;

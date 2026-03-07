@@ -5,8 +5,8 @@ export declare const userTransactionListSchema: z.ZodObject<{
         limit: z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodNumber>>>;
         status: z.ZodOptional<z.ZodEnum<{
             success: "success";
-            pending: "pending";
             failed: "failed";
+            pending: "pending";
             processing: "processing";
             refunded: "refunded";
             cancelled: "cancelled";

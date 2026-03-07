@@ -33,8 +33,8 @@ export declare const academyBookingListSchema: z.ZodObject<{
         }>>;
         paymentStatus: z.ZodOptional<z.ZodEnum<{
             success: "success";
-            pending: "pending";
             failed: "failed";
+            pending: "pending";
             not_initiated: "not_initiated";
             initiated: "initiated";
             processing: "processing";
@@ -79,8 +79,8 @@ export declare const academyBookingExportSchema: z.ZodObject<{
         }>>;
         paymentStatus: z.ZodOptional<z.ZodEnum<{
             success: "success";
-            pending: "pending";
             failed: "failed";
+            pending: "pending";
             not_initiated: "not_initiated";
             initiated: "initiated";
             processing: "processing";
@@ -128,8 +128,8 @@ export declare const userBookingListSchema: z.ZodObject<{
         }>>;
         paymentStatus: z.ZodOptional<z.ZodEnum<{
             success: "success";
-            pending: "pending";
             failed: "failed";
+            pending: "pending";
             not_initiated: "not_initiated";
             initiated: "initiated";
             processing: "processing";

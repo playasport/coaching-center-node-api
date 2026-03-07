@@ -17,7 +17,7 @@ const schema = new mongoose_1.Schema({
     },
     type: {
         type: String,
-        enum: ['text', 'image', 'audio', 'video', 'document', 'unknown'],
+        enum: ['text', 'image', 'audio', 'video', 'document', 'reaction', 'interactive', 'unknown'],
         default: 'text',
     },
     content: { type: String, default: '', trim: true },
@@ -25,6 +25,7 @@ const schema = new mongoose_1.Schema({
     waTimestamp: { type: Number, required: true },
     status: { type: String, default: null },
     mediaUrl: { type: String, default: null },
+    repliedToWaMessageId: { type: String, default: null },
     fromAdmin: { type: Boolean, default: false },
     rawPayload: { type: mongoose_1.Schema.Types.Mixed, default: null },
 }, { timestamps: true });

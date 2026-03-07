@@ -73,15 +73,41 @@ interface IncomingMessage {
         body: string;
     };
     image?: {
+        id?: string;
         caption?: string;
     };
     video?: {
+        id?: string;
         caption?: string;
     };
     document?: {
+        id?: string;
         caption?: string;
+        filename?: string;
     };
-    audio?: object;
+    audio?: {
+        id?: string;
+    };
+    reaction?: {
+        message_id: string;
+        emoji: string;
+    };
+    button?: {
+        text: string;
+        payload: string;
+    };
+    interactive?: {
+        type: 'button_reply' | 'list_reply';
+        button_reply?: {
+            id: string;
+            title: string;
+        };
+        list_reply?: {
+            id: string;
+            title: string;
+            description?: string;
+        };
+    };
 }
 /** value.contacts[] item for profile name */
 interface Contact {
@@ -90,8 +116,15 @@ interface Contact {
         name?: string;
     };
 }
+/** value.statuses[] item for message/template delivery status */
+interface MessageStatus {
+    id: string;
+    status?: 'sent' | 'delivered' | 'read' | 'failed';
+    recipient_id?: string;
+    timestamp?: string;
+}
 /**
- * Process webhook payload: extract incoming messages, store in DB, upsert conversation
+ * Process webhook payload: message status updates, incoming messages (text, media with URLs, reactions, button clicks), template tracking via statuses.
  */
 export declare function processWhatsAppWebhookPayload(payload: {
     object?: string;
@@ -107,11 +140,7 @@ export declare function processWhatsAppWebhookPayload(payload: {
                 };
                 contacts?: Contact[];
                 messages?: IncomingMessage[];
-                statuses?: Array<{
-                    id: string;
-                    status?: string;
-                    recipient_id?: string;
-                }>;
+                statuses?: MessageStatus[];
             };
         }>;
     }>;

@@ -295,7 +295,29 @@ async function sendWhatsAppCloudBookingCancelledTemplate(to, params) {
     return { messageId };
 }
 /**
- * Process webhook payload: extract incoming messages, store in DB, upsert conversation
+ * Fetch media URL from Meta Graph API (URL may expire in ~5 min).
+ * Returns null on failure; caller can store media_id in rawPayload for later retry.
+ */
+async function getMediaUrlFromMeta(mediaId) {
+    try {
+        const cfg = await (0, settings_service_1.getWhatsAppCloudConfig)();
+        if (!cfg.accessToken)
+            return null;
+        const version = cfg.apiVersion || DEFAULT_API_VERSION;
+        const url = `${WHATSAPP_GRAPH_BASE}/${version}/${mediaId}`;
+        const res = await fetch(url, {
+            headers: { Authorization: `Bearer ${cfg.accessToken}` },
+        });
+        const data = (await res.json().catch(() => ({})));
+        return data.url || null;
+    }
+    catch (err) {
+        logger_1.logger.warn('Failed to fetch WhatsApp media URL', { mediaId, error: err });
+        return null;
+    }
+}
+/**
+ * Process webhook payload: message status updates, incoming messages (text, media with URLs, reactions, button clicks), template tracking via statuses.
  */
 async function processWhatsAppWebhookPayload(payload) {
     if (payload.object !== 'whatsapp_business_account' || !Array.isArray(payload.entry)) {
@@ -309,15 +331,25 @@ async function processWhatsAppWebhookPayload(payload) {
             const value = change.value;
             if (!value || change.field !== 'messages')
                 continue;
-            const messages = value.messages;
             const contacts = value.contacts || [];
-            if (!Array.isArray(messages))
-                continue;
             const contactMap = new Map();
             for (const c of contacts) {
                 if (c.wa_id && c.profile?.name)
                     contactMap.set(normalizePhone(c.wa_id), c.profile.name);
             }
+            // ----- Message status (incl. template tracking: sent, delivered, read, failed) -----
+            const statuses = value.statuses;
+            if (Array.isArray(statuses)) {
+                for (const st of statuses) {
+                    if (!st.id || !st.status)
+                        continue;
+                    await whatsappMessage_model_1.WhatsAppMessageModel.updateOne({ waMessageId: st.id }, { $set: { status: st.status } }).exec();
+                }
+            }
+            // ----- Incoming messages -----
+            const messages = value.messages;
+            if (!Array.isArray(messages))
+                continue;
             for (const msg of messages) {
                 const from = normalizePhone(String(msg.from || ''));
                 if (!from || !msg.id)
@@ -327,37 +359,83 @@ async function processWhatsAppWebhookPayload(payload) {
                     continue;
                 let content = '';
                 let type = 'unknown';
+                let mediaUrl = null;
+                let repliedToWaMessageId = null;
+                const rawPayload = {};
                 if (msg.type === 'text' && msg.text?.body) {
                     content = msg.text.body;
                     type = 'text';
                 }
+                else if (msg.type === 'reaction' && msg.reaction) {
+                    content = msg.reaction.emoji || '';
+                    type = 'reaction';
+                    repliedToWaMessageId = msg.reaction.message_id || null;
+                    rawPayload.reaction_message_id = msg.reaction.message_id;
+                }
+                else if (msg.type === 'button' && msg.button) {
+                    content = msg.button.text || msg.button.payload || '[Button]';
+                    type = 'interactive';
+                    rawPayload.button_payload = msg.button.payload;
+                }
+                else if (msg.type === 'interactive' && msg.interactive) {
+                    const ir = msg.interactive;
+                    if (ir.button_reply) {
+                        content = ir.button_reply.title || ir.button_reply.id || '[Button]';
+                        rawPayload.button_reply_id = ir.button_reply.id;
+                    }
+                    else if (ir.list_reply) {
+                        content = ir.list_reply.title || ir.list_reply.id || '[List]';
+                        rawPayload.list_reply_id = ir.list_reply.id;
+                    }
+                    else {
+                        content = '[Interactive]';
+                    }
+                    type = 'interactive';
+                }
                 else if (msg.type === 'image' && msg.image) {
                     content = msg.image.caption || '[Image]';
                     type = 'image';
+                    if (msg.image.id) {
+                        rawPayload.media_id = msg.image.id;
+                        mediaUrl = await getMediaUrlFromMeta(msg.image.id);
+                    }
                 }
                 else if (msg.type === 'video' && msg.video) {
                     content = msg.video.caption || '[Video]';
                     type = 'video';
+                    if (msg.video.id) {
+                        rawPayload.media_id = msg.video.id;
+                        mediaUrl = await getMediaUrlFromMeta(msg.video.id);
+                    }
                 }
                 else if (msg.type === 'document' && msg.document) {
-                    content = msg.document.caption || '[Document]';
+                    content = msg.document.caption || msg.document.filename || '[Document]';
                     type = 'document';
+                    if (msg.document.id) {
+                        rawPayload.media_id = msg.document.id;
+                        mediaUrl = await getMediaUrlFromMeta(msg.document.id);
+                    }
                 }
-                else if (msg.type === 'audio') {
+                else if (msg.type === 'audio' && msg.audio) {
                     content = '[Audio]';
                     type = 'audio';
+                    if (msg.audio.id) {
+                        rawPayload.media_id = msg.audio.id;
+                        mediaUrl = await getMediaUrlFromMeta(msg.audio.id);
+                    }
                 }
                 else {
                     content = `[${msg.type || 'unknown'}]`;
                 }
                 const timestamp = parseInt(String(msg.timestamp), 10) || Math.floor(Date.now() / 1000);
+                const preview = content.slice(0, 100);
                 let conversation = await whatsappConversation_model_1.WhatsAppConversationModel.findOne({ phone: from }).lean();
                 if (!conversation) {
                     const created = await whatsappConversation_model_1.WhatsAppConversationModel.create({
                         phone: from,
                         displayName: contactMap.get(from) || null,
                         lastMessageAt: new Date(timestamp * 1000),
-                        lastMessagePreview: content.slice(0, 100),
+                        lastMessagePreview: preview,
                         lastMessageFromUs: false,
                         unreadCount: 1,
                     });
@@ -367,7 +445,7 @@ async function processWhatsAppWebhookPayload(payload) {
                     await whatsappConversation_model_1.WhatsAppConversationModel.updateOne({ phone: from }, {
                         $set: {
                             lastMessageAt: new Date(timestamp * 1000),
-                            lastMessagePreview: content.slice(0, 100),
+                            lastMessagePreview: preview,
                             lastMessageFromUs: false,
                             displayName: contactMap.get(from) || undefined,
                         },
@@ -382,6 +460,9 @@ async function processWhatsAppWebhookPayload(payload) {
                     waMessageId: msg.id,
                     waTimestamp: timestamp,
                     fromAdmin: false,
+                    ...(mediaUrl && { mediaUrl }),
+                    ...(repliedToWaMessageId && { repliedToWaMessageId }),
+                    ...(Object.keys(rawPayload).length > 0 && { rawPayload }),
                 });
             }
         }
