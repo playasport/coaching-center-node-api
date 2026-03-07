@@ -30,9 +30,19 @@ exports.sendMessageSchema = zod_1.z.object({
     params: zod_1.z.object({
         conversationId: zod_1.z.string().min(1, 'Conversation ID is required'),
     }),
-    body: zod_1.z.object({
-        text: zod_1.z.string().min(1, 'Message text is required').max(4096, 'Message too long'),
-    }),
+    body: zod_1.z
+        .object({
+        text: zod_1.z.string().max(4096).optional(),
+        type: zod_1.z.enum(['text', 'image']).optional(),
+        imageUrl: zod_1.z.string().url('imageUrl must be a valid URL').optional(),
+        caption: zod_1.z.string().max(1024).optional(),
+    })
+        .refine((data) => {
+        if (data.type === 'image') {
+            return !!data.imageUrl?.trim();
+        }
+        return !!data.text?.trim();
+    }, { message: 'Either text (for text message) or type "image" with imageUrl is required' }),
 });
 exports.markReadSchema = zod_1.z.object({
     params: zod_1.z.object({

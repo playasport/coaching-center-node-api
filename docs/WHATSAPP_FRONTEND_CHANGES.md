@@ -146,3 +146,23 @@ Frontend types/interfaces mein `status`, `mediaUrl`, `repliedToWaMessageId`, `ra
 ## 5. Breaking change?
 
 Nahi. Naye fields optional hain; purana UI bina in fields ke bhi chal sakta hai. Naye behaviour ke liye upar wale points implement karein.
+
+---
+
+## 6. Messages API – mediaUrl in response
+
+GET `/admin/whatsapp-chat/conversations/:id/messages` ab har message ke saath **mediaUrl** aur **repliedToWaMessageId** bhi return karta hai (jab ho).
+
+- **mediaUrl** – Image/video/document/audio ke liye **hamare S3 ka public URL** (incoming media webhook pe download karke S3 pe upload hota hai). Frontend is URL ko directly use karke media dikhaye. Null ho to "Media unavailable" (e.g. S3 not configured ya download fail).
+- **repliedToWaMessageId** – Reactions ke liye; kis message pe reaction hai.
+
+---
+
+## 7. Send message – text + image
+
+POST `/admin/whatsapp-chat/conversations/:conversationId/send` ab **text** ya **image** dono support karta hai.
+
+- **Text:** `{ "text": "Hello" }`
+- **Image:** `{ "type": "image", "imageUrl": "https://example.com/photo.jpg", "caption": "Optional" }`  
+  imageUrl = public HTTPS URL; caption optional, max 1024 chars.
+

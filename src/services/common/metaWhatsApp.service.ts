@@ -120,6 +120,72 @@ export async function sendWhatsAppCloudText(
   return { messageId };
 }
 
+/**
+ * Send image message via Meta WhatsApp Cloud API (public URL).
+ * imageUrl must be a publicly accessible HTTPS URL (e.g. JPG, PNG).
+ */
+export async function sendWhatsAppCloudImage(
+  to: string,
+  imageUrl: string,
+  caption?: string
+): Promise<{ messageId: string }> {
+  const cfg = await getWhatsAppCloudConfig();
+  const phoneNumberId = cfg.phoneNumberId;
+  const accessToken = cfg.accessToken;
+  const version = cfg.apiVersion;
+
+  if (!cfg.enabled || !phoneNumberId || !accessToken) {
+    throw new ApiError(500, 'WhatsApp Cloud API is not configured');
+  }
+
+  const toNormalized = normalizePhone(to);
+  const url = getWhatsAppMessagesUrl(phoneNumberId, version);
+
+  const body: Record<string, unknown> = {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to: toNormalized,
+    type: 'image',
+    image: {
+      link: imageUrl,
+      ...(caption && caption.trim() && { caption: caption.trim().slice(0, 1024) }),
+    },
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = (await res.json().catch(() => ({}))) as {
+    error?: { message?: string };
+    messages?: Array<{ id?: string }>;
+  };
+
+  if (!res.ok) {
+    logger.error('WhatsApp Cloud API image send failed', {
+      status: res.status,
+      to: toNormalized,
+      error: data.error || data,
+    });
+    throw new ApiError(
+      res.status >= 500 ? 502 : 400,
+      data.error?.message || 'Failed to send WhatsApp image'
+    );
+  }
+
+  const messageId = data.messages?.[0]?.id;
+  if (!messageId) {
+    throw new ApiError(502, 'WhatsApp API did not return message id');
+  }
+
+  return { messageId };
+}
+
 /** Parameters for the approved-booking payment_request WhatsApp template */
 export interface PaymentRequestTemplateParams {
   userName: string;
@@ -433,23 +499,101 @@ interface MessageStatus {
   timestamp?: string;
 }
 
+const WHATSAPP_MEDIA_S3_FOLDER = 'whatsapp-media';
+
 /**
- * Fetch media URL from Meta Graph API (URL may expire in ~5 min).
- * Returns null on failure; caller can store media_id in rawPayload for later retry.
+ * Meta Graph API response for GET /{version}/{media_id}
+ * GET https://graph.facebook.com/v25.0/{media_id}
+ * Authorization: Bearer YOUR_ACCESS_TOKEN
  */
-async function getMediaUrlFromMeta(mediaId: string): Promise<string | null> {
+interface MetaMediaResponse {
+  url?: string;
+  mime_type?: string;
+  sha256?: string;
+  file_size?: number;
+  id?: string;
+}
+
+/**
+ * Fetch media metadata + URL from Meta Graph API.
+ * GET https://graph.facebook.com/v25.0/{media_id} with Bearer token.
+ * Returns { url, mime_type } or null. Meta URL is temporary and auth-required; do NOT store in DB.
+ */
+async function getMediaUrlFromMeta(mediaId: string): Promise<{ url: string; mimeType: string } | null> {
   try {
     const cfg = await getWhatsAppCloudConfig();
     if (!cfg.accessToken) return null;
     const version = cfg.apiVersion || DEFAULT_API_VERSION;
-    const url = `${WHATSAPP_GRAPH_BASE}/${version}/${mediaId}`;
-    const res = await fetch(url, {
+    const apiUrl = `${WHATSAPP_GRAPH_BASE}/${version}/${mediaId}`;
+    const res = await fetch(apiUrl, {
       headers: { Authorization: `Bearer ${cfg.accessToken}` },
     });
-    const data = (await res.json().catch(() => ({}))) as { url?: string };
-    return data.url || null;
+    const data = (await res.json().catch(() => ({}))) as MetaMediaResponse;
+    const url = data.url?.trim();
+    if (!url) return null;
+    const mimeType = data.mime_type?.trim() || 'application/octet-stream';
+    return { url, mimeType };
   } catch (err) {
-    logger.warn('Failed to fetch WhatsApp media URL', { mediaId, error: err });
+    logger.warn('Failed to fetch WhatsApp media URL from Meta', { mediaId, error: err });
+    return null;
+  }
+}
+
+/**
+ * Download media from Meta (using media ID), upload to our S3, and return ONLY the public S3 URL.
+ * Flow: GET graph.facebook.com/vX.X/{media_id} -> get url (lookaside.fbsbx.com...) -> GET that url with Bearer -> upload bytes to S3.
+ * We never store Meta's URL in DB; only S3 URL or null.
+ */
+async function downloadWhatsAppMediaAndUploadToS3(
+  mediaId: string,
+  mediaType: 'image' | 'video' | 'document' | 'audio'
+): Promise<string | null> {
+  try {
+    const meta = await getMediaUrlFromMeta(mediaId);
+    if (!meta) return null;
+
+    const cfg = await getWhatsAppCloudConfig();
+    if (!cfg.accessToken) return null;
+
+    const downloadRes = await fetch(meta.url, {
+      headers: { Authorization: `Bearer ${cfg.accessToken}` },
+    });
+    if (!downloadRes.ok) {
+      logger.warn('WhatsApp media download failed', { mediaId, status: downloadRes.status });
+      return null;
+    }
+
+    const contentType =
+      downloadRes.headers.get('content-type')?.split(';')[0]?.trim() ||
+      meta.mimeType ||
+      (mediaType === 'image'
+        ? 'image/jpeg'
+        : mediaType === 'video'
+          ? 'video/mp4'
+          : mediaType === 'audio'
+            ? 'audio/ogg'
+            : 'application/octet-stream');
+    const buffer = Buffer.from(await downloadRes.arrayBuffer());
+
+    const { uploadBufferToS3, getS3Client } = await import('./s3.service');
+    if (!getS3Client()) {
+      logger.warn('S3 not configured; WhatsApp media not uploaded');
+      return null;
+    }
+
+    const s3Url = await uploadBufferToS3({
+      buffer,
+      folder: WHATSAPP_MEDIA_S3_FOLDER,
+      contentType,
+    });
+    logger.info('WhatsApp media uploaded to S3 (storing S3 URL only)', {
+      mediaId,
+      mediaType,
+      s3UrlPrefix: s3Url.slice(0, 50),
+    });
+    return s3Url;
+  } catch (err) {
+    logger.warn('WhatsApp media download/upload to S3 failed', { mediaId, mediaType, error: err });
     return null;
   }
 }
@@ -549,28 +693,28 @@ export async function processWhatsAppWebhookPayload(payload: {
           type = 'image';
           if (msg.image.id) {
             rawPayload.media_id = msg.image.id;
-            mediaUrl = await getMediaUrlFromMeta(msg.image.id);
+            mediaUrl = await downloadWhatsAppMediaAndUploadToS3(msg.image.id, 'image');
           }
         } else if (msg.type === 'video' && msg.video) {
           content = msg.video.caption || '[Video]';
           type = 'video';
           if (msg.video.id) {
             rawPayload.media_id = msg.video.id;
-            mediaUrl = await getMediaUrlFromMeta(msg.video.id);
+            mediaUrl = await downloadWhatsAppMediaAndUploadToS3(msg.video.id, 'video');
           }
         } else if (msg.type === 'document' && msg.document) {
           content = msg.document.caption || msg.document.filename || '[Document]';
           type = 'document';
           if (msg.document.id) {
             rawPayload.media_id = msg.document.id;
-            mediaUrl = await getMediaUrlFromMeta(msg.document.id);
+            mediaUrl = await downloadWhatsAppMediaAndUploadToS3(msg.document.id, 'document');
           }
         } else if (msg.type === 'audio' && msg.audio) {
           content = '[Audio]';
           type = 'audio';
           if (msg.audio.id) {
             rawPayload.media_id = msg.audio.id;
-            mediaUrl = await getMediaUrlFromMeta(msg.audio.id);
+            mediaUrl = await downloadWhatsAppMediaAndUploadToS3(msg.audio.id, 'audio');
           }
         } else {
           content = `[${msg.type || 'unknown'}]`;
@@ -605,6 +749,9 @@ export async function processWhatsAppWebhookPayload(payload: {
           );
         }
 
+        // Only store our S3 (or own server) URL in DB; never store Meta's temporary URL (lookaside.fbsbx.com)
+        const isOurStorageUrl = mediaUrl && !mediaUrl.includes('lookaside.fbsbx.com');
+
         await WhatsAppMessageModel.create({
           conversation: (conversation as any)._id,
           direction: 'in',
@@ -613,7 +760,7 @@ export async function processWhatsAppWebhookPayload(payload: {
           waMessageId: msg.id,
           waTimestamp: timestamp,
           fromAdmin: false,
-          ...(mediaUrl && { mediaUrl }),
+          ...(isOurStorageUrl && { mediaUrl: mediaUrl }),
           ...(repliedToWaMessageId && { repliedToWaMessageId }),
           ...(Object.keys(rawPayload).length > 0 && { rawPayload }),
         });

@@ -27,6 +27,10 @@ export interface MessageListItem {
     status: string | null;
     fromAdmin: boolean;
     createdAt: Date;
+    /** Media URL for image/video/document/audio (may expire ~5 min from Meta) */
+    mediaUrl?: string | null;
+    /** For reactions: the message ID this reaction refers to */
+    repliedToWaMessageId?: string | null;
 }
 export declare function listConversations(params?: ListConversationsParams): Promise<{
     data: ConversationListItem[];
@@ -48,6 +52,14 @@ export declare function getConversationMessages(conversationId: string, params?:
         hasNextPage: boolean;
     };
 }>;
-export declare function sendMessage(conversationId: string, text: string): Promise<MessageListItem>;
+export type SendMessagePayload = {
+    type?: 'text';
+    text: string;
+} | {
+    type: 'image';
+    imageUrl: string;
+    caption?: string;
+};
+export declare function sendMessage(conversationId: string, payload: SendMessagePayload): Promise<MessageListItem>;
 export declare function markConversationRead(conversationId: string): Promise<void>;
 //# sourceMappingURL=whatsappChat.service.d.ts.map

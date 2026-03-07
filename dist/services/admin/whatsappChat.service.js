@@ -85,6 +85,8 @@ async function getConversationMessages(conversationId, params = {}) {
         status: m.status ?? null,
         fromAdmin: m.fromAdmin ?? false,
         createdAt: m.createdAt,
+        mediaUrl: m.mediaUrl ?? null,
+        repliedToWaMessageId: m.repliedToWaMessageId ?? null,
     }));
     const totalPages = Math.ceil(total / limit);
     // Mark unread as read when admin opens conversation
@@ -102,7 +104,7 @@ async function getConversationMessages(conversationId, params = {}) {
         },
     };
 }
-async function sendMessage(conversationId, text) {
+async function sendMessage(conversationId, payload) {
     const cfg = await (0, settings_service_1.getWhatsAppCloudConfig)();
     if (!cfg.enabled) {
         throw new ApiError_1.ApiError(503, 'WhatsApp Cloud chat is not enabled');
@@ -112,36 +114,61 @@ async function sendMessage(conversationId, text) {
         throw new ApiError_1.ApiError(404, 'Conversation not found');
     }
     const phone = conversation.phone;
-    const { messageId } = await (0, metaWhatsApp_service_1.sendWhatsAppCloudText)(phone, text);
+    const isImage = payload.type === 'image' && payload.imageUrl;
+    let messageId;
+    let contentType;
+    let content;
+    let mediaUrl = null;
+    if (isImage) {
+        const res = await (0, metaWhatsApp_service_1.sendWhatsAppCloudImage)(phone, payload.imageUrl, payload.caption);
+        messageId = res.messageId;
+        contentType = 'image';
+        content = payload.caption?.trim() || '[Image]';
+        mediaUrl = payload.imageUrl;
+    }
+    else {
+        const text = payload.type === 'text' ? payload.text : payload.text;
+        if (!text || typeof text !== 'string' || !text.trim()) {
+            throw new ApiError_1.ApiError(400, 'Message text is required for text messages');
+        }
+        const res = await (0, metaWhatsApp_service_1.sendWhatsAppCloudText)(phone, text);
+        messageId = res.messageId;
+        contentType = 'text';
+        content = text;
+    }
     const now = new Date();
     const timestampSec = Math.floor(now.getTime() / 1000);
+    const preview = content.slice(0, 100);
     const msg = await whatsappMessage_model_1.WhatsAppMessageModel.create({
         conversation: conversationId,
         direction: 'out',
-        type: 'text',
-        content: text,
+        type: contentType,
+        content,
         waMessageId: messageId,
         waTimestamp: timestampSec,
         status: 'sent',
         fromAdmin: true,
+        mediaUrl: mediaUrl ?? null,
     });
     await whatsappConversation_model_1.WhatsAppConversationModel.updateOne({ _id: conversationId }, {
         $set: {
             lastMessageAt: now,
-            lastMessagePreview: text.slice(0, 100),
+            lastMessagePreview: preview,
             lastMessageFromUs: true,
         },
     });
     return {
         id: msg._id.toString(),
         direction: 'out',
-        type: 'text',
-        content: text,
+        type: contentType,
+        content,
         waMessageId: messageId,
         waTimestamp: timestampSec,
         status: 'sent',
         fromAdmin: true,
         createdAt: msg.createdAt,
+        mediaUrl: mediaUrl ?? null,
+        repliedToWaMessageId: null,
     };
 }
 async function markConversationRead(conversationId) {

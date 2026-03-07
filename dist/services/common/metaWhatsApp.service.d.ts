@@ -14,6 +14,13 @@ export declare function verifyWhatsAppWebhookSignature(rawBody: string, signatur
 export declare function sendWhatsAppCloudText(to: string, text: string): Promise<{
     messageId: string;
 }>;
+/**
+ * Send image message via Meta WhatsApp Cloud API (public URL).
+ * imageUrl must be a publicly accessible HTTPS URL (e.g. JPG, PNG).
+ */
+export declare function sendWhatsAppCloudImage(to: string, imageUrl: string, caption?: string): Promise<{
+    messageId: string;
+}>;
 /** Parameters for the approved-booking payment_request WhatsApp template */
 export interface PaymentRequestTemplateParams {
     userName: string;

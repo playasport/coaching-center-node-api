@@ -30,9 +30,22 @@ export const sendMessageSchema = z.object({
   params: z.object({
     conversationId: z.string().min(1, 'Conversation ID is required'),
   }),
-  body: z.object({
-    text: z.string().min(1, 'Message text is required').max(4096, 'Message too long'),
-  }),
+  body: z
+    .object({
+      text: z.string().max(4096).optional(),
+      type: z.enum(['text', 'image']).optional(),
+      imageUrl: z.string().url('imageUrl must be a valid URL').optional(),
+      caption: z.string().max(1024).optional(),
+    })
+    .refine(
+      (data) => {
+        if (data.type === 'image') {
+          return !!data.imageUrl?.trim();
+        }
+        return !!data.text?.trim();
+      },
+      { message: 'Either text (for text message) or type "image" with imageUrl is required' }
+    ),
 });
 
 export const markReadSchema = z.object({

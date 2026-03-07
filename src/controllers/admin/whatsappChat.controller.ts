@@ -47,8 +47,12 @@ export const sendMessage = async (
 ): Promise<void> => {
   try {
     const { conversationId } = req.params;
-    const { text } = req.body;
-    const message = await whatsappChatService.sendMessage(conversationId, text);
+    const body = req.body as { text?: string; type?: 'text' | 'image'; imageUrl?: string; caption?: string };
+    const payload =
+      body.type === 'image' && body.imageUrl
+        ? { type: 'image' as const, imageUrl: body.imageUrl, caption: body.caption }
+        : { type: 'text' as const, text: body.text || '' };
+    const message = await whatsappChatService.sendMessage(conversationId, payload);
     const response = new ApiResponse(201, message, 'Message sent');
     res.status(201).json(response);
   } catch (error) {

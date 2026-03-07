@@ -20,7 +20,13 @@ export declare const sendMessageSchema: z.ZodObject<{
         conversationId: z.ZodString;
     }, z.core.$strip>;
     body: z.ZodObject<{
-        text: z.ZodString;
+        text: z.ZodOptional<z.ZodString>;
+        type: z.ZodOptional<z.ZodEnum<{
+            text: "text";
+            image: "image";
+        }>>;
+        imageUrl: z.ZodOptional<z.ZodString>;
+        caption: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>;
 }, z.core.$strip>;
 export declare const markReadSchema: z.ZodObject<{

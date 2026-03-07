@@ -38,6 +38,72 @@ export interface UploadFileOptions {
   userId?: string;
 }
 
+export interface UploadBufferOptions {
+  buffer: Buffer;
+  folder?: string;
+  contentType: string;
+  /** e.g. 'jpg', 'png', 'pdf'. Derived from contentType if not provided. */
+  fileExtension?: string;
+}
+
+/**
+ * Upload a buffer to S3 (e.g. WhatsApp media downloaded from Meta).
+ * Returns the public S3 URL or throws if S3 is not configured / upload fails.
+ */
+export const uploadBufferToS3 = async ({
+  buffer,
+  folder = 'whatsapp-media',
+  contentType,
+  fileExtension,
+}: UploadBufferOptions): Promise<string> => {
+  const client = getS3Client();
+  if (!client) {
+    throw new Error('S3 client not configured. Please check AWS credentials in environment variables.');
+  }
+
+  if (!config.aws.s3Bucket) {
+    throw new Error('S3 bucket name not configured. Please set AWS_S3_BUCKET environment variable.');
+  }
+
+  const ext =
+    fileExtension ||
+    (contentType === 'image/jpeg' || contentType === 'image/jpg'
+      ? 'jpg'
+      : contentType === 'image/png'
+        ? 'png'
+        : contentType === 'image/webp'
+          ? 'webp'
+          : contentType === 'video/mp4'
+            ? 'mp4'
+            : contentType === 'audio/ogg'
+              ? 'ogg'
+              : contentType === 'audio/mpeg'
+                ? 'mp3'
+                : contentType === 'application/pdf'
+                  ? 'pdf'
+                  : 'bin');
+  const fileName = `${folder}/playasport-${uuidv4()}.${ext}`;
+
+  try {
+    const command = new PutObjectCommand({
+      Bucket: config.aws.s3Bucket,
+      Key: fileName,
+      Body: buffer,
+      ContentType: contentType,
+    });
+
+    await client.send(command);
+
+    const fileUrl = `https://${config.aws.s3Bucket}.s3.${config.aws.region}.amazonaws.com/${fileName}`;
+    logger.info('Buffer uploaded to S3 successfully', { fileName, bucket: config.aws.s3Bucket });
+    return fileUrl;
+  } catch (error: any) {
+    const errorMessage = error?.message || 'Unknown error';
+    logger.error('Failed to upload buffer to S3', { fileName, error: errorMessage });
+    throw new Error(`Failed to upload to S3: ${errorMessage}`);
+  }
+};
+
 export const uploadFileToS3 = async ({
   file,
   folder = 'images',

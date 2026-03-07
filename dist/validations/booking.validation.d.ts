@@ -60,9 +60,9 @@ export declare const academyEnrolledStudentsSchema: z.ZodObject<{
 export declare const academyBookingExportSchema: z.ZodObject<{
     query: z.ZodObject<{
         format: z.ZodEnum<{
+            pdf: "pdf";
             excel: "excel";
             csv: "csv";
-            pdf: "pdf";
         }>;
         centerId: z.ZodOptional<z.ZodString>;
         batchId: z.ZodOptional<z.ZodString>;

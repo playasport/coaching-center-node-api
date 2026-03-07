@@ -1,6 +1,6 @@
 import { WhatsAppConversationModel } from '../../models/whatsappConversation.model';
 import { WhatsAppMessageModel } from '../../models/whatsappMessage.model';
-import { sendWhatsAppCloudText } from '../common/metaWhatsApp.service';
+import { sendWhatsAppCloudText, sendWhatsAppCloudImage } from '../common/metaWhatsApp.service';
 import { getWhatsAppCloudConfig } from '../common/settings.service';
 import { ApiError } from '../../utils/ApiError';
 
@@ -36,6 +36,10 @@ export interface MessageListItem {
   status: string | null;
   fromAdmin: boolean;
   createdAt: Date;
+  /** Media URL for image/video/document/audio (may expire ~5 min from Meta) */
+  mediaUrl?: string | null;
+  /** For reactions: the message ID this reaction refers to */
+  repliedToWaMessageId?: string | null;
 }
 
 export async function listConversations(
@@ -136,6 +140,8 @@ export async function getConversationMessages(
     status: m.status ?? null,
     fromAdmin: m.fromAdmin ?? false,
     createdAt: m.createdAt,
+    mediaUrl: m.mediaUrl ?? null,
+    repliedToWaMessageId: m.repliedToWaMessageId ?? null,
   }));
 
   const totalPages = Math.ceil(total / limit);
@@ -160,7 +166,14 @@ export async function getConversationMessages(
   };
 }
 
-export async function sendMessage(conversationId: string, text: string): Promise<MessageListItem> {
+export type SendMessagePayload =
+  | { type?: 'text'; text: string }
+  | { type: 'image'; imageUrl: string; caption?: string };
+
+export async function sendMessage(
+  conversationId: string,
+  payload: SendMessagePayload
+): Promise<MessageListItem> {
   const cfg = await getWhatsAppCloudConfig();
   if (!cfg.enabled) {
     throw new ApiError(503, 'WhatsApp Cloud chat is not enabled');
@@ -172,20 +185,43 @@ export async function sendMessage(conversationId: string, text: string): Promise
   }
 
   const phone = (conversation as any).phone;
-  const { messageId } = await sendWhatsAppCloudText(phone, text);
+  const isImage = payload.type === 'image' && payload.imageUrl;
+  let messageId: string;
+  let contentType: string;
+  let content: string;
+  let mediaUrl: string | null = null;
+
+  if (isImage) {
+    const res = await sendWhatsAppCloudImage(phone, payload.imageUrl, payload.caption);
+    messageId = res.messageId;
+    contentType = 'image';
+    content = payload.caption?.trim() || '[Image]';
+    mediaUrl = payload.imageUrl;
+  } else {
+    const text = payload.type === 'text' ? payload.text : (payload as any).text;
+    if (!text || typeof text !== 'string' || !text.trim()) {
+      throw new ApiError(400, 'Message text is required for text messages');
+    }
+    const res = await sendWhatsAppCloudText(phone, text);
+    messageId = res.messageId;
+    contentType = 'text';
+    content = text;
+  }
 
   const now = new Date();
   const timestampSec = Math.floor(now.getTime() / 1000);
+  const preview = content.slice(0, 100);
 
   const msg = await WhatsAppMessageModel.create({
     conversation: conversationId,
     direction: 'out',
-    type: 'text',
-    content: text,
+    type: contentType,
+    content,
     waMessageId: messageId,
     waTimestamp: timestampSec,
     status: 'sent',
     fromAdmin: true,
+    mediaUrl: mediaUrl ?? null,
   });
 
   await WhatsAppConversationModel.updateOne(
@@ -193,7 +229,7 @@ export async function sendMessage(conversationId: string, text: string): Promise
     {
       $set: {
         lastMessageAt: now,
-        lastMessagePreview: text.slice(0, 100),
+        lastMessagePreview: preview,
         lastMessageFromUs: true,
       },
     }
@@ -202,13 +238,15 @@ export async function sendMessage(conversationId: string, text: string): Promise
   return {
     id: msg._id.toString(),
     direction: 'out',
-    type: 'text',
-    content: text,
+    type: contentType,
+    content,
     waMessageId: messageId,
     waTimestamp: timestampSec,
     status: 'sent',
     fromAdmin: true,
     createdAt: msg.createdAt,
+    mediaUrl: mediaUrl ?? null,
+    repliedToWaMessageId: null,
   };
 }
 

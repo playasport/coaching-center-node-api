@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -6,6 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyWhatsAppWebhook = verifyWhatsAppWebhook;
 exports.verifyWhatsAppWebhookSignature = verifyWhatsAppWebhookSignature;
 exports.sendWhatsAppCloudText = sendWhatsAppCloudText;
+exports.sendWhatsAppCloudImage = sendWhatsAppCloudImage;
 exports.sendWhatsAppCloudPaymentRequestTemplate = sendWhatsAppCloudPaymentRequestTemplate;
 exports.sendWhatsAppCloudPaymentReminderTemplate = sendWhatsAppCloudPaymentReminderTemplate;
 exports.sendWhatsAppCloudBookingCancelledTemplate = sendWhatsAppCloudBookingCancelledTemplate;
@@ -93,6 +127,53 @@ async function sendWhatsAppCloudText(to, text) {
             error: data.error || data,
         });
         throw new ApiError_1.ApiError(res.status >= 500 ? 502 : 400, data.error?.message || 'Failed to send WhatsApp message');
+    }
+    const messageId = data.messages?.[0]?.id;
+    if (!messageId) {
+        throw new ApiError_1.ApiError(502, 'WhatsApp API did not return message id');
+    }
+    return { messageId };
+}
+/**
+ * Send image message via Meta WhatsApp Cloud API (public URL).
+ * imageUrl must be a publicly accessible HTTPS URL (e.g. JPG, PNG).
+ */
+async function sendWhatsAppCloudImage(to, imageUrl, caption) {
+    const cfg = await (0, settings_service_1.getWhatsAppCloudConfig)();
+    const phoneNumberId = cfg.phoneNumberId;
+    const accessToken = cfg.accessToken;
+    const version = cfg.apiVersion;
+    if (!cfg.enabled || !phoneNumberId || !accessToken) {
+        throw new ApiError_1.ApiError(500, 'WhatsApp Cloud API is not configured');
+    }
+    const toNormalized = normalizePhone(to);
+    const url = getWhatsAppMessagesUrl(phoneNumberId, version);
+    const body = {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: toNormalized,
+        type: 'image',
+        image: {
+            link: imageUrl,
+            ...(caption && caption.trim() && { caption: caption.trim().slice(0, 1024) }),
+        },
+    };
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(body),
+    });
+    const data = (await res.json().catch(() => ({})));
+    if (!res.ok) {
+        logger_1.logger.error('WhatsApp Cloud API image send failed', {
+            status: res.status,
+            to: toNormalized,
+            error: data.error || data,
+        });
+        throw new ApiError_1.ApiError(res.status >= 500 ? 502 : 400, data.error?.message || 'Failed to send WhatsApp image');
     }
     const messageId = data.messages?.[0]?.id;
     if (!messageId) {
@@ -294,9 +375,11 @@ async function sendWhatsAppCloudBookingCancelledTemplate(to, params) {
     }
     return { messageId };
 }
+const WHATSAPP_MEDIA_S3_FOLDER = 'whatsapp-media';
 /**
- * Fetch media URL from Meta Graph API (URL may expire in ~5 min).
- * Returns null on failure; caller can store media_id in rawPayload for later retry.
+ * Fetch media metadata + URL from Meta Graph API.
+ * GET https://graph.facebook.com/v25.0/{media_id} with Bearer token.
+ * Returns { url, mime_type } or null. Meta URL is temporary and auth-required; do NOT store in DB.
  */
 async function getMediaUrlFromMeta(mediaId) {
     try {
@@ -304,15 +387,71 @@ async function getMediaUrlFromMeta(mediaId) {
         if (!cfg.accessToken)
             return null;
         const version = cfg.apiVersion || DEFAULT_API_VERSION;
-        const url = `${WHATSAPP_GRAPH_BASE}/${version}/${mediaId}`;
-        const res = await fetch(url, {
+        const apiUrl = `${WHATSAPP_GRAPH_BASE}/${version}/${mediaId}`;
+        const res = await fetch(apiUrl, {
             headers: { Authorization: `Bearer ${cfg.accessToken}` },
         });
         const data = (await res.json().catch(() => ({})));
-        return data.url || null;
+        const url = data.url?.trim();
+        if (!url)
+            return null;
+        const mimeType = data.mime_type?.trim() || 'application/octet-stream';
+        return { url, mimeType };
     }
     catch (err) {
-        logger_1.logger.warn('Failed to fetch WhatsApp media URL', { mediaId, error: err });
+        logger_1.logger.warn('Failed to fetch WhatsApp media URL from Meta', { mediaId, error: err });
+        return null;
+    }
+}
+/**
+ * Download media from Meta (using media ID), upload to our S3, and return ONLY the public S3 URL.
+ * Flow: GET graph.facebook.com/vX.X/{media_id} -> get url (lookaside.fbsbx.com...) -> GET that url with Bearer -> upload bytes to S3.
+ * We never store Meta's URL in DB; only S3 URL or null.
+ */
+async function downloadWhatsAppMediaAndUploadToS3(mediaId, mediaType) {
+    try {
+        const meta = await getMediaUrlFromMeta(mediaId);
+        if (!meta)
+            return null;
+        const cfg = await (0, settings_service_1.getWhatsAppCloudConfig)();
+        if (!cfg.accessToken)
+            return null;
+        const downloadRes = await fetch(meta.url, {
+            headers: { Authorization: `Bearer ${cfg.accessToken}` },
+        });
+        if (!downloadRes.ok) {
+            logger_1.logger.warn('WhatsApp media download failed', { mediaId, status: downloadRes.status });
+            return null;
+        }
+        const contentType = downloadRes.headers.get('content-type')?.split(';')[0]?.trim() ||
+            meta.mimeType ||
+            (mediaType === 'image'
+                ? 'image/jpeg'
+                : mediaType === 'video'
+                    ? 'video/mp4'
+                    : mediaType === 'audio'
+                        ? 'audio/ogg'
+                        : 'application/octet-stream');
+        const buffer = Buffer.from(await downloadRes.arrayBuffer());
+        const { uploadBufferToS3, getS3Client } = await Promise.resolve().then(() => __importStar(require('./s3.service')));
+        if (!getS3Client()) {
+            logger_1.logger.warn('S3 not configured; WhatsApp media not uploaded');
+            return null;
+        }
+        const s3Url = await uploadBufferToS3({
+            buffer,
+            folder: WHATSAPP_MEDIA_S3_FOLDER,
+            contentType,
+        });
+        logger_1.logger.info('WhatsApp media uploaded to S3 (storing S3 URL only)', {
+            mediaId,
+            mediaType,
+            s3UrlPrefix: s3Url.slice(0, 50),
+        });
+        return s3Url;
+    }
+    catch (err) {
+        logger_1.logger.warn('WhatsApp media download/upload to S3 failed', { mediaId, mediaType, error: err });
         return null;
     }
 }
@@ -397,7 +536,7 @@ async function processWhatsAppWebhookPayload(payload) {
                     type = 'image';
                     if (msg.image.id) {
                         rawPayload.media_id = msg.image.id;
-                        mediaUrl = await getMediaUrlFromMeta(msg.image.id);
+                        mediaUrl = await downloadWhatsAppMediaAndUploadToS3(msg.image.id, 'image');
                     }
                 }
                 else if (msg.type === 'video' && msg.video) {
@@ -405,7 +544,7 @@ async function processWhatsAppWebhookPayload(payload) {
                     type = 'video';
                     if (msg.video.id) {
                         rawPayload.media_id = msg.video.id;
-                        mediaUrl = await getMediaUrlFromMeta(msg.video.id);
+                        mediaUrl = await downloadWhatsAppMediaAndUploadToS3(msg.video.id, 'video');
                     }
                 }
                 else if (msg.type === 'document' && msg.document) {
@@ -413,7 +552,7 @@ async function processWhatsAppWebhookPayload(payload) {
                     type = 'document';
                     if (msg.document.id) {
                         rawPayload.media_id = msg.document.id;
-                        mediaUrl = await getMediaUrlFromMeta(msg.document.id);
+                        mediaUrl = await downloadWhatsAppMediaAndUploadToS3(msg.document.id, 'document');
                     }
                 }
                 else if (msg.type === 'audio' && msg.audio) {
@@ -421,7 +560,7 @@ async function processWhatsAppWebhookPayload(payload) {
                     type = 'audio';
                     if (msg.audio.id) {
                         rawPayload.media_id = msg.audio.id;
-                        mediaUrl = await getMediaUrlFromMeta(msg.audio.id);
+                        mediaUrl = await downloadWhatsAppMediaAndUploadToS3(msg.audio.id, 'audio');
                     }
                 }
                 else {
@@ -452,6 +591,8 @@ async function processWhatsAppWebhookPayload(payload) {
                         $inc: { unreadCount: 1 },
                     });
                 }
+                // Only store our S3 (or own server) URL in DB; never store Meta's temporary URL (lookaside.fbsbx.com)
+                const isOurStorageUrl = mediaUrl && !mediaUrl.includes('lookaside.fbsbx.com');
                 await whatsappMessage_model_1.WhatsAppMessageModel.create({
                     conversation: conversation._id,
                     direction: 'in',
@@ -460,7 +601,7 @@ async function processWhatsAppWebhookPayload(payload) {
                     waMessageId: msg.id,
                     waTimestamp: timestamp,
                     fromAdmin: false,
-                    ...(mediaUrl && { mediaUrl }),
+                    ...(isOurStorageUrl && { mediaUrl: mediaUrl }),
                     ...(repliedToWaMessageId && { repliedToWaMessageId }),
                     ...(Object.keys(rawPayload).length > 0 && { rawPayload }),
                 });

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.testS3Connection = exports.deleteFileFromS3 = exports.uploadFileToS3 = exports.getS3Client = void 0;
+exports.testS3Connection = exports.deleteFileFromS3 = exports.uploadFileToS3 = exports.uploadBufferToS3 = exports.getS3Client = void 0;
 const client_s3_1 = require("@aws-sdk/client-s3");
 const env_1 = require("../../config/env");
 const logger_1 = require("../../utils/logger");
@@ -24,6 +24,54 @@ const getS3Client = () => {
     return s3Client;
 };
 exports.getS3Client = getS3Client;
+/**
+ * Upload a buffer to S3 (e.g. WhatsApp media downloaded from Meta).
+ * Returns the public S3 URL or throws if S3 is not configured / upload fails.
+ */
+const uploadBufferToS3 = async ({ buffer, folder = 'whatsapp-media', contentType, fileExtension, }) => {
+    const client = (0, exports.getS3Client)();
+    if (!client) {
+        throw new Error('S3 client not configured. Please check AWS credentials in environment variables.');
+    }
+    if (!env_1.config.aws.s3Bucket) {
+        throw new Error('S3 bucket name not configured. Please set AWS_S3_BUCKET environment variable.');
+    }
+    const ext = fileExtension ||
+        (contentType === 'image/jpeg' || contentType === 'image/jpg'
+            ? 'jpg'
+            : contentType === 'image/png'
+                ? 'png'
+                : contentType === 'image/webp'
+                    ? 'webp'
+                    : contentType === 'video/mp4'
+                        ? 'mp4'
+                        : contentType === 'audio/ogg'
+                            ? 'ogg'
+                            : contentType === 'audio/mpeg'
+                                ? 'mp3'
+                                : contentType === 'application/pdf'
+                                    ? 'pdf'
+                                    : 'bin');
+    const fileName = `${folder}/playasport-${(0, uuid_1.v4)()}.${ext}`;
+    try {
+        const command = new client_s3_1.PutObjectCommand({
+            Bucket: env_1.config.aws.s3Bucket,
+            Key: fileName,
+            Body: buffer,
+            ContentType: contentType,
+        });
+        await client.send(command);
+        const fileUrl = `https://${env_1.config.aws.s3Bucket}.s3.${env_1.config.aws.region}.amazonaws.com/${fileName}`;
+        logger_1.logger.info('Buffer uploaded to S3 successfully', { fileName, bucket: env_1.config.aws.s3Bucket });
+        return fileUrl;
+    }
+    catch (error) {
+        const errorMessage = error?.message || 'Unknown error';
+        logger_1.logger.error('Failed to upload buffer to S3', { fileName, error: errorMessage });
+        throw new Error(`Failed to upload to S3: ${errorMessage}`);
+    }
+};
+exports.uploadBufferToS3 = uploadBufferToS3;
 const uploadFileToS3 = async ({ file, folder = 'images', userId, }) => {
     const client = (0, exports.getS3Client)();
     if (!client) {
