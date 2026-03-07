@@ -21,6 +21,7 @@ const SENSITIVE_FIELDS = [
     'notifications.whatsapp.app_secret',
     'payment.razorpay.key_id',
     'payment.razorpay.key_secret',
+    'payment.razorpay.webhook_secret',
     'payment.stripe.api_key',
     'payment.stripe.secret_key',
 ];
@@ -76,6 +77,7 @@ const getPublicSettings = async () => {
         if (publicSettings.payment?.razorpay) {
             delete publicSettings.payment.razorpay.key_id;
             delete publicSettings.payment.razorpay.key_secret;
+            delete publicSettings.payment.razorpay.webhook_secret;
         }
         if (publicSettings.payment?.stripe) {
             delete publicSettings.payment.stripe.api_key;
@@ -202,6 +204,7 @@ const createDefaultSettings = async () => {
             razorpay: {
                 key_id: env_1.config.razorpay.keyId || null,
                 key_secret: env_1.config.razorpay.keySecret || null,
+                webhook_secret: env_1.config.razorpay.webhookSecret || null,
                 enabled: true,
             },
             stripe: {

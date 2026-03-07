@@ -60,6 +60,7 @@ export interface PaymentConfig {
     razorpay?: {
         key_id?: string | null;
         key_secret?: string | null;
+        webhook_secret?: string | null;
         enabled?: boolean | null;
     } | null;
     stripe?: {

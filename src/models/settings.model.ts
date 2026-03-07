@@ -76,6 +76,7 @@ export interface PaymentConfig {
   razorpay?: {
     key_id?: string | null; // Encrypted
     key_secret?: string | null; // Encrypted
+    webhook_secret?: string | null; // Encrypted; for Razorpay webhook signature verification
     enabled?: boolean | null;
   } | null;
   stripe?: {

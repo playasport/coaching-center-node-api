@@ -183,14 +183,17 @@ https://abc123.ngrok.io/api/v1/webhook/razorpay
 
 ---
 
-## 7. Credential Priority
+## 7. Credential Priority & Admin Panel
 
 The system supports two sources for the webhook secret (checked in this order):
 
-1. **Database Settings** — key: `payment.razorpay.webhook_secret` (via Admin Panel settings)
+1. **Admin Panel (Database Settings)** — key: `payment.razorpay.webhook_secret`  
+   - **PUT** `/admin/settings` with body `{ "payment": { "razorpay": { "webhook_secret": "your-secret" } } }` to set or update.  
+   - **GET** `/admin/settings` returns decrypted settings (admin only), including `payment.razorpay.webhook_secret` when present.
 2. **Environment Variable** — `RAZORPAY_WEBHOOK_SECRET` in `.env`
 
-If both are empty, falls back to `RAZORPAY_KEY_SECRET` (not recommended for production).
+If both are empty, the webhook uses `RAZORPAY_KEY_SECRET` (not recommended for production).  
+You can manage the webhook secret entirely from the admin panel; no server restart is needed when you change it there.
 
 ---
 

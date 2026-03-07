@@ -818,6 +818,11 @@ router.patch('/notifications', (0, permission_middleware_1.requirePermission)(se
  *                         nullable: true
  *                         example: "your-razorpay-key-secret"
  *                         description: Will be encrypted before storage
+ *                       webhook_secret:
+ *                         type: string
+ *                         nullable: true
+ *                         example: "your-razorpay-webhook-secret"
+ *                         description: Razorpay webhook secret for signature verification (encrypted before storage)
  *                       enabled:
  *                         type: boolean
  *                         nullable: true
@@ -847,6 +852,7 @@ router.patch('/notifications', (0, permission_middleware_1.requirePermission)(se
  *               razorpay:
  *                 key_id: "your-razorpay-key-id"
  *                 key_secret: "your-razorpay-key-secret"
+ *                 webhook_secret: "your-razorpay-webhook-secret"
  *                 enabled: true
  *     responses:
  *       200:
