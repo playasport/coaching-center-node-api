@@ -8,6 +8,7 @@ const ApiResponse_1 = require("../../utils/ApiResponse");
 const ApiError_1 = require("../../utils/ApiError");
 const logger_1 = require("../../utils/logger");
 const email_service_1 = require("../../services/common/email.service");
+const env_1 = require("../../config/env");
 const path_1 = __importDefault(require("path"));
 const promises_1 = __importDefault(require("fs/promises"));
 /**
@@ -152,6 +153,7 @@ const getSampleDataForTemplate = (templateName) => {
         case 'academy-welcome':
             return {
                 ...baseData,
+                websiteAcademyUrl: env_1.config.academySiteUrl || env_1.config.mainSiteUrl || 'https://www.playasport.in',
                 name: 'Rajesh Kumar',
                 email: 'rajesh@elitesports.com',
                 mobile: '+91 9876543210',

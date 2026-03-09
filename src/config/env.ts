@@ -27,6 +27,7 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   defaultLocale: (process.env.DEFAULT_LOCALE || 'en') as 'en' | 'hi',
   mainSiteUrl: trimUrl(process.env.MAIN_SITE_URL),
+  academySiteUrl: trimUrl(process.env.ACADEMY_SITE_URL),
   cors: {
     allowedOrigins: (() => {
       if (process.env.NODE_ENV !== 'production') return true;

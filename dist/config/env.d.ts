@@ -3,6 +3,7 @@ export declare const config: {
     nodeEnv: string;
     defaultLocale: "en" | "hi";
     mainSiteUrl: string;
+    academySiteUrl: string;
     cors: {
         allowedOrigins: boolean | string[];
     };

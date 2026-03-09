@@ -312,6 +312,10 @@ export const registerAcademyUser = async (data: AcademyRegisterInput): Promise<R
           mobile: mobile ? `+91${mobile}` : 'Not provided',
           registrationDate,
           year: new Date().getFullYear(),
+          websiteUrl: config.mainSiteUrl || 'https://www.playasport.in',
+          websiteAcademyUrl: config.academySiteUrl || config.mainSiteUrl || 'https://www.playasport.in',
+          companyName: 'Play A Sport',
+          website: 'playasport.in',
         },
         priority: 'high',
       }

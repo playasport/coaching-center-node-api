@@ -237,6 +237,10 @@ const registerAcademyUser = async (data) => {
                 mobile: mobile ? `+91${mobile}` : 'Not provided',
                 registrationDate,
                 year: new Date().getFullYear(),
+                websiteUrl: env_1.config.mainSiteUrl || 'https://www.playasport.in',
+                websiteAcademyUrl: env_1.config.academySiteUrl || env_1.config.mainSiteUrl || 'https://www.playasport.in',
+                companyName: 'Play A Sport',
+                website: 'playasport.in',
             },
             priority: 'high',
         });
