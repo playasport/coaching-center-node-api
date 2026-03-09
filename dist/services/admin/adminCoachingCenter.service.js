@@ -200,6 +200,20 @@ const getAllCoachingCenters = async (page = 1, limit = 10, filters = {}, current
                 query.addedBy = addedByAdmin._id;
             }
         }
+        // Filter by agent referral code - centers added by agent with this agentCode
+        if (filters.agentCode && filters.agentCode.trim()) {
+            const code = filters.agentCode.trim().toUpperCase();
+            const agent = await adminUser_model_1.AdminUserModel.findOne({ agentCode: code, isDeleted: false })
+                .select('_id')
+                .lean();
+            if (agent && agent._id) {
+                query.addedBy = agent._id;
+            }
+            else {
+                // No agent found with this code - return empty result
+                query.addedBy = new mongoose_1.Types.ObjectId('000000000000000000000000');
+            }
+        }
         if (filters.search) {
             const searchRegex = new RegExp(filters.search, 'i');
             query.$or = [

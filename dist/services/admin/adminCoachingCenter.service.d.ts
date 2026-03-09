@@ -90,6 +90,7 @@ export declare const getAllCoachingCenters: (page?: number, limit?: number, filt
     isApproved?: boolean;
     approvalStatus?: "approved" | "rejected" | "pending_approval";
     addedById?: string;
+    agentCode?: string;
     onlyForFemale?: boolean;
     allowingDisabled?: boolean;
     onlyForDisabled?: boolean;

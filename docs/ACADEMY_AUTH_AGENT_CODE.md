@@ -187,7 +187,7 @@ const loginWithOtp = async (mobile, otp, agentCode) => {
 
 Agent codes follow the pattern **AG** + 4 digits, for example:
 
-- `AG2562`
+- `AG3242`
 - `AG0001`
 - `AG9876`
 

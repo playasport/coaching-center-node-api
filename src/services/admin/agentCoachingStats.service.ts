@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import { CoachingCenterModel } from '../../models/coachingCenter.model';
+import { UserModel } from '../../models/user.model';
 import { logger } from '../../utils/logger';
 import ExcelJS from 'exceljs';
 
@@ -20,12 +21,20 @@ export interface CoachingCentreStats {
   inactive: number;
 }
 
+export interface ReferralCountReport {
+  today: number;
+  this_week: number;
+  this_month: number;
+  all_time: number;
+}
+
 export interface AgentCoachingStats {
   coaching_centre_stats: CoachingCentreStats;
   today_report: TimeReport;
   this_week_report: TimeReport;
   this_month_report: TimeReport;
   all_time_report: TimeReport;
+  referral_count: ReferralCountReport;
   report_generated_on: string;
 }
 
@@ -153,6 +162,25 @@ async function getTimeReport(
 }
 
 /**
+ * Get time-based referral counts for an agent (academy users referred by agentCode).
+ */
+async function getAgentReferralCounts(agentAdminUserObjectId: Types.ObjectId): Promise<ReferralCountReport> {
+  const baseQuery = { referredByAgent: agentAdminUserObjectId, isDeleted: false };
+  const todayRange = getDateRangeForPeriod('today');
+  const weekRange = getDateRangeForPeriod('this_week');
+  const monthRange = getDateRangeForPeriod('this_month');
+
+  const [today, this_week, this_month, all_time] = await Promise.all([
+    UserModel.countDocuments(todayRange ? { ...baseQuery, referredByAgentAt: todayRange } : baseQuery),
+    UserModel.countDocuments(weekRange ? { ...baseQuery, referredByAgentAt: weekRange } : baseQuery),
+    UserModel.countDocuments(monthRange ? { ...baseQuery, referredByAgentAt: monthRange } : baseQuery),
+    UserModel.countDocuments(baseQuery),
+  ]);
+
+  return { today, this_week, this_month, all_time };
+}
+
+/**
  * Get agent coaching stats for a given agent (AdminUser _id).
  * Used when returning getOperationalUser and the user role is agent.
  */
@@ -161,7 +189,7 @@ export const getAgentCoachingStats = async (
 ): Promise<AgentCoachingStats> => {
   try {
     const base = { addedBy: agentAdminUserObjectId, is_deleted: false };
-    const [coachingCentreStats, todayReport, thisWeekReport, thisMonthReport, allTimeReport] = await Promise.all([
+    const [coachingCentreStats, todayReport, thisWeekReport, thisMonthReport, allTimeReport, referralCount] = await Promise.all([
       (async (): Promise<CoachingCentreStats> => {
         const [total, approvalAgg, activeAgg] = await Promise.all([
           CoachingCenterModel.countDocuments(base),
@@ -190,6 +218,7 @@ export const getAgentCoachingStats = async (
       getTimeReport(agentAdminUserObjectId, getDateRangeForPeriod('this_week')),
       getTimeReport(agentAdminUserObjectId, getDateRangeForPeriod('this_month')),
       getTimeReport(agentAdminUserObjectId, null),
+      getAgentReferralCounts(agentAdminUserObjectId),
     ]);
 
     return {
@@ -198,6 +227,7 @@ export const getAgentCoachingStats = async (
       this_week_report: thisWeekReport,
       this_month_report: thisMonthReport,
       all_time_report: allTimeReport,
+      referral_count: referralCount,
       report_generated_on: new Date().toISOString(),
     };
   } catch (error) {

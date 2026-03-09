@@ -49,7 +49,7 @@ export const getAllCoachingCenters = async (req: Request, res: Response, next: N
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const { userId, status, search, sportId, isActive, approvalStatus, addedById, onlyForFemale, allowingDisabled, onlyForDisabled, sortBy, sortOrder, dateRange } = req.query;
+    const { userId, status, search, sportId, isActive, approvalStatus, addedById, agentCode, onlyForFemale, allowingDisabled, onlyForDisabled, sortBy, sortOrder, dateRange } = req.query;
 
     const parseBool = (v: unknown) => (v === 'true' ? true : v === 'false' ? false : undefined);
     const validDateRangeKeys: DateRangeFilterKey[] = ['today', 'yesterday', 'this_week', 'this_month', 'last_7_days', 'last_30_days'];
@@ -61,6 +61,7 @@ export const getAllCoachingCenters = async (req: Request, res: Response, next: N
       isActive: parseBool(isActive),
       approvalStatus: approvalStatus as 'approved' | 'rejected' | 'pending_approval' | undefined,
       addedById: addedById as string,
+      agentCode: agentCode as string,
       onlyForFemale: parseBool(onlyForFemale),
       allowingDisabled: parseBool(allowingDisabled),
       onlyForDisabled: parseBool(onlyForDisabled),

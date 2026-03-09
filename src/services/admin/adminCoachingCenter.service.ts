@@ -208,6 +208,7 @@ export const getAllCoachingCenters = async (
     isApproved?: boolean;
     approvalStatus?: 'approved' | 'rejected' | 'pending_approval'; // Direct approval status filter
     addedById?: string; // Filter by admin/agent user ID (who added the center)
+    agentCode?: string; // Filter by agent referral code (e.g. AG2562) - centers added by agent with this code
     onlyForFemale?: boolean; // Academies only for female candidates (allowed_genders === ['female'])
     allowingDisabled?: boolean; // Academies that allow disabled participants
     onlyForDisabled?: boolean; // Academies only for disabled participants
@@ -277,6 +278,20 @@ export const getAllCoachingCenters = async (
         .lean();
       if (addedByAdmin && addedByAdmin._id) {
         query.addedBy = addedByAdmin._id as Types.ObjectId;
+      }
+    }
+
+    // Filter by agent referral code - centers added by agent with this agentCode
+    if (filters.agentCode && filters.agentCode.trim()) {
+      const code = filters.agentCode.trim().toUpperCase();
+      const agent = await AdminUserModel.findOne({ agentCode: code, isDeleted: false })
+        .select('_id')
+        .lean();
+      if (agent && agent._id) {
+        query.addedBy = agent._id as Types.ObjectId;
+      } else {
+        // No agent found with this code - return empty result
+        query.addedBy = new Types.ObjectId('000000000000000000000000');
       }
     }
 

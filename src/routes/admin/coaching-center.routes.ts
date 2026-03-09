@@ -254,6 +254,11 @@ router.use(authenticate, requireAdmin);
  *           type: string
  *         description: Filter by added-by admin/agent user ID (only centers added by this user)
  *       - in: query
+ *         name: agentCode
+ *         schema:
+ *           type: string
+ *         description: Filter by agent referral code (e.g. AG2562) - only centers added by agent with this code
+ *       - in: query
  *         name: onlyForFemale
  *         schema:
  *           type: string

@@ -13,12 +13,19 @@ export interface CoachingCentreStats {
     active: number;
     inactive: number;
 }
+export interface ReferralCountReport {
+    today: number;
+    this_week: number;
+    this_month: number;
+    all_time: number;
+}
 export interface AgentCoachingStats {
     coaching_centre_stats: CoachingCentreStats;
     today_report: TimeReport;
     this_week_report: TimeReport;
     this_month_report: TimeReport;
     all_time_report: TimeReport;
+    referral_count: ReferralCountReport;
     report_generated_on: string;
 }
 /**

@@ -105,6 +105,12 @@ The response includes `agent_coaching_stats`. For non‑agent users, this field 
         "approved": 113,
         "rejected": 2
       },
+      "referral_count": {
+        "today": 2,
+        "this_week": 8,
+        "this_month": 15,
+        "all_time": 42
+      },
       "report_generated_on": "2026-01-27T10:30:00.000Z"
     }
   }
@@ -125,6 +131,11 @@ The response includes `agent_coaching_stats`. For non‑agent users, this field 
 | `this_week_report` | Centres created **this week** (Mon–today) |
 | `this_month_report` | Centres created **this month** (1st–today) |
 | `all_time_report` | All centres added by agent, by approval status |
+| `referral_count` | Time-based counts of academy users referred by this agent (via agentCode) |
+| `referral_count.today` | Referrals linked today |
+| `referral_count.this_week` | Referrals linked this week |
+| `referral_count.this_month` | Referrals linked this month |
+| `referral_count.all_time` | Total referrals ever |
 | `report_generated_on` | ISO timestamp when stats were computed |
 
 ### Example request (fetch)
