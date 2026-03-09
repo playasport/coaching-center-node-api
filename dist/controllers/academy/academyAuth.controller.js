@@ -193,8 +193,8 @@ const sendAcademyOtp = async (req, res, next) => {
 exports.sendAcademyOtp = sendAcademyOtp;
 const verifyAcademyOtp = async (req, res, next) => {
     try {
-        const { mobile, otp, mode = 'login' } = req.body;
-        const result = await academyAuthService.verifyAcademyOtp({ mobile, otp, mode, ...req.body });
+        const { mobile, otp, mode = 'login', agentCode } = req.body;
+        const result = await academyAuthService.verifyAcademyOtp({ mobile, otp, mode, agentCode, ...req.body });
         if (result.user && result.accessToken && result.refreshToken) {
             // Login mode - return tokens
             const response = new ApiResponse_1.ApiResponse(200, {

@@ -51,9 +51,14 @@ const batchService = __importStar(require("../academy/batch.service"));
  */
 const getCenterObjectId = async (centerId) => {
     try {
-        // If it's a valid ObjectId, use it directly
+        // If it's a valid ObjectId, use it directly (exclude deleted centers)
         if (mongoose_1.Types.ObjectId.isValid(centerId) && centerId.length === 24) {
-            const center = await coachingCenter_model_1.CoachingCenterModel.findById(centerId).select('_id').lean();
+            const center = await coachingCenter_model_1.CoachingCenterModel.findOne({
+                _id: centerId,
+                is_deleted: false,
+            })
+                .select('_id')
+                .lean();
             if (center) {
                 return center._id;
             }
@@ -329,6 +334,11 @@ const getAllBatches = async (page = 1, limit = 10, filters = {}, currentUserId, 
             // If no centerId filter but agent filtering is active, filter by agent's centers
             query.center = { $in: agentCenterIds };
         }
+        else {
+            // Exclude batches whose coaching center is deleted
+            const nonDeletedCenterIds = await coachingCenter_model_1.CoachingCenterModel.find({ is_deleted: false }).distinct('_id');
+            query.center = { $in: nonDeletedCenterIds };
+        }
         if (filters.sportId) {
             const sportObjectId = await (0, sportCache_1.getSportObjectId)(filters.sportId);
             if (sportObjectId) {
@@ -453,9 +463,12 @@ const getBatchesByUserId = async (userId, page = 1, limit = 10, sortBy, sortOrde
         if (!userObjectId) {
             throw new ApiError_1.ApiError(404, (0, i18n_1.t)('batch.userNotFound'));
         }
+        // Only include batches whose coaching center is not deleted
+        const nonDeletedCenterIds = await coachingCenter_model_1.CoachingCenterModel.find({ is_deleted: false }).distinct('_id');
         const query = {
             user: userObjectId,
             is_deleted: false,
+            center: { $in: nonDeletedCenterIds },
         };
         // Handle sorting
         const sortField = sortBy || 'createdAt';

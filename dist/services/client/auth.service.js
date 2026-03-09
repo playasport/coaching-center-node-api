@@ -55,6 +55,8 @@ const ApiError_1 = require("../../utils/ApiError");
 const logger_1 = require("../../utils/logger");
 const firebaseAuth_service_1 = require("../common/firebaseAuth.service");
 const s3_service_1 = require("../common/s3.service");
+const user_model_1 = require("../../models/user.model");
+const adminUser_model_1 = require("../../models/adminUser.model");
 const deviceToken_service_1 = require("../common/deviceToken.service");
 const deviceToken_model_1 = require("../../models/deviceToken.model");
 const deviceType_enum_1 = require("../../enums/deviceType.enum");
@@ -64,6 +66,50 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const getRoleName = (user) => {
     const roles = user.roles;
     return roles && roles.length > 0 ? roles[0]?.name : defaultRoles_enum_1.DefaultRoles.USER;
+};
+/**
+ * Link academy user to agent by agentCode if eligible.
+ * Only links if: agentCode valid, agent exists (AGENT role, active), academy user does not already have referredByAgent.
+ * If academy user already has an agent or logs in with different/no code, no update.
+ */
+const linkAcademyUserToAgentIfEligible = async (academyUserId, agentCode) => {
+    if (!agentCode || typeof agentCode !== 'string' || !agentCode.trim())
+        return;
+    try {
+        const code = agentCode.trim().toUpperCase();
+        const agent = await adminUser_model_1.AdminUserModel.findOne({
+            agentCode: code,
+            isDeleted: false,
+            isActive: true,
+        })
+            .populate('roles', 'name')
+            .lean();
+        if (!agent || !agent.roles?.some((r) => r?.name === defaultRoles_enum_1.DefaultRoles.AGENT))
+            return;
+        const result = await user_model_1.UserModel.updateOne({
+            id: academyUserId,
+            $or: [{ referredByAgent: null }, { referredByAgent: { $exists: false } }],
+        }, {
+            $set: {
+                referredByAgent: agent._id,
+                referredByAgentAt: new Date(),
+            },
+        });
+        if (result.modifiedCount > 0) {
+            logger_1.logger.info('Academy user linked to agent', {
+                academyUserId,
+                agentCode: code,
+                agentId: agent._id,
+            });
+        }
+    }
+    catch (err) {
+        logger_1.logger.warn('Failed to link academy user to agent (non-blocking)', {
+            academyUserId,
+            agentCode,
+            error: err instanceof Error ? err.message : err,
+        });
+    }
 };
 // Helper function to check if user has a specific role
 const hasRole = (user, roleName) => {
@@ -164,6 +210,7 @@ const registerAcademyUser = async (data) => {
         registrationMethod: 'mobile', // Academy registration uses mobile OTP
         isActive: true,
     });
+    await linkAcademyUserToAgentIfEligible(user.id, data.agentCode);
     // Get role name from populated roles array
     const roleName = getRoleName(user);
     // Generate tokens with device-specific expiry and store refresh token
@@ -300,6 +347,7 @@ const loginAcademyUser = async (data) => {
     if (!sanitizedUser) {
         throw new ApiError_1.ApiError(500, (0, i18n_1.t)('errors.internalServerError'));
     }
+    await linkAcademyUserToAgentIfEligible(user.id, data.agentCode);
     // Generate tokens with device-specific expiry and store refresh token
     const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(user, defaultRoles_enum_1.DefaultRoles.ACADEMY, {
         fcmToken: data.fcmToken ?? undefined,
@@ -774,6 +822,7 @@ const verifyAcademyOtp = async (data) => {
         if (!user.isActive || user.isDeleted) {
             throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.inactive'));
         }
+        await linkAcademyUserToAgentIfEligible(user.id, data.agentCode);
         // Generate tokens with device-specific expiry and store refresh token
         const deviceData = data;
         const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(user, defaultRoles_enum_1.DefaultRoles.ACADEMY, {

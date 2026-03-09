@@ -14,6 +14,7 @@ export interface AdminUser {
   profileImage?: string | null;
   isActive: boolean;
   roles: Types.ObjectId[]; // Array of Role references - supports multiple roles
+  agentCode?: string | null; // Unique alphanumeric code for agent referral (agents only)
   address?: Address | null;
   isDeleted: boolean;
   deletedAt?: Date | null;
@@ -40,6 +41,19 @@ const adminUserSchema = new Schema<AdminUser>(
       ref: 'Role',
       default: [],
       index: true,
+    },
+    agentCode: {
+      type: String,
+      default: null,
+      sparse: true,
+      unique: true,
+      uppercase: true,
+      trim: true,
+      index: true,
+      validate: {
+        validator: (v: string | null) => !v || /^[A-Z0-9]+$/.test(v),
+        message: 'agentCode must be alphanumeric',
+      },
     },
     address: { type: addressSchema, default: null },
     isDeleted: { type: Boolean, default: false },

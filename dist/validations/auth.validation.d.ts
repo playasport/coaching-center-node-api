@@ -30,6 +30,7 @@ export declare const academyRegisterSchema: z.ZodObject<{
             other: "other";
         }>>;
         otp: z.ZodString;
+        agentCode: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodString, z.ZodTransform<string, string>>, z.ZodPipe<z.ZodLiteral<"">, z.ZodTransform<undefined, "">>]>>;
         fcmToken: z.ZodOptional<z.ZodString>;
         deviceType: z.ZodOptional<z.ZodEnum<{
             web: "web";
@@ -45,6 +46,7 @@ export declare const academyLoginSchema: z.ZodObject<{
     body: z.ZodObject<{
         email: z.ZodString;
         password: z.ZodString;
+        agentCode: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodString, z.ZodTransform<string, string>>, z.ZodPipe<z.ZodLiteral<"">, z.ZodTransform<undefined, "">>]>>;
         fcmToken: z.ZodOptional<z.ZodString>;
         deviceType: z.ZodOptional<z.ZodEnum<{
             web: "web";
@@ -99,6 +101,7 @@ export declare const academyVerifyOtpSchema: z.ZodObject<{
             profile_update: "profile_update";
             forgot_password: "forgot_password";
         }>>;
+        agentCode: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodString, z.ZodTransform<string, string>>, z.ZodPipe<z.ZodLiteral<"">, z.ZodTransform<undefined, "">>]>>;
         fcmToken: z.ZodOptional<z.ZodString>;
         deviceType: z.ZodOptional<z.ZodEnum<{
             web: "web";

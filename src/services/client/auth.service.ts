@@ -34,7 +34,8 @@ import type {
 } from '../../validations/auth.validation';
 import { firebaseAuthService } from '../common/firebaseAuth.service';
 import { uploadFileToS3, deleteFileFromS3 } from '../common/s3.service';
-import { User } from '../../models/user.model';
+import { User, UserModel } from '../../models/user.model';
+import { AdminUserModel } from '../../models/adminUser.model';
 import { deviceTokenService } from '../common/deviceToken.service';
 import { DeviceTokenModel } from '../../models/deviceToken.model';
 import { DeviceType } from '../../enums/deviceType.enum';
@@ -45,6 +46,58 @@ import jwt from 'jsonwebtoken';
 const getRoleName = (user: User): string => {
   const roles = user.roles as any[];
   return roles && roles.length > 0 ? roles[0]?.name : DefaultRoles.USER;
+};
+
+/**
+ * Link academy user to agent by agentCode if eligible.
+ * Only links if: agentCode valid, agent exists (AGENT role, active), academy user does not already have referredByAgent.
+ * If academy user already has an agent or logs in with different/no code, no update.
+ */
+const linkAcademyUserToAgentIfEligible = async (
+  academyUserId: string,
+  agentCode?: string | null
+): Promise<void> => {
+  if (!agentCode || typeof agentCode !== 'string' || !agentCode.trim()) return;
+
+  try {
+    const code = agentCode.trim().toUpperCase();
+    const agent = await AdminUserModel.findOne({
+      agentCode: code,
+      isDeleted: false,
+      isActive: true,
+    })
+      .populate('roles', 'name')
+      .lean();
+
+    if (!agent || !(agent.roles as any[])?.some((r: any) => r?.name === DefaultRoles.AGENT)) return;
+
+    const result = await UserModel.updateOne(
+      {
+        id: academyUserId,
+        $or: [{ referredByAgent: null }, { referredByAgent: { $exists: false } }],
+      },
+      {
+        $set: {
+          referredByAgent: agent._id,
+          referredByAgentAt: new Date(),
+        },
+      }
+    );
+
+    if (result.modifiedCount > 0) {
+      logger.info('Academy user linked to agent', {
+        academyUserId,
+        agentCode: code,
+        agentId: agent._id,
+      });
+    }
+  } catch (err) {
+    logger.warn('Failed to link academy user to agent (non-blocking)', {
+      academyUserId,
+      agentCode,
+      error: err instanceof Error ? err.message : err,
+    });
+  }
 };
 
 // Helper function to check if user has a specific role
@@ -221,6 +274,8 @@ export const registerAcademyUser = async (data: AcademyRegisterInput): Promise<R
     isActive: true,
   });
 
+  await linkAcademyUserToAgentIfEligible(user.id, data.agentCode);
+
   // Get role name from populated roles array
   const roleName = getRoleName(user);
 
@@ -382,6 +437,8 @@ export const loginAcademyUser = async (data: AcademyLoginInput): Promise<LoginRe
   if (!sanitizedUser) {
     throw new ApiError(500, t('errors.internalServerError'));
   }
+
+  await linkAcademyUserToAgentIfEligible(user.id, data.agentCode);
 
   // Generate tokens with device-specific expiry and store refresh token
   const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(
@@ -921,6 +978,7 @@ export const verifyAcademyOtp = async (data: {
   mobile: string;
   otp: string;
   mode?: 'login' | 'register' | 'profile_update' | 'forgot_password';
+  agentCode?: string | null;
   fcmToken?: string;
   deviceType?: 'web' | 'android' | 'ios';
   deviceId?: string;
@@ -986,6 +1044,8 @@ export const verifyAcademyOtp = async (data: {
     if (!user.isActive || user.isDeleted) {
       throw new ApiError(403, t('auth.login.inactive'));
     }
+
+    await linkAcademyUserToAgentIfEligible(user.id, data.agentCode);
 
     // Generate tokens with device-specific expiry and store refresh token
     const deviceData = data as any;

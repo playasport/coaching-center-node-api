@@ -46,6 +46,13 @@ const userSchema = new mongoose_1.Schema({
         },
         default: null,
     },
+    referredByAgent: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'AdminUser',
+        default: null,
+        index: true,
+    },
+    referredByAgentAt: { type: Date, default: null },
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
 }, {

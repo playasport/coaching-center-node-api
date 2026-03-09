@@ -88,6 +88,7 @@ export declare const verifyAcademyOtp: (data: {
     mobile: string;
     otp: string;
     mode?: "login" | "register" | "profile_update" | "forgot_password";
+    agentCode?: string | null;
     fcmToken?: string;
     deviceType?: "web" | "android" | "ios";
     deviceId?: string;

@@ -25,6 +25,8 @@ export interface User {
   favoriteSports?: Types.ObjectId[]; // Array of Sport references for user preferences
   address?: Address | null;
   academyDetails?: AcademyDetails | null;
+  referredByAgent?: Types.ObjectId | null; // AdminUser (agent) who referred this academy user
+  referredByAgentAt?: Date | null; // Timestamp when agent was linked
   isDeleted: boolean;
   deletedAt?: Date | null;
   createdAt: Date;
@@ -76,6 +78,13 @@ const userSchema = new Schema<User>(
       },
       default: null,
     },
+    referredByAgent: {
+      type: Schema.Types.ObjectId,
+      ref: 'AdminUser',
+      default: null,
+      index: true,
+    },
+    referredByAgentAt: { type: Date, default: null },
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
   },

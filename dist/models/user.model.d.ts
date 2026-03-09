@@ -22,6 +22,8 @@ export interface User {
     favoriteSports?: Types.ObjectId[];
     address?: Address | null;
     academyDetails?: AcademyDetails | null;
+    referredByAgent?: Types.ObjectId | null;
+    referredByAgentAt?: Date | null;
     isDeleted: boolean;
     deletedAt?: Date | null;
     createdAt: Date;

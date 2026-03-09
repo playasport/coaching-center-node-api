@@ -123,6 +123,12 @@ export const academyRegisterSchema = z.object({
     mobile: mobileNumberSchema,
     gender: z.enum(['male', 'female', 'other']).optional(),
     otp: otpCodeSchema,
+    agentCode: z
+      .union([
+        z.string().min(1).regex(/^[a-zA-Z0-9]+$/, 'agentCode must be alphanumeric').transform((v) => v.trim().toUpperCase()),
+        z.literal('').transform(() => undefined),
+      ])
+      .optional(),
   })
     .merge(deviceInfoSchema)
     .refine(
@@ -166,6 +172,12 @@ export const academyLoginSchema = z.object({
     password: z
       .string({ message: validationMessages.password.required() })
       .min(1, validationMessages.password.required()),
+    agentCode: z
+      .union([
+        z.string().min(1).regex(/^[a-zA-Z0-9]+$/, 'agentCode must be alphanumeric').transform((v) => v.trim().toUpperCase()),
+        z.literal('').transform(() => undefined),
+      ])
+      .optional(),
   }).merge(deviceInfoSchema),
 });
 
@@ -197,6 +209,12 @@ export const academyVerifyOtpSchema = z.object({
     mobile: mobileNumberSchema,
     otp: otpCodeSchema,
     mode: z.enum(['login', 'register', 'profile_update', 'forgot_password']).optional(),
+    agentCode: z
+      .union([
+        z.string().min(1).regex(/^[a-zA-Z0-9]+$/, 'agentCode must be alphanumeric').transform((v) => v.trim().toUpperCase()),
+        z.literal('').transform(() => undefined),
+      ])
+      .optional(),
   }).merge(deviceInfoSchema),
 });
 

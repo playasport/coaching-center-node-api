@@ -459,6 +459,11 @@ const options: swaggerJsdoc.Options = {
               example: '1.0.0',
               description: 'Optional: App version',
             },
+            agentCode: {
+              type: 'string',
+              example: 'AG2562',
+              description: 'Optional: Agent referral code (alphanumeric). Links academy user to agent for referral tracking. Format: AG + 4 digits.',
+            },
           },
         },
         AcademyRegisterResponse: {
@@ -583,6 +588,11 @@ const options: swaggerJsdoc.Options = {
               example: '1.0.0',
               description: 'Optional: App version',
             },
+            agentCode: {
+              type: 'string',
+              example: 'AG2562',
+              description: 'Optional: Agent referral code (alphanumeric). Links academy user to agent for referral tracking. Format: AG + 4 digits.',
+            },
           },
         },
         AcademySocialLoginRequest: {
@@ -702,6 +712,11 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: '1.0.0',
               description: 'Optional: App version',
+            },
+            agentCode: {
+              type: 'string',
+              example: 'AG2562',
+              description: 'Optional: Agent referral code. Links academy user to agent when mode=login. Format: AG + 4 digits.',
             },
           },
         },

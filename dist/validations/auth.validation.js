@@ -114,6 +114,12 @@ exports.academyRegisterSchema = zod_1.z.object({
         mobile: mobileNumberSchema,
         gender: zod_1.z.enum(['male', 'female', 'other']).optional(),
         otp: otpCodeSchema,
+        agentCode: zod_1.z
+            .union([
+            zod_1.z.string().min(1).regex(/^[a-zA-Z0-9]+$/, 'agentCode must be alphanumeric').transform((v) => v.trim().toUpperCase()),
+            zod_1.z.literal('').transform(() => undefined),
+        ])
+            .optional(),
     })
         .merge(deviceInfoSchema)
         .refine(async (data) => {
@@ -150,6 +156,12 @@ exports.academyLoginSchema = zod_1.z.object({
         password: zod_1.z
             .string({ message: validationMessages_1.validationMessages.password.required() })
             .min(1, validationMessages_1.validationMessages.password.required()),
+        agentCode: zod_1.z
+            .union([
+            zod_1.z.string().min(1).regex(/^[a-zA-Z0-9]+$/, 'agentCode must be alphanumeric').transform((v) => v.trim().toUpperCase()),
+            zod_1.z.literal('').transform(() => undefined),
+        ])
+            .optional(),
     }).merge(deviceInfoSchema),
 });
 exports.academySocialLoginSchema = zod_1.z.object({
@@ -178,6 +190,12 @@ exports.academyVerifyOtpSchema = zod_1.z.object({
         mobile: mobileNumberSchema,
         otp: otpCodeSchema,
         mode: zod_1.z.enum(['login', 'register', 'profile_update', 'forgot_password']).optional(),
+        agentCode: zod_1.z
+            .union([
+            zod_1.z.string().min(1).regex(/^[a-zA-Z0-9]+$/, 'agentCode must be alphanumeric').transform((v) => v.trim().toUpperCase()),
+            zod_1.z.literal('').transform(() => undefined),
+        ])
+            .optional(),
     }).merge(deviceInfoSchema),
 });
 const forgotPasswordRequestBodySchema = zod_1.z.discriminatedUnion('mode', [

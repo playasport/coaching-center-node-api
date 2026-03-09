@@ -41,6 +41,7 @@ const adminUser_model_1 = require("../../models/adminUser.model");
 const role_model_1 = require("../../models/role.model");
 const password_1 = require("../../utils/password");
 const passwordGenerator_1 = require("../../utils/passwordGenerator");
+const agentCode_utils_1 = require("../../utils/agentCode.utils");
 const email_service_1 = require("../../services/common/email.service");
 const logger_1 = require("../../utils/logger");
 const uuid_1 = require("uuid");
@@ -131,6 +132,9 @@ const createOperationalUser = async (req, res) => {
         const userId = (0, uuid_1.v4)();
         // Address: all fields optional; save if any field provided
         const address = buildAddressForSave(data.address);
+        // Generate agentCode automatically when role is agent
+        const isAgent = roles.some((r) => r.name === defaultRoles_enum_1.DefaultRoles.AGENT);
+        const agentCode = isAgent ? await (0, agentCode_utils_1.generateUniqueAgentCode)() : undefined;
         // Create user (operational users don't have userType)
         const user = await adminUser_model_1.AdminUserModel.create({
             id: userId,
@@ -145,6 +149,7 @@ const createOperationalUser = async (req, res) => {
             isActive: data.isActive ?? true,
             address: address,
             isDeleted: false,
+            ...(agentCode && { agentCode }),
         });
         // Populate roles before returning
         const populatedUser = await adminUser_model_1.AdminUserModel.findById(user._id)

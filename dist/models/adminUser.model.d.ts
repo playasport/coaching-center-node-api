@@ -13,6 +13,7 @@ export interface AdminUser {
     profileImage?: string | null;
     isActive: boolean;
     roles: Types.ObjectId[];
+    agentCode?: string | null;
     address?: Address | null;
     isDeleted: boolean;
     deletedAt?: Date | null;

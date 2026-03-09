@@ -249,10 +249,11 @@ export const verifyAcademyOtp = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { mobile, otp, mode = 'login' } = req.body as {
+    const { mobile, otp, mode = 'login', agentCode } = req.body as {
       mobile: string;
       otp: string;
       mode?: 'login' | 'register' | 'profile_update' | 'forgot_password';
+      agentCode?: string;
       fcmToken?: string;
       deviceType?: 'web' | 'android' | 'ios';
       deviceId?: string;
@@ -260,7 +261,7 @@ export const verifyAcademyOtp = async (
       appVersion?: string;
     };
 
-    const result = await academyAuthService.verifyAcademyOtp({ mobile, otp, mode, ...req.body });
+    const result = await academyAuthService.verifyAcademyOtp({ mobile, otp, mode, agentCode, ...req.body });
 
     if (result.user && result.accessToken && result.refreshToken) {
       // Login mode - return tokens

@@ -90,9 +90,9 @@ const createBatch = async (data, loggedInUserId) => {
                 throw new ApiError_1.ApiError(404, (0, i18n_1.t)('batch.coachNotFound'));
             }
             // Verify coach belongs to the same center
-            if (coach.center && coach.center.toString() !== data.centerId) {
-                throw new ApiError_1.ApiError(400, (0, i18n_1.t)('batch.coachNotInCenter'));
-            }
+            // if (coach.center && coach.center.toString() !== data.centerId) {
+            //   throw new ApiError(400, t('batch.coachNotInCenter'));
+            // }
         }
         // Validate age range respects center's age range if available
         if (center.age) {
@@ -214,10 +214,13 @@ const getBatchesByUser = async (userId, page = 1, limit = env_1.config.paginatio
         if (!userObjectId) {
             throw new ApiError_1.ApiError(404, 'User not found');
         }
-        // Build query - only get non-deleted batches for the user
+        // Only include batches whose coaching center is not deleted
+        const nonDeletedCenterIds = await coachingCenter_model_1.CoachingCenterModel.find({ is_deleted: false }).distinct('_id');
+        // Build query - only get non-deleted batches for the user and non-deleted centers
         const query = {
             user: userObjectId,
             is_deleted: false,
+            center: { $in: nonDeletedCenterIds },
         };
         // Get total count
         const total = await batch_model_1.BatchModel.countDocuments(query);
@@ -411,10 +414,10 @@ const updateBatch = async (id, data, loggedInUserId) => {
                     throw new ApiError_1.ApiError(404, (0, i18n_1.t)('batch.coachNotFound'));
                 }
                 // Verify coach belongs to the center
-                const centerId = data.centerId || existingBatch.center.toString();
-                if (coach.center && coach.center.toString() !== centerId) {
-                    throw new ApiError_1.ApiError(400, (0, i18n_1.t)('batch.coachNotInCenter'));
-                }
+                // const centerId = data.centerId || existingBatch.center.toString();
+                // if (coach.center && coach.center.toString() !== centerId) {
+                //   throw new ApiError(400, t('batch.coachNotInCenter'));
+                // }
             }
         }
         // Prepare update data
