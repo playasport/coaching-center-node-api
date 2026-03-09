@@ -25,6 +25,7 @@ var ActionType;
     ActionType["PAYMENT_INITIATED"] = "payment_initiated";
     ActionType["PAYMENT_SUCCESS"] = "payment_success";
     ActionType["PAYMENT_FAILED"] = "payment_failed";
+    ActionType["PAYMENT_REMINDER_SENT"] = "payment_reminder_sent";
     // Academy actions
     ActionType["ACADEMY_CREATED"] = "academy_created";
     ActionType["ACADEMY_UPDATED"] = "academy_updated";

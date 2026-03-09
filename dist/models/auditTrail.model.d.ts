@@ -16,6 +16,7 @@ export declare enum ActionType {
     PAYMENT_INITIATED = "payment_initiated",
     PAYMENT_SUCCESS = "payment_success",
     PAYMENT_FAILED = "payment_failed",
+    PAYMENT_REMINDER_SENT = "payment_reminder_sent",
     ACADEMY_CREATED = "academy_created",
     ACADEMY_UPDATED = "academy_updated",
     ACADEMY_APPROVED = "academy_approved",
