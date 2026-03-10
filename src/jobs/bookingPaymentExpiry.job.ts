@@ -1,4 +1,6 @@
 import cron from 'node-cron';
+import fs from 'fs';
+import path from 'path';
 import { BookingModel, BookingStatus, PaymentStatus } from '../models/booking.model';
 import { getBookingPaymentConfig } from '../services/common/settings.service';
 import { cancelBookingBySystem } from '../services/client/booking.service';
@@ -22,14 +24,27 @@ const REMINDER_BUFFER_HOURS = 1;
 /** Process this many reminders concurrently to avoid overwhelming DB/APIs */
 const REMINDER_CONCURRENCY = 10;
 
+/** Temporary debug log file - remove after debugging */
+const DEBUG_LOG_FILE = path.join(process.cwd(), 'booking-payment-expiry-job-debug.txt');
+const debugLog = (msg: string, data?: object) => {
+  const line = `[${new Date().toISOString()}] ${msg}${data ? ' ' + JSON.stringify(data) : ''}\n`;
+  try {
+    fs.appendFileSync(DEBUG_LOG_FILE, line);
+  } catch {
+    // ignore
+  }
+};
+
 /**
  * 1) Auto-cancel approved bookings where payment link has expired and payment not done.
  * 2) Send payment reminders at configured hours-before-expiry (e.g. 12h, 6h, 2h).
  */
 export const executeBookingPaymentExpiryJob = async (): Promise<void> => {
   try {
+    debugLog('Job run started');
     const paymentConfig = await getBookingPaymentConfig();
     const now = new Date();
+    debugLog('Payment config loaded', { paymentReminderHours: paymentConfig.paymentReminderHoursBeforeExpiry });
 
     // ---- Auto-cancel: approved, unpaid, payment_token_expires_at < now ----
     const expiredBookings = await BookingModel.find({
@@ -41,6 +56,7 @@ export const executeBookingPaymentExpiryJob = async (): Promise<void> => {
       .select('id')
       .lean();
 
+    debugLog('Expired bookings found', { count: expiredBookings.length, ids: expiredBookings.map((b) => b.id) });
     await Promise.allSettled(
       expiredBookings.map(async (b) => {
         await cancelBookingBySystem(b.id);
@@ -63,7 +79,9 @@ export const executeBookingPaymentExpiryJob = async (): Promise<void> => {
       .lean();
 
     const reminderHours = paymentConfig.paymentReminderHoursBeforeExpiry || [];
+    debugLog('Reminder bookings found', { count: reminderBookings.length });
     if (reminderHours.length === 0) {
+      debugLog('No reminder hours configured, exiting');
       return;
     }
 
@@ -82,6 +100,7 @@ export const executeBookingPaymentExpiryJob = async (): Promise<void> => {
         reminderTasks.push({ booking, H, hoursLeft });
       }
     }
+    debugLog('Reminder tasks to process', { count: reminderTasks.length });
 
     const processOneReminder = async (task: (typeof reminderTasks)[0]) => {
       const { booking, H, hoursLeft } = task;
@@ -202,7 +221,9 @@ export const executeBookingPaymentExpiryJob = async (): Promise<void> => {
         }
       });
     }
+    debugLog('Job run completed');
   } catch (error) {
+    debugLog('Job run FAILED', { error: String(error) });
     logger.error('Booking payment expiry job failed', { error });
     throw error;
   }
@@ -212,6 +233,7 @@ export const executeBookingPaymentExpiryJob = async (): Promise<void> => {
  * Schedule: run every 15 minutes so we catch expiry and reminder windows.
  */
 export const startBookingPaymentExpiryJob = (): void => {
+  debugLog('startBookingPaymentExpiryJob called - scheduling cron */15 * * * *');
   cron.schedule('*/15 * * * *', async () => {
     await executeBookingPaymentExpiryJob();
   });

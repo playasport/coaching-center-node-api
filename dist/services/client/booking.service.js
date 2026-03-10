@@ -888,9 +888,43 @@ const verifyPayment = async (data, userId) => {
         if (!booking) {
             throw new ApiError_1.ApiError(404, 'Booking not found');
         }
-        // Check if payment is already verified
+        // If payment is already verified (e.g. by webhook), return success response
         if (booking.payment.status === booking_model_1.PaymentStatus.SUCCESS) {
-            throw new ApiError_1.ApiError(400, 'Payment has already been verified');
+            const alreadyVerified = await booking_model_1.BookingModel.findById(booking._id)
+                .populate('batch', 'id name')
+                .populate('center', 'id center_name')
+                .populate('sport', 'id name')
+                .select('id booking_id status amount currency payment batch center sport updatedAt')
+                .lean();
+            if (!alreadyVerified) {
+                throw new ApiError_1.ApiError(404, 'Booking not found');
+            }
+            return {
+                id: alreadyVerified.id || alreadyVerified._id?.toString() || '',
+                booking_id: alreadyVerified.booking_id || '',
+                status: alreadyVerified.status,
+                amount: alreadyVerified.amount,
+                currency: alreadyVerified.currency,
+                payment: {
+                    razorpay_order_id: alreadyVerified.payment.razorpay_order_id || '',
+                    status: alreadyVerified.payment.status,
+                    payment_method: alreadyVerified.payment.payment_method ?? null,
+                    paid_at: alreadyVerified.payment.paid_at ?? null,
+                },
+                batch: {
+                    id: alreadyVerified.batch?._id?.toString() || alreadyVerified.batch?.id || '',
+                    name: alreadyVerified.batch?.name || '',
+                },
+                center: {
+                    id: alreadyVerified.center?._id?.toString() || alreadyVerified.center?.id || '',
+                    center_name: alreadyVerified.center?.center_name || '',
+                },
+                sport: {
+                    id: alreadyVerified.sport?._id?.toString() || alreadyVerified.sport?.id || '',
+                    name: alreadyVerified.sport?.name || '',
+                },
+                updatedAt: alreadyVerified.updatedAt,
+            };
         }
         // Check if payment is initiated (should be INITIATED or PENDING for legacy)
         if (booking.payment.status !== booking_model_1.PaymentStatus.INITIATED && booking.payment.status !== booking_model_1.PaymentStatus.PENDING) {

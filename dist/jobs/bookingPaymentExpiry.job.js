@@ -5,6 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.startBookingPaymentExpiryJob = exports.executeBookingPaymentExpiryJob = void 0;
 const node_cron_1 = __importDefault(require("node-cron"));
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const booking_model_1 = require("../models/booking.model");
 const settings_service_1 = require("../services/common/settings.service");
 const booking_service_1 = require("../services/client/booking.service");
@@ -19,14 +21,27 @@ const logger_1 = require("../utils/logger");
 const REMINDER_BUFFER_HOURS = 1;
 /** Process this many reminders concurrently to avoid overwhelming DB/APIs */
 const REMINDER_CONCURRENCY = 10;
+/** Temporary debug log file - remove after debugging */
+const DEBUG_LOG_FILE = path_1.default.join(process.cwd(), 'booking-payment-expiry-job-debug.txt');
+const debugLog = (msg, data) => {
+    const line = `[${new Date().toISOString()}] ${msg}${data ? ' ' + JSON.stringify(data) : ''}\n`;
+    try {
+        fs_1.default.appendFileSync(DEBUG_LOG_FILE, line);
+    }
+    catch {
+        // ignore
+    }
+};
 /**
  * 1) Auto-cancel approved bookings where payment link has expired and payment not done.
  * 2) Send payment reminders at configured hours-before-expiry (e.g. 12h, 6h, 2h).
  */
 const executeBookingPaymentExpiryJob = async () => {
     try {
+        debugLog('Job run started');
         const paymentConfig = await (0, settings_service_1.getBookingPaymentConfig)();
         const now = new Date();
+        debugLog('Payment config loaded', { paymentReminderHours: paymentConfig.paymentReminderHoursBeforeExpiry });
         // ---- Auto-cancel: approved, unpaid, payment_token_expires_at < now ----
         const expiredBookings = await booking_model_1.BookingModel.find({
             status: booking_model_1.BookingStatus.APPROVED,
@@ -36,6 +51,7 @@ const executeBookingPaymentExpiryJob = async () => {
         })
             .select('id')
             .lean();
+        debugLog('Expired bookings found', { count: expiredBookings.length, ids: expiredBookings.map((b) => b.id) });
         await Promise.allSettled(expiredBookings.map(async (b) => {
             await (0, booking_service_1.cancelBookingBySystem)(b.id);
             logger_1.logger.info('Booking auto-cancelled due to payment expiry', { bookingId: b.id });
@@ -54,7 +70,9 @@ const executeBookingPaymentExpiryJob = async () => {
             .select('id booking_id payment_token payment_token_expires_at payment_reminder_sent_hours user batch center')
             .lean();
         const reminderHours = paymentConfig.paymentReminderHoursBeforeExpiry || [];
+        debugLog('Reminder bookings found', { count: reminderBookings.length });
         if (reminderHours.length === 0) {
+            debugLog('No reminder hours configured, exiting');
             return;
         }
         const mainSiteUrl = env_1.config.mainSiteUrl || 'https://www.playasport.in';
@@ -74,6 +92,7 @@ const executeBookingPaymentExpiryJob = async () => {
                 reminderTasks.push({ booking, H, hoursLeft });
             }
         }
+        debugLog('Reminder tasks to process', { count: reminderTasks.length });
         const processOneReminder = async (task) => {
             const { booking, H, hoursLeft } = task;
             const user = booking.user;
@@ -168,8 +187,10 @@ const executeBookingPaymentExpiryJob = async () => {
                 }
             });
         }
+        debugLog('Job run completed');
     }
     catch (error) {
+        debugLog('Job run FAILED', { error: String(error) });
         logger_1.logger.error('Booking payment expiry job failed', { error });
         throw error;
     }
@@ -179,6 +200,7 @@ exports.executeBookingPaymentExpiryJob = executeBookingPaymentExpiryJob;
  * Schedule: run every 15 minutes so we catch expiry and reminder windows.
  */
 const startBookingPaymentExpiryJob = () => {
+    debugLog('startBookingPaymentExpiryJob called - scheduling cron */15 * * * *');
     node_cron_1.default.schedule('*/15 * * * *', async () => {
         await (0, exports.executeBookingPaymentExpiryJob)();
     });

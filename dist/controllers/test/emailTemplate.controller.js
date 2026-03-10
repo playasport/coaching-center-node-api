@@ -51,6 +51,7 @@ const getSampleDataForTemplate = (templateName) => {
                 batchName: 'Cricket Advanced Training',
                 centerName: 'Elite Sports Academy',
                 bookingId: 'PS-2026-0001',
+                paymentUrl: 'https://front.playasport.in/pay/sample-payment-token-123',
             };
         case 'booking-request-sent-user':
             return {
