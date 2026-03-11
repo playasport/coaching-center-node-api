@@ -15,9 +15,16 @@ import {
 import { getTwilioClient } from '../../utils/twilio';
 import { sendTemplatedEmail } from './email.service';
 import { sendWhatsApp } from '../../utils/whatsapp';
+import {
+  sendWhatsAppCloudPaymentRequestTemplate,
+  sendWhatsAppCloudPaymentReminderTemplate,
+  sendWhatsAppCloudBookingCancelledTemplate,
+} from './metaWhatsApp.service';
+import type { WhatsAppTemplateName } from '../../types/notification.types';
+import { WhatsAppTemplateMessageModel } from '../../models/whatsappTemplateMessage.model';
 import { sendPushNotification, sendMulticastPushNotification } from '../../utils/fcm';
 import { deviceTokenService } from './deviceToken.service';
-import { getSmsEnabled, getEmailConfig, getSmsCredentials, getConfigWithPriority } from './settings.service';
+import { getSmsEnabled, getEmailConfig, getSmsCredentials, getWhatsAppCloudConfig, getConfigWithPriority } from './settings.service';
 
 class PriorityQueue<T extends Notification> {
   private queues: Record<NotificationPriority, T[]> = {
@@ -77,16 +84,8 @@ const isChannelEnabled = async (channel: NotificationChannel): Promise<boolean> 
       return emailConfig.enabled;
     }
     case 'whatsapp': {
-      const whatsappEnabled = await getConfigWithPriority<boolean>(
-        'notifications.whatsapp.enabled',
-        config.notification.whatsapp.enabled
-      ) ?? config.notification.whatsapp.enabled;
-      
-      const smsEnabled = await getSmsEnabled();
-      const credentials = await getSmsCredentials();
-      
-      // WhatsApp uses Twilio/SMS provider, so need SMS enabled and credentials
-      return whatsappEnabled && smsEnabled && !!credentials.accountSid;
+      const cfg = await getWhatsAppCloudConfig();
+      return cfg.enabled && !!cfg.phoneNumberId && !!cfg.accessToken;
     }
     case 'push': {
       const pushEnabled = await getConfigWithPriority<boolean>(
@@ -239,7 +238,7 @@ const processEmail = async (notification: EmailNotification): Promise<Notificati
   }
 };
 
-// Process WhatsApp notification
+// Process WhatsApp notification (plain text or Meta template)
 const processWhatsApp = async (notification: WhatsAppNotification): Promise<NotificationResult> => {
   if (!(await isChannelEnabled('whatsapp'))) {
     logger.info('WhatsApp channel disabled. Notification skipped.', {
@@ -254,25 +253,90 @@ const processWhatsApp = async (notification: WhatsAppNotification): Promise<Noti
     };
   }
 
-  const result = await sendWhatsApp({
-    to: notification.to,
-    body: notification.body,
-  });
+  let success = false;
+  let messageId: string | undefined;
+  let error: string | undefined;
+  let retryable = true;
 
-  if (result.success) {
+  if (notification.template) {
+    try {
+      const name = notification.template.name as WhatsAppTemplateName;
+      const params = notification.template.params;
+      if (name === 'payment_request') {
+        const res = await sendWhatsAppCloudPaymentRequestTemplate(notification.to, {
+          userName: params.userName ?? '',
+          academyName: params.academyName ?? '',
+          bookingId: params.bookingId ?? '',
+          paymentUrl: params.paymentUrl ?? '',
+          numberOfHours: params.numberOfHours ?? '',
+          buttonUrlParameter: params.buttonUrlParameter ?? '',
+        });
+        success = true;
+        messageId = res.messageId;
+      } else if (name === 'payment_reminder') {
+        const res = await sendWhatsAppCloudPaymentReminderTemplate(notification.to, {
+          batchName: params.batchName ?? '',
+          academyName: params.academyName ?? '',
+          hoursLeft: params.hoursLeft ?? '',
+          bookingId: params.bookingId ?? '',
+          paymentLink: params.paymentLink ?? '',
+          buttonUrlParameter: params.buttonUrlParameter ?? '',
+        });
+        success = true;
+        messageId = res.messageId;
+      } else if (name === 'booking_cancelled') {
+        const res = await sendWhatsAppCloudBookingCancelledTemplate(notification.to, {
+          batchName: params.batchName ?? '',
+          academyName: params.academyName ?? '',
+          bookingId: params.bookingId ?? '',
+          cancelReason: params.cancelReason ?? '—',
+        });
+        success = true;
+        messageId = res.messageId;
+      } else {
+        error = `Unknown WhatsApp template: ${name}`;
+        retryable = false;
+      }
+      if (success && messageId) {
+        const phone = String(notification.to).replace(/\D/g, '');
+        WhatsAppTemplateMessageModel.create({
+          phone,
+          templateName: name,
+          waMessageId: messageId,
+          status: 'sent',
+          metadata: notification.metadata ?? null,
+        }).catch((e) => logger.warn('Failed to store WhatsApp template message record', { messageId, error: e }));
+      }
+    } catch (err) {
+      error = err instanceof Error ? err.message : String(err);
+      retryable = !error.includes('invalid') && !error.includes('unsubscribed');
+      logger.error('WhatsApp template send failed', { to: notification.to, template: notification.template.name, error });
+    }
+  } else {
+    const result = await sendWhatsApp({
+      to: notification.to,
+      body: notification.body ?? '',
+    });
+    success = result.success;
+    messageId = result.messageId;
+    error = result.error;
+    retryable = result.retryable ?? true;
+  }
+
+  if (success) {
     logger.info('WhatsApp sent successfully', {
-      messageId: result.messageId,
+      messageId,
       to: notification.to,
       priority: notification.priority,
     });
   }
 
   return {
-    success: result.success,
+    success,
     channel: 'whatsapp',
-    messageId: result.messageId,
-    error: result.error,
-    retryable: result.retryable ?? true, // Default to retryable if not specified
+    messageId,
+    error,
+    retryable,
   };
 };
 
@@ -511,6 +575,26 @@ export const queueWhatsApp = (
     channel: 'whatsapp',
     to,
     body,
+    priority,
+    metadata,
+  });
+};
+
+/**
+ * Queue a Meta WhatsApp template message.
+ * Params: payment_request → userName, academyName, bookingId, paymentUrl, numberOfHours, buttonUrlParameter; payment_reminder → batchName, academyName, hoursLeft, bookingId, paymentLink, buttonUrlParameter; booking_cancelled → batchName, academyName, bookingId, cancelReason.
+ */
+export const queueWhatsAppTemplate = (
+  to: string,
+  templateName: WhatsAppTemplateName,
+  params: Record<string, string>,
+  priority: NotificationPriority = 'medium',
+  metadata?: Record<string, unknown>
+): void => {
+  queueNotification({
+    channel: 'whatsapp',
+    to,
+    template: { name: templateName, params },
     priority,
     metadata,
   });

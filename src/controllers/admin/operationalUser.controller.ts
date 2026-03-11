@@ -6,6 +6,7 @@ import { AdminUserModel } from '../../models/adminUser.model';
 import { RoleModel } from '../../models/role.model';
 import { hashPassword } from '../../utils/password';
 import { generateSecurePassword } from '../../utils/passwordGenerator';
+import { generateUniqueAgentCode } from '../../utils/agentCode.utils';
 import { sendAccountCredentialsEmail } from '../../services/common/email.service';
 import { logger } from '../../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
@@ -106,6 +107,10 @@ export const createOperationalUser = async (req: Request, res: Response): Promis
     // Address: all fields optional; save if any field provided
     const address = buildAddressForSave(data.address);
 
+    // Generate agentCode automatically when role is agent
+    const isAgent = roles.some((r) => r.name === DefaultRoles.AGENT);
+    const agentCode = isAgent ? await generateUniqueAgentCode() : undefined;
+
     // Create user (operational users don't have userType)
     const user = await AdminUserModel.create({
       id: userId,
@@ -120,6 +125,7 @@ export const createOperationalUser = async (req: Request, res: Response): Promis
       isActive: data.isActive ?? true,
       address: address,
       isDeleted: false,
+      ...(agentCode && { agentCode }),
     });
 
     // Populate roles before returning

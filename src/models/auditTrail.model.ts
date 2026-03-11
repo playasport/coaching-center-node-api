@@ -22,6 +22,7 @@ export enum ActionType {
   PAYMENT_INITIATED = 'payment_initiated',
   PAYMENT_SUCCESS = 'payment_success',
   PAYMENT_FAILED = 'payment_failed',
+  PAYMENT_REMINDER_SENT = 'payment_reminder_sent',
   
   // Academy actions
   ACADEMY_CREATED = 'academy_created',

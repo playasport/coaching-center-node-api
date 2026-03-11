@@ -3,6 +3,7 @@ import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { logger } from '../../utils/logger';
 import { loadTemplate, renderTemplate } from '../../services/common/email.service';
+import { config } from '../../config/env';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -51,6 +52,7 @@ const getSampleDataForTemplate = (templateName: string): Record<string, unknown>
         batchName: 'Cricket Advanced Training',
         centerName: 'Elite Sports Academy',
         bookingId: 'PS-2026-0001',
+        paymentUrl: 'https://front.playasport.in/pay/sample-payment-token-123',
       };
 
     case 'booking-request-sent-user':
@@ -163,6 +165,7 @@ const getSampleDataForTemplate = (templateName: string): Record<string, unknown>
     case 'academy-welcome':
       return {
         ...baseData,
+        websiteAcademyUrl: config.academySiteUrl || config.mainSiteUrl || 'https://www.playasport.in',
         name: 'Rajesh Kumar',
         email: 'rajesh@elitesports.com',
         mobile: '+91 9876543210',

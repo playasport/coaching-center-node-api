@@ -1,57 +1,41 @@
-import { getTwilioClient } from './twilio';
-import { config } from '../config/env';
 import { logger } from './logger';
-import { getSmsCredentials } from '../services/common/settings.service';
+import { getWhatsAppCloudConfig } from '../services/common/settings.service';
+import { sendWhatsAppCloudText } from '../services/common/metaWhatsApp.service';
 
 export interface SendWhatsAppOptions {
   to: string;
   body: string;
 }
 
+/**
+ * Send WhatsApp message via Meta Cloud API only (config from Settings or env).
+ * Strips optional "whatsapp:" prefix from recipient.
+ */
 export const sendWhatsApp = async (
   options: SendWhatsAppOptions
 ): Promise<{ success: boolean; messageId?: string; error?: string; retryable?: boolean }> => {
-  const client = await getTwilioClient();
-
-  if (!client) {
-    logger.info('WhatsApp mocked send', options);
-    return { success: false, error: 'Twilio client not available' };
+  const cfg = await getWhatsAppCloudConfig();
+  if (!cfg.enabled || !cfg.phoneNumberId || !cfg.accessToken) {
+    logger.info('WhatsApp Cloud not configured or disabled', { to: options.to });
+    return { success: false, error: 'WhatsApp Cloud API is not configured or disabled' };
   }
 
-  // Get from phone number from settings first, then env
-  const credentials = await getSmsCredentials();
-  const fromPhone = credentials.fromPhone || config.twilio.fromPhone;
-
-  // Twilio WhatsApp uses 'whatsapp:' prefix for phone numbers
-  const fromNumber = fromPhone?.startsWith('whatsapp:')
-    ? fromPhone
-    : `whatsapp:${fromPhone}`;
-
-  const toNumber = options.to.startsWith('whatsapp:') ? options.to : `whatsapp:${options.to}`;
+  const to = (options.to || '').replace(/^whatsapp:/i, '').trim();
+  if (!to) {
+    return { success: false, error: 'Missing recipient' };
+  }
 
   try {
-    const message = await client.messages.create({
-      body: options.body,
-      from: fromNumber,
-      to: toNumber,
-    });
-
-    logger.info('WhatsApp message sent successfully', {
-      messageId: message.sid,
-      to: options.to,
-    });
-
-    return { success: true, messageId: message.sid };
-  } catch (error: any) {
+    const { messageId } = await sendWhatsAppCloudText(to, options.body);
+    logger.info('WhatsApp message sent successfully', { messageId, to: options.to });
+    return { success: true, messageId };
+  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error('WhatsApp delivery failed', {
-      error: errorMessage,
-      to: options.to,
-    });
-
-    // Check if it's a retryable error
-    const retryable = !errorMessage.includes('invalid') && !errorMessage.includes('unsubscribed');
-
+    logger.error('WhatsApp delivery failed', { error: errorMessage, to: options.to });
+    const retryable =
+      !errorMessage.includes('invalid') &&
+      !errorMessage.includes('unsubscribed') &&
+      !errorMessage.includes('not configured');
     return {
       success: false,
       error: errorMessage,

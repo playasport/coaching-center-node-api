@@ -1,0 +1,35 @@
+export declare enum Section {
+    COACHING_CENTER = "coaching_center",
+    COACHING_CENTER_RATINGS = "coaching_center_ratings",
+    EMPLOYEE = "employee",
+    BATCH = "batch",
+    BOOKING = "booking",
+    STUDENT = "student",
+    PARTICIPANT = "participant",
+    SPORT = "sport",
+    FACILITY = "facility",
+    LOCATION = "location",
+    SETTINGS = "settings",
+    REEL = "reel",
+    ROLE = "role",
+    USER = "user",
+    OPERATIONAL_USER = "operational_user",
+    ACADEMY_AUTH = "academy_auth",
+    USER_AUTH = "user_auth",
+    PERMISSION = "permission",
+    DASHBOARD = "dashboard",
+    TRANSACTION = "transaction",
+    PAYMENT = "payment",
+    PAYOUT = "payout",
+    BANNER = "banner",
+    CMS_PAGE = "cms_page",
+    NOTIFICATION = "notification",
+    HIGHLIGHT = "highlight"
+}
+export declare enum Action {
+    VIEW = "view",
+    CREATE = "create",
+    UPDATE = "update",
+    DELETE = "delete"
+}
+//# sourceMappingURL=section.enum.d.ts.map

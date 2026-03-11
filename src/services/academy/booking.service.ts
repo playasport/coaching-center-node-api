@@ -1,19 +1,22 @@
+import crypto from 'crypto';
 import { Types } from 'mongoose';
 import { BookingModel, Booking, PaymentStatus, BookingStatus } from '../../models/booking.model';
+import { config } from '../../config/env';
 import { CoachingCenterModel } from '../../models/coachingCenter.model';
 import { logger } from '../../utils/logger';
 import { ApiError } from '../../utils/ApiError';
 import { t } from '../../utils/i18n';
 import { getUserObjectId } from '../../utils/userCache';
 import { createAndSendNotification } from '../common/notification.service';
-import { queueEmail, queueSms, queueWhatsApp } from '../common/notificationQueue.service';
+import { queueEmail, queueSms, queueWhatsAppTemplate } from '../common/notificationQueue.service';
 import { createAuditTrail } from '../common/auditTrail.service';
 import { ActionType, ActionScale } from '../../models/auditTrail.model';
+import { getBookingPaymentConfig } from '../common/settings.service';
 import {
   getBookingApprovedUserSms,
-  getBookingApprovedUserWhatsApp,
+  // getBookingApprovedUserWhatsApp,
   getBookingRejectedUserSms,
-  getBookingRejectedUserWhatsApp,
+  // getBookingRejectedUserWhatsApp,
   EmailTemplates,
   EmailSubjects,
   getBookingApprovedUserEmailText,
@@ -524,11 +527,20 @@ export const approveBookingRequest = async (
       throw new ApiError(404, 'Booking request not found or already processed');
     }
 
-    // Update booking status to APPROVED
+    const paymentConfig = await getBookingPaymentConfig();
+    const expiryHours = paymentConfig.paymentLinkExpiryHours;
+    const paymentToken = crypto.randomBytes(32).toString('hex');
+    const paymentTokenExpiresAt = new Date(Date.now() + expiryHours * 60 * 60 * 1000);
+
+    // Update booking status to APPROVED and set payment token
     const updatedBooking = await BookingModel.findByIdAndUpdate(
       booking._id,
       {
-        $set: { status: BookingStatus.APPROVED },
+        $set: {
+          status: BookingStatus.APPROVED,
+          payment_token: paymentToken,
+          payment_token_expires_at: paymentTokenExpiresAt,
+        },
       },
       { new: true }
     )
@@ -599,6 +611,7 @@ export const approveBookingRequest = async (
             centerName,
             bookingId: booking.booking_id ?? booking.id,
             year: new Date().getFullYear(),
+            paymentUrl: config.mainSiteUrl ? `${config.mainSiteUrl}/pay?token=${paymentToken}` : '',
           },
           priority: 'high',
           metadata: {
@@ -623,18 +636,24 @@ export const approveBookingRequest = async (
         });
       }
 
-      // WhatsApp notification (async)
+      // WhatsApp: queue payment_request template (Meta approved template)
       if (user.mobile) {
-        const whatsappMessage = getBookingApprovedUserWhatsApp({
-          batchName,
-          centerName,
-          bookingId: booking.booking_id ?? undefined,
-        });
-        queueWhatsApp(user.mobile, whatsappMessage, 'high', {
-          type: 'booking_approved',
-          bookingId: booking.id,
-          recipient: 'user',
-        });
+        const mainSiteUrl = config.mainSiteUrl || 'https://playasport.in';
+        const paymentUrl = `${mainSiteUrl}/pay?token=${paymentToken}`;
+        queueWhatsAppTemplate(
+          user.mobile,
+          'payment_request',
+          {
+            userName,
+            academyName: centerName,
+            bookingId: (updatedBooking as any).booking_id || booking.booking_id || String(booking.id),
+            paymentUrl,
+            numberOfHours: String(expiryHours),
+            buttonUrlParameter: paymentToken,
+          },
+          'high',
+          { type: 'booking_approved', bookingId: booking.id, recipient: 'user' }
+        );
       }
     }
 
@@ -831,20 +850,20 @@ export const rejectBookingRequest = async (
         });
       }
 
-      // WhatsApp notification (async)
-      if (user.mobile) {
-        const whatsappMessage = getBookingRejectedUserWhatsApp({
-          batchName,
-          centerName,
-          bookingId: booking.booking_id ?? undefined,
-          reason: reason || null,
-        });
-        queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
-          type: 'booking_rejected',
-          bookingId: booking.id,
-          recipient: 'user',
-        });
-      }
+      // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
+      // if (user.mobile) {
+      //   const whatsappMessage = getBookingRejectedUserWhatsApp({
+      //     batchName,
+      //     centerName,
+      //     bookingId: booking.booking_id ?? undefined,
+      //     reason: reason || null,
+      //   });
+      //   queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
+      //     type: 'booking_rejected',
+      //     bookingId: booking.id,
+      //     recipient: 'user',
+      //   });
+      // }
     }
 
     logger.info(`Booking request rejected: ${bookingId} by academy user ${userId}`);

@@ -9,6 +9,9 @@ import { config } from './config/env';
 
 const app: Application = express();
 
+// Disable ETag completely
+app.disable('etag');
+
 // Middleware
 // app.use(cors({
 //   origin: [
@@ -35,29 +38,20 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Cache-Control', 'Pragma'],
+  maxAge: 86400,
 };
 
 app.use(cors(corsOptions));
 
-// Raw body middleware for webhooks (must be before express.json())
-app.use((req, _res, next) => {
-  if (req.path.includes('/webhook')) {
-    let data = '';
-    req.setEncoding('utf8');
-    req.on('data', (chunk) => {
-      data += chunk;
-    });
-    req.on('end', () => {
-      (req as any).rawBody = data;
-      next();
-    });
-  } else {
-    next();
-  }
-});
 
-app.use(express.json());
+app.use(express.json({
+  verify: (req: any, _res, buf) => {
+    if (req.originalUrl?.includes('/webhook')) {
+      req.rawBody = buf.toString('utf8');
+    }
+  },
+}));
 app.use(express.urlencoded({ extended: true }));
 
 // Locale middleware (should be early in the middleware chain)

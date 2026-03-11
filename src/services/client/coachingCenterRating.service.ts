@@ -4,6 +4,7 @@ import {
   CoachingCenterRatingModel,
   RATING_MIN_VALUE,
   RATING_MAX_VALUE,
+  type RatingStatus,
 } from '../../models/coachingCenterRating.model';
 import { UserModel } from '../../models/user.model';
 import { getUserObjectId } from '../../utils/userCache';
@@ -22,6 +23,8 @@ export interface RatingListItem {
   id: string;
   rating: number;
   comment?: string | null;
+  status?: RatingStatus;
+  isOwn?: boolean;
   createdAt: Date;
   user?: {
     id: string;
@@ -128,7 +131,7 @@ export const submitOrUpdateRating = async (
   if (existing) {
     ratingDoc = await CoachingCenterRatingModel.findByIdAndUpdate(
       existing._id,
-      { rating, comment: comment ?? existing.comment ?? null },
+      { rating, comment: comment ?? existing.comment ?? null, status: 'pending' },
       { new: true }
     ).lean() as any;
     isUpdate = true;
@@ -193,6 +196,87 @@ export const submitOrUpdateRating = async (
   });
 
   return result;
+};
+
+export interface UserRatingListItem {
+  id: string;
+  rating: number;
+  comment: string | null;
+  status: RatingStatus;
+  created_at: Date;
+  updated_at: Date;
+  coaching_center: {
+    id: string;
+    center_name: string;
+    logo: string | null;
+  } | null;
+}
+
+export interface UserRatingsListResponse {
+  ratings: UserRatingListItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
+export const getUserRatings = async (
+  userId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<UserRatingsListResponse> => {
+  const userObjectId = await getUserObjectId(userId);
+  if (!userObjectId) {
+    throw new ApiError(404, t('errors.userNotFound'));
+  }
+
+  const pageNumber = Math.max(1, page);
+  const pageSize = Math.min(100, Math.max(1, limit));
+  const skip = (pageNumber - 1) * pageSize;
+
+  const [ratings, total] = await Promise.all([
+    CoachingCenterRatingModel.find({ user: userObjectId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(pageSize)
+      .populate('coachingCenter', 'id center_name logo')
+      .lean(),
+    CoachingCenterRatingModel.countDocuments({ user: userObjectId }),
+  ]);
+
+  const totalPages = Math.ceil(total / pageSize);
+
+  const transformedRatings: UserRatingListItem[] = ratings.map((r: any) => ({
+    id: r.id ?? r._id?.toString(),
+    rating: r.rating,
+    comment: r.comment ?? null,
+    status: r.status,
+    created_at: r.createdAt,
+    updated_at: r.updatedAt,
+    coaching_center: r.coachingCenter
+      ? {
+          id: r.coachingCenter.id ?? r.coachingCenter._id?.toString(),
+          center_name: r.coachingCenter.center_name || 'N/A',
+          logo: r.coachingCenter.logo ?? null,
+        }
+      : null,
+  }));
+
+  return {
+    ratings: transformedRatings,
+    pagination: {
+      page: pageNumber,
+      limit: pageSize,
+      total,
+      totalPages,
+      hasNextPage: pageNumber < totalPages,
+      hasPrevPage: pageNumber > 1,
+    },
+  };
 };
 
 /** When user is not logged in, only this many ratings are returned. */
@@ -338,10 +422,12 @@ export const getLatestRatingsForCenter = async (
     .populate('user', 'id firstName lastName profileImage')
     .lean();
 
-  const toListItem = (r: any): RatingListItem => ({
+  const toListItem = (r: any, isOwn = false): RatingListItem => ({
     id: r.id ?? r._id?.toString(),
     rating: r.rating,
     comment: r.comment ?? null,
+    status: isOwn ? r.status : undefined,
+    isOwn: isOwn || undefined,
     createdAt: r.createdAt,
     user: r.user
       ? {
@@ -353,21 +439,16 @@ export const getLatestRatingsForCenter = async (
       : null,
   });
 
-  let ratings: RatingListItem[] = latestRatings.map(toListItem);
+  let ratings: RatingListItem[] = latestRatings.map((r) => toListItem(r));
 
-  // Prepend current user's rating only if it is approved (or legacy without field)
-  const myIsApproved =
-    myRatingDoc &&
-    (myRatingDoc as any).status === 'approved';
-  if (myIsApproved) {
+  if (myRatingDoc) {
     const myId = (myRatingDoc as any).id ?? myRatingDoc._id?.toString();
     const existingIndex = ratings.findIndex((r) => r.id === myId);
     if (existingIndex >= 0) {
-      const [mine] = ratings.splice(existingIndex, 1);
-      ratings = [mine, ...ratings].slice(0, limit);
+      ratings.splice(existingIndex, 1);
+      ratings = [toListItem(myRatingDoc, true), ...ratings].slice(0, limit);
     } else {
-      const myItem = toListItem(myRatingDoc);
-      ratings = [myItem, ...ratings].slice(0, limit);
+      ratings = [toListItem(myRatingDoc, true), ...ratings].slice(0, limit);
     }
   } else {
     ratings = ratings.slice(0, limit);

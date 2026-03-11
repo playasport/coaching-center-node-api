@@ -13,8 +13,10 @@ import type {
   UserPasswordChangeInput,
   UserFavoriteSportsUpdateInput,
   SaveFcmTokenInput,
+  AddAcademyBookmarkInput,
 } from '../validations/auth.validation';
 import { userService } from '../services/client/user.service';
+import * as userAcademyBookmarkService from '../services/client/userAcademyBookmark.service';
 
 export const registerUser = async (
   req: Request,
@@ -442,6 +444,141 @@ export const saveFcmToken = async (
     });
 
     const response = new ApiResponse(200, null, t('auth.fcmToken.saved'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * List all active devices/sessions for the current user
+ */
+export const getUserDevices = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const devices = await deviceTokenService.getUserDeviceTokens(req.user.id);
+
+    const currentRefreshToken = req.body?.refreshToken || null;
+
+    const result = devices.map((d: any) => ({
+      id: d.id,
+      deviceType: d.deviceType,
+      deviceId: d.deviceId || null,
+      deviceName: d.deviceName || null,
+      appVersion: d.appVersion || null,
+      lastActiveAt: d.lastActiveAt,
+      createdAt: d.createdAt,
+      isCurrent: currentRefreshToken ? d.refreshToken === currentRefreshToken : false,
+    }));
+
+    const response = new ApiResponse(200, { devices: result }, 'Active devices retrieved successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Logout from a specific device by deviceToken id
+ */
+export const logoutDevice = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const { deviceTokenId } = req.params;
+    if (!deviceTokenId) {
+      throw new ApiError(400, 'Device token ID is required');
+    }
+
+    const removed = await authService.logoutDevice(req.user.id, deviceTokenId);
+
+    if (!removed) {
+      throw new ApiError(404, 'Device session not found or already logged out');
+    }
+
+    const response = new ApiResponse(200, null, 'Device logged out successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get user's bookmarked academies
+ */
+export const getAcademyBookmarks = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const bookmarks = await userAcademyBookmarkService.getBookmarkedAcademies(req.user.id);
+    const response = new ApiResponse(200, { bookmarks }, 'Bookmarked academies retrieved successfully');
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Add academy to bookmarks. Returns updated list of bookmarked academies.
+ */
+export const addAcademyBookmark = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const { academyId } = req.body as AddAcademyBookmarkInput;
+    const result = await userAcademyBookmarkService.addBookmark(req.user.id, academyId);
+
+    const message = result.added ? 'Academy added to bookmarks' : 'Academy already bookmarked';
+    const response = new ApiResponse(200, result, message);
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Remove academy from bookmarks. Returns updated list of bookmarked academies.
+ */
+export const removeAcademyBookmark = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const { academyId } = req.params;
+    const result = await userAcademyBookmarkService.removeBookmark(req.user.id, academyId);
+
+    const message = result.removed ? 'Academy removed from bookmarks' : 'Academy was not bookmarked';
+    const response = new ApiResponse(200, result, message);
     res.json(response);
   } catch (error) {
     next(error);

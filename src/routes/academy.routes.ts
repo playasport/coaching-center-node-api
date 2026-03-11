@@ -14,7 +14,8 @@ const router = Router();
  *       Get all published academies with pagination.
  *       If location (latitude, longitude) is provided, academies are sorted by distance (nearest first).
  *       If user is logged in and has favorite sports, academies with favorite sports are prioritized.
- *       Supports same filters as search API: city, state, sportId, sportIds, gender, for_disabled, min_age, max_age.
+ *       Supports same filters as search API: city, state, sportId, sportIds, gender, for_disabled, min_age, max_age, min_rating.
+ *       When a gender filter is applied, academies exclusive to that gender appear first, followed by mixed-gender academies.
  *       This is an unprotected route.
  *     parameters:
  *       - in: query
@@ -95,6 +96,13 @@ const router = Router();
  *           type: integer
  *           minimum: 0
  *         description: Filter by age range – maximum age (years). Academies whose age range overlaps [min_age, max_age] are included.
+ *       - in: query
+ *         name: min_rating
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *           maximum: 5
+ *         description: Filter by minimum average rating (0-5). Only academies with averageRating >= min_rating are returned.
  *     responses:
  *       200:
  *         description: Academies retrieved successfully
@@ -159,7 +167,7 @@ router.get('/', optionalAuthenticate, academyController.getAllAcademies);
  *       - MongoDB ObjectId (_id): e.g., "693bc2d1d0b08eea0c31cc53"
  *       - User custom ID: searches by academy owner's user ID
  *       Response includes: ratings (latest 5), averageRating, totalRatings.
- *       When user is logged in: their rating appears first in ratings (if they rated), isAlreadyRated and canUpdateRating indicate if they have rated and can update it.
+ *       When user is logged in: their rating appears first in ratings (if they rated), isAlreadyRated and canUpdateRating indicate if they have rated and can update it. isBookmarked indicates if the user has bookmarked this academy.
  *       If user is not logged in, email and mobile number will be masked.
  *       Authentication is optional.
  *       When latitude and longitude query params are provided, returns distance (km) from user to academy.
@@ -393,7 +401,7 @@ router.get('/:id/ratings', optionalAuthenticate, academyController.getRatingsByA
  *                           type: boolean
  *                           example: false
  */
-router.get('/city/:cityName', academyController.getAcademiesByCity);
+router.get('/city/:cityName', optionalAuthenticate, academyController.getAcademiesByCity);
 
 /**
  * @swagger

@@ -26,10 +26,13 @@ export const config = {
   port: process.env.PORT || 3000,
   nodeEnv: process.env.NODE_ENV || 'development',
   defaultLocale: (process.env.DEFAULT_LOCALE || 'en') as 'en' | 'hi',
+  mainSiteUrl: trimUrl(process.env.MAIN_SITE_URL),
+  academySiteUrl: trimUrl(process.env.ACADEMY_SITE_URL),
   cors: {
     allowedOrigins: (() => {
       if (process.env.NODE_ENV !== 'production') return true;
-      const origins = [trimUrl(process.env.MAIN_SITE_URL), trimUrl(process.env.ACADEMY_SITE_URL), trimUrl(process.env.ADMIN_PANEL_URL), trimUrl("https://www.playasport.in")].filter(Boolean);
+      const origins = [trimUrl(process.env.MAIN_SITE_URL), trimUrl(process.env.ACADEMY_SITE_URL), trimUrl(process.env.ADMIN_PANEL_URL), 'https://www.playasport.in',
+  'https://playasport.in'].filter(Boolean);
       return origins.length > 0 ? origins : true;
     })(),
   },
@@ -120,6 +123,7 @@ export const config = {
   razorpay: {
     keyId: process.env.RAZORPAY_KEY_ID || '',
     keySecret: process.env.RAZORPAY_KEY_SECRET || '',
+    webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
   },
   payment: {
     gateway: (process.env.PAYMENT_GATEWAY || 'razorpay') as 'razorpay' | 'stripe' | 'payu' | 'cashfree',
@@ -132,11 +136,30 @@ export const config = {
   booking: {
     platformFee: Number(process.env.PLATFORM_FEE || 200), // Default platform fee
     gstPercentage: Number(process.env.GST_PERCENTAGE || 18), // Default GST percentage
+    // Payment link expiry (hours). After this, unpaid approved booking is auto-cancelled. Overridable via Settings.
+    paymentLinkExpiryHours: Number(process.env.BOOKING_PAYMENT_LINK_EXPIRY_HOURS || 24),
+    // Send payment reminder when X hours left before expiry. Set BOOKING_PAYMENT_REMINDER_HOURS e.g. "12,6,2". Empty = no reminders. Overridable via Settings.
+    paymentReminderHoursBeforeExpiry: (() => {
+      const raw = process.env.BOOKING_PAYMENT_REMINDER_HOURS;
+      if (raw && /^[\d,\s]+$/.test(raw)) {
+        return raw.split(',').map((h) => Math.max(0, parseInt(h.trim(), 10))).filter((h) => h > 0).sort((a, b) => b - a);
+      }
+      return [];
+    })(),
   },
   location: {
     defaultRadius: Number(process.env.DEFAULT_SEARCH_RADIUS_KM || 50), // Default search radius in kilometers
     maxRadius: Number(process.env.MAX_SEARCH_RADIUS_KM || 200), // Maximum allowed search radius in kilometers
     googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '', // For Distance Matrix API (road distance); empty = use Haversine fallback
+  },
+  /** Meta WhatsApp Cloud API (for admin chat + storing conversations). Separate from Twilio WhatsApp. */
+  whatsappCloud: {
+    enabled: parseBoolean(process.env.WHATSAPP_CLOUD_ENABLED, false),
+    phoneNumberId: process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID || '',
+    accessToken: process.env.WHATSAPP_CLOUD_ACCESS_TOKEN || '',
+    webhookVerifyToken: process.env.WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN || '',
+    appSecret: process.env.WHATSAPP_CLOUD_APP_SECRET || '',
+    apiVersion: process.env.WHATSAPP_CLOUD_API_VERSION || 'v21.0',
   },
   notification: {
     enabled: parseBoolean(process.env.NOTIFICATION_ENABLED, true),

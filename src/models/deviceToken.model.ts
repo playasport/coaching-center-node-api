@@ -4,7 +4,7 @@ import { DeviceType } from '../enums/deviceType.enum';
 export interface DeviceToken {
   id: string;
   userId: Types.ObjectId; // Reference to User
-  fcmToken: string; // FCM token for push notifications
+  fcmToken?: string | null; // FCM token for push notifications (optional for web)
   deviceType: DeviceType; // web, android, or ios
   deviceId?: string | null; // Optional: unique device identifier
   deviceName?: string | null; // Optional: device name/model
@@ -30,9 +30,10 @@ const deviceTokenSchema = new Schema<DeviceToken>(
     },
     fcmToken: {
       type: String,
-      required: true,
+      default: null,
       trim: true,
       index: true,
+      sparse: true,
     },
     deviceType: {
       type: String,
@@ -99,8 +100,11 @@ const deviceTokenSchema = new Schema<DeviceToken>(
   }
 );
 
-// Compound index to ensure one active token per user-device combination
-deviceTokenSchema.index({ userId: 1, deviceId: 1, isActive: 1 }, { unique: true, sparse: true });
+// Ensure only one ACTIVE token per user-device combination (inactive records are unconstrained)
+deviceTokenSchema.index(
+  { userId: 1, deviceId: 1 },
+  { unique: true, partialFilterExpression: { isActive: true, deviceId: { $type: 'string' } } }
+);
 
 // Index for efficient querying of active tokens by user
 deviceTokenSchema.index({ userId: 1, isActive: 1 });

@@ -48,15 +48,14 @@ export interface EmailConfig {
   secure?: boolean | null;
 }
 
-// WhatsApp configuration interface
-export interface WhatsAppConfig {
+// Meta WhatsApp Cloud API (under notifications). Admin panel + WhatsApp notifications. Managed via Settings.
+export interface WhatsAppCloudSettings {
   enabled?: boolean | null;
-  provider?: string | null;
-  api_key?: string | null; // Encrypted
-  api_secret?: string | null; // Encrypted
-  from_number?: string | null;
-  account_sid?: string | null; // Encrypted (for Twilio)
-  auth_token?: string | null; // Encrypted (for Twilio)
+  phone_number_id?: string | null;
+  access_token?: string | null; // Encrypted
+  webhook_verify_token?: string | null;
+  app_secret?: string | null; // Encrypted
+  api_version?: string | null;
 }
 
 // Notification configuration interface
@@ -64,7 +63,7 @@ export interface NotificationConfig {
   enabled?: boolean | null;
   sms?: SmsConfig | null;
   email?: EmailConfig | null;
-  whatsapp?: WhatsAppConfig | null;
+  whatsapp?: WhatsAppCloudSettings | null; // Meta Cloud API config (enable + credentials)
   push?: {
     enabled?: boolean | null;
   } | null;
@@ -77,6 +76,7 @@ export interface PaymentConfig {
   razorpay?: {
     key_id?: string | null; // Encrypted
     key_secret?: string | null; // Encrypted
+    webhook_secret?: string | null; // Encrypted; for Razorpay webhook signature verification
     enabled?: boolean | null;
   } | null;
   stripe?: {
@@ -91,6 +91,14 @@ export interface PaymentConfig {
 export interface GeneralSettings {
   /** When false, coaching center ratings are disabled (submit/view). Default true. */
   ratings_enabled?: boolean | null;
+}
+
+// Booking payment settings (payment link expiry, reminders). Managed via Settings API.
+export interface BookingPaymentSettings {
+  /** Hours after approval before payment link expires and booking is auto-cancelled if unpaid. Default 24. */
+  payment_link_expiry_hours?: number | null;
+  /** Send reminder when X hours left before expiry (e.g. [12, 6, 2]). Default [12, 6, 2]. */
+  payment_reminder_hours_before_expiry?: number[] | null;
 }
 
 // Basic information interface (extended)
@@ -114,7 +122,10 @@ export interface Settings {
 
   // General settings (e.g. ratings enabled/disabled)
   general?: GeneralSettings | null;
-  
+
+  // Booking payment (payment link expiry, auto-cancel, reminders). Overrides config/env.
+  booking?: BookingPaymentSettings | null;
+
   // Fee Configuration
   fees?: FeeConfig | null;
   

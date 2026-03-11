@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import * as webhookController from '../controllers/webhook.controller';
-import { rawBodyMiddleware, verifyWebhookSignature } from '../middleware/webhook.middleware';
+import { verifyWebhookSignature } from '../middleware/webhook.middleware';
 
 const router = Router();
 
-// Apply raw body middleware for webhook routes (must be before express.json())
-router.use(rawBodyMiddleware);
+/** WhatsApp Cloud API: GET for webhook verification (Meta subscription) */
+router.get('/whatsapp', webhookController.handleWhatsAppWebhookVerify);
+/** WhatsApp Cloud API: POST for incoming messages */
+router.post('/whatsapp', webhookController.handleWhatsAppWebhook);
 
 /**
  * @swagger

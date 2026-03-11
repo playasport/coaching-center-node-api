@@ -60,7 +60,6 @@ export class PaymentService {
   private async initializeGateway(): Promise<void> {
     switch (this.gatewayType) {
       case PaymentGatewayType.RAZORPAY:
-        // Get credentials from settings first, then fallback to env
         const { getPaymentCredentials } = await import('../settings.service');
         const credentials = await getPaymentCredentials();
         
@@ -72,7 +71,6 @@ export class PaymentService {
           throw new Error('Payment gateway credentials not configured. Please configure Razorpay credentials in settings.');
         }
         
-        // Trim credentials to remove any whitespace
         const keyId = credentials.keyId.trim();
         const keySecret = credentials.keySecret.trim();
         
@@ -80,11 +78,17 @@ export class PaymentService {
           logger.error('Payment gateway credentials are empty after trimming');
           throw new Error('Payment gateway credentials are invalid. Please check your Razorpay configuration.');
         }
+
+        const webhookSecret = credentials.webhookSecret?.trim() || '';
+        if (!webhookSecret) {
+          logger.warn('Razorpay webhook secret not configured — falling back to API key secret for webhook verification');
+        }
         
         this.gateway = new RazorpayGateway();
         this.gateway.initialize({
           keyId,
           keySecret,
+          webhookSecret,
         });
         break;
 

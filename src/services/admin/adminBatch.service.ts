@@ -17,9 +17,14 @@ import type { BatchCreateInput, BatchUpdateInput } from '../../validations/batch
  */
 const getCenterObjectId = async (centerId: string): Promise<Types.ObjectId | null> => {
   try {
-    // If it's a valid ObjectId, use it directly
+    // If it's a valid ObjectId, use it directly (exclude deleted centers)
     if (Types.ObjectId.isValid(centerId) && centerId.length === 24) {
-      const center = await CoachingCenterModel.findById(centerId).select('_id').lean();
+      const center = await CoachingCenterModel.findOne({
+        _id: centerId,
+        is_deleted: false,
+      })
+        .select('_id')
+        .lean();
       if (center) {
         return center._id as Types.ObjectId;
       }
@@ -347,6 +352,10 @@ export const getAllBatches = async (
     } else if (currentUserRole === DefaultRolesEnum.AGENT && currentUserId && agentCenterIds.length > 0) {
       // If no centerId filter but agent filtering is active, filter by agent's centers
       query.center = { $in: agentCenterIds };
+    } else {
+      // Exclude batches whose coaching center is deleted
+      const nonDeletedCenterIds = await CoachingCenterModel.find({ is_deleted: false }).distinct('_id');
+      query.center = { $in: nonDeletedCenterIds };
     }
 
     if (filters.sportId) {
@@ -495,9 +504,13 @@ export const getBatchesByUserId = async (
       throw new ApiError(404, t('batch.userNotFound'));
     }
 
+    // Only include batches whose coaching center is not deleted
+    const nonDeletedCenterIds = await CoachingCenterModel.find({ is_deleted: false }).distinct('_id');
+
     const query: any = {
       user: userObjectId,
       is_deleted: false,
+      center: { $in: nonDeletedCenterIds },
     };
 
     // Handle sorting

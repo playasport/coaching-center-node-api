@@ -459,6 +459,11 @@ const options: swaggerJsdoc.Options = {
               example: '1.0.0',
               description: 'Optional: App version',
             },
+            agentCode: {
+              type: 'string',
+              example: 'AG2562',
+              description: 'Optional: Agent referral code (alphanumeric). Links academy user to agent for referral tracking. Format: AG + 4 digits.',
+            },
           },
         },
         AcademyRegisterResponse: {
@@ -583,6 +588,11 @@ const options: swaggerJsdoc.Options = {
               example: '1.0.0',
               description: 'Optional: App version',
             },
+            agentCode: {
+              type: 'string',
+              example: 'AG2562',
+              description: 'Optional: Agent referral code (alphanumeric). Links academy user to agent for referral tracking. Format: AG + 4 digits.',
+            },
           },
         },
         AcademySocialLoginRequest: {
@@ -702,6 +712,11 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               example: '1.0.0',
               description: 'Optional: App version',
+            },
+            agentCode: {
+              type: 'string',
+              example: 'AG2562',
+              description: 'Optional: Agent referral code. Links academy user to agent when mode=login. Format: AG + 4 digits.',
             },
           },
         },
@@ -3530,6 +3545,102 @@ const options: swaggerJsdoc.Options = {
               type: 'number',
               example: 24,
               description: 'Total number of ratings',
+            },
+          },
+        },
+        AddAcademyBookmarkRequest: {
+          type: 'object',
+          required: ['academyId'],
+          properties: {
+            academyId: {
+              type: 'string',
+              example: 'f316a86c-2909-4d32-8983-eb225c715bcb',
+              description: 'Academy ID - CoachingCenter UUID or MongoDB ObjectId',
+            },
+          },
+        },
+        AcademyBookmarksResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Bookmarked academies retrieved successfully',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                bookmarks: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/AcademyListItem',
+                  },
+                  description: 'List of bookmarked academies with full details',
+                },
+              },
+            },
+          },
+        },
+        AddAcademyBookmarkResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Academy added to bookmarks',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                bookmarks: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/AcademyListItem',
+                  },
+                  description: 'Updated list of bookmarked academies',
+                },
+                added: {
+                  type: 'boolean',
+                  example: true,
+                  description: 'True if academy was newly added, false if already bookmarked',
+                },
+              },
+            },
+          },
+        },
+        RemoveAcademyBookmarkResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Academy removed from bookmarks',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                bookmarks: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/AcademyListItem',
+                  },
+                  description: 'Updated list of bookmarked academies',
+                },
+                removed: {
+                  type: 'boolean',
+                  example: true,
+                  description: 'True if bookmark was removed, false if it was not bookmarked',
+                },
+              },
             },
           },
         },

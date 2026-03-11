@@ -1,0 +1,57 @@
+import { z } from 'zod';
+export declare const listConversationsSchema: z.ZodObject<{
+    query: z.ZodObject<{
+        page: z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodNumber>>>;
+        limit: z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodNumber>>>;
+        search: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const getConversationMessagesSchema: z.ZodObject<{
+    params: z.ZodObject<{
+        conversationId: z.ZodString;
+    }, z.core.$strip>;
+    query: z.ZodObject<{
+        page: z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodNumber>>>;
+        limit: z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodNumber>>>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const sendMessageSchema: z.ZodObject<{
+    params: z.ZodObject<{
+        conversationId: z.ZodString;
+    }, z.core.$strip>;
+    body: z.ZodObject<{
+        text: z.ZodOptional<z.ZodString>;
+        type: z.ZodOptional<z.ZodEnum<{
+            text: "text";
+            image: "image";
+        }>>;
+        imageUrl: z.ZodOptional<z.ZodString>;
+        caption: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const markReadSchema: z.ZodObject<{
+    params: z.ZodObject<{
+        conversationId: z.ZodString;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const listTemplateMessagesSchema: z.ZodObject<{
+    query: z.ZodObject<{
+        page: z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodNumber>>>;
+        limit: z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodNumber>>>;
+        templateName: z.ZodOptional<z.ZodEnum<{
+            payment_request: "payment_request";
+            payment_reminder: "payment_reminder";
+            booking_cancelled: "booking_cancelled";
+        }>>;
+        status: z.ZodOptional<z.ZodEnum<{
+            read: "read";
+            sent: "sent";
+            delivered: "delivered";
+            failed: "failed";
+        }>>;
+        phone: z.ZodOptional<z.ZodString>;
+        dateFrom: z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodCoercedDate<unknown>>>>;
+        dateTo: z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodCoercedDate<unknown>>>>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+//# sourceMappingURL=whatsappChat.validation.d.ts.map

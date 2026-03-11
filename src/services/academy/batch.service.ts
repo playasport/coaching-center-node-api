@@ -111,9 +111,9 @@ export const createBatch = async (data: BatchCreateInput, loggedInUserId: string
         throw new ApiError(404, t('batch.coachNotFound'));
       }
       // Verify coach belongs to the same center
-      if (coach.center && coach.center.toString() !== data.centerId) {
-        throw new ApiError(400, t('batch.coachNotInCenter'));
-      }
+      // if (coach.center && coach.center.toString() !== data.centerId) {
+      //   throw new ApiError(400, t('batch.coachNotInCenter'));
+      // }
     }
 
     // Validate age range respects center's age range if available
@@ -250,10 +250,14 @@ export const getBatchesByUser = async (
       throw new ApiError(404, 'User not found');
     }
 
-    // Build query - only get non-deleted batches for the user
+    // Only include batches whose coaching center is not deleted
+    const nonDeletedCenterIds = await CoachingCenterModel.find({ is_deleted: false }).distinct('_id');
+
+    // Build query - only get non-deleted batches for the user and non-deleted centers
     const query = {
       user: userObjectId,
       is_deleted: false,
+      center: { $in: nonDeletedCenterIds },
     };
 
     // Get total count
@@ -474,10 +478,10 @@ export const updateBatch = async (id: string, data: BatchUpdateInput, loggedInUs
           throw new ApiError(404, t('batch.coachNotFound'));
         }
         // Verify coach belongs to the center
-        const centerId = data.centerId || existingBatch.center.toString();
-        if (coach.center && coach.center.toString() !== centerId) {
-          throw new ApiError(400, t('batch.coachNotInCenter'));
-        }
+        // const centerId = data.centerId || existingBatch.center.toString();
+        // if (coach.center && coach.center.toString() !== centerId) {
+        //   throw new ApiError(400, t('batch.coachNotInCenter'));
+        // }
       }
     }
 

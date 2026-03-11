@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { autocomplete, search } from '../controllers/search.controller';
+import { optionalAuthenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -84,6 +85,14 @@ const router = Router();
  *           minimum: 0
  *         description: "Filter coaching centers by age range – maximum age (years). Centers whose age range overlaps [min_age, max_age] are included. Applied when MongoDB fallback is used."
  *         example: 18
+ *       - in: query
+ *         name: min_rating
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *           maximum: 5
+ *         description: "Filter coaching centers by minimum average rating (0-5). Only centers with averageRating >= min_rating are returned."
+ *         example: 4
  *     responses:
  *       200:
  *         description: Autocomplete results retrieved successfully
@@ -177,7 +186,7 @@ const router = Router();
  *       503:
  *         description: Service unavailable (Meilisearch disabled - will use MongoDB fallback)
  */
-router.get('/autocomplete', autocomplete);
+router.get('/autocomplete', optionalAuthenticate, autocomplete);
 
 /**
  * @swagger
@@ -309,6 +318,14 @@ router.get('/autocomplete', autocomplete);
  *           minimum: 0
  *         description: "Filter coaching centers by age range – maximum age (years). Centers whose age range overlaps [min_age, max_age] are included. Applied when MongoDB fallback is used."
  *         example: 18
+ *       - in: query
+ *         name: min_rating
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *           maximum: 5
+ *         description: "Filter coaching centers by minimum average rating (0-5). Only centers with averageRating >= min_rating are returned."
+ *         example: 4
  *     responses:
  *       200:
  *         description: Search results retrieved successfully
@@ -393,6 +410,6 @@ router.get('/autocomplete', autocomplete);
  *       503:
  *         description: Service unavailable (Meilisearch disabled - will use MongoDB fallback)
  */
-router.get('/', search);
+router.get('/', optionalAuthenticate, search);
 
 export default router;

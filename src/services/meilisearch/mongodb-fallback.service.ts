@@ -41,6 +41,8 @@ class MongodbFallbackService {
       minAge?: number;
       /** Filter by age range – maximum age (years). Centers whose age range overlaps [minAge, maxAge] are included. */
       maxAge?: number;
+      /** Filter by minimum average rating (0-5). Only centers with averageRating >= minRating are returned. */
+      minRating?: number;
       /** When true and lat/long provided, sort by nearest first (default true when lat/long present) */
       sortByDistance?: boolean;
     } = {}
@@ -58,6 +60,7 @@ class MongodbFallbackService {
       forDisabled: filterForDisabled,
       minAge: filterMinAge,
       maxAge: filterMaxAge,
+      minRating: filterMinRating,
       radius: radiusKm,
       sortByDistance = true,
     } = options;
@@ -127,6 +130,9 @@ class MongodbFallbackService {
         mongoQuery['age.max'] = { $gte: filterMinAge };
       } else if (filterMaxAge != null && !Number.isNaN(filterMaxAge)) {
         mongoQuery['age.min'] = { $lte: filterMaxAge };
+      }
+      if (filterMinRating != null && !Number.isNaN(filterMinRating) && filterMinRating > 0) {
+        mongoQuery.averageRating = { $gte: Math.min(filterMinRating, 5) };
       }
       const sportIdStrings: string[] = [];
       if (filterSportId && filterSportId.trim()) sportIdStrings.push(filterSportId.trim());

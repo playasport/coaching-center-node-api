@@ -46,6 +46,10 @@ const startServer = async (): Promise<void> => {
     // Start permanent deletion cron job (runs monthly on the 1st at 3 AM)
     startPermanentDeleteJob();
 
+    // Booking payment expiry: auto-cancel unpaid approved bookings and send payment reminders (every 15 min)
+    const { startBookingPaymentExpiryJob } = await import('./jobs/bookingPaymentExpiry.job');
+    startBookingPaymentExpiryJob();
+
     // Start server
     app.listen(config.port, () => {
       logger.info('HTTP server started', {

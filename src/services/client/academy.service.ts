@@ -11,6 +11,7 @@ import { config } from '../../config/env';
 import { calculateDistances, getBoundingBox, calculateDistance } from '../../utils/distance';
 import { getUserObjectId } from '../../utils/userCache';
 import { getLatestRatingsForCenter } from './coachingCenterRating.service';
+import { UserAcademyBookmarkModel } from '../../models/userAcademyBookmark.model';
 import { CoachingCenterStatus } from '../../enums/coachingCenterStatus.enum';
 import { BatchStatus } from '../../enums/batchStatus.enum';
 import {
@@ -38,6 +39,19 @@ export interface PaginatedResultWithSport<T> extends PaginatedResult<T> {
     logo?: string | null;
   };
 }
+
+const slugify = (text: string): string => {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
+};
 
 export interface AcademyListItem {
   id: string; // CoachingCenter UUID id field
@@ -69,6 +83,7 @@ export interface AcademyListItem {
   distance?: number; // Distance in km (if location provided)
   averageRating?: number; // Average rating 0-5
   totalRatings?: number; // Number of ratings
+  isBookmarked?: boolean; // Whether logged-in user has bookmarked this center
 }
 
 /** Single rating item as returned in academy detail (latest 5). */
@@ -86,6 +101,7 @@ export interface AcademyRatingItem {
 }
 
 export interface AcademyDetail extends AcademyListItem {
+  share_url?: string;
   mobile_number?: string | null;
   email?: string | null;
   rules_regulation?: string[] | null;
@@ -95,6 +111,8 @@ export interface AcademyDetail extends AcademyListItem {
   isAlreadyRated: boolean;
   /** Whether the current user can update their rating (true if they have rated; only when logged in) */
   canUpdateRating: boolean;
+  /** Whether the current user has bookmarked this center (only when logged in) */
+  isBookmarked: boolean;
   sport_details: Array<{
     sport_id: {
       id: string;
@@ -198,6 +216,7 @@ export interface GetAllAcademiesFilters {
   forDisabled?: boolean;
   minAge?: number;
   maxAge?: number;
+  minRating?: number;
 }
 
 /**
@@ -239,6 +258,7 @@ export const getAllAcademies = async (
       forDisabled: filterForDisabled,
       minAge: filterMinAge,
       maxAge: filterMaxAge,
+      minRating: filterMinRating,
     } = filters;
 
     // Build base query - only published, active, and approved academies
@@ -272,6 +292,9 @@ export const getAllAcademies = async (
       query['age.max'] = { $gte: filterMinAge };
     } else if (filterMaxAge != null && !Number.isNaN(filterMaxAge)) {
       query['age.min'] = { $lte: filterMaxAge };
+    }
+    if (filterMinRating != null && !Number.isNaN(filterMinRating) && filterMinRating > 0) {
+      query.averageRating = { $gte: Math.min(filterMinRating, 5) };
     }
     const sportIdStrings: string[] = [];
     if (filterSportId && filterSportId.trim()) sportIdStrings.push(filterSportId.trim());
@@ -375,8 +398,19 @@ export const getAllAcademies = async (
     }
 
     // Sort academies
+    const genderFilterActive = filterGender && ['male', 'female', 'other'].includes(filterGender.trim().toLowerCase());
+    const normalizedGender = genderFilterActive ? filterGender!.trim().toLowerCase() : null;
+
     academies.sort((a, b) => {
-      // Priority 1: Favorite sports (if user logged in and has favorites)
+      // Priority 1: Gender exclusivity — exclusive match (e.g. female-only) before mixed
+      if (normalizedGender) {
+        const aExclusive = a.allowed_genders?.length === 1 && a.allowed_genders[0] === normalizedGender;
+        const bExclusive = b.allowed_genders?.length === 1 && b.allowed_genders[0] === normalizedGender;
+        if (aExclusive && !bExclusive) return -1;
+        if (!aExclusive && bExclusive) return 1;
+      }
+
+      // Priority 2: Favorite sports (if user logged in and has favorites)
       if (favoriteSportIds.length > 0) {
         const aHasFavorite = (a as any).sports?.some((s: any) =>
           favoriteSportIds.some((favId) => favId.toString() === s._id?.toString())
@@ -389,12 +423,12 @@ export const getAllAcademies = async (
         if (!aHasFavorite && bHasFavorite) return 1;
       }
 
-      // Priority 2: Distance (if location provided and not skipped by city/state filter)
+      // Priority 3: Distance (if location provided and not skipped by city/state filter)
       if (useLocationFilter && (a as any).distance !== undefined && (b as any).distance !== undefined) {
         return (a as any).distance - (b as any).distance;
       }
 
-      // Priority 3: Default sort (by creation date)
+      // Priority 4: Default sort (by creation date)
       return 0;
     });
 
@@ -414,6 +448,20 @@ export const getAllAcademies = async (
     const totalPages = Math.ceil(filteredTotal / pageSize);
 
     const filterSportIdSet = new Set(filterSportObjectIds.map((id) => id.toString()));
+
+    // Batch-check bookmarks for paginated academies when user is logged in
+    const bookmarkedIdSet = new Set<string>();
+    if (userId) {
+      const userObjectId = await getUserObjectId(userId);
+      if (userObjectId) {
+        const centerObjectIds = paginatedAcademies.map((a: any) => a._id);
+        const bookmarks = await UserAcademyBookmarkModel.find({
+          user: userObjectId,
+          academy: { $in: centerObjectIds },
+        }).select('academy').lean();
+        bookmarks.forEach((b: any) => bookmarkedIdSet.add(b.academy.toString()));
+      }
+    }
 
     const result: PaginatedResult<AcademyListItem> = {
       data: paginatedAcademies.map((academy: any) => {
@@ -488,6 +536,7 @@ export const getAllAcademies = async (
           distance: academy.distance,
           averageRating: (academy as any).averageRating ?? 0,
           totalRatings: (academy as any).totalRatings ?? 0,
+          isBookmarked: bookmarkedIdSet.has(academy._id.toString()),
         };
       }) as AcademyListItem[],
       pagination: {
@@ -623,9 +672,17 @@ export const getAcademyById = async (
     }
     
 
-    // Get batches and latest 5 ratings (with current user's rating first if logged in)
+    // Get batches, latest 5 ratings, and bookmark status in parallel
     const centerIdForRatings = coachingCenter.id || (coachingCenter as any)._id?.toString();
-    const [batches, ratingData] = await Promise.all([
+    const bookmarkCheckPromise = userId
+      ? getUserObjectId(userId).then((userObjId) =>
+          userObjId
+            ? UserAcademyBookmarkModel.exists({ user: userObjId, academy: coachingCenter._id })
+            : null
+        )
+      : Promise.resolve(null);
+
+    const [batches, ratingData, bookmarkDoc] = await Promise.all([
       BatchModel.find({
         center: coachingCenter._id,
         is_active: true,
@@ -637,14 +694,20 @@ export const getAcademyById = async (
         .select('name sport coach scheduled duration capacity age admission_fee base_price discounted_price certificate_issued status is_active is_allowed_disabled gender description')
         .lean(),
       getLatestRatingsForCenter(centerIdForRatings, 5, userId),
+      bookmarkCheckPromise,
     ]);
 
     // Transform response: remove _id, status, is_active, transform sports, sport_details, facility, and batches
     const { _id, sports, sport_details, facility, status, is_active, ...coachingCenterData } = coachingCenter as any;
     
+    const academyId = coachingCenter.id || (coachingCenter as any)._id?.toString();
+    const slug = slugify(coachingCenterData.center_name);
+    const baseUrl = config.mainSiteUrl;
+
     const result: any = {
       ...coachingCenterData,
-      id: coachingCenter.id || (coachingCenter as any)._id?.toString(),
+      id: academyId,
+      share_url: `${baseUrl}/academies/${academyId}/${slug}`,
       sports: (sports || []).map((sport: any) => ({
         id: sport.custom_id || sport._id?.toString(),
         name: sport.name,
@@ -685,6 +748,7 @@ export const getAcademyById = async (
       totalRatings: ratingData.totalRatings,
       isAlreadyRated: ratingData.isAlreadyRated,
       canUpdateRating: ratingData.canUpdateRating,
+      isBookmarked: !!bookmarkDoc,
     };
 
     if (!isUserLoggedIn) {
@@ -728,7 +792,8 @@ export const getAcademyById = async (
 export const getAcademiesByCity = async (
   cityName: string,
   page: number = 1,
-  limit: number = config.pagination.defaultLimit
+  limit: number = config.pagination.defaultLimit,
+  userId?: string
 ): Promise<PaginatedResult<AcademyListItem>> => {
   try {
     const pageNumber = Math.max(1, Math.floor(page));
@@ -778,6 +843,19 @@ export const getAcademiesByCity = async (
 
     const totalPages = Math.ceil(filteredTotal / pageSize);
 
+    const bookmarkedCitySet = new Set<string>();
+    if (userId) {
+      const userObjectId = await getUserObjectId(userId);
+      if (userObjectId) {
+        const centerObjectIds = paginatedAcademies.map((a: any) => a._id);
+        const bookmarks = await UserAcademyBookmarkModel.find({
+          user: userObjectId,
+          academy: { $in: centerObjectIds },
+        }).select('academy').lean();
+        bookmarks.forEach((b: any) => bookmarkedCitySet.add(b.academy.toString()));
+      }
+    }
+
     return {
       data: paginatedAcademies.map((academy: any) => {
         // Get first active image from sport_details, prioritizing banner images
@@ -820,6 +898,7 @@ export const getAcademiesByCity = async (
           is_only_for_disabled: academy.is_only_for_disabled === true,
           averageRating: (academy as any).averageRating ?? 0,
           totalRatings: (academy as any).totalRatings ?? 0,
+          isBookmarked: bookmarkedCitySet.has(academy._id.toString()),
         };
       }) as AcademyListItem[],
       pagination: {
@@ -845,7 +924,8 @@ export const getAcademiesBySport = async (
   page: number = 1,
   limit: number = config.pagination.defaultLimit,
   userLocation?: { latitude: number; longitude: number },
-  radius?: number
+  radius?: number,
+  userId?: string
 ): Promise<PaginatedResultWithSport<AcademyListItem>> => {
   try {
     const pageNumber = Math.max(1, Math.floor(page));
@@ -940,6 +1020,19 @@ export const getAcademiesBySport = async (
 
     const searchedSportIdStr = sport._id.toString();
 
+    const bookmarkedSportSet = new Set<string>();
+    if (userId) {
+      const userObjectId = await getUserObjectId(userId);
+      if (userObjectId) {
+        const centerObjectIds = paginatedAcademies.map((a: any) => a._id);
+        const bookmarks = await UserAcademyBookmarkModel.find({
+          user: userObjectId,
+          academy: { $in: centerObjectIds },
+        }).select('academy').lean();
+        bookmarks.forEach((b: any) => bookmarkedSportSet.add(b.academy.toString()));
+      }
+    }
+
     return {
       data: paginatedAcademies.map((academy: any) => {
         // Get image from the sport_detail of the searched sport only, prioritizing banner
@@ -980,6 +1073,7 @@ export const getAcademiesBySport = async (
           distance: academy.distance,
           averageRating: (academy as any).averageRating ?? 0,
           totalRatings: (academy as any).totalRatings ?? 0,
+          isBookmarked: bookmarkedSportSet.has(academy._id.toString()),
         };
       }) as AcademyListItem[],
       sport: {

@@ -30,6 +30,14 @@
     "meilisearch:index-highlights": "tsx scripts/meilisearch-index-highlights.ts",
     "migrate:coaching-centers": "tsx scripts/migration-script/coaching-center-migration.js",
     "migrate:batches": "tsx scripts/migrate-batches-from-mysql.ts",
+    "log:duplicate-batches": "tsx scripts/log-duplicate-batches.ts",
+    "delete:duplicate-batches": "tsx scripts/delete-duplicate-batches.ts",
+    "delete:duplicate-batches:dry-run": "tsx scripts/delete-duplicate-batches.ts --dry-run",
+    "export:mysql-tables": "tsx scripts/export-mysql-tables-to-excel.ts",
+    "import:batches-excel": "tsx scripts/import-batches-from-excel.ts",
+    "export:center-ids": "tsx scripts/export-center-ids-from-mysql.ts",
+    "delete:batches-by-centers": "tsx scripts/delete-batches-by-center-ids.ts",
+    "migrate:specific-centers": "tsx scripts/migrate-specific-centers.ts",
     "migrate:create-indexes": "tsx scripts/migration-script/coaching-center-migration.js indexes"
   },
   "keywords": [

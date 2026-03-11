@@ -5,27 +5,10 @@ import { logger } from '../utils/logger';
 const paymentService = getPaymentService();
 
 /**
- * Middleware to capture raw body for webhook signature verification
- * Payment gateway webhooks require raw body to verify signature
- */
-export const rawBodyMiddleware = (req: Request, _res: Response, next: NextFunction): void => {
-  if (req.path.includes('/webhook')) {
-    let data = '';
-    req.setEncoding('utf8');
-    req.on('data', (chunk) => {
-      data += chunk;
-    });
-    req.on('end', () => {
-      (req as any).rawBody = data;
-      next();
-    });
-  } else {
-    next();
-  }
-};
-
-/**
- * Verify Razorpay webhook signature
+ * Verify Razorpay webhook signature using the raw request body
+ * and the webhook secret (configured in Razorpay Dashboard).
+ *
+ * Raw body is captured by express.json()'s `verify` callback in app.ts.
  */
 export const verifyWebhookSignature = async (
   req: Request,
@@ -34,36 +17,30 @@ export const verifyWebhookSignature = async (
 ): Promise<void> => {
   try {
     const razorpaySignature = req.headers['x-razorpay-signature'] as string;
-    const rawBody = (req as any).rawBody || JSON.stringify(req.body);
+    const rawBody = (req as any).rawBody as string | undefined;
 
     if (!razorpaySignature) {
       logger.warn('Webhook signature missing', {
         path: req.path,
-        headers: req.headers,
       });
       res.status(400).json({ error: 'Missing webhook signature' });
       return;
     }
 
-    // Verify webhook signature using payment service
+    if (!rawBody) {
+      logger.warn('Webhook raw body not available — verify that express.json verify callback is configured');
+      res.status(400).json({ error: 'Unable to verify webhook signature' });
+      return;
+    }
+
     const isValidSignature = await paymentService.verifyWebhookSignature(rawBody, razorpaySignature);
 
     if (!isValidSignature) {
       logger.warn('Invalid webhook signature', {
         path: req.path,
-        received: razorpaySignature,
       });
       res.status(400).json({ error: 'Invalid webhook signature' });
       return;
-    }
-
-    // Parse body if it's a string
-    if (typeof rawBody === 'string') {
-      try {
-        req.body = JSON.parse(rawBody);
-      } catch (e) {
-        // If parsing fails, body might already be parsed
-      }
     }
 
     next();
@@ -75,4 +52,3 @@ export const verifyWebhookSignature = async (
     res.status(500).json({ error: 'Webhook verification failed' });
   }
 };
-

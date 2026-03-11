@@ -49,6 +49,11 @@ const BLACKLIST_KEY_PREFIX = 'blacklist:token:';
 const USER_BLACKLIST_KEY_PREFIX = 'blacklist:user:';
 
 /**
+ * JTI blacklist key prefix (for single-device logout — invalidates both access and refresh token sharing the same jti)
+ */
+const JTI_BLACKLIST_KEY_PREFIX = 'blacklist:jti:';
+
+/**
  * Blacklist a token until it expires
  * @param token - JWT token to blacklist
  * @param expiresIn - Expiration time in seconds (optional, will extract from token if not provided)
@@ -97,8 +102,27 @@ export const blacklistToken = async (token: string, expiresIn?: number): Promise
 };
 
 /**
+ * Blacklist a JTI (JWT ID) so that both the access and refresh token sharing it are invalidated.
+ * @param jti - The jti claim from the token
+ * @param expiresIn - TTL in seconds (should cover the longest-lived token in the pair)
+ */
+export const blacklistJti = async (jti: string, expiresIn?: number): Promise<void> => {
+  try {
+    const redis = getRedisClient();
+    const ttl = expiresIn && expiresIn > 0 ? expiresIn : 90 * 24 * 60 * 60; // default 90 days (mobile refresh token max)
+    const key = `${JTI_BLACKLIST_KEY_PREFIX}${jti}`;
+    await redis.setex(key, ttl, '1');
+    logger.debug('JTI blacklisted', { jti, expiresIn: ttl });
+  } catch (error) {
+    logger.error('Failed to blacklist JTI:', {
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+};
+
+/**
  * Check if a token is blacklisted
- * Also checks if the user is blacklisted (logout from all devices)
+ * Checks: specific token → JTI → user-level blacklist
  * @param token - JWT token to check
  * @returns true if token is blacklisted, false otherwise
  */
@@ -113,20 +137,29 @@ export const isTokenBlacklisted = async (token: string): Promise<boolean> => {
       return true;
     }
     
-    // Try to decode token to get userId (without verification)
-    // This allows us to check user-level blacklist even for expired tokens
+    // Try to decode token to get userId and jti (without verification)
     try {
       const decoded = jwt.decode(token, { complete: false }) as jwt.JwtPayload | null;
-      if (decoded && decoded.id) {
+      if (decoded) {
+        // Check if JTI is blacklisted (single-device logout)
+        if (decoded.jti) {
+          const jtiKey = `${JTI_BLACKLIST_KEY_PREFIX}${decoded.jti}`;
+          const jtiBlacklisted = await redis.get(jtiKey);
+          if (jtiBlacklisted === '1') {
+            return true;
+          }
+        }
+
         // Check if user is blacklisted (logout from all devices)
-        const userBlacklisted = await isUserBlacklisted(decoded.id);
-        if (userBlacklisted) {
-          return true;
+        if (decoded.id) {
+          const userBlacklisted = await isUserBlacklisted(decoded.id);
+          if (userBlacklisted) {
+            return true;
+          }
         }
       }
     } catch (decodeError) {
       // If we can't decode, just continue - token might be malformed
-      // We'll only check the specific token blacklist
     }
     
     return false;

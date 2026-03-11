@@ -62,6 +62,7 @@ GET /api/v1/academies/{id}
     ],
     "isAlreadyRated": true,
     "canUpdateRating": true,
+    "isBookmarked": false,
     "sport_details": [ ... ],
     "facility": [ ... ],
     "batches": [ ... ],
@@ -80,6 +81,7 @@ GET /api/v1/academies/{id}
 | `totalRatings`   | number  | Total number of **approved** ratings. |
 | `isAlreadyRated` | boolean | `true` if the current user has already rated this center (only meaningful when logged in). |
 | `canUpdateRating`| boolean | `true` if the current user can update their rating (they have rated; only when logged in). |
+| `isBookmarked`   | boolean | `true` if the current user has bookmarked this academy (only meaningful when logged in). |
 
 ### Request examples
 
