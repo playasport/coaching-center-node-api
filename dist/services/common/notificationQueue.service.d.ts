@@ -50,6 +50,11 @@ export declare const queueMultiChannel: (channels: NotificationChannel[], notifi
         fcmToken?: string;
     };
 }, priority?: NotificationPriority, metadata?: Record<string, unknown>) => void;
+/**
+ * Wait for notification queue to drain (for scripts that exit after queuing).
+ * Polls until queue is empty and processing finished, or maxWaitMs reached.
+ */
+export declare const waitForQueueDrain: (maxWaitMs?: number) => Promise<void>;
 export declare const getQueueStatus: () => {
     total: number;
     high: number;

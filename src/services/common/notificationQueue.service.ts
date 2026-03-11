@@ -676,6 +676,22 @@ export const queueMultiChannel = (
   });
 };
 
+/**
+ * Wait for notification queue to drain (for scripts that exit after queuing).
+ * Polls until queue is empty and processing finished, or maxWaitMs reached.
+ */
+export const waitForQueueDrain = async (maxWaitMs = 15000): Promise<void> => {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    const { total, isProcessing } = getQueueStatus();
+    if (total === 0 && !isProcessing) {
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  logger.warn('waitForQueueDrain timed out', getQueueStatus());
+};
+
 // Get queue status
 export const getQueueStatus = (): {
   total: number;
