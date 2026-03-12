@@ -1,4 +1,5 @@
 import { CoachingCenterModel, CoachingCenter } from '../../models/coachingCenter.model';
+import { CoachingCenterStatus } from '../../enums/coachingCenterStatus.enum';
 import { SportModel } from '../../models/sport.model';
 import { UserModel } from '../../models/user.model';
 import { logger } from '../../utils/logger';
@@ -520,4 +521,45 @@ export const updateCoachingCenter = async (
     logger.error('Update failed:', error);
     throw new ApiError(500, t('coachingCenter.update.failed'));
   }
+};
+
+const DEFAULT_BANNER_URL = 'https://media-playsport.s3.ap-south-1.amazonaws.com/partner/banner.jpg';
+
+/**
+ * Get a random image URL from any active CoachingCenter (logo or sport_details images).
+ * Returns default banner URL if no images found.
+ */
+export const getRandomBanner = async (): Promise<{ imageUrl: string }> => {
+  const centers = await CoachingCenterModel.find({
+    status: CoachingCenterStatus.PUBLISHED,
+    is_active: true,
+    is_deleted: false,
+    approval_status: AdminApproveStatus.APPROVE,
+  })
+    .select('logo sport_details')
+    .lean();
+
+  const imageUrls: string[] = [];
+
+  for (const center of centers) {
+    if (center.logo && center.logo.trim()) {
+      imageUrls.push(center.logo.trim());
+    }
+    if (center.sport_details && Array.isArray(center.sport_details)) {
+      for (const sd of center.sport_details) {
+        if (sd.images && Array.isArray(sd.images)) {
+          for (const img of sd.images) {
+            if (img.url && img.is_active && !img.is_deleted) {
+              imageUrls.push(img.url.trim());
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const imageUrl =
+    imageUrls.length > 0 ? imageUrls[Math.floor(Math.random() * imageUrls.length)] : DEFAULT_BANNER_URL;
+
+  return { imageUrl };
 };

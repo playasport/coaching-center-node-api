@@ -38,13 +38,16 @@ import searchRoutes from './search.routes';
 import adminRoutes from './admin';
 import emailTemplateTestRoutes from './test/emailTemplate.routes';
 import * as academyController from '../controllers/academy.controller';
-import { optionalAuthenticate } from '../middleware/auth.middleware';
+import { getRandomBanner } from '../controllers/academy/academyAuth.controller';
+import { optionalAuthenticate, authenticate, authorize } from '../middleware/auth.middleware';
+import { DefaultRoles } from '../enums/defaultRoles.enum';
 import { t } from '../utils/i18n';
 import { ApiResponse } from '../utils/ApiResponse';
 
 const router = Router();
 
 router.use('/locale', localeRoutes);
+router.get('/academy/random-banner', authenticate, authorize(DefaultRoles.ACADEMY), getRandomBanner);
 router.use('/academy/auth', academyAuthRoutes);
 router.use('/user/auth', userAuthRoutes);
 router.use('/user/participant', participantRoutes);
