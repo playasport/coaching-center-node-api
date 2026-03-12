@@ -104,11 +104,11 @@ exports.getBoundingBox = getBoundingBox;
  * Generate cache key for distance calculation
  */
 const getCacheKey = (lat1, lon1, lat2, lon2) => {
-    // Round coordinates to 4 decimal places (~11 meters precision) for cache efficiency
-    const roundedLat1 = Math.round(lat1 * 10000) / 10000;
-    const roundedLon1 = Math.round(lon1 * 10000) / 10000;
-    const roundedLat2 = Math.round(lat2 * 10000) / 10000;
-    const roundedLon2 = Math.round(lon2 * 10000) / 10000;
+    // Round coordinates to 3 decimal places (~110 meters) for higher cache hit rate in search apps
+    const roundedLat1 = Math.round(lat1 * 1000) / 1000;
+    const roundedLon1 = Math.round(lon1 * 1000) / 1000;
+    const roundedLat2 = Math.round(lat2 * 1000) / 1000;
+    const roundedLon2 = Math.round(lon2 * 1000) / 1000;
     return `${CACHE_KEY_PREFIX}${roundedLat1},${roundedLon1}:${roundedLat2},${roundedLon2}`;
 };
 /**
@@ -180,18 +180,8 @@ const calculateDistance = async (originLat, originLon, destLat, destLon) => {
                 });
             }
         }
-        // Fallback to Haversine formula
+        // Fallback to Haversine formula (do NOT cache - only Google Maps API results are cached)
         const distance = (0, exports.calculateHaversineDistance)(originLat, originLon, destLat, destLon);
-        // Cache Haversine result too (for consistency)
-        if (redis && distance >= 0) {
-            try {
-                await redis.setex(cacheKey, CACHE_TTL, distance.toString());
-                logger_1.logger.debug('Distance cached from Haversine calculation', { cacheKey, distance });
-            }
-            catch (cacheError) {
-                logger_1.logger.warn('Failed to cache Haversine distance', { error: cacheError });
-            }
-        }
         return roundToTwoDecimals(distance);
     }
     catch (error) {

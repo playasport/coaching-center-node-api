@@ -5,6 +5,7 @@ const sport_model_1 = require("../../models/sport.model");
 const coachingCenter_model_1 = require("../../models/coachingCenter.model");
 const logger_1 = require("../../utils/logger");
 const distance_1 = require("../../utils/distance");
+const geoNearAcademies_service_1 = require("../common/geoNearAcademies.service");
 const mongoose_1 = require("mongoose");
 const userCache_1 = require("../../utils/userCache");
 const user_model_1 = require("../../models/user.model");
@@ -71,24 +72,12 @@ const getPopularSports = async (limit = 8) => {
 exports.getPopularSports = getPopularSports;
 /**
  * Get nearby academies based on location
- * Optimized to use database-level filtering and limit records fetched
+ * Flow: MongoDB $geoNear (top 200) → Redis/Google road distance → final sorted result
+ * Fallback: bounding box + calculateDistances when location.geo not populated
  */
 const getNearbyAcademies = async (userLocation, limit = 12, userId, radius) => {
     try {
-        // Build base query - only published and active academies
-        const query = {
-            status: coachingCenterStatus_enum_1.CoachingCenterStatus.PUBLISHED,
-            is_active: true,
-            is_deleted: false,
-            approval_status: 'approved',
-        };
         const searchRadius = radius ?? env_1.config.location.defaultRadius;
-        // Use bounding box to fetch academies in user's geographic area (same as getAllAcademies).
-        // Previously we fetched newest N globally by createdAt—academies near the user were often
-        // excluded, so nearby returned empty while getAllAcademies showed data.
-        const bbox = (0, distance_1.getBoundingBox)(userLocation.latitude, userLocation.longitude, searchRadius);
-        query['location.latitude'] = { $gte: bbox.minLat, $lte: bbox.maxLat };
-        query['location.longitude'] = { $gte: bbox.minLon, $lte: bbox.maxLon };
         // Get user's favorite sports if logged in
         let favoriteSportIds = [];
         if (userId) {
@@ -107,21 +96,49 @@ const getNearbyAcademies = async (userLocation, limit = 12, userId, radius) => {
                 logger_1.logger.warn('Failed to get user favorite sports', { userId, error });
             }
         }
-        // Fetch academies within bounding box; then filter by exact radius after distance calc
-        const fetchLimit = Math.min(limit * 10, 500);
-        let academies = await coachingCenter_model_1.CoachingCenterModel.find(query)
-            .populate('sports', 'custom_id name logo is_popular')
-            .select('id center_name logo location sports allowed_genders sport_details createdAt user')
-            .sort({ createdAt: -1 }) // Default sort by creation date
-            .limit(fetchLimit)
-            .lean();
+        // Try geoNear + road distance first (requires location.geo - run migrate:coaching-center-geo)
+        const geoResults = await (0, geoNearAcademies_service_1.getNearbyAcademiesWithRoadDistance)(userLocation, {
+            maxRadiusKm: searchRadius,
+            limit: 200,
+        });
+        let academies = [];
+        if (geoResults.length > 0) {
+            academies = geoResults.map((r) => ({ ...r.academy, distance: r.roadDistanceKm }));
+        }
+        // Fallback to bounding box when geoNear returns nothing (e.g. no location.geo yet)
+        if (academies.length === 0) {
+            const bbox = (0, distance_1.getBoundingBox)(userLocation.latitude, userLocation.longitude, searchRadius);
+            const query = {
+                status: coachingCenterStatus_enum_1.CoachingCenterStatus.PUBLISHED,
+                is_active: true,
+                is_deleted: false,
+                approval_status: 'approved',
+                'location.latitude': { $gte: bbox.minLat, $lte: bbox.maxLat },
+                'location.longitude': { $gte: bbox.minLon, $lte: bbox.maxLon },
+            };
+            const fetchLimit = Math.min(limit * 10, 500);
+            academies = await coachingCenter_model_1.CoachingCenterModel.find(query)
+                .populate('sports', 'custom_id name logo is_popular')
+                .select('id center_name logo location sports allowed_genders sport_details createdAt user')
+                .sort({ createdAt: -1 })
+                .limit(fetchLimit)
+                .lean();
+            if (academies.length > 0) {
+                const destinations = academies.map((a) => ({
+                    latitude: a.location.latitude,
+                    longitude: a.location.longitude,
+                }));
+                const distances = await (0, distance_1.calculateDistances)(userLocation.latitude, userLocation.longitude, destinations);
+                academies = academies.map((a, i) => ({ ...a, distance: distances[i] }));
+                academies = academies.filter((a) => a.distance !== undefined && a.distance <= searchRadius);
+            }
+        }
         // Filter out academies with deleted users
         if (academies.length > 0) {
             const academyUserIds = academies
                 .map((a) => a.user)
                 .filter((uid) => uid && (mongoose_1.Types.ObjectId.isValid(uid) || uid._id));
             if (academyUserIds.length > 0) {
-                // Convert to ObjectIds if needed
                 const userIds = academyUserIds.map((uid) => mongoose_1.Types.ObjectId.isValid(uid) ? new mongoose_1.Types.ObjectId(uid) : (uid._id || uid));
                 const validUsers = await user_model_1.UserModel.find({
                     _id: { $in: userIds },
@@ -133,39 +150,16 @@ const getNearbyAcademies = async (userLocation, limit = 12, userId, radius) => {
                 academies = academies.filter((academy) => {
                     if (!academy.user)
                         return false;
-                    const userId = academy.user._id || academy.user;
-                    const userIdStr = userId.toString ? userId.toString() : String(userId);
-                    return validUserIds.has(userIdStr);
+                    const uid = academy.user._id || academy.user;
+                    return validUserIds.has(uid.toString ? uid.toString() : String(uid));
                 });
             }
             else {
-                // If no valid user IDs, filter all out
                 academies = [];
             }
         }
-        // Calculate distances for ALL fetched records
-        // This ensures we don't miss any nearby records
-        if (academies.length > 0) {
-            const destinations = academies.map((academy) => ({
-                latitude: academy.location.latitude,
-                longitude: academy.location.longitude,
-            }));
-            const distances = await (0, distance_1.calculateDistances)(userLocation.latitude, userLocation.longitude, destinations);
-            // Add distance to each academy
-            academies = academies.map((academy, index) => ({
-                ...academy,
-                distance: distances[index],
-            }));
-            // Filter by exact radius after calculating distances
-            // This ensures we include all records within radius, including 0.0 distance
-            academies = academies.filter((academy) => {
-                const distance = academy.distance;
-                return distance !== undefined && distance <= searchRadius;
-            });
-        }
-        // Sort academies
+        // Sort: favorite sports first, then by distance
         academies.sort((a, b) => {
-            // Priority 1: Favorite sports (if user logged in and has favorites)
             if (favoriteSportIds.length > 0) {
                 const aHasFavorite = a.sports?.some((s) => favoriteSportIds.some((favId) => favId.toString() === s._id?.toString()));
                 const bHasFavorite = b.sports?.some((s) => favoriteSportIds.some((favId) => favId.toString() === s._id?.toString()));
@@ -174,20 +168,14 @@ const getNearbyAcademies = async (userLocation, limit = 12, userId, radius) => {
                 if (!aHasFavorite && bHasFavorite)
                     return 1;
             }
-            // Priority 2: Distance (always sort by distance for nearby academies)
-            if (a.distance !== undefined && b.distance !== undefined) {
+            if (a.distance !== undefined && b.distance !== undefined)
                 return a.distance - b.distance;
-            }
-            // Priority 3: Default sort (by creation date)
             return 0;
         });
-        // Limit results
-        const limitedAcademies = academies.slice(0, limit);
-        return limitedAcademies.map((academy) => mapAcademyToListItem(academy));
+        return academies.slice(0, limit).map((a) => mapAcademyToListItem(a));
     }
     catch (error) {
         logger_1.logger.error('Failed to get nearby academies:', error);
-        // Return empty array instead of throwing error
         return [];
     }
 };
@@ -258,23 +246,45 @@ const getRecommendedAcademies = async (userLocation, limit = 12, userId, radius)
         if (favoriteSportIds.length === 0)
             return [];
         const searchRadius = radius ?? env_1.config.location.defaultRadius;
-        const bbox = (0, distance_1.getBoundingBox)(userLocation.latitude, userLocation.longitude, searchRadius);
-        const query = {
-            status: coachingCenterStatus_enum_1.CoachingCenterStatus.PUBLISHED,
-            is_active: true,
-            is_deleted: false,
-            approval_status: 'approved',
-            sports: { $in: favoriteSportIds },
-            'location.latitude': { $gte: bbox.minLat, $lte: bbox.maxLat },
-            'location.longitude': { $gte: bbox.minLon, $lte: bbox.maxLon },
-        };
-        const fetchLimit = Math.min(limit * 10, 500);
-        let academies = await coachingCenter_model_1.CoachingCenterModel.find(query)
-            .populate('sports', 'custom_id name logo is_popular')
-            .select('id center_name logo location sports allowed_genders sport_details createdAt user')
-            .sort({ createdAt: -1 })
-            .limit(fetchLimit)
-            .lean();
+        // Try geoNear + road distance first
+        let academies = [];
+        const geoResults = await (0, geoNearAcademies_service_1.getNearbyAcademiesWithRoadDistance)(userLocation, {
+            maxRadiusKm: searchRadius,
+            limit: 200,
+            extraQuery: { sports: { $in: favoriteSportIds } },
+        });
+        if (geoResults.length > 0) {
+            academies = geoResults.map((r) => ({ ...r.academy, distance: r.roadDistanceKm }));
+        }
+        // Fallback to bounding box
+        if (academies.length === 0) {
+            const bbox = (0, distance_1.getBoundingBox)(userLocation.latitude, userLocation.longitude, searchRadius);
+            const query = {
+                status: coachingCenterStatus_enum_1.CoachingCenterStatus.PUBLISHED,
+                is_active: true,
+                is_deleted: false,
+                approval_status: 'approved',
+                sports: { $in: favoriteSportIds },
+                'location.latitude': { $gte: bbox.minLat, $lte: bbox.maxLat },
+                'location.longitude': { $gte: bbox.minLon, $lte: bbox.maxLon },
+            };
+            const fetchLimit = Math.min(limit * 10, 500);
+            academies = await coachingCenter_model_1.CoachingCenterModel.find(query)
+                .populate('sports', 'custom_id name logo is_popular')
+                .select('id center_name logo location sports allowed_genders sport_details createdAt user')
+                .sort({ createdAt: -1 })
+                .limit(fetchLimit)
+                .lean();
+            if (academies.length > 0) {
+                const destinations = academies.map((a) => ({
+                    latitude: a.location.latitude,
+                    longitude: a.location.longitude,
+                }));
+                const distances = await (0, distance_1.calculateDistances)(userLocation.latitude, userLocation.longitude, destinations);
+                academies = academies.map((a, i) => ({ ...a, distance: distances[i] }));
+                academies = academies.filter((a) => a.distance !== undefined && a.distance <= searchRadius);
+            }
+        }
         // Filter out academies with deleted users
         if (academies.length > 0) {
             const academyUserIds = academies
@@ -282,10 +292,7 @@ const getRecommendedAcademies = async (userLocation, limit = 12, userId, radius)
                 .filter((uid) => uid && (mongoose_1.Types.ObjectId.isValid(uid) || uid._id));
             if (academyUserIds.length > 0) {
                 const userIds = academyUserIds.map((uid) => mongoose_1.Types.ObjectId.isValid(uid) ? new mongoose_1.Types.ObjectId(uid) : (uid._id || uid));
-                const validUsers = await user_model_1.UserModel.find({
-                    _id: { $in: userIds },
-                    isDeleted: false,
-                })
+                const validUsers = await user_model_1.UserModel.find({ _id: { $in: userIds }, isDeleted: false })
                     .select('_id')
                     .lean();
                 const validUserIds = new Set(validUsers.map((u) => u._id.toString()));
@@ -293,29 +300,12 @@ const getRecommendedAcademies = async (userLocation, limit = 12, userId, radius)
                     if (!academy.user)
                         return false;
                     const uid = academy.user._id || academy.user;
-                    const uidStr = uid.toString ? uid.toString() : String(uid);
-                    return validUserIds.has(uidStr);
+                    return validUserIds.has(uid.toString ? uid.toString() : String(uid));
                 });
             }
             else {
                 academies = [];
             }
-        }
-        // Calculate distances
-        if (academies.length > 0) {
-            const destinations = academies.map((academy) => ({
-                latitude: academy.location.latitude,
-                longitude: academy.location.longitude,
-            }));
-            const distances = await (0, distance_1.calculateDistances)(userLocation.latitude, userLocation.longitude, destinations);
-            academies = academies.map((academy, index) => ({
-                ...academy,
-                distance: distances[index],
-            }));
-            academies = academies.filter((academy) => {
-                const distance = academy.distance;
-                return distance !== undefined && distance <= searchRadius;
-            });
         }
         // Sort: 1) More matching favorite sports first, 2) Then by distance
         academies.sort((a, b) => {

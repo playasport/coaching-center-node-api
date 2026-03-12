@@ -29,10 +29,15 @@ export interface CenterAddress {
     country?: string | null;
     pincode: string;
 }
+export interface GeoPoint {
+    type: 'Point';
+    coordinates: [number, number];
+}
 export interface CenterLocation {
     latitude: number;
     longitude: number;
     address: CenterAddress;
+    geo?: GeoPoint | null;
 }
 export interface OperationalTiming {
     operating_days: string[];

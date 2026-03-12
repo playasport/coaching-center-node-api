@@ -12,6 +12,7 @@ const logger_1 = require("../../utils/logger");
 const i18n_1 = require("../../utils/i18n");
 const env_1 = require("../../config/env");
 const distance_1 = require("../../utils/distance");
+const geoNearAcademies_service_1 = require("../common/geoNearAcademies.service");
 const userCache_1 = require("../../utils/userCache");
 const coachingCenterRating_service_1 = require("./coachingCenterRating.service");
 const userAcademyBookmark_model_1 = require("../../models/userAcademyBookmark.model");
@@ -157,45 +158,65 @@ const getAllAcademies = async (page = 1, limit = env_1.config.pagination.default
         }
         // When city or state filter is applied, skip location filter (lat/long/radius)
         const useLocationFilter = userLocation && !filterCity && !filterState;
-        // If location is provided (and no city/state filter), use bounding box to pre-filter records at database level
+        const searchRadius = radius ?? env_1.config.location.defaultRadius;
+        let academies = [];
         if (useLocationFilter) {
-            const searchRadius = radius ?? env_1.config.location.defaultRadius;
-            const bbox = (0, distance_1.getBoundingBox)(userLocation.latitude, userLocation.longitude, searchRadius);
-            query['location.latitude'] = { $gte: bbox.minLat, $lte: bbox.maxLat };
-            query['location.longitude'] = { $gte: bbox.minLon, $lte: bbox.maxLon };
-        }
-        // For location-based queries, fetch ALL records in the bounding box so we can
-        // sort by distance and paginate correctly. The bounding box already limits the
-        // geographic area so the result set is bounded. For non-location queries, use a
-        // reasonable limit based on page size.
-        const fetchLimit = useLocationFilter ? 0 : Math.min(pageSize * 5, 200);
-        // Fetch academies with database-level filtering
-        const academyQuery = coachingCenter_model_1.CoachingCenterModel.find(query)
-            .populate('sports', 'custom_id name logo is_popular')
-            .select('id center_name logo location sports allowed_genders sport_details age allowed_disabled is_only_for_disabled averageRating totalRatings createdAt')
-            .sort({ createdAt: -1 });
-        if (fetchLimit > 0) {
-            academyQuery.limit(fetchLimit);
-        }
-        let academies = await academyQuery.lean();
-        // Calculate distances if location provided and not skipped by city/state filter
-        if (useLocationFilter && academies.length > 0) {
-            const destinations = academies.map((academy) => ({
-                latitude: academy.location.latitude,
-                longitude: academy.location.longitude,
-            }));
-            const distances = await (0, distance_1.calculateDistances)(userLocation.latitude, userLocation.longitude, destinations);
-            // Add distance to each academy
-            academies = academies.map((academy, index) => ({
-                ...academy,
-                distance: distances[index],
-            }));
-            // Filter by exact radius
-            const searchRadius = radius ?? env_1.config.location.defaultRadius;
-            academies = academies.filter((academy) => {
-                const distance = academy.distance;
-                return distance !== undefined && distance <= searchRadius;
+            // Try geoNear + road distance first (Redis cache → $geoNear → Google road distance)
+            const geoExtraQuery = {
+                status: coachingCenterStatus_enum_1.CoachingCenterStatus.PUBLISHED,
+                is_active: true,
+                is_deleted: false,
+                approval_status: 'approved',
+            };
+            if (query['location.address.city'])
+                geoExtraQuery['location.address.city'] = query['location.address.city'];
+            if (query['location.address.state'])
+                geoExtraQuery['location.address.state'] = query['location.address.state'];
+            if (query.allowed_genders)
+                geoExtraQuery.allowed_genders = query.allowed_genders;
+            if (query.allowed_disabled)
+                geoExtraQuery.allowed_disabled = query.allowed_disabled;
+            if (query['age.max'])
+                geoExtraQuery['age.max'] = query['age.max'];
+            if (query['age.min'])
+                geoExtraQuery['age.min'] = query['age.min'];
+            if (query.averageRating)
+                geoExtraQuery.averageRating = query.averageRating;
+            if (query.sports)
+                geoExtraQuery.sports = query.sports;
+            const geoResults = await (0, geoNearAcademies_service_1.getNearbyAcademiesWithRoadDistance)(userLocation, {
+                maxRadiusKm: searchRadius,
+                limit: 200,
+                extraQuery: geoExtraQuery,
             });
+            if (geoResults.length > 0) {
+                academies = geoResults.map((r) => ({ ...r.academy, distance: r.roadDistanceKm }));
+            }
+        }
+        // Fallback to bounding box when geoNear returns nothing
+        if (!useLocationFilter || academies.length === 0) {
+            if (useLocationFilter) {
+                const bbox = (0, distance_1.getBoundingBox)(userLocation.latitude, userLocation.longitude, searchRadius);
+                query['location.latitude'] = { $gte: bbox.minLat, $lte: bbox.maxLat };
+                query['location.longitude'] = { $gte: bbox.minLon, $lte: bbox.maxLon };
+            }
+            const fetchLimit = useLocationFilter ? 0 : Math.min(pageSize * 5, 200);
+            const academyQuery = coachingCenter_model_1.CoachingCenterModel.find(query)
+                .populate('sports', 'custom_id name logo is_popular')
+                .select('id center_name logo location sports allowed_genders sport_details age allowed_disabled is_only_for_disabled averageRating totalRatings createdAt')
+                .sort({ createdAt: -1 });
+            if (fetchLimit > 0)
+                academyQuery.limit(fetchLimit);
+            academies = await academyQuery.lean();
+            if (useLocationFilter && academies.length > 0) {
+                const destinations = academies.map((a) => ({
+                    latitude: a.location.latitude,
+                    longitude: a.location.longitude,
+                }));
+                const distances = await (0, distance_1.calculateDistances)(userLocation.latitude, userLocation.longitude, destinations);
+                academies = academies.map((a, i) => ({ ...a, distance: distances[i] }));
+                academies = academies.filter((a) => a.distance !== undefined && a.distance <= searchRadius);
+            }
         }
         // Sort academies
         const genderFilterActive = filterGender && ['male', 'female', 'other'].includes(filterGender.trim().toLowerCase());
