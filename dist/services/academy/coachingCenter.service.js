@@ -33,8 +33,9 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateCoachingCenter = exports.removeMediaFromCoachingCenter = exports.toggleCoachingCenterStatus = exports.deleteCoachingCenter = exports.getCoachingCenterById = exports.getCoachingCentersByUser = exports.createCoachingCenter = void 0;
+exports.getRandomBanner = exports.updateCoachingCenter = exports.removeMediaFromCoachingCenter = exports.toggleCoachingCenterStatus = exports.deleteCoachingCenter = exports.getCoachingCenterById = exports.getCoachingCentersByUser = exports.createCoachingCenter = void 0;
 const coachingCenter_model_1 = require("../../models/coachingCenter.model");
+const coachingCenterStatus_enum_1 = require("../../enums/coachingCenterStatus.enum");
 const sport_model_1 = require("../../models/sport.model");
 const user_model_1 = require("../../models/user.model");
 const logger_1 = require("../../utils/logger");
@@ -454,4 +455,39 @@ const updateCoachingCenter = async (id, data) => {
     }
 };
 exports.updateCoachingCenter = updateCoachingCenter;
+const DEFAULT_BANNER_URL = 'https://media-playsport.s3.ap-south-1.amazonaws.com/partner/banner.jpg';
+/**
+ * Get a random image URL from any active CoachingCenter (logo or sport_details images).
+ * Returns default banner URL if no images found.
+ */
+const getRandomBanner = async () => {
+    const centers = await coachingCenter_model_1.CoachingCenterModel.find({
+        status: coachingCenterStatus_enum_1.CoachingCenterStatus.PUBLISHED,
+        is_active: true,
+        is_deleted: false,
+        approval_status: adminApprove_enum_1.AdminApproveStatus.APPROVE,
+    })
+        .select('logo sport_details')
+        .lean();
+    const imageUrls = [];
+    for (const center of centers) {
+        if (center.logo && center.logo.trim()) {
+            imageUrls.push(center.logo.trim());
+        }
+        if (center.sport_details && Array.isArray(center.sport_details)) {
+            for (const sd of center.sport_details) {
+                if (sd.images && Array.isArray(sd.images)) {
+                    for (const img of sd.images) {
+                        if (img.url && img.is_active && !img.is_deleted) {
+                            imageUrls.push(img.url.trim());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    const imageUrl = imageUrls.length > 0 ? imageUrls[Math.floor(Math.random() * imageUrls.length)] : DEFAULT_BANNER_URL;
+    return { imageUrl };
+};
+exports.getRandomBanner = getRandomBanner;
 //# sourceMappingURL=coachingCenter.service.js.map

@@ -26,4 +26,10 @@ export declare const logoutAll: (req: Request, res: Response, next: NextFunction
  * Save FCM token for push notifications (academy user)
  */
 export declare const saveFcmToken: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+/**
+ * Get a random banner image from any CoachingCenter.
+ * Returns default image URL if no CoachingCenter images found.
+ * Requires academy authentication.
+ */
+export declare const getRandomBanner: (_req: Request, res: Response, next: NextFunction) => Promise<void>;
 //# sourceMappingURL=academyAuth.controller.d.ts.map

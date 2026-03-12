@@ -33,11 +33,12 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.saveFcmToken = exports.logoutAll = exports.logout = exports.refreshToken = exports.verifyAcademyOtp = exports.sendAcademyOtp = exports.getCurrentAcademyUser = exports.verifyAcademyPasswordReset = exports.requestAcademyPasswordReset = exports.changeAcademyPassword = exports.updateAcademyAddress = exports.updateAcademyProfile = exports.socialLoginAcademyUser = exports.loginAcademyUser = exports.registerAcademyUser = void 0;
+exports.getRandomBanner = exports.saveFcmToken = exports.logoutAll = exports.logout = exports.refreshToken = exports.verifyAcademyOtp = exports.sendAcademyOtp = exports.getCurrentAcademyUser = exports.verifyAcademyPasswordReset = exports.requestAcademyPasswordReset = exports.changeAcademyPassword = exports.updateAcademyAddress = exports.updateAcademyProfile = exports.socialLoginAcademyUser = exports.loginAcademyUser = exports.registerAcademyUser = void 0;
 const i18n_1 = require("../../utils/i18n");
 const ApiResponse_1 = require("../../utils/ApiResponse");
 const ApiError_1 = require("../../utils/ApiError");
 const academyAuthService = __importStar(require("../../services/client/auth.service"));
+const coachingCenterService = __importStar(require("../../services/academy/coachingCenter.service"));
 const deviceToken_service_1 = require("../../services/common/deviceToken.service");
 const registerAcademyUser = async (req, res, next) => {
     try {
@@ -295,4 +296,20 @@ const saveFcmToken = async (req, res, next) => {
     }
 };
 exports.saveFcmToken = saveFcmToken;
+/**
+ * Get a random banner image from any CoachingCenter.
+ * Returns default image URL if no CoachingCenter images found.
+ * Requires academy authentication.
+ */
+const getRandomBanner = async (_req, res, next) => {
+    try {
+        const result = await coachingCenterService.getRandomBanner();
+        const response = new ApiResponse_1.ApiResponse(200, result, 'Random banner retrieved');
+        res.json(response);
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getRandomBanner = getRandomBanner;
 //# sourceMappingURL=academyAuth.controller.js.map
