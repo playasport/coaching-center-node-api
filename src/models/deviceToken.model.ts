@@ -1,9 +1,13 @@
 import { Schema, model, HydratedDocument, Types } from 'mongoose';
 import { DeviceType } from '../enums/deviceType.enum';
 
+/** App context: user = student/guardian app, academy = coaching centre app. Used to prevent user notifications reaching academy app on same device. */
+export type DeviceTokenAppContext = 'user' | 'academy';
+
 export interface DeviceToken {
   id: string;
   userId: Types.ObjectId; // Reference to User
+  appContext?: DeviceTokenAppContext | null; // 'user' or 'academy' - which app registered this token
   fcmToken?: string | null; // FCM token for push notifications (optional for web)
   deviceType: DeviceType; // web, android, or ios
   deviceId?: string | null; // Optional: unique device identifier
@@ -26,6 +30,12 @@ const deviceTokenSchema = new Schema<DeviceToken>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+      index: true,
+    },
+    appContext: {
+      type: String,
+      enum: ['user', 'academy'],
+      default: 'user',
       index: true,
     },
     fcmToken: {
@@ -100,9 +110,9 @@ const deviceTokenSchema = new Schema<DeviceToken>(
   }
 );
 
-// Ensure only one ACTIVE token per user-device combination (inactive records are unconstrained)
+// Ensure only one ACTIVE token per user-device-appContext (same device can have user + academy tokens)
 deviceTokenSchema.index(
-  { userId: 1, deviceId: 1 },
+  { userId: 1, deviceId: 1, appContext: 1 },
   { unique: true, partialFilterExpression: { isActive: true, deviceId: { $type: 'string' } } }
 );
 

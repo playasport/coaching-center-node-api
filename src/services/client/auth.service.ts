@@ -159,8 +159,10 @@ const generateTokensAndStoreDeviceToken = async (
       return { accessToken, refreshToken };
     }
 
+    const appContext = roleName === 'academy' ? 'academy' : 'user';
     await deviceTokenService.registerOrUpdateDeviceToken({
       userId: userObjectId,
+      appContext,
       fcmToken: deviceData?.fcmToken ?? null,
       deviceType: (deviceData?.deviceType as DeviceType) || DeviceType.WEB,
       deviceId: deviceData?.deviceId ?? null,
@@ -1168,16 +1170,12 @@ export const logout = async (userId: string, accessToken?: string, refreshToken?
     await blacklistToken(accessToken);
   }
 
-  // If refresh token is provided, blacklist it and revoke from device
+  // If refresh token is provided, blacklist it and physically delete device token from DB
   if (refreshToken) {
     await blacklistToken(refreshToken);
     
-    // Try to find and revoke device refresh token
     try {
-      const deviceToken = await deviceTokenService.findDeviceByRefreshToken(refreshToken);
-      if (deviceToken) {
-        await deviceTokenService.revokeDeviceRefreshToken(userId, deviceToken.id);
-      }
+      await deviceTokenService.deleteDeviceToken(userId, undefined, refreshToken);
     } catch (error) {
       // If device token not found or error, continue with blacklist
       logger.debug('Device token not found for refresh token during logout', {
@@ -1225,8 +1223,8 @@ export const logoutAll = async (userId: string): Promise<void> => {
     });
   }
   
-  // Revoke all device refresh tokens (deactivate devices and clear refresh tokens)
-  await deviceTokenService.deactivateAllDeviceTokens(userId);
+  // Physically delete all device tokens from database
+  await deviceTokenService.deleteAllDeviceTokensForUser(userId);
 };
 
 /**
@@ -1270,27 +1268,13 @@ export const logoutDevice = async (userId: string, deviceTokenId: string): Promi
     }
   }
 
-  // Remove old inactive records for same user+device to avoid unique index conflicts
-  if (device.deviceId) {
-    await DeviceTokenModel.deleteMany({
-      userId: userObjectId,
-      deviceId: device.deviceId,
-      isActive: false,
-    });
-  }
+  // Physically delete the device token from database
+  await DeviceTokenModel.deleteOne({
+    id: deviceTokenId,
+    userId: userObjectId,
+  });
 
-  await DeviceTokenModel.updateOne(
-    { id: deviceTokenId },
-    {
-      $set: {
-        isActive: false,
-        refreshToken: null,
-        refreshTokenExpiresAt: null,
-      },
-    }
-  );
-
-  logger.info('Device logged out', { userId, deviceTokenId, deviceId: device.deviceId });
+  logger.info('Device token deleted on logout', { userId, deviceTokenId, deviceId: device.deviceId });
   return true;
 };
 

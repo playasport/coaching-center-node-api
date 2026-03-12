@@ -280,6 +280,7 @@ const saveFcmToken = async (req, res, next) => {
         const data = req.body;
         await deviceToken_service_1.deviceTokenService.registerOrUpdateDeviceToken({
             userId: req.user.id,
+            appContext: 'academy',
             fcmToken: data.fcmToken,
             deviceType: data.deviceType,
             deviceId: data.deviceId ?? undefined,

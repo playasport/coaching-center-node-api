@@ -362,8 +362,11 @@ const processPush = async (notification: PushNotification): Promise<Notification
       };
     }
 
-    // Otherwise, get all active device tokens for the user
-    const deviceTokens = await deviceTokenService.getUserDeviceTokens(notification.userId);
+    // Otherwise, get active device tokens for the user - filter by appContext so user notifications
+    // don't reach academy app (and vice versa) when same person has both apps on same device
+    const recipientType = (notification.metadata?.recipientType as 'user' | 'academy') || undefined;
+    const appContext = recipientType === 'user' || recipientType === 'academy' ? recipientType : undefined;
+    const deviceTokens = await deviceTokenService.getUserDeviceTokens(notification.userId, appContext);
     const fcmTokens = deviceTokens
       .map((device) => device.fcmToken)
       .filter((token): token is string => !!token);

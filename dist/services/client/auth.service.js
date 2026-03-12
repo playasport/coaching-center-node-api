@@ -151,8 +151,10 @@ const generateTokensAndStoreDeviceToken = async (user, roleName, deviceData) => 
             });
             return { accessToken, refreshToken };
         }
+        const appContext = roleName === 'academy' ? 'academy' : 'user';
         await deviceToken_service_1.deviceTokenService.registerOrUpdateDeviceToken({
             userId: userObjectId,
+            appContext,
             fcmToken: deviceData?.fcmToken ?? null,
             deviceType: deviceData?.deviceType || deviceType_enum_1.DeviceType.WEB,
             deviceId: deviceData?.deviceId ?? null,
@@ -920,15 +922,11 @@ const logout = async (userId, accessToken, refreshToken) => {
         // Blacklist the access token
         await (0, tokenBlacklist_1.blacklistToken)(accessToken);
     }
-    // If refresh token is provided, blacklist it and revoke from device
+    // If refresh token is provided, blacklist it and physically delete device token from DB
     if (refreshToken) {
         await (0, tokenBlacklist_1.blacklistToken)(refreshToken);
-        // Try to find and revoke device refresh token
         try {
-            const deviceToken = await deviceToken_service_1.deviceTokenService.findDeviceByRefreshToken(refreshToken);
-            if (deviceToken) {
-                await deviceToken_service_1.deviceTokenService.revokeDeviceRefreshToken(userId, deviceToken.id);
-            }
+            await deviceToken_service_1.deviceTokenService.deleteDeviceToken(userId, undefined, refreshToken);
         }
         catch (error) {
             // If device token not found or error, continue with blacklist
@@ -976,8 +974,8 @@ const logoutAll = async (userId) => {
             error: error instanceof Error ? error.message : error,
         });
     }
-    // Revoke all device refresh tokens (deactivate devices and clear refresh tokens)
-    await deviceToken_service_1.deviceTokenService.deactivateAllDeviceTokens(userId);
+    // Physically delete all device tokens from database
+    await deviceToken_service_1.deviceTokenService.deleteAllDeviceTokensForUser(userId);
 };
 exports.logoutAll = logoutAll;
 /**
@@ -1017,22 +1015,12 @@ const logoutDevice = async (userId, deviceTokenId) => {
             });
         }
     }
-    // Remove old inactive records for same user+device to avoid unique index conflicts
-    if (device.deviceId) {
-        await deviceToken_model_1.DeviceTokenModel.deleteMany({
-            userId: userObjectId,
-            deviceId: device.deviceId,
-            isActive: false,
-        });
-    }
-    await deviceToken_model_1.DeviceTokenModel.updateOne({ id: deviceTokenId }, {
-        $set: {
-            isActive: false,
-            refreshToken: null,
-            refreshTokenExpiresAt: null,
-        },
+    // Physically delete the device token from database
+    await deviceToken_model_1.DeviceTokenModel.deleteOne({
+        id: deviceTokenId,
+        userId: userObjectId,
     });
-    logger_1.logger.info('Device logged out', { userId, deviceTokenId, deviceId: device.deviceId });
+    logger_1.logger.info('Device token deleted on logout', { userId, deviceTokenId, deviceId: device.deviceId });
     return true;
 };
 exports.logoutDevice = logoutDevice;

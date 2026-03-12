@@ -27,12 +27,13 @@ type AnyModel = {
   modelName: string;
   collection: {
     name: string;
-    indexes: () => Promise<Array<{ name: string; key: Record<string, any> }>>;
+    indexes: (options?: any) => Promise<Array<{ name: string; key: Record<string, any> }>>;
   };
   syncIndexes: () => Promise<any>;
 };
 
-const models: AnyModel[] = [
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const models = [
   UserModel,
   ParticipantModel,
   BookingModel,
@@ -55,7 +56,7 @@ const models: AnyModel[] = [
   OtpModel,
   EmployeeModel,
   FacilityModel,
-];
+] as AnyModel[];
 
 const fmtIndexes = (idx: Array<{ name: string; key: Record<string, any> }>) =>
   idx
