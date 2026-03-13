@@ -34,6 +34,8 @@ export interface AcademyListCacheParams {
     longitude?: number;
     radius?: number;
     userId?: string;
+    /** Comma-separated sorted sport IDs - affects sort order, so cache key must include it */
+    favoriteSportIds?: string;
     city?: string;
     state?: string;
     sportId?: string;

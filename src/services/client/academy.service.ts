@@ -237,7 +237,25 @@ export const getAllAcademies = async (
     const pageNumber = Math.max(1, Math.floor(page));
     const pageSize = Math.min(config.pagination.maxLimit, Math.max(1, Math.floor(limit)));
 
-    // Check cache first
+    // Get user's favorite sports early - needed for cache key (sports change → results change)
+    let favoriteSportIds: Types.ObjectId[] = [];
+    if (userId) {
+      try {
+        const userObjectId = await getUserObjectId(userId);
+        if (userObjectId) {
+          const user = await UserModel.findById(userObjectId)
+            .select('favoriteSports')
+            .lean();
+          if (user?.favoriteSports && user.favoriteSports.length > 0) {
+            favoriteSportIds = user.favoriteSports;
+          }
+        }
+      } catch (error) {
+        logger.warn('Failed to get user favorite sports', { userId, error });
+      }
+    }
+
+    // Check cache first (include favoriteSportIds in key so sports change = different cache)
     const cacheParams: AcademyListCacheParams = {
       page: pageNumber,
       limit: pageSize,
@@ -245,6 +263,9 @@ export const getAllAcademies = async (
       longitude: userLocation?.longitude,
       radius,
       userId,
+      favoriteSportIds: favoriteSportIds.length > 0
+        ? favoriteSportIds.map((id) => id.toString()).sort().join(',')
+        : undefined,
       ...filters,
     };
     const cached = await getCachedAcademyList(cacheParams);
@@ -321,24 +342,6 @@ export const getAllAcademies = async (
       if (ids.length > 0) {
         query.sports = { $in: ids };
         filterSportObjectIds = ids;
-      }
-    }
-
-    // Get user's favorite sports if logged in
-    let favoriteSportIds: Types.ObjectId[] = [];
-    if (userId) {
-      try {
-        const userObjectId = await getUserObjectId(userId);
-        if (userObjectId) {
-          const user = await UserModel.findById(userObjectId)
-            .select('favoriteSports')
-            .lean();
-          if (user?.favoriteSports && user.favoriteSports.length > 0) {
-            favoriteSportIds = user.favoriteSports;
-          }
-        }
-      } catch (error) {
-        logger.warn('Failed to get user favorite sports', { userId, error });
       }
     }
 
