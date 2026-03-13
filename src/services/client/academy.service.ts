@@ -459,6 +459,7 @@ export const getAllAcademies = async (
     const totalPages = Math.ceil(filteredTotal / pageSize);
 
     const filterSportIdSet = new Set(filterSportObjectIds.map((id) => id.toString()));
+    const favoriteSportIdSet = new Set(favoriteSportIds.map((id) => id.toString()));
 
     // Batch-check bookmarks for paginated academies when user is logged in
     const bookmarkedIdSet = new Set<string>();
@@ -509,7 +510,7 @@ export const getAllAcademies = async (
           }
         }
 
-        // Sports list: when sport filter applied, put filtered sport(s) first
+        // Sports list: filter sports first (if applied), else favorite sports first (if user logged in)
         let sportsList = (academy.sports || []).map((sport: any) => ({
           id: sport.custom_id || sport._id?.toString(),
           name: sport.name,
@@ -523,6 +524,14 @@ export const getAllAcademies = async (
             const bMatch = filterSportIdSet.has(b._oid);
             if (aMatch && !bMatch) return -1;
             if (!aMatch && bMatch) return 1;
+            return 0;
+          });
+        } else if (favoriteSportIdSet.size > 0 && sportsList.length > 1) {
+          sportsList = [...sportsList].sort((a: any, b: any) => {
+            const aFav = favoriteSportIdSet.has(a._oid);
+            const bFav = favoriteSportIdSet.has(b._oid);
+            if (aFav && !bFav) return -1;
+            if (!aFav && bFav) return 1;
             return 0;
           });
         }
