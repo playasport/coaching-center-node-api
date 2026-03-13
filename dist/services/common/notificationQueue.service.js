@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getQueueStatus = exports.queueMultiChannel = exports.queuePush = exports.queueWhatsAppTemplate = exports.queueWhatsApp = exports.queueEmail = exports.queueSms = exports.queueNotification = void 0;
+exports.getQueueStatus = exports.waitForQueueDrain = exports.queueMultiChannel = exports.queuePush = exports.queueWhatsAppTemplate = exports.queueWhatsApp = exports.queueEmail = exports.queueSms = exports.queueNotification = void 0;
 const uuid_1 = require("uuid");
 const logger_1 = require("../../utils/logger");
 const env_1 = require("../../config/env");
@@ -318,8 +318,11 @@ const processPush = async (notification) => {
                 retryable: result.retryable,
             };
         }
-        // Otherwise, get all active device tokens for the user
-        const deviceTokens = await deviceToken_service_1.deviceTokenService.getUserDeviceTokens(notification.userId);
+        // Otherwise, get active device tokens for the user - filter by appContext so user notifications
+        // don't reach academy app (and vice versa) when same person has both apps on same device
+        const recipientType = notification.metadata?.recipientType || undefined;
+        const appContext = recipientType === 'user' || recipientType === 'academy' ? recipientType : undefined;
+        const deviceTokens = await deviceToken_service_1.deviceTokenService.getUserDeviceTokens(notification.userId, appContext);
         const fcmTokens = deviceTokens
             .map((device) => device.fcmToken)
             .filter((token) => !!token);
@@ -563,6 +566,22 @@ const queueMultiChannel = (channels, notification, priority = 'medium', metadata
     });
 };
 exports.queueMultiChannel = queueMultiChannel;
+/**
+ * Wait for notification queue to drain (for scripts that exit after queuing).
+ * Polls until queue is empty and processing finished, or maxWaitMs reached.
+ */
+const waitForQueueDrain = async (maxWaitMs = 15000) => {
+    const start = Date.now();
+    while (Date.now() - start < maxWaitMs) {
+        const { total, isProcessing } = (0, exports.getQueueStatus)();
+        if (total === 0 && !isProcessing) {
+            return;
+        }
+        await new Promise((r) => setTimeout(r, 200));
+    }
+    logger_1.logger.warn('waitForQueueDrain timed out', (0, exports.getQueueStatus)());
+};
+exports.waitForQueueDrain = waitForQueueDrain;
 // Get queue status
 const getQueueStatus = () => {
     return {

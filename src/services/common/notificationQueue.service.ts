@@ -362,8 +362,11 @@ const processPush = async (notification: PushNotification): Promise<Notification
       };
     }
 
-    // Otherwise, get all active device tokens for the user
-    const deviceTokens = await deviceTokenService.getUserDeviceTokens(notification.userId);
+    // Otherwise, get active device tokens for the user - filter by appContext so user notifications
+    // don't reach academy app (and vice versa) when same person has both apps on same device
+    const recipientType = (notification.metadata?.recipientType as 'user' | 'academy') || undefined;
+    const appContext = recipientType === 'user' || recipientType === 'academy' ? recipientType : undefined;
+    const deviceTokens = await deviceTokenService.getUserDeviceTokens(notification.userId, appContext);
     const fcmTokens = deviceTokens
       .map((device) => device.fcmToken)
       .filter((token): token is string => !!token);
@@ -674,6 +677,22 @@ export const queueMultiChannel = (
         break;
     }
   });
+};
+
+/**
+ * Wait for notification queue to drain (for scripts that exit after queuing).
+ * Polls until queue is empty and processing finished, or maxWaitMs reached.
+ */
+export const waitForQueueDrain = async (maxWaitMs = 15000): Promise<void> => {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    const { total, isProcessing } = getQueueStatus();
+    if (total === 0 && !isProcessing) {
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  logger.warn('waitForQueueDrain timed out', getQueueStatus());
 };
 
 // Get queue status

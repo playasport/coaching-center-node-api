@@ -1,7 +1,9 @@
 import { Types } from 'mongoose';
+import { DeviceTokenAppContext } from '../../models/deviceToken.model';
 import { DeviceType } from '../../enums/deviceType.enum';
 export interface RegisterDeviceTokenData {
     userId: Types.ObjectId | string;
+    appContext?: DeviceTokenAppContext | null;
     fcmToken?: string | null;
     deviceType: DeviceType;
     deviceId?: string | null;
@@ -25,9 +27,9 @@ export declare const deviceTokenService: {
     registerOrUpdateDeviceToken(data: RegisterDeviceTokenData): Promise<void>;
     /**
      * Get all active device tokens for a user
-     * Supports both MongoDB ObjectId and custom UUID string
+     * @param appContext - When 'user' or 'academy', only returns tokens from that app. Prevents user notifications reaching academy app on same device.
      */
-    getUserDeviceTokens(userId: string | Types.ObjectId): Promise<any[]>;
+    getUserDeviceTokens(userId: string | Types.ObjectId, appContext?: DeviceTokenAppContext | null): Promise<any[]>;
     /**
      * Deactivate a device token (mark as inactive)
      * Supports both MongoDB ObjectId and custom UUID string
@@ -50,5 +52,14 @@ export declare const deviceTokenService: {
      * Supports both MongoDB ObjectId and custom UUID string
      */
     revokeDeviceRefreshToken(userId: string | Types.ObjectId, deviceId?: string, refreshToken?: string): Promise<void>;
+    /**
+     * Physically delete a device token from the database
+     * Supports both MongoDB ObjectId and custom UUID string
+     */
+    deleteDeviceToken(userId: string | Types.ObjectId, deviceId?: string, refreshToken?: string): Promise<boolean>;
+    /**
+     * Physically delete all device tokens for a user from the database
+     */
+    deleteAllDeviceTokensForUser(userId: string | Types.ObjectId): Promise<number>;
 };
 //# sourceMappingURL=deviceToken.service.d.ts.map

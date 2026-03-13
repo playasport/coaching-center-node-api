@@ -4,6 +4,7 @@ import { ApiResponse } from '../../utils/ApiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { DeviceType } from '../../enums/deviceType.enum';
 import * as academyAuthService from '../../services/client/auth.service';
+import * as coachingCenterService from '../../services/academy/coachingCenter.service';
 import { deviceTokenService } from '../../services/common/deviceToken.service';
 import type {
   AcademyRegisterInput,
@@ -377,6 +378,7 @@ export const saveFcmToken = async (
     const data = req.body as SaveFcmTokenInput;
     await deviceTokenService.registerOrUpdateDeviceToken({
       userId: req.user.id,
+      appContext: 'academy',
       fcmToken: data.fcmToken,
       deviceType: data.deviceType as DeviceType,
       deviceId: data.deviceId ?? undefined,
@@ -385,6 +387,25 @@ export const saveFcmToken = async (
     });
 
     const response = new ApiResponse(200, null, t('auth.fcmToken.saved'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get a random banner image from any CoachingCenter.
+ * Returns default image URL if no CoachingCenter images found.
+ * Requires academy authentication.
+ */
+export const getRandomBanner = async (
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const result = await coachingCenterService.getRandomBanner();
+    const response = new ApiResponse(200, result, 'Random banner retrieved');
     res.json(response);
   } catch (error) {
     next(error);

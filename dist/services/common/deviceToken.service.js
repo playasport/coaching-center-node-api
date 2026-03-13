@@ -47,60 +47,41 @@ exports.deviceTokenService = {
     async registerOrUpdateDeviceToken(data) {
         try {
             const userId = typeof data.userId === 'string' ? new mongoose_1.Types.ObjectId(data.userId) : data.userId;
-            // If deviceId is provided, try to find existing token for this user-device combination
+            const appContext = data.appContext ?? 'user';
+            const findQuery = { userId, isActive: true };
+            const updateSet = {
+                fcmToken: data.fcmToken,
+                deviceType: data.deviceType,
+                deviceName: data.deviceName,
+                appVersion: data.appVersion,
+                refreshToken: data.refreshToken,
+                refreshTokenExpiresAt: data.refreshTokenExpiresAt,
+                appContext,
+                lastActiveAt: new Date(),
+                isActive: true,
+            };
+            // If deviceId is provided, try to find existing token for this user-device-appContext
             if (data.deviceId) {
                 const existingToken = await deviceToken_model_1.DeviceTokenModel.findOne({
-                    userId,
+                    ...findQuery,
                     deviceId: data.deviceId,
-                    isActive: true,
-                });
+                    appContext,
+                }).lean();
                 if (existingToken) {
-                    // Update existing token
-                    await deviceToken_model_1.DeviceTokenModel.updateOne({ id: existingToken.id }, {
-                        $set: {
-                            fcmToken: data.fcmToken,
-                            deviceType: data.deviceType,
-                            deviceName: data.deviceName ?? existingToken.deviceName,
-                            appVersion: data.appVersion ?? existingToken.appVersion,
-                            refreshToken: data.refreshToken ?? existingToken.refreshToken,
-                            refreshTokenExpiresAt: data.refreshTokenExpiresAt ?? existingToken.refreshTokenExpiresAt,
-                            lastActiveAt: new Date(),
-                            isActive: true,
-                        },
-                    });
-                    logger_1.logger.info('Device token updated', {
-                        userId: userId.toString(),
-                        deviceId: data.deviceId,
-                        deviceType: data.deviceType,
-                    });
+                    await deviceToken_model_1.DeviceTokenModel.updateOne({ id: existingToken.id }, { $set: { ...updateSet, deviceName: data.deviceName ?? existingToken.deviceName, appVersion: data.appVersion ?? existingToken.appVersion } });
+                    logger_1.logger.info('Device token updated', { userId: userId.toString(), deviceId: data.deviceId, deviceType: data.deviceType, appContext });
                     return;
                 }
             }
             // Check if the same FCM token already exists for this user (only when fcmToken is provided)
             if (data.fcmToken) {
                 const existingFcmToken = await deviceToken_model_1.DeviceTokenModel.findOne({
-                    userId,
+                    ...findQuery,
                     fcmToken: data.fcmToken,
-                    isActive: true,
-                });
+                }).lean();
                 if (existingFcmToken) {
-                    await deviceToken_model_1.DeviceTokenModel.updateOne({ id: existingFcmToken.id }, {
-                        $set: {
-                            deviceType: data.deviceType,
-                            deviceId: data.deviceId ?? existingFcmToken.deviceId,
-                            deviceName: data.deviceName ?? existingFcmToken.deviceName,
-                            appVersion: data.appVersion ?? existingFcmToken.appVersion,
-                            refreshToken: data.refreshToken ?? existingFcmToken.refreshToken,
-                            refreshTokenExpiresAt: data.refreshTokenExpiresAt ?? existingFcmToken.refreshTokenExpiresAt,
-                            lastActiveAt: new Date(),
-                            isActive: true,
-                        },
-                    });
-                    logger_1.logger.info('FCM token updated', {
-                        userId: userId.toString(),
-                        fcmToken: data.fcmToken.substring(0, 20) + '...',
-                        deviceType: data.deviceType,
-                    });
+                    await deviceToken_model_1.DeviceTokenModel.updateOne({ id: existingFcmToken.id }, { $set: { ...updateSet, deviceId: data.deviceId ?? existingFcmToken.deviceId, deviceName: data.deviceName ?? existingFcmToken.deviceName, appVersion: data.appVersion ?? existingFcmToken.appVersion } });
+                    logger_1.logger.info('FCM token updated', { userId: userId.toString(), fcmToken: data.fcmToken.substring(0, 20) + '...', deviceType: data.deviceType, appContext });
                     return;
                 }
             }
@@ -108,6 +89,7 @@ exports.deviceTokenService = {
             await deviceToken_model_1.DeviceTokenModel.create({
                 id: (0, uuid_1.v4)(),
                 userId,
+                appContext,
                 fcmToken: data.fcmToken ?? null,
                 deviceType: data.deviceType,
                 deviceId: data.deviceId ?? null,
@@ -118,11 +100,7 @@ exports.deviceTokenService = {
                 isActive: true,
                 lastActiveAt: new Date(),
             });
-            logger_1.logger.info('New device token registered', {
-                userId: userId.toString(),
-                deviceType: data.deviceType,
-                deviceId: data.deviceId,
-            });
+            logger_1.logger.info('New device token registered', { userId: userId.toString(), deviceType: data.deviceType, deviceId: data.deviceId, appContext });
         }
         catch (error) {
             logger_1.logger.error('Failed to register/update device token', {
@@ -135,19 +113,17 @@ exports.deviceTokenService = {
     },
     /**
      * Get all active device tokens for a user
-     * Supports both MongoDB ObjectId and custom UUID string
+     * @param appContext - When 'user' or 'academy', only returns tokens from that app. Prevents user notifications reaching academy app on same device.
      */
-    async getUserDeviceTokens(userId) {
+    async getUserDeviceTokens(userId, appContext) {
         let userIdObj;
         if (userId instanceof mongoose_1.Types.ObjectId) {
             userIdObj = userId;
         }
         else if (mongoose_1.Types.ObjectId.isValid(userId) && userId.length === 24) {
-            // Valid MongoDB ObjectId string (24 hex characters)
             userIdObj = new mongoose_1.Types.ObjectId(userId);
         }
         else {
-            // Custom UUID string - need to look up user's ObjectId
             const { getUserObjectId } = await Promise.resolve().then(() => __importStar(require('../../utils/userCache')));
             const objectId = await getUserObjectId(userId);
             if (!objectId) {
@@ -156,10 +132,15 @@ exports.deviceTokenService = {
             }
             userIdObj = objectId;
         }
-        const tokens = await deviceToken_model_1.DeviceTokenModel.find({
-            userId: userIdObj,
-            isActive: true,
-        }).lean();
+        const query = { userId: userIdObj, isActive: true };
+        if (appContext === 'academy') {
+            query.appContext = 'academy';
+        }
+        else if (appContext === 'user') {
+            // Include legacy tokens (no appContext) as user tokens for backward compatibility
+            query.$or = [{ appContext: 'user' }, { appContext: null }, { appContext: { $exists: false } }];
+        }
+        const tokens = await deviceToken_model_1.DeviceTokenModel.find(query).lean();
         return tokens;
     },
     /**
@@ -308,6 +289,72 @@ exports.deviceTokenService = {
             userId: userIdObj.toString(),
             deviceId,
         });
+    },
+    /**
+     * Physically delete a device token from the database
+     * Supports both MongoDB ObjectId and custom UUID string
+     */
+    async deleteDeviceToken(userId, deviceId, refreshToken) {
+        let userIdObj;
+        if (userId instanceof mongoose_1.Types.ObjectId) {
+            userIdObj = userId;
+        }
+        else if (mongoose_1.Types.ObjectId.isValid(userId) && userId.length === 24) {
+            userIdObj = new mongoose_1.Types.ObjectId(userId);
+        }
+        else {
+            const { getUserObjectId } = await Promise.resolve().then(() => __importStar(require('../../utils/userCache')));
+            const objectId = await getUserObjectId(userId);
+            if (!objectId) {
+                logger_1.logger.warn('User not found for deleteDeviceToken', { userId });
+                return false;
+            }
+            userIdObj = objectId;
+        }
+        const query = { userId: userIdObj };
+        if (deviceId) {
+            query.id = deviceId;
+        }
+        else if (refreshToken) {
+            query.refreshToken = refreshToken;
+        }
+        else {
+            throw new Error('Either deviceId or refreshToken must be provided');
+        }
+        const result = await deviceToken_model_1.DeviceTokenModel.deleteMany(query);
+        logger_1.logger.info('Device token deleted', {
+            userId: userIdObj.toString(),
+            deviceId,
+            deletedCount: result.deletedCount,
+        });
+        return (result.deletedCount ?? 0) > 0;
+    },
+    /**
+     * Physically delete all device tokens for a user from the database
+     */
+    async deleteAllDeviceTokensForUser(userId) {
+        let userIdObj;
+        if (userId instanceof mongoose_1.Types.ObjectId) {
+            userIdObj = userId;
+        }
+        else if (mongoose_1.Types.ObjectId.isValid(userId) && userId.length === 24) {
+            userIdObj = new mongoose_1.Types.ObjectId(userId);
+        }
+        else {
+            const { getUserObjectId } = await Promise.resolve().then(() => __importStar(require('../../utils/userCache')));
+            const objectId = await getUserObjectId(userId);
+            if (!objectId) {
+                logger_1.logger.warn('User not found for deleteAllDeviceTokensForUser', { userId });
+                return 0;
+            }
+            userIdObj = objectId;
+        }
+        const result = await deviceToken_model_1.DeviceTokenModel.deleteMany({ userId: userIdObj });
+        logger_1.logger.info('All device tokens deleted', {
+            userId: userIdObj.toString(),
+            deletedCount: result.deletedCount,
+        });
+        return result.deletedCount ?? 0;
     },
 };
 //# sourceMappingURL=deviceToken.service.js.map

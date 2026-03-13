@@ -23,8 +23,8 @@ export declare const academyBookingListSchema: z.ZodObject<{
         status: z.ZodOptional<z.ZodEnum<{
             approved: "approved";
             rejected: "rejected";
-            pending: "pending";
             completed: "completed";
+            pending: "pending";
             cancelled: "cancelled";
             slot_booked: "slot_booked";
             payment_pending: "payment_pending";
@@ -50,9 +50,9 @@ export declare const academyEnrolledStudentsSchema: z.ZodObject<{
         centerId: z.ZodOptional<z.ZodString>;
         batchId: z.ZodOptional<z.ZodString>;
         status: z.ZodOptional<z.ZodEnum<{
-            pending: "pending";
             completed: "completed";
             active: "active";
+            pending: "pending";
             left: "left";
         }>>;
     }, z.core.$strip>;
@@ -69,8 +69,8 @@ export declare const academyBookingExportSchema: z.ZodObject<{
         status: z.ZodOptional<z.ZodEnum<{
             approved: "approved";
             rejected: "rejected";
-            pending: "pending";
             completed: "completed";
+            pending: "pending";
             cancelled: "cancelled";
             slot_booked: "slot_booked";
             payment_pending: "payment_pending";
@@ -118,8 +118,8 @@ export declare const userBookingListSchema: z.ZodObject<{
         status: z.ZodOptional<z.ZodEnum<{
             approved: "approved";
             rejected: "rejected";
-            pending: "pending";
             completed: "completed";
+            pending: "pending";
             cancelled: "cancelled";
             slot_booked: "slot_booked";
             payment_pending: "payment_pending";

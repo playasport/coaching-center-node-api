@@ -11,6 +11,12 @@ const deviceTokenSchema = new mongoose_1.Schema({
         required: true,
         index: true,
     },
+    appContext: {
+        type: String,
+        enum: ['user', 'academy'],
+        default: 'user',
+        index: true,
+    },
     fcmToken: {
         type: String,
         default: null,
@@ -80,8 +86,8 @@ const deviceTokenSchema = new mongoose_1.Schema({
         },
     },
 });
-// Ensure only one ACTIVE token per user-device combination (inactive records are unconstrained)
-deviceTokenSchema.index({ userId: 1, deviceId: 1 }, { unique: true, partialFilterExpression: { isActive: true, deviceId: { $type: 'string' } } });
+// Ensure only one ACTIVE token per user-device-appContext (same device can have user + academy tokens)
+deviceTokenSchema.index({ userId: 1, deviceId: 1, appContext: 1 }, { unique: true, partialFilterExpression: { isActive: true, deviceId: { $type: 'string' } } });
 // Index for efficient querying of active tokens by user
 deviceTokenSchema.index({ userId: 1, isActive: 1 });
 exports.DeviceTokenModel = (0, mongoose_1.model)('DeviceToken', deviceTokenSchema);

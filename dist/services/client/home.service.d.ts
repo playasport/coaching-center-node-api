@@ -36,7 +36,8 @@ export interface HomeData {
 export declare const getPopularSports: (limit?: number) => Promise<PopularSport[]>;
 /**
  * Get nearby academies based on location
- * Optimized to use database-level filtering and limit records fetched
+ * Flow: MongoDB $geoNear (top 200) → Redis/Google road distance → final sorted result
+ * Fallback: bounding box + calculateDistances when location.geo not populated
  */
 export declare const getNearbyAcademies: (userLocation: {
     latitude: number;

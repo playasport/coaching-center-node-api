@@ -40,11 +40,18 @@ export interface CenterAddress {
   pincode: string;
 }
 
+// GeoJSON Point for 2dsphere queries
+export interface GeoPoint {
+  type: 'Point';
+  coordinates: [number, number]; // [longitude, latitude]
+}
+
 // Location interface
 export interface CenterLocation {
   latitude: number;
   longitude: number;
   address: CenterAddress;
+  geo?: GeoPoint | null;
 }
 
 // Operational timing interface
@@ -204,6 +211,15 @@ const centerAddressSchema = new Schema<CenterAddress>(
   { _id: false }
 );
 
+// GeoJSON Point for 2dsphere index (coordinates: [longitude, latitude])
+const geoPointSchema = new Schema(
+  {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], required: true }, // [longitude, latitude]
+  },
+  { _id: false }
+);
+
 const centerLocationSchema = new Schema<CenterLocation>(
   {
     latitude: {
@@ -217,6 +233,10 @@ const centerLocationSchema = new Schema<CenterLocation>(
     address: {
       type: centerAddressSchema,
       required: true,
+    },
+    geo: {
+      type: geoPointSchema,
+      default: null,
     },
   },
   { _id: false }
@@ -561,6 +581,19 @@ const coachingCenterSchema = new Schema<CoachingCenter>(
   }
 );
 
+// Pre-save: populate location.geo from latitude/longitude for 2dsphere queries
+coachingCenterSchema.pre('save', function (next) {
+  if (this.location?.latitude != null && this.location?.longitude != null) {
+    this.location.geo = {
+      type: 'Point',
+      coordinates: [this.location.longitude, this.location.latitude],
+    };
+  }
+  next();
+});
+
+// Note: findOneAndUpdate with location changes won't auto-set geo. Use save() or run migrate:coaching-center-geo after bulk updates.
+
 // Indexes
 coachingCenterSchema.index({ user: 1 });
 coachingCenterSchema.index({ addedBy: 1 });
@@ -568,6 +601,7 @@ coachingCenterSchema.index({ center_name: 1 });
 coachingCenterSchema.index({ email: 1 });
 coachingCenterSchema.index({ mobile_number: 1 });
 coachingCenterSchema.index({ 'location.latitude': 1, 'location.longitude': 1 });
+coachingCenterSchema.index({ 'location.geo': '2dsphere' });
 coachingCenterSchema.index({ sports: 1 });
 coachingCenterSchema.index({ 'sport_details.sport_id': 1 });
 coachingCenterSchema.index({ facility: 1 });

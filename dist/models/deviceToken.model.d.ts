@@ -1,8 +1,11 @@
 import { HydratedDocument, Types } from 'mongoose';
 import { DeviceType } from '../enums/deviceType.enum';
+/** App context: user = student/guardian app, academy = coaching centre app. Used to prevent user notifications reaching academy app on same device. */
+export type DeviceTokenAppContext = 'user' | 'academy';
 export interface DeviceToken {
     id: string;
     userId: Types.ObjectId;
+    appContext?: DeviceTokenAppContext | null;
     fcmToken?: string | null;
     deviceType: DeviceType;
     deviceId?: string | null;

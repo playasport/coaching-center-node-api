@@ -436,6 +436,7 @@ export const saveFcmToken = async (
     const data = req.body as SaveFcmTokenInput;
     await deviceTokenService.registerOrUpdateDeviceToken({
       userId: req.user.id,
+      appContext: 'user',
       fcmToken: data.fcmToken,
       deviceType: data.deviceType as DeviceType,
       deviceId: data.deviceId ?? undefined,

@@ -19,6 +19,7 @@
     "ensure:user-indexes": "tsx scripts/ensure-user-indexes.ts",
     "sync:indexes": "tsx scripts/sync-all-indexes.ts",
     "test:jobs": "tsx src/jobs/testJobs.ts",
+    "test:booking-payment-expiry": "tsx src/jobs/testJobs.ts -- --job=booking-payment-expiry",
     "fix:locations": "tsx scripts/fix-location-associations.ts",
     "check:locations": "tsx scripts/check-location-data.ts",
     "migrate:locations": "tsx scripts/migrate-location-soft-delete.ts",

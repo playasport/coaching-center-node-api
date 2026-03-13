@@ -6,15 +6,19 @@
  * Usage:
  *   npm run test:jobs -- --job=permanent-delete
  *   npm run test:jobs -- --job=media-cleanup
+ *   npm run test:jobs -- --job=booking-payment-expiry
  *   npm run test:jobs -- --job=all
+ *   npm run test:jobs -- --job=booking-payment-expiry --no-wait   (quick run, notifications may not complete)
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runPermanentDeleteJob = runPermanentDeleteJob;
 exports.runMediaCleanupJob = runMediaCleanupJob;
 const database_1 = require("../config/database");
 const logger_1 = require("../utils/logger");
+const notificationQueue_service_1 = require("../services/common/notificationQueue.service");
 const permanentDelete_job_1 = require("./permanentDelete.job");
 const mediaCleanup_job_1 = require("./mediaCleanup.job");
+const bookingPaymentExpiry_job_1 = require("./bookingPaymentExpiry.job");
 async function runPermanentDeleteJob() {
     try {
         logger_1.logger.info('=== Starting Permanent Delete Job Test ===');
@@ -37,10 +41,22 @@ async function runMediaCleanupJob() {
         throw error;
     }
 }
+async function runBookingPaymentExpiryJob() {
+    try {
+        logger_1.logger.info('=== Starting Booking Payment Expiry Job ===');
+        await (0, bookingPaymentExpiry_job_1.executeBookingPaymentExpiryJob)();
+        logger_1.logger.info('=== Booking Payment Expiry Job Test Completed ===');
+    }
+    catch (error) {
+        logger_1.logger.error('Booking payment expiry job test failed', { error });
+        throw error;
+    }
+}
 async function main() {
     const args = process.argv.slice(2);
     const jobArg = args.find((arg) => arg.startsWith('--job='));
     const jobName = jobArg ? jobArg.split('=')[1] : 'all';
+    const noWait = args.includes('--no-wait');
     try {
         // Connect to database
         await (0, database_1.connectDatabase)();
@@ -52,15 +68,26 @@ async function main() {
             case 'media-cleanup':
                 await runMediaCleanupJob();
                 break;
+            case 'booking-payment-expiry':
+                await runBookingPaymentExpiryJob();
+                break;
             case 'all':
                 await runPermanentDeleteJob();
                 await runMediaCleanupJob();
+                await runBookingPaymentExpiryJob();
                 break;
             default:
-                logger_1.logger.error('Invalid job name. Use: permanent-delete, media-cleanup, or all');
+                logger_1.logger.error('Invalid job name. Use: permanent-delete, media-cleanup, booking-payment-expiry, or all');
                 process.exit(1);
         }
         logger_1.logger.info('All job tests completed successfully');
+        // Wait for notification queue to drain (booking-payment-expiry queues email/SMS/WhatsApp)
+        // Use --no-wait to skip and exit fast (notifications may not send)
+        if (!noWait && (jobName === 'booking-payment-expiry' || jobName === 'all')) {
+            logger_1.logger.info('Waiting for notification queue to drain...');
+            await (0, notificationQueue_service_1.waitForQueueDrain)(10000);
+            logger_1.logger.info('Notification queue drained');
+        }
     }
     catch (error) {
         logger_1.logger.error('Job test failed', { error });
