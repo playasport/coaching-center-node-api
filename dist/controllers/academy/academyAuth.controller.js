@@ -301,9 +301,9 @@ exports.saveFcmToken = saveFcmToken;
  * Returns default image URL if no CoachingCenter images found.
  * Requires academy authentication.
  */
-const getRandomBanner = async (_req, res, next) => {
+const getRandomBanner = async (req, res, next) => {
     try {
-        const result = await coachingCenterService.getRandomBanner();
+        const result = await coachingCenterService.getRandomBanner(req.user.id);
         const response = new ApiResponse_1.ApiResponse(200, result, 'Random banner retrieved');
         res.json(response);
     }

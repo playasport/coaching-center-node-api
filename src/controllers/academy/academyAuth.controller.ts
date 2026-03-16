@@ -399,12 +399,12 @@ export const saveFcmToken = async (
  * Requires academy authentication.
  */
 export const getRandomBanner = async (
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const result = await coachingCenterService.getRandomBanner();
+    const result = await coachingCenterService.getRandomBanner(req.user!.id);
     const response = new ApiResponse(200, result, 'Random banner retrieved');
     res.json(response);
   } catch (error) {

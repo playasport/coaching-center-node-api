@@ -35,10 +35,10 @@ export declare const removeMediaFromCoachingCenter: (coachingCenterId: string, m
  */
 export declare const updateCoachingCenter: (id: string, data: CoachingCenterUpdateInput) => Promise<CoachingCenter | null>;
 /**
- * Get a random image URL from any active CoachingCenter (logo or sport_details images).
- * Returns default banner URL if no images found.
+ * Get a random image URL from the logged-in user's CoachingCenter(s) (logo or sport_details images).
+ * Returns default banner URL if user has no center or no images.
  */
-export declare const getRandomBanner: () => Promise<{
+export declare const getRandomBanner: (userId: string) => Promise<{
     imageUrl: string;
 }>;
 //# sourceMappingURL=coachingCenter.service.d.ts.map

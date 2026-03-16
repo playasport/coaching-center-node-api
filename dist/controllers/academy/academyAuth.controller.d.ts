@@ -31,5 +31,5 @@ export declare const saveFcmToken: (req: Request, res: Response, next: NextFunct
  * Returns default image URL if no CoachingCenter images found.
  * Requires academy authentication.
  */
-export declare const getRandomBanner: (_req: Request, res: Response, next: NextFunction) => Promise<void>;
+export declare const getRandomBanner: (req: Request, res: Response, next: NextFunction) => Promise<void>;
 //# sourceMappingURL=academyAuth.controller.d.ts.map
