@@ -526,11 +526,17 @@ export const updateCoachingCenter = async (
 const DEFAULT_BANNER_URL = 'https://media-playsport.s3.ap-south-1.amazonaws.com/partner/banner.jpg';
 
 /**
- * Get a random image URL from any active CoachingCenter (logo or sport_details images).
- * Returns default banner URL if no images found.
+ * Get a random image URL from the logged-in user's CoachingCenter(s) (logo or sport_details images).
+ * Returns default banner URL if user has no center or no images.
  */
-export const getRandomBanner = async (): Promise<{ imageUrl: string }> => {
+export const getRandomBanner = async (userId: string): Promise<{ imageUrl: string }> => {
+  const userObjectId = await getUserObjectId(userId);
+  if (!userObjectId) {
+    return { imageUrl: DEFAULT_BANNER_URL };
+  }
+
   const centers = await CoachingCenterModel.find({
+    user: userObjectId,
     status: CoachingCenterStatus.PUBLISHED,
     is_active: true,
     is_deleted: false,

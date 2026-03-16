@@ -149,6 +149,8 @@ const getAcademyCacheKey = (params) => {
         parts.push(`r:${params.radius}`);
     if (params.userId)
         parts.push(`u:${params.userId}`);
+    if (params.favoriteSportIds)
+        parts.push(`fav:${params.favoriteSportIds}`);
     if (params.city)
         parts.push(`city:${params.city.toLowerCase()}`);
     if (params.state)

@@ -61,7 +61,25 @@ const getAllAcademies = async (page = 1, limit = env_1.config.pagination.default
     try {
         const pageNumber = Math.max(1, Math.floor(page));
         const pageSize = Math.min(env_1.config.pagination.maxLimit, Math.max(1, Math.floor(limit)));
-        // Check cache first
+        // Get user's favorite sports early - needed for cache key (sports change → results change)
+        let favoriteSportIds = [];
+        if (userId) {
+            try {
+                const userObjectId = await (0, userCache_1.getUserObjectId)(userId);
+                if (userObjectId) {
+                    const user = await user_model_1.UserModel.findById(userObjectId)
+                        .select('favoriteSports')
+                        .lean();
+                    if (user?.favoriteSports && user.favoriteSports.length > 0) {
+                        favoriteSportIds = user.favoriteSports;
+                    }
+                }
+            }
+            catch (error) {
+                logger_1.logger.warn('Failed to get user favorite sports', { userId, error });
+            }
+        }
+        // Check cache first (include favoriteSportIds in key so sports change = different cache)
         const cacheParams = {
             page: pageNumber,
             limit: pageSize,
@@ -69,6 +87,9 @@ const getAllAcademies = async (page = 1, limit = env_1.config.pagination.default
             longitude: userLocation?.longitude,
             radius,
             userId,
+            favoriteSportIds: favoriteSportIds.length > 0
+                ? favoriteSportIds.map((id) => id.toString()).sort().join(',')
+                : undefined,
             ...filters,
         };
         const cached = await (0, homeDataCache_1.getCachedAcademyList)(cacheParams);
@@ -136,24 +157,6 @@ const getAllAcademies = async (page = 1, limit = env_1.config.pagination.default
             if (ids.length > 0) {
                 query.sports = { $in: ids };
                 filterSportObjectIds = ids;
-            }
-        }
-        // Get user's favorite sports if logged in
-        let favoriteSportIds = [];
-        if (userId) {
-            try {
-                const userObjectId = await (0, userCache_1.getUserObjectId)(userId);
-                if (userObjectId) {
-                    const user = await user_model_1.UserModel.findById(userObjectId)
-                        .select('favoriteSports')
-                        .lean();
-                    if (user?.favoriteSports && user.favoriteSports.length > 0) {
-                        favoriteSportIds = user.favoriteSports;
-                    }
-                }
-            }
-            catch (error) {
-                logger_1.logger.warn('Failed to get user favorite sports', { userId, error });
             }
         }
         // When city or state filter is applied, skip location filter (lat/long/radius)
@@ -262,6 +265,7 @@ const getAllAcademies = async (page = 1, limit = env_1.config.pagination.default
         const paginatedAcademies = academies.slice(skip, skip + pageSize);
         const totalPages = Math.ceil(filteredTotal / pageSize);
         const filterSportIdSet = new Set(filterSportObjectIds.map((id) => id.toString()));
+        const favoriteSportIdSet = new Set(favoriteSportIds.map((id) => id.toString()));
         // Batch-check bookmarks for paginated academies when user is logged in
         const bookmarkedIdSet = new Set();
         if (userId) {
@@ -306,7 +310,7 @@ const getAllAcademies = async (page = 1, limit = env_1.config.pagination.default
                         }
                     }
                 }
-                // Sports list: when sport filter applied, put filtered sport(s) first
+                // Sports list: filter sports first (if applied), else favorite sports first (if user logged in)
                 let sportsList = (academy.sports || []).map((sport) => ({
                     id: sport.custom_id || sport._id?.toString(),
                     name: sport.name,
@@ -321,6 +325,17 @@ const getAllAcademies = async (page = 1, limit = env_1.config.pagination.default
                         if (aMatch && !bMatch)
                             return -1;
                         if (!aMatch && bMatch)
+                            return 1;
+                        return 0;
+                    });
+                }
+                else if (favoriteSportIdSet.size > 0 && sportsList.length > 1) {
+                    sportsList = [...sportsList].sort((a, b) => {
+                        const aFav = favoriteSportIdSet.has(a._oid);
+                        const bFav = favoriteSportIdSet.has(b._oid);
+                        if (aFav && !bFav)
+                            return -1;
+                        if (!aFav && bFav)
                             return 1;
                         return 0;
                     });

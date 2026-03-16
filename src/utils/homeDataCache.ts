@@ -163,6 +163,8 @@ export interface AcademyListCacheParams {
   longitude?: number;
   radius?: number;
   userId?: string;
+  /** Comma-separated sorted sport IDs - affects sort order, so cache key must include it */
+  favoriteSportIds?: string;
   city?: string;
   state?: string;
   sportId?: string;
@@ -182,6 +184,7 @@ const getAcademyCacheKey = (params: AcademyListCacheParams): string => {
   }
   if (params.radius !== undefined) parts.push(`r:${params.radius}`);
   if (params.userId) parts.push(`u:${params.userId}`);
+  if (params.favoriteSportIds) parts.push(`fav:${params.favoriteSportIds}`);
   if (params.city) parts.push(`city:${params.city.toLowerCase()}`);
   if (params.state) parts.push(`state:${params.state.toLowerCase()}`);
   if (params.sportId) parts.push(`sid:${params.sportId}`);
