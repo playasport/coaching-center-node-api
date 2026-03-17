@@ -5,6 +5,7 @@ import { Gender } from '../enums/gender.enum';
 export interface AdminUser {
   id: string;
   firstName: string;
+  middleName?: string | null;
   lastName?: string | null;
   dob?: Date | null;
   email: string;
@@ -28,6 +29,7 @@ const adminUserSchema = new Schema<AdminUser>(
   {
     id: { type: String, required: true, unique: true, index: true },
     firstName: { type: String, required: true, trim: true },
+    middleName: { type: String, default: null, trim: true },
     lastName: { type: String, default: null, trim: true },
     dob: { type: Date, default: null },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
@@ -94,6 +96,6 @@ adminUserSchema.index({ isDeleted: 1, isActive: 1, createdAt: -1 });
 adminUserSchema.index({ isDeleted: 1, roles: 1, isActive: 1, createdAt: -1 });
 
 // Text index for search functionality (correct syntax)
-adminUserSchema.index({ firstName: 'text', lastName: 'text', email: 'text', mobile: 'text' }, { name: 'adminUser_search_text_index' });
+adminUserSchema.index({ firstName: 'text', middleName: 'text', lastName: 'text', email: 'text', mobile: 'text' }, { name: 'adminUser_search_text_index' });
 
 export const AdminUserModel = model<AdminUser>('AdminUser', adminUserSchema);

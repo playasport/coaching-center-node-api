@@ -17,6 +17,7 @@ export const participantCreateSchema = z.object({
   body: z.object({
     userId: z.string().optional(), // Optional - automatically set from logged-in user
     firstName: z.string().max(191, 'First name must be less than 191 characters').optional().nullable(),
+    middleName: z.string().max(191, 'Middle name must be less than 191 characters').optional().nullable(),
     lastName: z.string().max(191, 'Last name must be less than 191 characters').optional().nullable(),
     gender: z.enum(Object.values(Gender) as [string, ...string[]]).optional().nullable(),
     disability: z.enum(['0', '1']).optional().default('0').transform((val) => parseInt(val)),
@@ -87,6 +88,7 @@ export const participantCreateSchema = z.object({
 export const participantUpdateSchema = z.object({
   body: z.object({
     firstName: z.string().max(191, 'First name must be less than 191 characters').optional().nullable(),
+    middleName: z.string().max(191, 'Middle name must be less than 191 characters').optional().nullable(),
     lastName: z.string().max(191, 'Last name must be less than 191 characters').optional().nullable(),
     gender: z.enum(Object.values(Gender) as [string, ...string[]]).optional().nullable(),
     disability: z.enum(['0', '1']).optional().transform((val) => val !== undefined ? parseInt(val) : undefined),

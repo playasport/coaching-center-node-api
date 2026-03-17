@@ -389,8 +389,9 @@ export interface UserBookingListItem {
     };
     participants: Array<{
         id: string;
-        firstName: string;
-        lastName: string;
+        firstName?: string | null;
+        middleName?: string | null;
+        lastName?: string | null;
         age?: number | null;
         profilePhoto?: string | null;
     }>;
@@ -479,6 +480,7 @@ export interface BookingDetailsResponse {
     participants: Array<{
         id: string;
         firstName?: string | null;
+        middleName?: string | null;
         lastName?: string | null;
         age?: number | null;
         profilePhoto?: string | null;

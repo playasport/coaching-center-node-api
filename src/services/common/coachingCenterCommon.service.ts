@@ -79,7 +79,7 @@ export const getCoachingCenterById = async (id: string): Promise<CoachingCenter 
       .populate('facility', 'custom_id name description icon')
       .populate({
         path: 'user',
-        select: 'id firstName lastName email isDeleted',
+        select: 'id firstName middleName lastName email isDeleted',
         // Don't use match here - it can exclude parent documents
         // Instead, we'll check if user is deleted and return 404
         options: { lean: true },
@@ -170,7 +170,7 @@ export const toggleCoachingCenterStatus = async (id: string): Promise<CoachingCe
       .populate('facility', 'custom_id name description icon')
       .populate({
         path: 'user',
-        select: 'id firstName lastName email',
+        select: 'id firstName middleName lastName email',
         match: { isDeleted: false },
       })
       .lean();

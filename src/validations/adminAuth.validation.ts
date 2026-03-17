@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { validationMessages } from '../utils/validationMessages';
+import { toTitleCase } from '../utils/string';
 
 const passwordComplexitySchema = z
   .string({ message: validationMessages.password.required() })
@@ -18,8 +19,21 @@ export const adminLoginSchema = z.object({
 
 export const adminUpdateProfileSchema = z.object({
   body: z.object({
-    firstName: z.string().min(1, 'First name is required').max(100).optional(),
-    lastName: z.string().max(100).optional(),
+    firstName: z
+      .string()
+      .min(1, 'First name is required')
+      .max(100)
+      .optional()
+      .transform((val) => (val && val.trim() ? toTitleCase(val.trim()) : undefined)),
+    middleName: z
+      .union([z.string(), z.literal('')])
+      .optional()
+      .transform((val) => (val && val.trim() ? toTitleCase(val.trim()) : undefined)),
+    lastName: z
+      .string()
+      .max(100)
+      .optional()
+      .transform((val) => (val && val.trim() ? toTitleCase(val.trim()) : undefined)),
     mobile: z
       .string()
       .regex(/^[6-9]\d{9}$/, validationMessages.mobileNumber.invalidPattern())

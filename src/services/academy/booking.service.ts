@@ -243,7 +243,7 @@ export const getAcademyBookings = async (
     // Get bookings with minimal population for listing
     const bookings = await BookingModel.find(query)
       .populate('user', 'firstName lastName')
-      .populate('participants', 'firstName lastName')
+      .populate('participants', 'firstName middleName lastName')
       .populate('batch', 'name')
       .populate('center', 'center_name')
       .select('booking_id id status amount priceBreakdown payment payout_status rejection_reason cancellation_reason user participants batch center createdAt')
@@ -263,8 +263,9 @@ export const getAcademyBookings = async (
         const participantNames = booking.participants
           .map((p: any) => {
             const firstName = p?.firstName || '';
+            const middleName = p?.middleName || '';
             const lastName = p?.lastName || '';
-            return `${firstName} ${lastName}`.trim();
+            return `${firstName} ${middleName} ${lastName}`.trim();
           })
           .filter((name: string) => name.length > 0);
         studentName = participantNames.join(', ') || 'N/A';
@@ -393,6 +394,7 @@ export const getAcademyBookingById = async (
     const transformedParticipants = participants.map((participant: any) => ({
       _id: participant._id?.toString() || '',
       firstName: participant.firstName || '',
+      middleName: participant.middleName || '',
       lastName: participant.lastName || '',
       profilePhoto: participant.profilePhoto || '',
       gender: participant.gender || '',
@@ -517,7 +519,7 @@ export const approveBookingRequest = async (
       is_deleted: false,
     })
       .populate('user', 'id firstName lastName email mobile')
-      .populate('participants', 'id firstName lastName')
+      .populate('participants', 'id firstName middleName lastName')
       .populate('batch', 'id name')
       .populate('center', 'id center_name')
       .populate('sport', 'id name')
@@ -732,7 +734,7 @@ export const rejectBookingRequest = async (
       is_deleted: false,
     })
       .populate('user', 'id firstName lastName email mobile')
-      .populate('participants', 'id firstName lastName')
+      .populate('participants', 'id firstName middleName lastName')
       .populate('batch', 'id name')
       .populate('center', 'id center_name')
       .populate('sport', 'id name')

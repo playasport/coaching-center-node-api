@@ -9,6 +9,7 @@ export interface CreateAdminUserData {
   id: string;
   email: string;
   firstName: string;
+  middleName?: string | null;
   lastName?: string | null;
   mobile?: string | null;
   gender?: 'male' | 'female' | 'other';
@@ -21,6 +22,7 @@ export interface CreateAdminUserData {
 
 export interface UpdateAdminUserData {
   firstName?: string;
+  middleName?: string | null;
   lastName?: string | null;
   mobile?: string | null;
   email?: string;
@@ -63,6 +65,7 @@ export const adminUserService = {
       id: data.id,
       email: data.email.toLowerCase(),
       firstName: data.firstName,
+      middleName: data.middleName ?? null,
       lastName: data.lastName ?? null,
       mobile: data.mobile ?? null,
       gender: data.gender ?? null,

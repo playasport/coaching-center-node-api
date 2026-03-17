@@ -30,6 +30,10 @@ export const validationMessages = {
     mustBeString: () => getValidationMessage('firstName.mustBeString'),
     invalidFormat: () => getValidationMessage('firstName.invalidFormat'),
   },
+  middleName: {
+    mustBeString: () => getValidationMessage('middleName.mustBeString'),
+    invalidFormat: () => getValidationMessage('middleName.invalidFormat'),
+  },
   lastName: {
     mustBeString: () => getValidationMessage('lastName.mustBeString'),
     invalidFormat: () => getValidationMessage('lastName.invalidFormat'),
