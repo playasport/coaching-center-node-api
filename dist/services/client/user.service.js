@@ -39,6 +39,7 @@ exports.userService = {
             id: data.id,
             email: data.email.toLowerCase(),
             firstName: data.firstName,
+            middleName: data.middleName ?? null,
             lastName: data.lastName ?? null,
             mobile: data.mobile ?? null,
             gender: data.gender ?? null,
@@ -72,6 +73,7 @@ exports.userService = {
             const participantData = {
                 userId: doc._id,
                 firstName: data.firstName || null,
+                middleName: data.middleName || null,
                 lastName: data.lastName || null,
                 gender: genderNumber,
                 disability: 0, // Default to no disability

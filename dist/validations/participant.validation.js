@@ -18,6 +18,7 @@ exports.participantCreateSchema = zod_1.z.object({
     body: zod_1.z.object({
         userId: zod_1.z.string().optional(), // Optional - automatically set from logged-in user
         firstName: zod_1.z.string().max(191, 'First name must be less than 191 characters').optional().nullable(),
+        middleName: zod_1.z.string().max(191, 'Middle name must be less than 191 characters').optional().nullable(),
         lastName: zod_1.z.string().max(191, 'Last name must be less than 191 characters').optional().nullable(),
         gender: zod_1.z.enum(Object.values(gender_enum_1.Gender)).optional().nullable(),
         disability: zod_1.z.enum(['0', '1']).optional().default('0').transform((val) => parseInt(val)),
@@ -83,6 +84,7 @@ exports.participantCreateSchema = zod_1.z.object({
 exports.participantUpdateSchema = zod_1.z.object({
     body: zod_1.z.object({
         firstName: zod_1.z.string().max(191, 'First name must be less than 191 characters').optional().nullable(),
+        middleName: zod_1.z.string().max(191, 'Middle name must be less than 191 characters').optional().nullable(),
         lastName: zod_1.z.string().max(191, 'Last name must be less than 191 characters').optional().nullable(),
         gender: zod_1.z.enum(Object.values(gender_enum_1.Gender)).optional().nullable(),
         disability: zod_1.z.enum(['0', '1']).optional().transform((val) => val !== undefined ? parseInt(val) : undefined),

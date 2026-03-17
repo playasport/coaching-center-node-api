@@ -177,7 +177,7 @@ const generateTokensAndStoreDeviceToken = async (user, roleName, deviceData) => 
  * Register a new academy user
  */
 const registerAcademyUser = async (data) => {
-    const { firstName, lastName, email, password, mobile, otp } = data;
+    const { firstName, middleName, lastName, email, password, mobile, otp } = data;
     if (!otp) {
         throw new ApiError_1.ApiError(400, (0, i18n_1.t)('validation.otp.required'));
     }
@@ -206,6 +206,7 @@ const registerAcademyUser = async (data) => {
         email,
         password,
         firstName,
+        middleName,
         lastName,
         mobile,
         role: defaultRoles_enum_1.DefaultRoles.ACADEMY,
@@ -225,7 +226,7 @@ const registerAcademyUser = async (data) => {
     });
     // Send welcome email to academy owner
     try {
-        const fullName = lastName ? `${firstName} ${lastName}` : firstName;
+        const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ') || firstName;
         const registrationDate = new Date().toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
@@ -253,7 +254,7 @@ const registerAcademyUser = async (data) => {
     // Send notification email to admin
     if (env_1.config.admin.email) {
         try {
-            const fullName = lastName ? `${firstName} ${lastName}` : firstName;
+            const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ') || firstName;
             const registrationDate = new Date().toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
@@ -281,7 +282,7 @@ const registerAcademyUser = async (data) => {
     // Create notification for admin and super_admin when academy registers
     try {
         const { createAndSendNotification } = await Promise.resolve().then(() => __importStar(require('../common/notification.service')));
-        const fullName = lastName ? `${firstName} ${lastName}` : firstName;
+        const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ') || firstName;
         const pushNotification = (0, notificationMessages_1.getNewAcademyRegistrationAdminPush)({
             userName: fullName,
             userEmail: email,
@@ -463,6 +464,9 @@ const updateAcademyProfile = async (userId, data, file) => {
     const updates = {};
     if (data.firstName) {
         updates.firstName = data.firstName;
+    }
+    if (data.middleName !== undefined) {
+        updates.middleName = data.middleName ?? null;
     }
     if (data.lastName !== undefined) {
         updates.lastName = data.lastName ?? null;
@@ -1029,7 +1033,7 @@ exports.logoutDevice = logoutDevice;
  * Register a new user (student or guardian)
  */
 const registerUser = async (data) => {
-    const { firstName, lastName, email, mobile, dob, gender, otp, tempToken, type } = data;
+    const { firstName, middleName, lastName, email, mobile, dob, gender, otp, tempToken, type } = data;
     // Generate a random password since users don't set passwords (OTP-based auth only)
     const randomPassword = `${(0, uuid_1.v4)()}!User${Math.floor(Math.random() * 1000)}`;
     // Check if email already exists before OTP verification
@@ -1126,6 +1130,7 @@ const registerUser = async (data) => {
             email,
             password: randomPassword, // Random password since users don't set passwords (OTP-based auth only)
             firstName,
+            middleName: middleName ?? null,
             lastName,
             mobile: verifiedMobile,
             role: defaultRoles_enum_1.DefaultRoles.USER,
@@ -1150,7 +1155,7 @@ const registerUser = async (data) => {
     // Send notification email to admin when new user registers
     if (env_1.config.admin.email && !existingUser) {
         try {
-            const fullName = lastName ? `${firstName} ${lastName}` : firstName;
+            const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ') || firstName;
             const registrationDate = new Date().toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
@@ -1183,7 +1188,7 @@ const registerUser = async (data) => {
         (async () => {
             try {
                 const { createAndSendNotification } = await Promise.resolve().then(() => __importStar(require('../common/notification.service')));
-                const fullName = lastName ? `${firstName} ${lastName}` : firstName;
+                const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ') || firstName;
                 const pushNotification = (0, notificationMessages_1.getNewUserRegistrationAdminPush)({
                     userName: fullName,
                     userEmail: email,
@@ -1392,6 +1397,9 @@ const updateUserProfile = async (userId, data, file) => {
     const updates = {};
     if (data.firstName) {
         updates.firstName = data.firstName;
+    }
+    if (data.middleName !== undefined) {
+        updates.middleName = data.middleName ?? null;
     }
     if (data.lastName !== undefined) {
         updates.lastName = data.lastName ?? null;

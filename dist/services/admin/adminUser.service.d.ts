@@ -5,6 +5,7 @@ export interface CreateAdminUserData {
     id: string;
     email: string;
     firstName: string;
+    middleName?: string | null;
     lastName?: string | null;
     mobile?: string | null;
     gender?: 'male' | 'female' | 'other';
@@ -16,6 +17,7 @@ export interface CreateAdminUserData {
 }
 export interface UpdateAdminUserData {
     firstName?: string;
+    middleName?: string | null;
     lastName?: string | null;
     mobile?: string | null;
     email?: string;

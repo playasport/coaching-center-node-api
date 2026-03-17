@@ -25,6 +25,10 @@ export declare const validationMessages: {
         mustBeString: () => string;
         invalidFormat: () => string;
     };
+    middleName: {
+        mustBeString: () => string;
+        invalidFormat: () => string;
+    };
     lastName: {
         mustBeString: () => string;
         invalidFormat: () => string;

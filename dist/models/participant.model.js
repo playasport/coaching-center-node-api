@@ -16,6 +16,12 @@ const participantSchema = new mongoose_1.Schema({
         trim: true,
         maxlength: 191,
     },
+    middleName: {
+        type: String,
+        default: null,
+        trim: true,
+        maxlength: 191,
+    },
     lastName: {
         type: String,
         default: null,

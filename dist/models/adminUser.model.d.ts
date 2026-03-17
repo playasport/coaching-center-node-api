@@ -4,6 +4,7 @@ import { Gender } from '../enums/gender.enum';
 export interface AdminUser {
     id: string;
     firstName: string;
+    middleName?: string | null;
     lastName?: string | null;
     dob?: Date | null;
     email: string;

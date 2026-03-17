@@ -157,8 +157,9 @@ export declare const adminCoachingCenterCreateSchema: z.ZodObject<{
         status: z.ZodDefault<z.ZodLiteral<"published">>;
         owner_id: z.ZodOptional<z.ZodString>;
         academy_owner: z.ZodOptional<z.ZodObject<{
-            firstName: z.ZodString;
-            lastName: z.ZodOptional<z.ZodString>;
+            firstName: z.ZodPipe<z.ZodString, z.ZodTransform<string, string>>;
+            middleName: z.ZodPipe<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">]>>, z.ZodTransform<string | undefined, string | undefined>>;
+            lastName: z.ZodPipe<z.ZodOptional<z.ZodString>, z.ZodTransform<string | undefined, string | undefined>>;
             email: z.ZodString;
             mobile: z.ZodString;
         }, z.core.$strip>>;

@@ -146,7 +146,7 @@ const getAcademyBookings = async (userId, params = {}) => {
         // Get bookings with minimal population for listing
         const bookings = await booking_model_1.BookingModel.find(query)
             .populate('user', 'firstName lastName')
-            .populate('participants', 'firstName lastName')
+            .populate('participants', 'firstName middleName lastName')
             .populate('batch', 'name')
             .populate('center', 'center_name')
             .select('booking_id id status amount priceBreakdown payment payout_status rejection_reason cancellation_reason user participants batch center createdAt')
@@ -164,8 +164,9 @@ const getAcademyBookings = async (userId, params = {}) => {
                 const participantNames = booking.participants
                     .map((p) => {
                     const firstName = p?.firstName || '';
+                    const middleName = p?.middleName || '';
                     const lastName = p?.lastName || '';
-                    return `${firstName} ${lastName}`.trim();
+                    return `${firstName} ${middleName} ${lastName}`.trim();
                 })
                     .filter((name) => name.length > 0);
                 studentName = participantNames.join(', ') || 'N/A';
@@ -280,6 +281,7 @@ const getAcademyBookingById = async (bookingId, userId) => {
         const transformedParticipants = participants.map((participant) => ({
             _id: participant._id?.toString() || '',
             firstName: participant.firstName || '',
+            middleName: participant.middleName || '',
             lastName: participant.lastName || '',
             profilePhoto: participant.profilePhoto || '',
             gender: participant.gender || '',
@@ -389,7 +391,7 @@ const approveBookingRequest = async (bookingId, userId) => {
             is_deleted: false,
         })
             .populate('user', 'id firstName lastName email mobile')
-            .populate('participants', 'id firstName lastName')
+            .populate('participants', 'id firstName middleName lastName')
             .populate('batch', 'id name')
             .populate('center', 'id center_name')
             .populate('sport', 'id name')
@@ -567,7 +569,7 @@ const rejectBookingRequest = async (bookingId, userId, reason) => {
             is_deleted: false,
         })
             .populate('user', 'id firstName lastName email mobile')
-            .populate('participants', 'id firstName lastName')
+            .populate('participants', 'id firstName middleName lastName')
             .populate('batch', 'id name')
             .populate('center', 'id center_name')
             .populate('sport', 'id name')

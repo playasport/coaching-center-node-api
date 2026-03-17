@@ -6,8 +6,9 @@ import { Gender } from '../enums/gender.enum';
 export declare const createOperationalUserSchema: z.ZodObject<{
     body: z.ZodObject<{
         email: z.ZodString;
-        firstName: z.ZodString;
-        lastName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        firstName: z.ZodPipe<z.ZodString, z.ZodTransform<string, string>>;
+        middleName: z.ZodPipe<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">]>>, z.ZodTransform<string | undefined, string | undefined>>;
+        lastName: z.ZodPipe<z.ZodNullable<z.ZodOptional<z.ZodString>>, z.ZodTransform<string | null, string | null | undefined>>;
         mobile: z.ZodString;
         gender: z.ZodNullable<z.ZodOptional<z.ZodEnum<typeof Gender>>>;
         dob: z.ZodPipe<z.ZodNullable<z.ZodOptional<z.ZodString>>, z.ZodTransform<Date | null, string | null | undefined>>;
@@ -32,8 +33,9 @@ export type CreateOperationalUserInput = z.infer<typeof createOperationalUserSch
 export declare const updateOperationalUserSchema: z.ZodObject<{
     body: z.ZodObject<{
         email: z.ZodOptional<z.ZodString>;
-        firstName: z.ZodOptional<z.ZodString>;
-        lastName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        firstName: z.ZodPipe<z.ZodOptional<z.ZodString>, z.ZodTransform<string | undefined, string | undefined>>;
+        middleName: z.ZodPipe<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">]>>, z.ZodTransform<string | undefined, string | undefined>>;
+        lastName: z.ZodPipe<z.ZodNullable<z.ZodOptional<z.ZodString>>, z.ZodTransform<string | null, string | null | undefined>>;
         mobile: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         gender: z.ZodNullable<z.ZodOptional<z.ZodEnum<typeof Gender>>>;
         dob: z.ZodPipe<z.ZodNullable<z.ZodOptional<z.ZodString>>, z.ZodTransform<Date | null, string | null | undefined>>;

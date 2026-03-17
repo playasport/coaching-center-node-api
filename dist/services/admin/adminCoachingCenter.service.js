@@ -255,7 +255,7 @@ const getAllCoachingCenters = async (page = 1, limit = 10, filters = {}, current
                 .select('_id id center_name email mobile_number logo status is_active approval_status reject_reason user addedBy sports location createdAt updatedAt')
                 .populate({
                 path: 'user',
-                select: 'id firstName lastName email mobile isDeleted',
+                select: 'id firstName middleName lastName email mobile isDeleted',
                 // Don't use match here - it can exclude parent documents
                 // Instead, we'll filter deleted users in the transformation
                 options: { lean: true },
@@ -287,12 +287,14 @@ const getAllCoachingCenters = async (page = 1, limit = 10, filters = {}, current
             user: center.user && !center.user.isDeleted ? {
                 id: center.user.id || center.user._id?.toString() || '',
                 firstName: center.user.firstName || '',
+                middleName: center.user.middleName ?? null,
                 lastName: center.user.lastName || '',
                 email: center.user.email || '',
                 mobile: center.user.mobile || '',
             } : {
                 id: '',
                 firstName: '',
+                middleName: null,
                 lastName: '',
                 email: '',
                 mobile: '',
@@ -379,7 +381,7 @@ const getCoachingCentersByUserId = async (userId, page = 1, limit = 10, sortBy =
             coachingCenter_model_1.CoachingCenterModel.find(query)
                 .populate({
                 path: 'user',
-                select: 'firstName lastName email mobile isDeleted',
+                select: 'firstName middleName lastName email mobile isDeleted',
                 // Don't use match here - it can exclude parent documents
                 // Instead, we'll filter deleted users in the transformation if needed
                 options: { lean: true },
@@ -553,6 +555,7 @@ const createCoachingCenterByAdmin = async (data, adminUserId) => {
                     email: academy_owner.email.toLowerCase(),
                     mobile: academy_owner.mobile,
                     firstName: academy_owner.firstName,
+                    middleName: academy_owner.middleName ?? null,
                     lastName: academy_owner.lastName ?? null,
                     password: hashedPassword,
                     roles: [academyRole._id],

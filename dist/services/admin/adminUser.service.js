@@ -29,6 +29,7 @@ exports.adminUserService = {
             id: data.id,
             email: data.email.toLowerCase(),
             firstName: data.firstName,
+            middleName: data.middleName ?? null,
             lastName: data.lastName ?? null,
             mobile: data.mobile ?? null,
             gender: data.gender ?? null,

@@ -3,6 +3,7 @@ export declare const participantCreateSchema: z.ZodObject<{
     body: z.ZodObject<{
         userId: z.ZodOptional<z.ZodString>;
         firstName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        middleName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         lastName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         gender: z.ZodNullable<z.ZodOptional<z.ZodEnum<{
             [x: string]: string;
@@ -29,6 +30,7 @@ export declare const participantCreateSchema: z.ZodObject<{
 export declare const participantUpdateSchema: z.ZodObject<{
     body: z.ZodObject<{
         firstName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        middleName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         lastName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         gender: z.ZodNullable<z.ZodOptional<z.ZodEnum<{
             [x: string]: string;
