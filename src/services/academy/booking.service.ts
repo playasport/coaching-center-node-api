@@ -613,7 +613,7 @@ export const approveBookingRequest = async (
             centerName,
             bookingId: booking.booking_id ?? booking.id,
             year: new Date().getFullYear(),
-            paymentUrl: config.mainSiteUrl ? `${config.mainSiteUrl}/pay?token=${paymentToken}` : '',
+            paymentUrl: config.mainSiteUrl ? `${config.mainSiteUrl}/pay/${paymentToken}` : `https://front.playasport.in/pay/${paymentToken}`,
           },
           priority: 'high',
           metadata: {
@@ -640,8 +640,8 @@ export const approveBookingRequest = async (
 
       // WhatsApp: queue payment_request template (Meta approved template)
       if (user.mobile) {
-        const mainSiteUrl = config.mainSiteUrl || 'https://playasport.in';
-        const paymentUrl = `${mainSiteUrl}/pay?token=${paymentToken}`;
+        const mainSiteUrl = config.mainSiteUrl || 'https://front.playasport.in';
+        const paymentUrl = `${mainSiteUrl}/pay/${paymentToken}`;
         queueWhatsAppTemplate(
           user.mobile,
           'payment_request',
