@@ -62,7 +62,7 @@ export const listTemplateMessagesSchema = z.object({
     limit: z
       .preprocess((v) => (typeof v === 'string' ? parseInt(v, 10) : v), z.number().int().min(1).max(100).optional())
       .optional(),
-    templateName: z.enum(['payment_request', 'payment_reminder', 'booking_cancelled']).optional(),
+    templateName: z.enum(['payment_request', 'payment_reminder', 'booking_cancelled', 'user_payment_verified', 'booking_rejected']).optional(),
     status: z.enum(['sent', 'delivered', 'read', 'failed']).optional(),
     phone: z.string().max(20).optional(),
     dateFrom: z

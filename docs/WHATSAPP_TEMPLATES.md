@@ -35,10 +35,10 @@ Variables are replaced by `replaceVariables(template, variables)` in the same fi
 | 2 | `getBookingRequestSentUserWhatsApp` | Booking request sent → user | `src/services/client/booking.service.ts`: after slot book |
 | 3 | **Meta template `payment_request`** (booking approved) | Booking approved → user (pay now) with CTA | `src/services/academy/booking.service.ts`: approve booking — sends template via `sendWhatsAppCloudPaymentRequestTemplate` (header image, body params, URL button). |
 | 3b | `getBookingApprovedUserWhatsApp` | (Legacy in-app text; not used when template is sent.) | — |
-| 4 | `getBookingRejectedUserWhatsApp` | Booking rejected → user | `src/services/academy/booking.service.ts`: reject booking |
+| 4 | **Meta template `booking_rejected`** | Booking rejected → user | `src/services/academy/booking.service.ts`: reject booking — sends template via `sendWhatsAppCloudBookingRejectedTemplate` (body: batch_name, center_name, booking_id, rejection_reason). |
 | 5 | `getBookingCancelledUserWhatsApp` | Booking cancelled → user | `src/services/client/booking.service.ts`: cancel (user + academy flow) |
 | 6 | `getBookingCancelledAcademyWhatsApp` | Booking cancelled → academy | `src/services/client/booking.service.ts`: cancel (both flows) |
-| 7 | `getPaymentVerifiedUserWhatsApp` | Payment success → user | `src/services/client/booking.service.ts`: after payment verify |
+| 7 | **Meta template `user_payment_verified`** | Payment success → user | `src/services/client/booking.service.ts`: after payment verify — sends template via `sendWhatsAppCloudPaymentVerifiedTemplate` (body: user_name, booking_id, batch_name, sport_name, center_name, participants, start_date, start_time, end_time, currency, amount). |
 | 8 | `getPaymentVerifiedAcademyWhatsApp` | Payment success → academy | `src/services/client/booking.service.ts`: after payment verify |
 | 9 | `getPaymentReminderUserWhatsApp` | Payment reminder (X hours left) | `src/jobs/bookingPaymentExpiry.job.ts`: reminder job |
 | 10 | `getPayoutAccountCreatedAcademyWhatsApp` | Payout account created → academy | `src/services/academy/payoutAccount.service.ts`: create account |

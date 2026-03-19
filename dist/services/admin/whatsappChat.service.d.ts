@@ -65,7 +65,7 @@ export declare function markConversationRead(conversationId: string): Promise<vo
 export interface ListTemplateMessagesParams {
     page?: number;
     limit?: number;
-    templateName?: 'payment_request' | 'payment_reminder' | 'booking_cancelled';
+    templateName?: 'payment_request' | 'payment_reminder' | 'booking_cancelled' | 'user_payment_verified' | 'booking_rejected';
     status?: 'sent' | 'delivered' | 'read' | 'failed';
     phone?: string;
     dateFrom?: Date;

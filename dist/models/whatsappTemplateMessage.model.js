@@ -7,7 +7,7 @@ const schema = new mongoose_1.Schema({
     templateName: {
         type: String,
         required: true,
-        enum: ['payment_request', 'payment_reminder', 'booking_cancelled'],
+        enum: ['payment_request', 'payment_reminder', 'booking_cancelled', 'user_payment_verified', 'booking_rejected'],
         index: true,
     },
     waMessageId: { type: String, required: true, unique: true, index: true },

@@ -60,6 +60,7 @@ const rateLimit_middleware_1 = require("./middleware/rateLimit.middleware");
 const permission_service_1 = require("./services/admin/permission.service");
 const mediaCleanup_job_1 = require("./jobs/mediaCleanup.job");
 const permanentDelete_job_1 = require("./jobs/permanentDelete.job");
+const payoutReconciliation_job_1 = require("./jobs/payoutReconciliation.job");
 const role_service_1 = require("./services/admin/role.service");
 const academyDashboardCache_1 = require("./utils/academyDashboardCache");
 const adminDashboardCache_1 = require("./utils/adminDashboardCache");
@@ -81,6 +82,8 @@ const startServer = async () => {
         // Booking payment expiry: auto-cancel unpaid approved bookings and send payment reminders (every 15 min)
         const { startBookingPaymentExpiryJob } = await Promise.resolve().then(() => __importStar(require('./jobs/bookingPaymentExpiry.job')));
         startBookingPaymentExpiryJob();
+        // Payout reconciliation: create missing payouts for verified payments (every hour)
+        (0, payoutReconciliation_job_1.startPayoutReconciliationJob)();
         // Start server
         app_1.default.listen(env_1.config.port, () => {
             logger_1.logger.info('HTTP server started', {

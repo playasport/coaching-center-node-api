@@ -1,5 +1,5 @@
 import { HydratedDocument } from 'mongoose';
-export type WhatsAppTemplateName = 'payment_request' | 'payment_reminder' | 'booking_cancelled';
+export type WhatsAppTemplateName = 'payment_request' | 'payment_reminder' | 'booking_cancelled' | 'user_payment_verified' | 'booking_rejected';
 export type WhatsAppTemplateMessageStatus = 'sent' | 'delivered' | 'read' | 'failed';
 export interface WhatsAppTemplateMessage {
     /** Recipient phone (E.164 digits, no +) */

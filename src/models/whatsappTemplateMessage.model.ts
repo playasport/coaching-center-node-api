@@ -1,6 +1,11 @@
 import { Schema, model, HydratedDocument } from 'mongoose';
 
-export type WhatsAppTemplateName = 'payment_request' | 'payment_reminder' | 'booking_cancelled';
+export type WhatsAppTemplateName =
+  | 'payment_request'
+  | 'payment_reminder'
+  | 'booking_cancelled'
+  | 'user_payment_verified'
+  | 'booking_rejected';
 
 export type WhatsAppTemplateMessageStatus = 'sent' | 'delivered' | 'read' | 'failed';
 
@@ -27,7 +32,7 @@ const schema = new Schema<WhatsAppTemplateMessage>(
     templateName: {
       type: String,
       required: true,
-      enum: ['payment_request', 'payment_reminder', 'booking_cancelled'],
+      enum: ['payment_request', 'payment_reminder', 'booking_cancelled', 'user_payment_verified', 'booking_rejected'],
       index: true,
     },
     waMessageId: { type: String, required: true, unique: true, index: true },

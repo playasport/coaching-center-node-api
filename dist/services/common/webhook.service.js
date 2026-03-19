@@ -38,6 +38,8 @@ const booking_model_1 = require("../../models/booking.model");
 const transaction_model_1 = require("../../models/transaction.model");
 const auditTrail_model_1 = require("../../models/auditTrail.model");
 const logger_1 = require("../../utils/logger");
+const auditTrail_service_1 = require("./auditTrail.service");
+const bookingPaymentVerifiedNotifications_helper_1 = require("../client/bookingPaymentVerifiedNotifications.helper");
 /**
  * Handle Razorpay webhook events
  */
@@ -143,8 +145,8 @@ const handlePaymentCaptured = async (payment, fullPayload) => {
             });
             // Still update the booking but mark with error
         }
-        // Update booking
-        await booking_model_1.BookingModel.findByIdAndUpdate(booking._id, {
+        // Update booking atomically - only if not already success (prevents duplicate notifications with verifyPayment)
+        const updatedBooking = await booking_model_1.BookingModel.findOneAndUpdate({ _id: booking._id, 'payment.status': { $ne: booking_model_1.PaymentStatus.SUCCESS } }, {
             $set: {
                 status: booking_model_1.BookingStatus.CONFIRMED,
                 'payment.razorpay_payment_id': paymentId,
@@ -152,7 +154,32 @@ const handlePaymentCaptured = async (payment, fullPayload) => {
                 'payment.payment_method': payment.method || null,
                 'payment.paid_at': new Date(),
             },
-        });
+        }, { new: true });
+        if (!updatedBooking) {
+            // Payment already processed (e.g. by verifyPayment) - update transaction and return
+            logger_1.logger.info(`Payment already processed for booking: ${booking.id}`);
+            await transaction_model_1.TransactionModel.findOneAndUpdate({
+                booking: booking._id,
+                razorpay_payment_id: paymentId,
+            }, {
+                $set: {
+                    status: transaction_model_1.TransactionStatus.SUCCESS,
+                    source: transaction_model_1.TransactionSource.WEBHOOK,
+                    payment_method: payment.method || null,
+                    processed_at: new Date(),
+                    razorpay_webhook_data: fullPayload,
+                },
+                $setOnInsert: {
+                    user: booking.user,
+                    booking: booking._id,
+                    razorpay_order_id: orderId,
+                    amount: booking.amount,
+                    currency: booking.currency,
+                    type: transaction_model_1.TransactionType.PAYMENT,
+                },
+            }, { upsert: true, new: true });
+            return;
+        }
         // Update or create transaction
         const transaction = await transaction_model_1.TransactionModel.findOneAndUpdate({
             booking: booking._id,
@@ -176,68 +203,83 @@ const handlePaymentCaptured = async (payment, fullPayload) => {
                 // Note: status and source are in $set above, so they will be set for both insert and update
             },
         }, { upsert: true, new: true });
-        logger_1.logger.info(`Payment captured via webhook for booking: ${booking.id}, payment: ${paymentId}`);
-        // Create payout record (non-blocking - enqueue in background)
+        logger_1.logger.info(`Payment captured via webhook for booking: ${updatedBooking.id}, payment: ${paymentId}`);
+        // Send notifications (non-blocking) - only we updated, so no duplicate with verifyPayment
+        (0, bookingPaymentVerifiedNotifications_helper_1.sendPaymentVerifiedNotifications)(updatedBooking.id).catch((error) => {
+            logger_1.logger.error('Error sending payment verified notifications from webhook', {
+                bookingId: updatedBooking.id,
+                error: error instanceof Error ? error.message : error,
+            });
+        });
+        // Create audit trail for payment verified via webhook (non-blocking)
+        (0, auditTrail_service_1.createAuditTrail)(auditTrail_model_1.ActionType.PAYMENT_SUCCESS, auditTrail_model_1.ActionScale.CRITICAL, `Payment verified via webhook for booking ${updatedBooking.booking_id || updatedBooking.id}`, 'Booking', booking._id, {
+            academyId: booking.center,
+            bookingId: booking._id,
+            metadata: {
+                source: 'webhook',
+                razorpay_order_id: orderId,
+                razorpay_payment_id: paymentId,
+                payment_method: payment.method || null,
+                amount: booking.amount,
+                currency: booking.currency,
+                transaction_id: transaction?.id || null,
+            },
+        }).catch((error) => {
+            logger_1.logger.error('Failed to create audit trail for webhook payment verification', {
+                bookingId: booking.id,
+                error: error instanceof Error ? error.message : error,
+            });
+        });
+        // Create payout record (non-blocking - fire-and-forget, return 200 to Razorpay quickly)
         // Only create payout if commission and priceBreakdown exist and payoutAmount > 0
-        // This ensures payout is created even when payment comes via webhook instead of user verification
-        if (booking.commission && booking.commission.payoutAmount > 0 && booking.priceBreakdown && transaction) {
-            try {
-                const { CoachingCenterModel } = await Promise.resolve().then(() => __importStar(require('../../models/coachingCenter.model')));
-                const { UserModel } = await Promise.resolve().then(() => __importStar(require('../../models/user.model')));
-                // Get center to find academy owner
-                const center = await CoachingCenterModel.findById(booking.center)
-                    .select('user')
-                    .lean();
-                if (center?.user) {
+        const commission = booking.commission;
+        const priceBreakdown = booking.priceBreakdown;
+        if (commission && commission.payoutAmount > 0 && priceBreakdown && transaction) {
+            void (async () => {
+                try {
+                    const { CoachingCenterModel } = await Promise.resolve().then(() => __importStar(require('../../models/coachingCenter.model')));
+                    const { UserModel } = await Promise.resolve().then(() => __importStar(require('../../models/user.model')));
+                    const center = await CoachingCenterModel.findById(booking.center).select('user').lean();
+                    if (!center?.user)
+                        return;
                     const academyUser = await UserModel.findById(center.user).select('id').lean();
-                    if (academyUser) {
-                        // Create payout record directly (synchronous)
-                        try {
-                            const { createPayoutRecord } = await Promise.resolve().then(() => __importStar(require('./payoutCreation.service')));
-                            const result = await createPayoutRecord({
-                                bookingId: booking.id,
-                                transactionId: transaction.id,
-                                academyUserId: academyUser.id,
-                                amount: booking.amount,
-                                batchAmount: booking.priceBreakdown.batch_amount,
-                                commissionRate: booking.commission.rate,
-                                commissionAmount: booking.commission.amount,
-                                payoutAmount: booking.commission.payoutAmount,
-                                currency: booking.currency,
-                            });
-                            if (result.success && !result.skipped) {
-                                logger_1.logger.info('Payout record created successfully from webhook', {
-                                    bookingId: booking.id,
-                                    transactionId: transaction.id,
-                                    payoutId: result.payoutId,
-                                    payoutAmount: booking.commission.payoutAmount,
-                                });
-                            }
-                            else if (result.skipped) {
-                                logger_1.logger.info('Payout creation skipped from webhook', {
-                                    bookingId: booking.id,
-                                    reason: result.reason,
-                                    payoutId: result.payoutId,
-                                });
-                            }
-                        }
-                        catch (payoutError) {
-                            logger_1.logger.error('Failed to create payout record from webhook', {
-                                error: payoutError.message || payoutError,
-                                bookingId: booking.id,
-                                transactionId: transaction.id,
-                            });
-                        }
+                    if (!academyUser)
+                        return;
+                    const { createPayoutRecord } = await Promise.resolve().then(() => __importStar(require('./payoutCreation.service')));
+                    const result = await createPayoutRecord({
+                        bookingId: booking.id,
+                        transactionId: transaction.id,
+                        academyUserId: academyUser.id,
+                        amount: booking.amount,
+                        batchAmount: priceBreakdown.batch_amount,
+                        commissionRate: commission.rate,
+                        commissionAmount: commission.amount,
+                        payoutAmount: commission.payoutAmount,
+                        currency: booking.currency,
+                    });
+                    if (result.success && !result.skipped) {
+                        logger_1.logger.info('Payout record created successfully from webhook', {
+                            bookingId: booking.id,
+                            transactionId: transaction.id,
+                            payoutId: result.payoutId,
+                            payoutAmount: commission.payoutAmount,
+                        });
+                    }
+                    else if (result.skipped) {
+                        logger_1.logger.info('Payout creation skipped from webhook', {
+                            bookingId: booking.id,
+                            reason: result.reason,
+                            payoutId: result.payoutId,
+                        });
                     }
                 }
-            }
-            catch (payoutError) {
-                // Log but don't fail webhook processing
-                logger_1.logger.error('Failed to enqueue payout creation from webhook (non-blocking)', {
-                    error: payoutError.message || payoutError,
-                    bookingId: booking.id,
-                });
-            }
+                catch (payoutError) {
+                    logger_1.logger.error('Failed to create payout record from webhook', {
+                        error: payoutError.message || payoutError,
+                        bookingId: booking.id,
+                    });
+                }
+            })();
         }
     }
     catch (error) {

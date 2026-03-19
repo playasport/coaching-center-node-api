@@ -38,7 +38,6 @@ const mongoose_1 = require("mongoose");
 const booking_model_1 = require("../../models/booking.model");
 const transaction_model_1 = require("../../models/transaction.model");
 const batch_model_1 = require("../../models/batch.model");
-const participant_model_1 = require("../../models/participant.model");
 const coachingCenter_model_1 = require("../../models/coachingCenter.model");
 const user_model_1 = require("../../models/user.model");
 const defaultRoles_enum_1 = require("../../enums/defaultRoles.enum");
@@ -53,6 +52,7 @@ const notification_service_1 = require("../common/notification.service");
 const auditTrail_service_1 = require("../common/auditTrail.service");
 const auditTrail_model_1 = require("../../models/auditTrail.model");
 const notificationMessages_1 = require("../common/notificationMessages");
+const bookingPaymentVerifiedNotifications_helper_1 = require("./bookingPaymentVerifiedNotifications.helper");
 // Import helper functions
 const booking_helpers_validation_1 = require("./booking.helpers.validation");
 const booking_helpers_calculation_1 = require("./booking.helpers.calculation");
@@ -1033,9 +1033,8 @@ const verifyPayment = async (data, userId) => {
             });
             throw new ApiError_1.ApiError(400, 'Payment amount does not match booking amount');
         }
-        // Update booking and transaction in parallel for better performance
-        // Transaction update is fire-and-forget (we don't need to wait for it)
-        const bookingUpdatePromise = booking_model_1.BookingModel.findByIdAndUpdate(booking._id, {
+        // Update booking atomically - only if not already success (prevents duplicate notifications with webhook)
+        const bookingUpdatePromise = booking_model_1.BookingModel.findOneAndUpdate({ _id: booking._id, 'payment.status': { $ne: booking_model_1.PaymentStatus.SUCCESS } }, {
             $set: {
                 status: booking_model_1.BookingStatus.CONFIRMED,
                 'payment.razorpay_payment_id': data.razorpay_payment_id,
@@ -1076,9 +1075,47 @@ const verifyPayment = async (data, userId) => {
                 // Note: status is in $set above, so it will be set for both insert and update
             },
         }, { upsert: true, new: true, lean: true });
-        const updatedBooking = await bookingUpdatePromise;
+        let updatedBooking = await bookingUpdatePromise;
+        // Payment already verified (e.g. by webhook) - fetch and return success, no duplicate notifications
         if (!updatedBooking) {
-            throw new ApiError_1.ApiError(500, 'Failed to update booking');
+            await transactionUpdatePromise; // Ensure transaction is consistent
+            updatedBooking = await booking_model_1.BookingModel.findById(booking._id)
+                .populate('batch', 'id name')
+                .populate('center', 'id center_name email mobile_number')
+                .populate('sport', 'id name')
+                .select('id booking_id status amount currency payment batch center sport updatedAt')
+                .lean();
+            if (!updatedBooking || updatedBooking.payment?.status !== booking_model_1.PaymentStatus.SUCCESS) {
+                throw new ApiError_1.ApiError(500, 'Failed to update booking');
+            }
+            // Return success response - notifications already sent by webhook
+            const response = {
+                id: updatedBooking.id || updatedBooking._id?.toString() || '',
+                booking_id: updatedBooking.booking_id || '',
+                status: updatedBooking.status,
+                amount: updatedBooking.amount,
+                currency: updatedBooking.currency,
+                payment: {
+                    razorpay_order_id: updatedBooking.payment.razorpay_order_id || '',
+                    status: updatedBooking.payment.status,
+                    payment_method: updatedBooking.payment.payment_method || razorpayPayment.method || null,
+                    paid_at: updatedBooking.payment.paid_at || new Date(),
+                },
+                batch: {
+                    id: updatedBooking.batch?._id?.toString() || updatedBooking.batch?.id || '',
+                    name: updatedBooking.batch?.name || '',
+                },
+                center: {
+                    id: updatedBooking.center?._id?.toString() || updatedBooking.center?.id || '',
+                    center_name: updatedBooking.center?.center_name || '',
+                },
+                sport: {
+                    id: updatedBooking.sport?._id?.toString() || updatedBooking.sport?.id || '',
+                    name: updatedBooking.sport?.name || '',
+                },
+                updatedAt: updatedBooking.updatedAt,
+            };
+            return response;
         }
         // Wait for transaction to be created/updated before creating payout
         let transaction = null;
@@ -1137,8 +1174,8 @@ const verifyPayment = async (data, userId) => {
                 });
             }
         }
-        // Create audit trail for successful payment verification
-        await (0, auditTrail_service_1.createAuditTrail)(auditTrail_model_1.ActionType.PAYMENT_SUCCESS, auditTrail_model_1.ActionScale.CRITICAL, `Payment verified successfully for booking ${updatedBooking.booking_id || updatedBooking.id}`, 'Booking', booking._id, {
+        // Create audit trail (non-blocking)
+        (0, auditTrail_service_1.createAuditTrail)(auditTrail_model_1.ActionType.PAYMENT_SUCCESS, auditTrail_model_1.ActionScale.CRITICAL, `Payment verified successfully for booking ${updatedBooking.booking_id || updatedBooking.id}`, 'Booking', booking._id, {
             userId: userObjectId,
             academyId: booking.center,
             bookingId: booking._id,
@@ -1158,488 +1195,56 @@ const verifyPayment = async (data, userId) => {
             });
         });
         logger_1.logger.info(`Payment verified successfully for booking: ${booking.id}`);
-        // Note: payout_status will be set when payout is actually created/transferred
-        // Remains NOT_INITIATED during payment verification, will be updated when payout is created
-        // Create payout record (non-blocking - enqueue in background)
-        // Only create payout if commission and priceBreakdown exist and payoutAmount > 0
-        if (booking.commission && booking.commission.payoutAmount > 0 && booking.priceBreakdown) {
-            try {
-                // Get center to find academy owner
-                const center = await coachingCenter_model_1.CoachingCenterModel.findById(booking.center)
-                    .select('user')
-                    .lean();
-                if (!center) {
-                    logger_1.logger.warn('Center not found for payout creation', {
-                        bookingId: booking.id,
-                        centerId: booking.center?.toString(),
-                    });
-                }
-                else if (!center.user) {
-                    logger_1.logger.warn('Center has no user (academy owner) for payout creation', {
-                        bookingId: booking.id,
-                        centerId: center._id?.toString(),
-                    });
-                }
-                else {
-                    const academyUser = await user_model_1.UserModel.findById(center.user).select('id').lean();
-                    if (!academyUser) {
-                        logger_1.logger.warn('Academy user not found for payout creation', {
-                            bookingId: booking.id,
-                            centerUserId: center.user.toString(),
-                        });
-                    }
-                    else {
-                        // Get transaction ID - use transaction from above if available, otherwise fetch it
-                        let transactionForPayout = null;
-                        if (transaction && transaction.id) {
-                            transactionForPayout = transaction;
-                            logger_1.logger.info('Using transaction from update for payout creation', {
-                                bookingId: booking.id,
-                                transactionId: transaction.id,
-                            });
-                        }
-                        else {
-                            // Try to find transaction if it wasn't created/updated above
-                            logger_1.logger.info('Transaction not available from update, fetching from database', {
-                                bookingId: booking.id,
-                                razorpay_order_id: data.razorpay_order_id,
-                            });
-                            transactionForPayout = await transaction_model_1.TransactionModel.findOne({
-                                booking: booking._id,
-                                razorpay_order_id: data.razorpay_order_id,
-                            }).select('id').lean();
-                        }
-                        if (transactionForPayout && transactionForPayout.id) {
-                            // Create payout record directly (synchronous)
-                            try {
-                                const { createPayoutRecord } = await Promise.resolve().then(() => __importStar(require('../common/payoutCreation.service')));
-                                const result = await createPayoutRecord({
-                                    bookingId: booking.id,
-                                    transactionId: transactionForPayout.id,
-                                    academyUserId: academyUser.id,
-                                    amount: booking.amount,
-                                    batchAmount: booking.priceBreakdown.batch_amount,
-                                    commissionRate: booking.commission.rate,
-                                    commissionAmount: booking.commission.amount,
-                                    payoutAmount: booking.commission.payoutAmount,
-                                    currency: booking.currency,
-                                });
-                                if (result.success && !result.skipped) {
-                                    logger_1.logger.info('Payout record created successfully', {
-                                        bookingId: booking.id,
-                                        transactionId: transactionForPayout.id,
-                                        payoutId: result.payoutId,
-                                        payoutAmount: booking.commission.payoutAmount,
-                                        commissionRate: booking.commission.rate,
-                                        commissionAmount: booking.commission.amount,
-                                        batchAmount: booking.priceBreakdown.batch_amount,
-                                    });
-                                }
-                                else if (result.skipped) {
-                                    logger_1.logger.info('Payout creation skipped', {
-                                        bookingId: booking.id,
-                                        reason: result.reason,
-                                        payoutId: result.payoutId,
-                                        payoutAmount: booking.commission.payoutAmount,
-                                    });
-                                }
-                            }
-                            catch (payoutError) {
-                                logger_1.logger.error('Failed to create payout record', {
-                                    error: payoutError.message || payoutError,
-                                    bookingId: booking.id,
-                                    transactionId: transactionForPayout?.id,
-                                    academyUserId: academyUser.id,
-                                    stack: payoutError.stack,
-                                });
-                            }
-                        }
-                        else {
-                            logger_1.logger.error('Transaction not found for payout creation', {
-                                bookingId: booking.id,
-                                razorpay_order_id: data.razorpay_order_id,
-                                centerId: center._id?.toString(),
-                                academyUserId: academyUser.id,
-                                transactionFromUpdate: transaction ? (transaction.id ? 'has id' : 'exists but no id') : 'null',
-                            });
-                        }
-                    }
-                }
-            }
-            catch (payoutError) {
-                // Log but don't fail payment verification
-                logger_1.logger.error('Failed to create payout record (outer catch)', {
-                    error: payoutError.message || payoutError,
-                    bookingId: booking.id,
-                    stack: payoutError.stack,
-                });
-            }
-        }
-        else {
-            // Log why payout creation was skipped
-            if (!booking.commission) {
-                logger_1.logger.warn('Payout creation skipped: commission not found', { bookingId: booking.id });
-            }
-            else if (!booking.commission.payoutAmount || booking.commission.payoutAmount <= 0) {
-                logger_1.logger.warn('Payout creation skipped: payoutAmount is 0 or negative', {
-                    bookingId: booking.id,
-                    payoutAmount: booking.commission.payoutAmount,
-                });
-            }
-            else if (!booking.priceBreakdown) {
-                logger_1.logger.warn('Payout creation skipped: priceBreakdown not found', { bookingId: booking.id });
-            }
-        }
-        // Send confirmation emails/SMS asynchronously (non-blocking)
-        // Don't await - let it run in background
-        (async () => {
-            try {
-                // Fetch all required data for notifications (since we don't populate user/participants in response)
-                const [batchDetails, userDetails, participantDetails, centerDetails] = await Promise.all([
-                    batch_model_1.BatchModel.findById(booking.batch).lean(),
-                    user_model_1.UserModel.findById(booking.user).select('id firstName lastName email mobile').lean(),
-                    participant_model_1.ParticipantModel.find({ _id: { $in: booking.participants } }).select('id firstName lastName').lean(),
-                    coachingCenter_model_1.CoachingCenterModel.findById(booking.center).select('id center_name email mobile_number user').lean(),
-                ]);
-                if (!batchDetails) {
-                    logger_1.logger.warn(`Batch not found for booking ${booking.id}`);
-                    return;
-                }
-                // Format date and time
-                const startDate = batchDetails.scheduled?.start_date
-                    ? new Date(batchDetails.scheduled.start_date).toLocaleDateString('en-IN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                    })
-                    : 'N/A';
-                const startTime = batchDetails.scheduled?.start_time || 'N/A';
-                const endTime = batchDetails.scheduled?.end_time || 'N/A';
-                const trainingDays = batchDetails.scheduled?.training_days
-                    ? batchDetails.scheduled.training_days.join(', ')
-                    : 'N/A';
-                // Format participant names
-                const participantNames = (participantDetails || [])
-                    .map((p) => {
-                    const firstName = p.firstName || '';
-                    const lastName = p.lastName || '';
-                    return `${firstName} ${lastName}`.trim() || p.id || 'Participant';
-                })
-                    .join(', ');
-                // Get user details
-                const user = userDetails;
-                const userName = user
-                    ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'User'
-                    : 'User';
-                const userEmail = user?.email;
-                const userMobile = user?.mobile;
-                // Get center details
-                const center = centerDetails;
-                const centerName = center?.center_name || 'Coaching Center';
-                const centerEmail = center?.email;
-                const centerMobile = center?.mobile_number;
-                // Get sport and batch details
-                const sport = updatedBooking.sport;
-                const sportName = sport?.name || 'Sport';
-                const batchName = batchDetails.name || 'Batch';
-                // Prepare email template variables
-                const emailTemplateVariables = {
-                    userName,
-                    bookingId: updatedBooking.booking_id ?? undefined,
-                    batchName,
-                    sportName,
-                    centerName,
-                    participants: participantNames,
-                    startDate,
-                    startTime,
-                    endTime,
-                    trainingDays,
-                    amount: updatedBooking.amount.toFixed(2),
-                    currency: updatedBooking.currency,
-                    paymentId: data.razorpay_payment_id,
-                    year: new Date().getFullYear(),
-                };
-                // Generate invoice PDF for email attachment
-                let invoiceBuffer = null;
+        // Create payout record (non-blocking - fire-and-forget, return response quickly)
+        const commission = booking.commission;
+        const priceBreakdown = booking.priceBreakdown;
+        if (commission && commission.payoutAmount > 0 && priceBreakdown) {
+            const txForPayout = transaction;
+            const razorpayOrderId = data.razorpay_order_id;
+            void (async () => {
                 try {
-                    const { generateBookingInvoice } = await Promise.resolve().then(() => __importStar(require('../admin/invoice.service')));
-                    invoiceBuffer = await generateBookingInvoice(updatedBooking.id);
-                }
-                catch (invoiceError) {
-                    logger_1.logger.error('Failed to generate invoice for email', {
-                        bookingId: updatedBooking.id,
-                        error: invoiceError instanceof Error ? invoiceError.message : invoiceError,
-                    });
-                    // Continue without invoice attachment if generation fails
-                }
-                // Queue emails using notification queue (non-blocking)
-                // Send email to user with invoice attachment
-                if (userEmail) {
-                    (0, notificationQueue_service_1.queueEmail)(userEmail, notificationMessages_1.EmailSubjects.BOOKING_CONFIRMATION_USER, {
-                        template: notificationMessages_1.EmailTemplates.BOOKING_CONFIRMATION_USER,
-                        text: (0, notificationMessages_1.getBookingConfirmationUserEmailText)({
-                            bookingId: updatedBooking.booking_id ?? undefined,
-                            batchName,
-                            centerName,
-                        }),
-                        templateVariables: emailTemplateVariables,
-                        priority: 'high',
-                        metadata: {
-                            type: 'booking_confirmation',
-                            bookingId: updatedBooking.id,
-                            recipient: 'user',
-                        },
-                        attachments: invoiceBuffer
-                            ? [
-                                {
-                                    filename: `invoice-${updatedBooking.booking_id}.pdf`,
-                                    content: invoiceBuffer,
-                                    contentType: 'application/pdf',
-                                },
-                            ]
-                            : undefined,
-                    });
-                }
-                // Send email to coaching center
-                if (centerEmail) {
-                    (0, notificationQueue_service_1.queueEmail)(centerEmail, notificationMessages_1.EmailSubjects.BOOKING_CONFIRMATION_CENTER, {
-                        template: notificationMessages_1.EmailTemplates.BOOKING_CONFIRMATION_CENTER,
-                        text: (0, notificationMessages_1.getBookingConfirmationCenterEmailText)({
-                            bookingId: updatedBooking.booking_id ?? undefined,
-                            batchName,
-                            userName,
-                        }),
-                        templateVariables: {
-                            ...emailTemplateVariables,
-                            userEmail: userEmail || 'N/A',
-                        },
-                        priority: 'high',
-                        metadata: {
-                            type: 'booking_confirmation',
-                            bookingId: updatedBooking.booking_id ?? undefined,
-                            recipient: 'coaching_center',
-                        },
-                    });
-                }
-                // Send email to admin
-                if (env_1.config.admin.email) {
-                    (0, notificationQueue_service_1.queueEmail)(env_1.config.admin.email, notificationMessages_1.EmailSubjects.BOOKING_CONFIRMATION_ADMIN, {
-                        template: notificationMessages_1.EmailTemplates.BOOKING_CONFIRMATION_ADMIN,
-                        text: (0, notificationMessages_1.getBookingConfirmationAdminEmailText)({
-                            bookingId: updatedBooking.booking_id ?? undefined,
-                            batchName,
-                            centerName,
-                        }),
-                        templateVariables: {
-                            ...emailTemplateVariables,
-                            userEmail: userEmail || 'N/A',
-                        },
-                        priority: 'high',
-                        metadata: {
-                            type: 'booking_confirmation',
-                            bookingId: updatedBooking.booking_id ?? undefined,
-                            recipient: 'admin',
-                        },
-                    });
-                }
-                // Prepare SMS messages using notification messages
-                const userSmsMessage = (0, notificationMessages_1.getPaymentVerifiedUserSms)({
-                    userName: userName || 'User',
-                    bookingId: updatedBooking.booking_id ?? undefined,
-                    batchName,
-                    sportName,
-                    centerName,
-                    participants: participantNames,
-                    startDate,
-                    startTime,
-                    endTime,
-                    currency: updatedBooking.currency,
-                    amount: updatedBooking.amount.toFixed(2),
-                });
-                const centerSmsMessage = (0, notificationMessages_1.getPaymentVerifiedAcademySms)({
-                    bookingId: updatedBooking.booking_id ?? undefined,
-                    batchName,
-                    sportName,
-                    userName: userName || 'N/A',
-                    participants: participantNames,
-                    startDate,
-                    startTime,
-                    endTime,
-                    currency: updatedBooking.currency,
-                    amount: updatedBooking.amount.toFixed(2),
-                });
-                // Queue SMS notifications using notification queue (non-blocking)
-                // Send SMS to user
-                if (userMobile) {
-                    (0, notificationQueue_service_1.queueSms)(userMobile, userSmsMessage, 'high', {
-                        type: 'booking_confirmation',
-                        bookingId: updatedBooking.id,
-                        recipient: 'user',
-                    });
-                }
-                else {
-                    logger_1.logger.warn('User mobile number not available for SMS', {
-                        bookingId: booking.booking_id ?? undefined,
-                    });
-                }
-                // Send SMS to coaching center
-                if (centerMobile) {
-                    (0, notificationQueue_service_1.queueSms)(centerMobile, centerSmsMessage, 'high', {
-                        type: 'booking_confirmation',
-                        bookingId: updatedBooking.booking_id ?? undefined,
-                        recipient: 'coaching_center',
-                    });
-                }
-                else {
-                    logger_1.logger.warn('Coaching center mobile number not available for SMS', {
-                        bookingId: booking.booking_id ?? undefined,
-                    });
-                }
-                // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
-                // const userWhatsAppMessage = getPaymentVerifiedUserWhatsApp({
-                //   userName: userName || 'User',
-                //   bookingId: updatedBooking.booking_id ?? undefined,
-                //   batchName,
-                //   sportName,
-                //   centerName,
-                //   participants: participantNames,
-                //   startDate,
-                //   startTime,
-                //   endTime,
-                //   currency: updatedBooking.currency,
-                //   amount: updatedBooking.amount.toFixed(2),
-                // });
-                // const centerWhatsAppMessage = getPaymentVerifiedAcademyWhatsApp({
-                //   bookingId: updatedBooking.booking_id ?? undefined,
-                //   batchName,
-                //   sportName,
-                //   userName: userName || 'N/A',
-                //   participants: participantNames,
-                //   startDate,
-                //   startTime,
-                //   endTime,
-                //   currency: updatedBooking.currency,
-                //   amount: updatedBooking.amount.toFixed(2),
-                // });
-                // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
-                // if (userMobile) {
-                //   queueWhatsApp(userMobile, userWhatsAppMessage, 'high', {
-                //     type: 'booking_confirmation',
-                //     bookingId: updatedBooking.id,
-                //     recipient: 'user',
-                //   });
-                // } else {
-                //   logger.warn('User mobile number not available for WhatsApp', {
-                //     bookingId: booking.booking_id ?? undefined,
-                //   });
-                // }
-                // if (centerMobile) {
-                //   queueWhatsApp(centerMobile, centerWhatsAppMessage, 'high', {
-                //     type: 'booking_confirmation',
-                //     bookingId: updatedBooking.booking_id ?? undefined,
-                //     recipient: 'coaching_center',
-                //   });
-                // } else {
-                //   logger.warn('Coaching center mobile number not available for WhatsApp', {
-                //     bookingId: booking.booking_id ?? undefined,
-                //   });
-                // }
-                // Push notifications (fire-and-forget)
-                // Push notification to User
-                if (user?.id) {
-                    const userPushNotification = (0, notificationMessages_1.getBookingConfirmationUserPush)({
-                        bookingId: updatedBooking.booking_id || updatedBooking.id,
-                        batchName,
-                        centerName,
-                    });
-                    (0, notification_service_1.createAndSendNotification)({
-                        recipientType: 'user',
-                        recipientId: user.id,
-                        title: userPushNotification.title,
-                        body: userPushNotification.body,
-                        channels: ['push'],
-                        priority: 'high',
-                        data: {
-                            type: 'booking_confirmation',
-                            bookingId: updatedBooking.id,
-                            batchId: booking.batch.toString(),
-                            centerId: booking.center.toString(),
-                        },
-                    }).catch((error) => {
-                        logger_1.logger.error('Failed to send push notification to user', {
-                            bookingId: booking.id,
-                            userId: user.id,
-                            error: error instanceof Error ? error.message : error,
-                        });
-                    });
-                }
-                // Push notification to Academy Owner
-                // Get center owner ID
-                const centerOwnerId = centerDetails?.user?.toString();
-                if (centerOwnerId) {
-                    const academyPushNotification = (0, notificationMessages_1.getBookingConfirmationAcademyPush)({
-                        bookingId: updatedBooking.booking_id || updatedBooking.id,
-                        batchName,
-                        userName,
-                    });
-                    (0, notification_service_1.createAndSendNotification)({
-                        recipientType: 'academy',
-                        recipientId: centerOwnerId,
-                        title: academyPushNotification.title,
-                        body: academyPushNotification.body,
-                        channels: ['push'],
-                        priority: 'high',
-                        data: {
-                            type: 'booking_confirmation_academy',
-                            bookingId: updatedBooking.id || updatedBooking.booking_id,
-                            batchId: booking.batch.toString(),
-                            centerId: booking.center.toString(),
-                        },
-                    }).catch((error) => {
-                        logger_1.logger.error('Failed to send push notification to academy owner', {
-                            bookingId: booking.id,
-                            centerOwnerId,
-                            error: error instanceof Error ? error.message : error,
-                        });
-                    });
-                }
-                // Push notification to Admin (role-based)
-                const adminPushNotification = (0, notificationMessages_1.getBookingConfirmationAdminPush)({
-                    bookingId: updatedBooking.booking_id || updatedBooking.id,
-                    batchName,
-                    centerName,
-                });
-                (0, notification_service_1.createAndSendNotification)({
-                    recipientType: 'role',
-                    roles: [defaultRoles_enum_1.DefaultRoles.ADMIN, defaultRoles_enum_1.DefaultRoles.SUPER_ADMIN],
-                    title: adminPushNotification.title,
-                    body: adminPushNotification.body,
-                    channels: ['push'],
-                    priority: 'high',
-                    data: {
-                        type: 'booking_confirmation_admin',
-                        bookingId: updatedBooking.booking_id || updatedBooking.id,
-                        batchId: booking.batch.toString(),
-                        centerId: booking.center.toString(),
-                    },
-                }).catch((error) => {
-                    logger_1.logger.error('Failed to send push notification to admin', {
+                    const center = await coachingCenter_model_1.CoachingCenterModel.findById(booking.center).select('user').lean();
+                    if (!center?.user)
+                        return;
+                    const academyUser = await user_model_1.UserModel.findById(center.user).select('id').lean();
+                    if (!academyUser)
+                        return;
+                    let transactionForPayout = txForPayout?.id ? txForPayout : await transaction_model_1.TransactionModel.findOne({
+                        booking: booking._id,
+                        razorpay_order_id: razorpayOrderId,
+                    }).select('id').lean();
+                    if (!transactionForPayout?.id)
+                        return;
+                    const { createPayoutRecord } = await Promise.resolve().then(() => __importStar(require('../common/payoutCreation.service')));
+                    const result = await createPayoutRecord({
                         bookingId: booking.id,
-                        error: error instanceof Error ? error.message : error,
+                        transactionId: transactionForPayout.id,
+                        academyUserId: academyUser.id,
+                        amount: booking.amount,
+                        batchAmount: priceBreakdown.batch_amount,
+                        commissionRate: commission.rate,
+                        commissionAmount: commission.amount,
+                        payoutAmount: commission.payoutAmount,
+                        currency: booking.currency,
                     });
-                });
-                logger_1.logger.info(`Booking confirmation notifications queued for booking: ${booking.id}`);
-            }
-            catch (notificationError) {
-                // Log error but don't fail the payment verification
-                logger_1.logger.error('Error sending booking confirmation notifications', {
-                    bookingId: booking.id,
-                    error: notificationError instanceof Error ? notificationError.message : notificationError,
-                });
-            }
-        })().catch((error) => {
-            // Catch any unhandled errors in the async function
-            logger_1.logger.error('Unhandled error in background notification sending', {
+                    if (result.success && !result.skipped) {
+                        logger_1.logger.info('Payout record created successfully', { bookingId: booking.id, payoutId: result.payoutId });
+                    }
+                    else if (result.skipped) {
+                        logger_1.logger.info('Payout creation skipped', { bookingId: booking.id, reason: result.reason });
+                    }
+                }
+                catch (payoutError) {
+                    logger_1.logger.error('Failed to create payout record', {
+                        error: payoutError.message || payoutError,
+                        bookingId: booking.id,
+                    });
+                }
+            })();
+        }
+        // Send confirmation notifications (non-blocking; only one of verifyPayment or webhook sends - no duplicate)
+        (0, bookingPaymentVerifiedNotifications_helper_1.sendPaymentVerifiedNotifications)(booking.id).catch((error) => {
+            logger_1.logger.error('Error sending payment verified notifications', {
                 bookingId: booking.id,
                 error: error instanceof Error ? error.message : error,
             });

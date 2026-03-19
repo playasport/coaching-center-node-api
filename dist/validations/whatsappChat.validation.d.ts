@@ -42,6 +42,8 @@ export declare const listTemplateMessagesSchema: z.ZodObject<{
             payment_request: "payment_request";
             payment_reminder: "payment_reminder";
             booking_cancelled: "booking_cancelled";
+            user_payment_verified: "user_payment_verified";
+            booking_rejected: "booking_rejected";
         }>>;
         status: z.ZodOptional<z.ZodEnum<{
             read: "read";
