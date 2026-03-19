@@ -3030,6 +3030,9 @@ export const cancelBooking = async (
           }
 
           if (user.mobile) {
+            const cancelReasonForUser = reason
+              ? `You cancelled booking due to reason: ${reason}`
+              : 'You cancelled your booking yourself';
             queueWhatsAppTemplate(
               user.mobile,
               'booking_cancelled',
@@ -3037,7 +3040,7 @@ export const cancelBooking = async (
                 batchName,
                 academyName: centerName,
                 bookingId: booking.booking_id ?? String(booking.id),
-                cancelReason: reason || '—',
+                cancelReason: cancelReasonForUser,
               },
               'medium',
               { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' }
