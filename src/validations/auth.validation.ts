@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { validationMessages } from '../utils/validationMessages';
+import { toTitleCase } from '../utils/string';
 import { UserModel } from '../models/user.model';
 import { DefaultRoles } from '../enums/defaultRoles.enum';
 import { t } from '../utils/i18n';
@@ -21,7 +22,7 @@ const passwordComplexitySchema = z
     validationMessages.password.invalidPattern()
   );
 
-const nameRegex = /^[A-Z][a-zA-Z\s]*$/;
+const nameRegex = /^[A-Z][a-zA-Z\s]*$/; // Used by academy schemas (validation)
 
 // Device info schema for FCM token registration
 const deviceInfoSchema = z.object({
@@ -75,6 +76,7 @@ export const registerSchema = z.object({
       .string({ message: validationMessages.coachingName.required() })
       .min(1, validationMessages.coachingName.required()),
     firstName: z.string().optional(),
+    middleName: z.string().optional(),
     lastName: z.string().optional(),
     mobileNumber: z.string().optional(),
     contactEmail: z
@@ -106,6 +108,15 @@ export const academyRegisterSchema = z.object({
       .string({ message: validationMessages.firstName.required() })
       .min(1, validationMessages.firstName.required())
       .regex(/^[A-Z][a-zA-Z\s]*$/, validationMessages.firstName.invalidFormat()),
+    middleName: z
+      .union([
+        z
+          .string({ message: validationMessages.middleName.invalidFormat() })
+          .regex(/^[A-Z][a-zA-Z\s]*$/, validationMessages.middleName.invalidFormat()),
+        z.literal(''),
+      ])
+      .optional()
+      .transform((val) => (val ? val : undefined)),
     lastName: z
       .union([
         z
@@ -191,9 +202,8 @@ export const academySocialLoginSchema = z.object({
       .string()
       .min(1, validationMessages.firstName.required())
       .optional(),
-    lastName: z
-      .string()
-      .optional(),
+    middleName: z.string().optional(),
+    lastName: z.string().optional(),
   }).merge(deviceInfoSchema),
 });
 
@@ -263,6 +273,15 @@ export const academyProfileUpdateSchema = z.object({
         .string({ message: validationMessages.firstName.required() })
         .regex(nameRegex, validationMessages.firstName.invalidFormat())
         .optional(),
+      middleName: z
+        .union([
+          z
+            .string({ message: validationMessages.middleName.invalidFormat() })
+            .regex(nameRegex, validationMessages.middleName.invalidFormat()),
+          z.literal(''),
+        ])
+        .optional()
+        .transform((val) => (val ? val : undefined)),
       lastName: z
         .union([
           z
@@ -276,7 +295,7 @@ export const academyProfileUpdateSchema = z.object({
     .refine(
       (data) =>
         Boolean(
-          data.firstName ?? data.lastName
+          data.firstName ?? data.middleName ?? data.lastName
         ),
       {
         message: validationMessages.profile.noChanges(),
@@ -328,16 +347,15 @@ export const userRegisterSchema = z.object({
     firstName: z
       .string({ message: validationMessages.firstName.required() })
       .min(1, validationMessages.firstName.required())
-      .regex(/^[A-Z][a-zA-Z\s]*$/, validationMessages.firstName.invalidFormat()),
-    lastName: z
-      .union([
-        z
-          .string({ message: validationMessages.lastName.invalidFormat() })
-          .regex(/^[A-Z][a-zA-Z\s]*$/, validationMessages.lastName.invalidFormat()),
-        z.literal(''),
-      ])
+      .transform((val) => toTitleCase(val)),
+    middleName: z
+      .union([z.string(), z.literal('')])
       .optional()
-      .transform((val) => (val ? val : undefined)),
+      .transform((val) => (val && val.trim() ? toTitleCase(val.trim()) : undefined)),
+    lastName: z
+      .union([z.string(), z.literal('')])
+      .optional()
+      .transform((val) => (val && val.trim() ? toTitleCase(val.trim()) : undefined)),
     email: z
       .string({ message: validationMessages.email.required() })
       .min(1, validationMessages.email.required())
@@ -552,6 +570,7 @@ export const userSocialLoginSchema = z.object({
       .string()
       .min(1, validationMessages.firstName.required())
       .optional(),
+    middleName: z.string().optional(),
     lastName: z
       .string()
       .optional(),
@@ -586,18 +605,17 @@ export const userProfileUpdateSchema = z.object({
   body: z
     .object({
       firstName: z
-        .string({ message: validationMessages.firstName.required() })
-        .regex(nameRegex, validationMessages.firstName.invalidFormat())
-        .optional(),
-      lastName: z
-        .union([
-          z
-            .string({ message: validationMessages.lastName.invalidFormat() })
-            .regex(nameRegex, validationMessages.lastName.invalidFormat()),
-          z.literal(''),
-        ])
+        .string()
         .optional()
-        .transform((val) => (val ? val : undefined)),
+        .transform((val) => (val && val.trim() ? toTitleCase(val.trim()) : undefined)),
+      middleName: z
+        .union([z.string(), z.literal('')])
+        .optional()
+        .transform((val) => (val && val.trim() ? toTitleCase(val.trim()) : undefined)),
+      lastName: z
+        .union([z.string(), z.literal('')])
+        .optional()
+        .transform((val) => (val && val.trim() ? toTitleCase(val.trim()) : undefined)),
       email: z
         .string()
         .email(validationMessages.email.invalid())
@@ -611,7 +629,7 @@ export const userProfileUpdateSchema = z.object({
     .refine(
       (data) =>
         Boolean(
-          data.firstName ?? data.lastName ?? data.email ?? data.dob ?? data.gender
+          data.firstName ?? data.middleName ?? data.lastName ?? data.email ?? data.dob ?? data.gender
         ),
       {
         message: validationMessages.profile.noChanges(),

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { validationMessages } from '../utils/validationMessages';
+import { toTitleCase } from '../utils/string';
 import { UserModel } from '../models/user.model';
 import { RoleModel } from '../models/role.model';
 import { Gender } from '../enums/gender.enum';
@@ -44,8 +45,18 @@ export const createAdminUserSchema = z.object({
     firstName: z
       .string({ message: 'First name is required' })
       .min(1, 'First name is required')
-      .max(100, 'First name is too long'),
-    lastName: z.string().max(100, 'Last name is too long').optional().nullable(),
+      .max(100, 'First name is too long')
+      .transform((val) => toTitleCase(val)),
+    middleName: z
+      .union([z.string(), z.literal('')])
+      .optional()
+      .transform((val) => (val && val.trim() ? toTitleCase(val.trim()) : undefined)),
+    lastName: z
+      .string()
+      .max(100, 'Last name is too long')
+      .optional()
+      .nullable()
+      .transform((val) => (val != null && typeof val === 'string' && val.trim() ? toTitleCase(val.trim()) : null)),
     mobile: mobileNumberSchema,
     gender: z.nativeEnum(Gender).optional().nullable(),
     dob: z
@@ -171,8 +182,18 @@ export const updateAdminUserSchema = z.object({
       .string()
       .min(1, 'First name is required')
       .max(100, 'First name is too long')
-      .optional(),
-    lastName: z.string().max(100, 'Last name is too long').optional().nullable(),
+      .optional()
+      .transform((val) => (val && val.trim() ? toTitleCase(val.trim()) : undefined)),
+    middleName: z
+      .union([z.string(), z.literal('')])
+      .optional()
+      .transform((val) => (val && val.trim() ? toTitleCase(val.trim()) : undefined)),
+    lastName: z
+      .string()
+      .max(100, 'Last name is too long')
+      .optional()
+      .nullable()
+      .transform((val) => (val != null && typeof val === 'string' && val.trim() ? toTitleCase(val.trim()) : null)),
     mobile: mobileNumberSchema,
     gender: z.nativeEnum(Gender).optional().nullable(),
     dob: z

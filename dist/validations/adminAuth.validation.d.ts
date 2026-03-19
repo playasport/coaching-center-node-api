@@ -7,8 +7,9 @@ export declare const adminLoginSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const adminUpdateProfileSchema: z.ZodObject<{
     body: z.ZodObject<{
-        firstName: z.ZodOptional<z.ZodString>;
-        lastName: z.ZodOptional<z.ZodString>;
+        firstName: z.ZodPipe<z.ZodOptional<z.ZodString>, z.ZodTransform<string | undefined, string | undefined>>;
+        middleName: z.ZodPipe<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">]>>, z.ZodTransform<string | undefined, string | undefined>>;
+        lastName: z.ZodPipe<z.ZodOptional<z.ZodString>, z.ZodTransform<string | undefined, string | undefined>>;
         mobile: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>;
 }, z.core.$strip>;

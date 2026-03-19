@@ -12,6 +12,7 @@ export interface CreateUserData {
   id: string;
   email: string;
   firstName: string;
+  middleName?: string | null;
   lastName?: string | null;
   mobile?: string | null;
   gender?: 'male' | 'female' | 'other';
@@ -25,6 +26,7 @@ export interface CreateUserData {
 
 export interface UpdateUserData {
   firstName?: string;
+  middleName?: string | null;
   lastName?: string | null;
   mobile?: string | null;
   email?: string;
@@ -77,6 +79,7 @@ export const userService = {
       id: data.id,
       email: data.email.toLowerCase(),
       firstName: data.firstName,
+      middleName: data.middleName ?? null,
       lastName: data.lastName ?? null,
       mobile: data.mobile ?? null,
       gender: data.gender ?? null,
@@ -114,6 +117,7 @@ export const userService = {
       const participantData = {
         userId: doc._id,
         firstName: data.firstName || null,
+        middleName: data.middleName || null,
         lastName: data.lastName || null,
         gender: genderNumber,
         disability: 0, // Default to no disability

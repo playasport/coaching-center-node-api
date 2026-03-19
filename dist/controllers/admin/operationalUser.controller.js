@@ -140,6 +140,7 @@ const createOperationalUser = async (req, res) => {
             id: userId,
             email: data.email.toLowerCase(),
             firstName: data.firstName,
+            middleName: data.middleName ?? null,
             lastName: data.lastName ?? null,
             mobile: data.mobile ?? null,
             password: hashedPassword,
@@ -162,7 +163,7 @@ const createOperationalUser = async (req, res) => {
         }
         logger_1.logger.info(`Admin created operational user: ${userId} (${data.email})`);
         // Send account credentials email only when we generated the password (not when user provided their own)
-        const userName = `${data.firstName}${data.lastName ? ' ' + data.lastName : ''}`;
+        const userName = [data.firstName, data.middleName, data.lastName].filter(Boolean).join(' ');
         if (!isPasswordFromUser) {
             (0, email_service_1.sendAccountCredentialsEmail)(data.email.toLowerCase(), passwordToUse, userName)
                 .then(() => {
@@ -446,6 +447,9 @@ const updateOperationalUser = async (req, res) => {
         }
         if (data.firstName !== undefined) {
             updateData.firstName = data.firstName;
+        }
+        if (data.middleName !== undefined) {
+            updateData.middleName = data.middleName ?? null;
         }
         if (data.lastName !== undefined) {
             updateData.lastName = data.lastName ?? null;

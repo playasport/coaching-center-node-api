@@ -121,6 +121,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
       id: userId,
       email: data.email.toLowerCase(),
       firstName: data.firstName,
+      middleName: data.middleName ?? null,
       lastName: data.lastName ?? null,
       mobile: data.mobile ?? null,
       password: hashedPassword,
@@ -148,7 +149,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
 
     // Send account credentials email asynchronously (don't wait for it)
     // This prevents email sending from blocking the API response
-    const userName = `${data.firstName}${data.lastName ? ' ' + data.lastName : ''}`;
+    const userName = [data.firstName, data.middleName, data.lastName].filter(Boolean).join(' ');
     sendAccountCredentialsEmail(data.email.toLowerCase(), generatedPassword, userName)
       .then(() => {
         logger.info(`Account credentials email sent to user: ${data.email}`);
@@ -637,6 +638,9 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
 
     if (data.firstName !== undefined) {
       updateData.firstName = data.firstName;
+    }
+    if (data.middleName !== undefined) {
+      updateData.middleName = data.middleName ?? null;
     }
     if (data.lastName !== undefined) {
       updateData.lastName = data.lastName ?? null;

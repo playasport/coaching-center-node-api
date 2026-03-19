@@ -642,6 +642,10 @@ const search = async (req, res) => {
             throw new ApiError_1.ApiError(400, 'Query parameter "q" or "query" is required');
         }
         const client = getClient();
+        // If user explicitly searches for disability-related intent, show only academies that allow disabled persons.
+        // This is separate from `for_disabled` param (explicit filter toggle).
+        const queryLower = query.toLowerCase();
+        const disabledOnlyIntent = /\b(disable|disabled|disability|disabilities|disablity|disabilty|disabilites|handicap|handicapped|differently\s*abled|diff\s*abled|specially\s*abled|special\s*need|special\s*needs|wheel\s*chair|wheelchair|accessible|accessibility|para|paralympic)\b/i.test(queryLower);
         // For Meilisearch: "s&s" → "s s" so token search matches "S&S Football Academy"
         const queryForMeilisearch = query.trim().replace(/&/g, ' ').replace(/\s+/g, ' ').trim() || query.trim();
         // If Meilisearch is disabled, use MongoDB fallback
@@ -824,6 +828,12 @@ const search = async (req, res) => {
                     return r;
                 });
             }
+            // Apply disability-intent filter in fallback results.
+            if (disabledOnlyIntent && resultsByIndex['coaching_centres']?.results?.length) {
+                resultsByIndex['coaching_centres'].results = resultsByIndex['coaching_centres'].results.filter((r) => r?.source?.allowed_disabled === true || r?.source?.is_only_for_disabled === true);
+                resultsByIndex['coaching_centres'].total = resultsByIndex['coaching_centres'].results.length;
+                resultsByIndex['coaching_centres'].has_more = false;
+            }
             res.status(200).json(new ApiResponse_1.ApiResponse(200, {
                 success: true,
                 query: {
@@ -882,6 +892,9 @@ const search = async (req, res) => {
                 'logo',
                 'images',
                 'allowed_gender',
+                'allowed_disabled',
+                'is_only_for_disabled',
+                'age',
                 'sports_names',
                 'location_name',
                 'experience',
@@ -905,6 +918,11 @@ const search = async (req, res) => {
                         limit: searchLimit,
                         offset: 0,
                     };
+                    const disabilityIntentFilter = disabledOnlyIntent
+                        ? '(allowed_disabled = true OR is_only_for_disabled = true)'
+                        : null;
+                    const allowsDisabledFilter = forDisabled ? 'allowed_disabled = true' : null;
+                    const disabledFilters = [disabilityIntentFilter, allowsDisabledFilter].filter(Boolean);
                     // When city or state filter is applied, skip location filter (geo/radius)
                     // Apply radius filter only when radius is present in request
                     if (latitude !== null && longitude !== null && !city && !state) {
@@ -913,6 +931,9 @@ const search = async (req, res) => {
                         if (radiusKm != null && radiusKm > 0) {
                             const radiusInMeters = radiusKm * 1000;
                             geoFilterOptions.filter = [`_geoRadius(${latitude}, ${longitude}, ${radiusInMeters})`];
+                        }
+                        if (disabledFilters.length > 0) {
+                            geoFilterOptions.filter = [...(geoFilterOptions.filter || []), ...disabledFilters];
                         }
                         try {
                             const searchResults = await index.search(queryForMeilisearch, geoFilterOptions);
@@ -951,7 +972,10 @@ const search = async (req, res) => {
                             usedGeoFilter = true;
                         }
                         catch (geoError) {
-                            const searchResults = await index.search(queryForMeilisearch, searchOptionsForIndex);
+                            const nonGeoOptions = { ...searchOptionsForIndex };
+                            if (disabledFilters.length > 0)
+                                nonGeoOptions.filter = [...disabledFilters];
+                            const searchResults = await index.search(queryForMeilisearch, nonGeoOptions);
                             const queryLower = query.toLowerCase().trim();
                             let prioritizedHits = (searchResults.hits || []).map((hit) => {
                                 const sportsNames = hit.sports_names || [];
@@ -994,7 +1018,10 @@ const search = async (req, res) => {
                         }
                     }
                     else {
-                        const searchResults = await index.search(queryForMeilisearch, searchOptionsForIndex);
+                        const nonGeoOptions = { ...searchOptionsForIndex };
+                        if (disabledFilters.length > 0)
+                            nonGeoOptions.filter = [...disabledFilters];
+                        const searchResults = await index.search(queryForMeilisearch, nonGeoOptions);
                         const queryLower = query.toLowerCase().trim();
                         let prioritizedHits = (searchResults.hits || []).map((hit) => {
                             const sportsNames = hit.sports_names || [];

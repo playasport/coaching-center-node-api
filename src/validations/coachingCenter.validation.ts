@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { validationMessages } from '../utils/validationMessages';
+import { toTitleCase } from '../utils/string';
 import { Gender } from '../enums/gender.enum';
 
 // Mobile number and email validation will be done in superRefine
@@ -212,8 +213,12 @@ export const adminCoachingCenterCreateSchema = z.object({
     status: z.literal('published').default('published'),
     owner_id: z.string().optional(),
     academy_owner: z.object({
-      firstName: z.string({ message: 'First name is required' }).min(1),
-      lastName: z.string().optional(),
+      firstName: z.string({ message: 'First name is required' }).min(1).transform((val) => toTitleCase(val)),
+      middleName: z
+        .union([z.string(), z.literal('')])
+        .optional()
+        .transform((val) => (val && val.trim() ? toTitleCase(val.trim()) : undefined)),
+      lastName: z.string().optional().transform((val) => (val != null && typeof val === 'string' && val.trim() ? toTitleCase(val.trim()) : undefined)),
       email: z.string({ message: 'Email is required' }).email('Invalid email address'),
       mobile: z.string({ message: 'Mobile number is required' }).regex(/^[6-9]\d{9}$/, 'Invalid mobile number'),
     }).optional(),

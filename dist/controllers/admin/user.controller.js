@@ -110,6 +110,7 @@ const createUser = async (req, res) => {
             id: userId,
             email: data.email.toLowerCase(),
             firstName: data.firstName,
+            middleName: data.middleName ?? null,
             lastName: data.lastName ?? null,
             mobile: data.mobile ?? null,
             password: hashedPassword,
@@ -133,7 +134,7 @@ const createUser = async (req, res) => {
         logger_1.logger.info(`Admin created user: ${userId} (${data.email})`);
         // Send account credentials email asynchronously (don't wait for it)
         // This prevents email sending from blocking the API response
-        const userName = `${data.firstName}${data.lastName ? ' ' + data.lastName : ''}`;
+        const userName = [data.firstName, data.middleName, data.lastName].filter(Boolean).join(' ');
         (0, email_service_1.sendAccountCredentialsEmail)(data.email.toLowerCase(), generatedPassword, userName)
             .then(() => {
             logger_1.logger.info(`Account credentials email sent to user: ${data.email}`);
@@ -572,6 +573,9 @@ const updateUser = async (req, res) => {
         // Password field is removed from update schema, so this check is no longer needed here
         if (data.firstName !== undefined) {
             updateData.firstName = data.firstName;
+        }
+        if (data.middleName !== undefined) {
+            updateData.middleName = data.middleName ?? null;
         }
         if (data.lastName !== undefined) {
             updateData.lastName = data.lastName ?? null;

@@ -6,6 +6,7 @@ import { Gender } from '../enums/gender.enum';
 export interface Participant {
   userId: Types.ObjectId; // Reference to User model
   firstName?: string | null;
+  middleName?: string | null;
   lastName?: string | null;
   gender?: Gender | null;
   disability: number; // 0 = no, 1 = yes
@@ -32,6 +33,12 @@ const participantSchema = new Schema<Participant>(
       required: true,
     },
     firstName: {
+      type: String,
+      default: null,
+      trim: true,
+      maxlength: 191,
+    },
+    middleName: {
       type: String,
       default: null,
       trim: true,

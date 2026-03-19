@@ -191,6 +191,7 @@ export const createParticipant = async (
     const participantData: any = {
       userId: userObjectId,
       firstName: data.firstName || null,
+      middleName: data.middleName || null,
       lastName: data.lastName || null,
       gender: data.gender !== undefined ? data.gender : null,
       disability: data.disability !== undefined ? data.disability : 0,
@@ -225,6 +226,7 @@ export const createParticipant = async (
       userId,
       data: {
         firstName: data.firstName,
+        middleName: data.middleName,
         lastName: data.lastName,
         hasAddress: !!data.address,
       },
@@ -433,6 +435,7 @@ export const updateParticipant = async (
 
     // Update fields if provided
     if (data.firstName !== undefined) updates.firstName = data.firstName || null;
+    if (data.middleName !== undefined) updates.middleName = data.middleName || null;
     if (data.lastName !== undefined) updates.lastName = data.lastName || null;
     if (data.gender !== undefined) updates.gender = data.gender !== null ? data.gender : null;
     if (data.disability !== undefined) updates.disability = data.disability;
@@ -514,6 +517,7 @@ export const updateParticipant = async (
       userId,
       data: {
         firstName: data.firstName,
+        middleName: data.middleName,
         lastName: data.lastName,
         hasAddress: data.address !== undefined,
         addressType: data.address ? typeof data.address : 'undefined',

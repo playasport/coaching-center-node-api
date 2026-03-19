@@ -116,6 +116,7 @@ export const createOperationalUser = async (req: Request, res: Response): Promis
       id: userId,
       email: data.email.toLowerCase(),
       firstName: data.firstName,
+      middleName: data.middleName ?? null,
       lastName: data.lastName ?? null,
       mobile: data.mobile ?? null,
       password: hashedPassword,
@@ -142,7 +143,7 @@ export const createOperationalUser = async (req: Request, res: Response): Promis
     logger.info(`Admin created operational user: ${userId} (${data.email})`);
 
     // Send account credentials email only when we generated the password (not when user provided their own)
-    const userName = `${data.firstName}${data.lastName ? ' ' + data.lastName : ''}`;
+    const userName = [data.firstName, data.middleName, data.lastName].filter(Boolean).join(' ');
     if (!isPasswordFromUser) {
       sendAccountCredentialsEmail(data.email.toLowerCase(), passwordToUse, userName)
       .then(() => {
@@ -466,6 +467,9 @@ export const updateOperationalUser = async (req: Request, res: Response): Promis
 
     if (data.firstName !== undefined) {
       updateData.firstName = data.firstName;
+    }
+    if (data.middleName !== undefined) {
+      updateData.middleName = data.middleName ?? null;
     }
     if (data.lastName !== undefined) {
       updateData.lastName = data.lastName ?? null;

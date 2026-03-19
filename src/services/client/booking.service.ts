@@ -70,6 +70,7 @@ import {
   canCancelBooking,
   canDownloadInvoice,
 } from './booking.helpers.utils';
+import { Gender } from '../../enums/gender.enum';
 
 // Get payment service instance
 const paymentService = getPaymentService();
@@ -116,6 +117,7 @@ export interface BookingSummary {
   participants: Array<{
     id: string;
     firstName?: string | null;
+    middleName?: string | null;
     lastName?: string | null;
     age?: number | null;
   }>;
@@ -301,7 +303,9 @@ export interface BookingSummaryResponse {
   participants: Array<{
     id: string;
     firstName?: string | null;
+    middleName?: string | null;
     lastName?: string | null;
+    gender?: Gender | null;
     age?: number | null;
   }>;
   amount: number;
@@ -478,7 +482,9 @@ export const getBookingSummary = async (
         return {
           id: p._id.toString(),
           firstName: p.firstName,
+          middleName: p.middleName,
           lastName: p.lastName,
+          gender: p.gender,
           age,
         };
       }),
@@ -631,7 +637,7 @@ export const bookSlot = async (
     ]);
 
     const centerOwnerId = (centerDetails as any)?.user?.toString();
-    const participantNames = summary.participants.map(p => `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Participant').join(', ');
+    const participantNames = summary.participants.map(p => `${p.firstName || ''} ${p.middleName || ''} ${p.lastName || ''}`.trim() || 'Participant').join(', ');
     const batchName = summary.batch.name; // Use from summary instead of re-fetching
     const centerName = (centerDetails as any)?.center_name || 'Academy';
     const userName = userDetails ? `${userDetails.firstName || ''} ${userDetails.lastName || ''}`.trim() || userDetails.email || 'User' : 'User';
@@ -2264,8 +2270,10 @@ export interface UserBookingListItem {
   };
   participants: Array<{
     id: string;
-    firstName: string;
-    lastName: string;
+    firstName?: string | null;
+    middleName?: string | null;
+    lastName?: string | null;
+    gender?: Gender | null;
     age?: number | null;
     profilePhoto?: string | null;
   }>;
@@ -2337,7 +2345,7 @@ export const getUserBookings = async (
     const [total, bookings] = await Promise.all([
       BookingModel.countDocuments(query),
       BookingModel.find(query)
-        .populate('participants', 'id firstName lastName dob profilePhoto')
+        .populate('participants', 'id firstName middleName lastName dob profilePhoto')
         .populate('batch', 'id name scheduled duration')
         .populate({
           path: 'batch',
@@ -2390,6 +2398,7 @@ export const getUserBookings = async (
           return {
             id: p._id?.toString() || p.id || '',
             firstName: p.firstName || '',
+            middleName: p.middleName || '',
             lastName: p.lastName || '',
             age,
             profilePhoto: p.profilePhoto || null,
@@ -2495,6 +2504,7 @@ export interface BookingDetailsResponse {
   participants: Array<{
     id: string;
     firstName?: string | null;
+    middleName?: string | null;
     lastName?: string | null;
     age?: number | null;
     profilePhoto?: string | null;
@@ -2524,7 +2534,7 @@ export const getBookingDetails = async (
       user: userObjectId,
       is_deleted: false,
     })
-      .populate('participants', 'id firstName lastName dob profilePhoto')
+      .populate('participants', 'id firstName middleName lastName dob profilePhoto')
       .populate({
         path: 'batch',
         select: 'id name scheduled duration',
@@ -2556,6 +2566,7 @@ export const getBookingDetails = async (
       return {
         id: p._id?.toString() || p.id || '',
         firstName: p.firstName || null,
+        middleName: p.middleName || null,
         lastName: p.lastName || null,
         age,
         profilePhoto: p.profilePhoto || null,

@@ -32,6 +32,10 @@ exports.validationMessages = {
         mustBeString: () => (0, exports.getValidationMessage)('firstName.mustBeString'),
         invalidFormat: () => (0, exports.getValidationMessage)('firstName.invalidFormat'),
     },
+    middleName: {
+        mustBeString: () => (0, exports.getValidationMessage)('middleName.mustBeString'),
+        invalidFormat: () => (0, exports.getValidationMessage)('middleName.invalidFormat'),
+    },
     lastName: {
         mustBeString: () => (0, exports.getValidationMessage)('lastName.mustBeString'),
         invalidFormat: () => (0, exports.getValidationMessage)('lastName.invalidFormat'),

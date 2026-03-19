@@ -65,7 +65,12 @@ function getWhatsAppMessagesUrl(phoneNumberId, apiVersion) {
  * Normalize phone to digits only (E.164 without +)
  */
 function normalizePhone(phone) {
-    return phone.replace(/\D/g, '');
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10)
+        return `91${digits}`;
+    if (digits.length === 11 && digits.startsWith('0'))
+        return `91${digits.slice(1)}`;
+    return digits;
 }
 /**
  * Verify webhook subscription (GET) - Meta sends hub.mode, hub.verify_token, hub.challenge
@@ -216,11 +221,11 @@ async function sendWhatsAppCloudPaymentRequestTemplate(to, params) {
                 {
                     type: 'body',
                     parameters: [
-                        { type: 'text', text: params.userName },
-                        { type: 'text', text: params.academyName },
-                        { type: 'text', text: params.bookingId },
-                        { type: 'text', text: params.paymentUrl },
-                        { type: 'text', text: params.numberOfHours },
+                        { type: 'text', parameter_name: 'user_name', text: params.userName },
+                        { type: 'text', parameter_name: 'academy_name', text: params.academyName },
+                        { type: 'text', parameter_name: 'booking_id', text: params.bookingId },
+                        { type: 'text', parameter_name: 'payement_url', text: params.paymentUrl },
+                        { type: 'text', parameter_name: 'number_hours', text: params.numberOfHours },
                     ],
                 },
                 {
@@ -280,11 +285,11 @@ async function sendWhatsAppCloudPaymentReminderTemplate(to, params) {
                 {
                     type: 'body',
                     parameters: [
-                        { type: 'text', text: params.batchName },
-                        { type: 'text', text: params.academyName },
-                        { type: 'text', text: params.hoursLeft },
-                        { type: 'text', text: params.bookingId },
-                        { type: 'text', text: params.paymentLink },
+                        { type: 'text', parameter_name: 'batch_name', text: params.batchName },
+                        { type: 'text', parameter_name: 'academy_name', text: params.academyName },
+                        { type: 'text', parameter_name: 'hours_left', text: params.hoursLeft },
+                        { type: 'text', parameter_name: 'booking_id', text: params.bookingId },
+                        { type: 'text', parameter_name: 'payment_link', text: params.paymentLink },
                     ],
                 },
                 {
@@ -344,10 +349,10 @@ async function sendWhatsAppCloudBookingCancelledTemplate(to, params) {
                 {
                     type: 'body',
                     parameters: [
-                        { type: 'text', text: params.batchName },
-                        { type: 'text', text: params.academyName },
-                        { type: 'text', text: params.bookingId },
-                        { type: 'text', text: params.cancelReason },
+                        { type: 'text', parameter_name: 'batch_name', text: params.batchName },
+                        { type: 'text', parameter_name: 'academy_name', text: params.academyName },
+                        { type: 'text', parameter_name: 'booking_id', text: params.bookingId },
+                        { type: 'text', parameter_name: 'cancel_reason', text: params.cancelReason },
                     ],
                 },
             ],

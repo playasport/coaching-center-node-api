@@ -195,6 +195,7 @@ const updateAdminProfile = async (req, res) => {
         const user = await adminUser_model_1.AdminUserModel.findOneAndUpdate({ id: req.user.id, isDeleted: false }, {
             $set: {
                 ...(updateData.firstName && { firstName: updateData.firstName }),
+                ...(updateData.middleName !== undefined && { middleName: updateData.middleName || null }),
                 ...(updateData.lastName !== undefined && { lastName: updateData.lastName || null }),
                 ...(updateData.mobile && { mobile: updateData.mobile }),
             },

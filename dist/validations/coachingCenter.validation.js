@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.coachingCenterUpdateSchema = exports.coachingCenterCreateSchema = exports.adminCoachingCenterUpdateAddedBySchema = exports.adminCoachingCenterUpdateSchema = exports.adminCoachingCenterCreateSchema = exports.academyCoachingCenterUpdateSchema = exports.academyCoachingCenterCreateSchema = void 0;
 const zod_1 = require("zod");
 const validationMessages_1 = require("../utils/validationMessages");
+const string_1 = require("../utils/string");
 const gender_enum_1 = require("../enums/gender.enum");
 // Mobile number and email validation will be done in superRefine
 const ageRangeSchema = zod_1.z.object({
@@ -194,8 +195,12 @@ exports.adminCoachingCenterCreateSchema = zod_1.z.object({
         status: zod_1.z.literal('published').default('published'),
         owner_id: zod_1.z.string().optional(),
         academy_owner: zod_1.z.object({
-            firstName: zod_1.z.string({ message: 'First name is required' }).min(1),
-            lastName: zod_1.z.string().optional(),
+            firstName: zod_1.z.string({ message: 'First name is required' }).min(1).transform((val) => (0, string_1.toTitleCase)(val)),
+            middleName: zod_1.z
+                .union([zod_1.z.string(), zod_1.z.literal('')])
+                .optional()
+                .transform((val) => (val && val.trim() ? (0, string_1.toTitleCase)(val.trim()) : undefined)),
+            lastName: zod_1.z.string().optional().transform((val) => (val != null && typeof val === 'string' && val.trim() ? (0, string_1.toTitleCase)(val.trim()) : undefined)),
             email: zod_1.z.string({ message: 'Email is required' }).email('Invalid email address'),
             mobile: zod_1.z.string({ message: 'Mobile number is required' }).regex(/^[6-9]\d{9}$/, 'Invalid mobile number'),
         }).optional(),

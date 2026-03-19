@@ -188,6 +188,7 @@ const createParticipant = async (data, userId, file) => {
         const participantData = {
             userId: userObjectId,
             firstName: data.firstName || null,
+            middleName: data.middleName || null,
             lastName: data.lastName || null,
             gender: data.gender !== undefined ? data.gender : null,
             disability: data.disability !== undefined ? data.disability : 0,
@@ -218,6 +219,7 @@ const createParticipant = async (data, userId, file) => {
             userId,
             data: {
                 firstName: data.firstName,
+                middleName: data.middleName,
                 lastName: data.lastName,
                 hasAddress: !!data.address,
             },
@@ -397,6 +399,8 @@ const updateParticipant = async (id, data, userId, file) => {
         // Update fields if provided
         if (data.firstName !== undefined)
             updates.firstName = data.firstName || null;
+        if (data.middleName !== undefined)
+            updates.middleName = data.middleName || null;
         if (data.lastName !== undefined)
             updates.lastName = data.lastName || null;
         if (data.gender !== undefined)
@@ -474,6 +478,7 @@ const updateParticipant = async (id, data, userId, file) => {
             userId,
             data: {
                 firstName: data.firstName,
+                middleName: data.middleName,
                 lastName: data.lastName,
                 hasAddress: data.address !== undefined,
                 addressType: data.address ? typeof data.address : 'undefined',

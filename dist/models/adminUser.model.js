@@ -7,6 +7,7 @@ const gender_enum_1 = require("../enums/gender.enum");
 const adminUserSchema = new mongoose_1.Schema({
     id: { type: String, required: true, unique: true, index: true },
     firstName: { type: String, required: true, trim: true },
+    middleName: { type: String, default: null, trim: true },
     lastName: { type: String, default: null, trim: true },
     dob: { type: Date, default: null },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
@@ -68,6 +69,6 @@ adminUserSchema.index({ isDeleted: 1, roles: 1, createdAt: -1 });
 adminUserSchema.index({ isDeleted: 1, isActive: 1, createdAt: -1 });
 adminUserSchema.index({ isDeleted: 1, roles: 1, isActive: 1, createdAt: -1 });
 // Text index for search functionality (correct syntax)
-adminUserSchema.index({ firstName: 'text', lastName: 'text', email: 'text', mobile: 'text' }, { name: 'adminUser_search_text_index' });
+adminUserSchema.index({ firstName: 'text', middleName: 'text', lastName: 'text', email: 'text', mobile: 'text' }, { name: 'adminUser_search_text_index' });
 exports.AdminUserModel = (0, mongoose_1.model)('AdminUser', adminUserSchema);
 //# sourceMappingURL=adminUser.model.js.map

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.academyIdParamSchema = exports.addAcademyBookmarkSchema = exports.saveFcmTokenSchema = exports.userFavoriteSportsUpdateSchema = exports.userPasswordChangeSchema = exports.userAddressUpdateSchema = exports.userProfileUpdateSchema = exports.userForgotPasswordVerifySchema = exports.userForgotPasswordRequestSchema = exports.userVerifyOtpSchema = exports.userOtpSchema = exports.userSocialLoginSchema = exports.userLoginSchema = exports.userRegisterSchema = exports.academyPasswordChangeSchema = exports.academyAddressUpdateSchema = exports.academyProfileUpdateSchema = exports.academyForgotPasswordVerifySchema = exports.academyForgotPasswordRequestSchema = exports.academyVerifyOtpSchema = exports.academyOtpSchema = exports.academySocialLoginSchema = exports.academyLoginSchema = exports.academyRegisterSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
 const validationMessages_1 = require("../utils/validationMessages");
+const string_1 = require("../utils/string");
 const user_model_1 = require("../models/user.model");
 const defaultRoles_enum_1 = require("../enums/defaultRoles.enum");
 const i18n_1 = require("../utils/i18n");
@@ -17,7 +18,7 @@ const passwordComplexitySchema = zod_1.z
     .string({ message: validationMessages_1.validationMessages.password.required() })
     .min(8, validationMessages_1.validationMessages.password.minLength())
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/, validationMessages_1.validationMessages.password.invalidPattern());
-const nameRegex = /^[A-Z][a-zA-Z\s]*$/;
+const nameRegex = /^[A-Z][a-zA-Z\s]*$/; // Used by academy schemas (validation)
 // Device info schema for FCM token registration
 const deviceInfoSchema = zod_1.z.object({
     fcmToken: zod_1.z.string().min(1, 'FCM token is required').optional(),
@@ -68,6 +69,7 @@ exports.registerSchema = zod_1.z.object({
             .string({ message: validationMessages_1.validationMessages.coachingName.required() })
             .min(1, validationMessages_1.validationMessages.coachingName.required()),
         firstName: zod_1.z.string().optional(),
+        middleName: zod_1.z.string().optional(),
         lastName: zod_1.z.string().optional(),
         mobileNumber: zod_1.z.string().optional(),
         contactEmail: zod_1.z
@@ -97,6 +99,15 @@ exports.academyRegisterSchema = zod_1.z.object({
             .string({ message: validationMessages_1.validationMessages.firstName.required() })
             .min(1, validationMessages_1.validationMessages.firstName.required())
             .regex(/^[A-Z][a-zA-Z\s]*$/, validationMessages_1.validationMessages.firstName.invalidFormat()),
+        middleName: zod_1.z
+            .union([
+            zod_1.z
+                .string({ message: validationMessages_1.validationMessages.middleName.invalidFormat() })
+                .regex(/^[A-Z][a-zA-Z\s]*$/, validationMessages_1.validationMessages.middleName.invalidFormat()),
+            zod_1.z.literal(''),
+        ])
+            .optional()
+            .transform((val) => (val ? val : undefined)),
         lastName: zod_1.z
             .union([
             zod_1.z
@@ -174,9 +185,8 @@ exports.academySocialLoginSchema = zod_1.z.object({
             .string()
             .min(1, validationMessages_1.validationMessages.firstName.required())
             .optional(),
-        lastName: zod_1.z
-            .string()
-            .optional(),
+        middleName: zod_1.z.string().optional(),
+        lastName: zod_1.z.string().optional(),
     }).merge(deviceInfoSchema),
 });
 exports.academyOtpSchema = zod_1.z.object({
@@ -239,6 +249,15 @@ exports.academyProfileUpdateSchema = zod_1.z.object({
             .string({ message: validationMessages_1.validationMessages.firstName.required() })
             .regex(nameRegex, validationMessages_1.validationMessages.firstName.invalidFormat())
             .optional(),
+        middleName: zod_1.z
+            .union([
+            zod_1.z
+                .string({ message: validationMessages_1.validationMessages.middleName.invalidFormat() })
+                .regex(nameRegex, validationMessages_1.validationMessages.middleName.invalidFormat()),
+            zod_1.z.literal(''),
+        ])
+            .optional()
+            .transform((val) => (val ? val : undefined)),
         lastName: zod_1.z
             .union([
             zod_1.z
@@ -249,7 +268,7 @@ exports.academyProfileUpdateSchema = zod_1.z.object({
             .optional()
             .transform((val) => (val ? val : undefined)),
     })
-        .refine((data) => Boolean(data.firstName ?? data.lastName), {
+        .refine((data) => Boolean(data.firstName ?? data.middleName ?? data.lastName), {
         message: validationMessages_1.validationMessages.profile.noChanges(),
         path: ['body'],
     }),
@@ -278,16 +297,15 @@ exports.userRegisterSchema = zod_1.z.object({
         firstName: zod_1.z
             .string({ message: validationMessages_1.validationMessages.firstName.required() })
             .min(1, validationMessages_1.validationMessages.firstName.required())
-            .regex(/^[A-Z][a-zA-Z\s]*$/, validationMessages_1.validationMessages.firstName.invalidFormat()),
-        lastName: zod_1.z
-            .union([
-            zod_1.z
-                .string({ message: validationMessages_1.validationMessages.lastName.invalidFormat() })
-                .regex(/^[A-Z][a-zA-Z\s]*$/, validationMessages_1.validationMessages.lastName.invalidFormat()),
-            zod_1.z.literal(''),
-        ])
+            .transform((val) => (0, string_1.toTitleCase)(val)),
+        middleName: zod_1.z
+            .union([zod_1.z.string(), zod_1.z.literal('')])
             .optional()
-            .transform((val) => (val ? val : undefined)),
+            .transform((val) => (val && val.trim() ? (0, string_1.toTitleCase)(val.trim()) : undefined)),
+        lastName: zod_1.z
+            .union([zod_1.z.string(), zod_1.z.literal('')])
+            .optional()
+            .transform((val) => (val && val.trim() ? (0, string_1.toTitleCase)(val.trim()) : undefined)),
         email: zod_1.z
             .string({ message: validationMessages_1.validationMessages.email.required() })
             .min(1, validationMessages_1.validationMessages.email.required())
@@ -463,6 +481,7 @@ exports.userSocialLoginSchema = zod_1.z.object({
             .string()
             .min(1, validationMessages_1.validationMessages.firstName.required())
             .optional(),
+        middleName: zod_1.z.string().optional(),
         lastName: zod_1.z
             .string()
             .optional(),
@@ -492,18 +511,17 @@ exports.userProfileUpdateSchema = zod_1.z.object({
     body: zod_1.z
         .object({
         firstName: zod_1.z
-            .string({ message: validationMessages_1.validationMessages.firstName.required() })
-            .regex(nameRegex, validationMessages_1.validationMessages.firstName.invalidFormat())
-            .optional(),
-        lastName: zod_1.z
-            .union([
-            zod_1.z
-                .string({ message: validationMessages_1.validationMessages.lastName.invalidFormat() })
-                .regex(nameRegex, validationMessages_1.validationMessages.lastName.invalidFormat()),
-            zod_1.z.literal(''),
-        ])
+            .string()
             .optional()
-            .transform((val) => (val ? val : undefined)),
+            .transform((val) => (val && val.trim() ? (0, string_1.toTitleCase)(val.trim()) : undefined)),
+        middleName: zod_1.z
+            .union([zod_1.z.string(), zod_1.z.literal('')])
+            .optional()
+            .transform((val) => (val && val.trim() ? (0, string_1.toTitleCase)(val.trim()) : undefined)),
+        lastName: zod_1.z
+            .union([zod_1.z.string(), zod_1.z.literal('')])
+            .optional()
+            .transform((val) => (val && val.trim() ? (0, string_1.toTitleCase)(val.trim()) : undefined)),
         email: zod_1.z
             .string()
             .email(validationMessages_1.validationMessages.email.invalid())
@@ -514,7 +532,7 @@ exports.userProfileUpdateSchema = zod_1.z.object({
             .optional(),
         gender: zod_1.z.enum(['male', 'female', 'other']).optional(),
     })
-        .refine((data) => Boolean(data.firstName ?? data.lastName ?? data.email ?? data.dob ?? data.gender), {
+        .refine((data) => Boolean(data.firstName ?? data.middleName ?? data.lastName ?? data.email ?? data.dob ?? data.gender), {
         message: validationMessages_1.validationMessages.profile.noChanges(),
         path: ['body'],
     }),

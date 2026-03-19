@@ -4,6 +4,7 @@ export interface CreateUserData {
     id: string;
     email: string;
     firstName: string;
+    middleName?: string | null;
     lastName?: string | null;
     mobile?: string | null;
     gender?: 'male' | 'female' | 'other';
@@ -16,6 +17,7 @@ export interface CreateUserData {
 }
 export interface UpdateUserData {
     firstName?: string;
+    middleName?: string | null;
     lastName?: string | null;
     mobile?: string | null;
     email?: string;

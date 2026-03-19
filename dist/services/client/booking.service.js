@@ -142,7 +142,9 @@ const getBookingSummary = async (data, userId) => {
                 return {
                     id: p._id.toString(),
                     firstName: p.firstName,
+                    middleName: p.middleName,
                     lastName: p.lastName,
+                    gender: p.gender,
                     age,
                 };
             }),
@@ -271,7 +273,7 @@ const bookSlot = async (data, userId) => {
             })(),
         ]);
         const centerOwnerId = centerDetails?.user?.toString();
-        const participantNames = summary.participants.map(p => `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Participant').join(', ');
+        const participantNames = summary.participants.map(p => `${p.firstName || ''} ${p.middleName || ''} ${p.lastName || ''}`.trim() || 'Participant').join(', ');
         const batchName = summary.batch.name; // Use from summary instead of re-fetching
         const centerName = centerDetails?.center_name || 'Academy';
         const userName = userDetails ? `${userDetails.firstName || ''} ${userDetails.lastName || ''}`.trim() || userDetails.email || 'User' : 'User';
@@ -1715,7 +1717,7 @@ const getUserBookings = async (userId, params = {}) => {
         const [total, bookings] = await Promise.all([
             booking_model_1.BookingModel.countDocuments(query),
             booking_model_1.BookingModel.find(query)
-                .populate('participants', 'id firstName lastName dob profilePhoto')
+                .populate('participants', 'id firstName middleName lastName dob profilePhoto')
                 .populate('batch', 'id name scheduled duration')
                 .populate({
                 path: 'batch',
@@ -1765,6 +1767,7 @@ const getUserBookings = async (userId, params = {}) => {
                     return {
                         id: p._id?.toString() || p.id || '',
                         firstName: p.firstName || '',
+                        middleName: p.middleName || '',
                         lastName: p.lastName || '',
                         age,
                         profilePhoto: p.profilePhoto || null,
@@ -1830,7 +1833,7 @@ const getBookingDetails = async (bookingId, userId) => {
             user: userObjectId,
             is_deleted: false,
         })
-            .populate('participants', 'id firstName lastName dob profilePhoto')
+            .populate('participants', 'id firstName middleName lastName dob profilePhoto')
             .populate({
             path: 'batch',
             select: 'id name scheduled duration',
@@ -1859,6 +1862,7 @@ const getBookingDetails = async (bookingId, userId) => {
             return {
                 id: p._id?.toString() || p.id || '',
                 firstName: p.firstName || null,
+                middleName: p.middleName || null,
                 lastName: p.lastName || null,
                 age,
                 profilePhoto: p.profilePhoto || null,

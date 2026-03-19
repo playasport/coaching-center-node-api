@@ -735,6 +735,14 @@ export const search = async (req: Request, res: Response): Promise<void> => {
 
     const client = getClient();
 
+    // If user explicitly searches for disability-related intent, show only academies that allow disabled persons.
+    // This is separate from `for_disabled` param (explicit filter toggle).
+    const queryLower = query.toLowerCase();
+    const disabledOnlyIntent =
+      /\b(disable|disabled|disability|disabilities|disablity|disabilty|disabilites|handicap|handicapped|differently\s*abled|diff\s*abled|specially\s*abled|special\s*need|special\s*needs|wheel\s*chair|wheelchair|accessible|accessibility|para|paralympic)\b/i.test(
+        queryLower
+      );
+
     // For Meilisearch: "s&s" → "s s" so token search matches "S&S Football Academy"
     const queryForMeilisearch = query.trim().replace(/&/g, ' ').replace(/\s+/g, ' ').trim() || query.trim();
 
@@ -935,6 +943,15 @@ export const search = async (req: Request, res: Response): Promise<void> => {
         });
       }
 
+      // Apply disability-intent filter in fallback results.
+      if (disabledOnlyIntent && resultsByIndex['coaching_centres']?.results?.length) {
+        resultsByIndex['coaching_centres'].results = resultsByIndex['coaching_centres'].results.filter(
+          (r: any) => r?.source?.allowed_disabled === true || r?.source?.is_only_for_disabled === true
+        );
+        resultsByIndex['coaching_centres'].total = resultsByIndex['coaching_centres'].results.length;
+        resultsByIndex['coaching_centres'].has_more = false;
+      }
+
       res.status(200).json(
         new ApiResponse(
           200,
@@ -1001,6 +1018,9 @@ export const search = async (req: Request, res: Response): Promise<void> => {
         'logo',
         'images',
         'allowed_gender',
+        'allowed_disabled',
+        'is_only_for_disabled',
+        'age',
         'sports_names',
         'location_name',
         'experience',
@@ -1029,6 +1049,12 @@ export const search = async (req: Request, res: Response): Promise<void> => {
             offset: 0,
           };
 
+          const disabilityIntentFilter = disabledOnlyIntent
+            ? '(allowed_disabled = true OR is_only_for_disabled = true)'
+            : null;
+          const allowsDisabledFilter = forDisabled ? 'allowed_disabled = true' : null;
+          const disabledFilters = [disabilityIntentFilter, allowsDisabledFilter].filter(Boolean) as string[];
+
           // When city or state filter is applied, skip location filter (geo/radius)
           // Apply radius filter only when radius is present in request
           if (latitude !== null && longitude !== null && !city && !state) {
@@ -1037,6 +1063,9 @@ export const search = async (req: Request, res: Response): Promise<void> => {
             if (radiusKm != null && radiusKm > 0) {
               const radiusInMeters = radiusKm * 1000;
               geoFilterOptions.filter = [`_geoRadius(${latitude}, ${longitude}, ${radiusInMeters})`];
+            }
+            if (disabledFilters.length > 0) {
+              geoFilterOptions.filter = [...(geoFilterOptions.filter || []), ...disabledFilters];
             }
 
             try {
@@ -1081,7 +1110,9 @@ export const search = async (req: Request, res: Response): Promise<void> => {
 
               usedGeoFilter = true;
             } catch (geoError) {
-              const searchResults = await index.search(queryForMeilisearch, searchOptionsForIndex);
+              const nonGeoOptions: any = { ...searchOptionsForIndex };
+              if (disabledFilters.length > 0) nonGeoOptions.filter = [...disabledFilters];
+              const searchResults = await index.search(queryForMeilisearch, nonGeoOptions);
               const queryLower = query.toLowerCase().trim();
 
               let prioritizedHits = (searchResults.hits || []).map((hit: any) => {
@@ -1131,7 +1162,9 @@ export const search = async (req: Request, res: Response): Promise<void> => {
               };
             }
           } else {
-            const searchResults = await index.search(queryForMeilisearch, searchOptionsForIndex);
+            const nonGeoOptions: any = { ...searchOptionsForIndex };
+            if (disabledFilters.length > 0) nonGeoOptions.filter = [...disabledFilters];
+            const searchResults = await index.search(queryForMeilisearch, nonGeoOptions);
             const queryLower = query.toLowerCase().trim();
 
             let prioritizedHits = (searchResults.hits || []).map((hit: any) => {

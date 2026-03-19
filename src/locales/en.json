@@ -94,6 +94,10 @@
       "mustBeString": "First name must be a string",
       "invalidFormat": "First name must start with a capital letter and contain only letters and spaces"
     },
+    "middleName": {
+      "mustBeString": "Middle name must be a string",
+      "invalidFormat": "Middle name must start with a capital letter and contain only letters and spaces"
+    },
     "lastName": {
       "mustBeString": "Last name must be a string",
       "invalidFormat": "Last name must start with a capital letter and contain only letters and spaces"

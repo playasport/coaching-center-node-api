@@ -8,6 +8,7 @@ export interface AcademyDetails {
 export interface User {
     id: string;
     firstName: string;
+    middleName?: string | null;
     lastName?: string | null;
     dob?: Date | null;
     email: string;

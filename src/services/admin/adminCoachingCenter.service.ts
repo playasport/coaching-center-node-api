@@ -148,6 +148,7 @@ export interface CoachingCenterListItem {
   user: {
     id: string;
     firstName: string;
+    middleName?: string | null;
     lastName: string;
     email: string;
     mobile: string;
@@ -342,7 +343,7 @@ export const getAllCoachingCenters = async (
         .select('_id id center_name email mobile_number logo status is_active approval_status reject_reason user addedBy sports location createdAt updatedAt')
         .populate({
           path: 'user',
-          select: 'id firstName lastName email mobile isDeleted',
+          select: 'id firstName middleName lastName email mobile isDeleted',
           // Don't use match here - it can exclude parent documents
           // Instead, we'll filter deleted users in the transformation
           options: { lean: true },
@@ -375,12 +376,14 @@ export const getAllCoachingCenters = async (
       user: center.user && !center.user.isDeleted ? {
         id: center.user.id || center.user._id?.toString() || '',
         firstName: center.user.firstName || '',
+        middleName: center.user.middleName ?? null,
         lastName: center.user.lastName || '',
         email: center.user.email || '',
         mobile: center.user.mobile || '',
       } : {
         id: '',
         firstName: '',
+        middleName: null,
         lastName: '',
         email: '',
         mobile: '',
@@ -478,7 +481,7 @@ export const getCoachingCentersByUserId = async (
       CoachingCenterModel.find(query)
         .populate({
           path: 'user',
-          select: 'firstName lastName email mobile isDeleted',
+          select: 'firstName middleName lastName email mobile isDeleted',
           // Don't use match here - it can exclude parent documents
           // Instead, we'll filter deleted users in the transformation if needed
           options: { lean: true },
@@ -668,6 +671,7 @@ export const createCoachingCenterByAdmin = async (
           email: academy_owner.email.toLowerCase(),
           mobile: academy_owner.mobile,
           firstName: academy_owner.firstName,
+          middleName: academy_owner.middleName ?? null,
           lastName: academy_owner.lastName ?? null,
           password: hashedPassword,
           roles: [academyRole._id],

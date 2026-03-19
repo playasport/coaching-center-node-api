@@ -5,6 +5,7 @@ export declare const registerSchema: z.ZodObject<{
         password: z.ZodString;
         coachingName: z.ZodString;
         firstName: z.ZodOptional<z.ZodString>;
+        middleName: z.ZodOptional<z.ZodString>;
         lastName: z.ZodOptional<z.ZodString>;
         mobileNumber: z.ZodOptional<z.ZodString>;
         contactEmail: z.ZodPipe<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">]>>, z.ZodTransform<string | undefined, string | undefined>>;
@@ -20,6 +21,7 @@ export declare const loginSchema: z.ZodObject<{
 export declare const academyRegisterSchema: z.ZodObject<{
     body: z.ZodObject<{
         firstName: z.ZodString;
+        middleName: z.ZodPipe<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">]>>, z.ZodTransform<string | undefined, string | undefined>>;
         lastName: z.ZodPipe<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">]>>, z.ZodTransform<string | undefined, string | undefined>>;
         email: z.ZodString;
         password: z.ZodString;
@@ -68,6 +70,7 @@ export declare const academySocialLoginSchema: z.ZodObject<{
         }>>;
         idToken: z.ZodString;
         firstName: z.ZodOptional<z.ZodString>;
+        middleName: z.ZodOptional<z.ZodString>;
         lastName: z.ZodOptional<z.ZodString>;
         fcmToken: z.ZodOptional<z.ZodString>;
         deviceType: z.ZodOptional<z.ZodEnum<{
@@ -138,6 +141,7 @@ export declare const academyForgotPasswordVerifySchema: z.ZodObject<{
 export declare const academyProfileUpdateSchema: z.ZodObject<{
     body: z.ZodObject<{
         firstName: z.ZodOptional<z.ZodString>;
+        middleName: z.ZodPipe<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">]>>, z.ZodTransform<string | undefined, string | undefined>>;
         lastName: z.ZodPipe<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">]>>, z.ZodTransform<string | undefined, string | undefined>>;
     }, z.core.$strip>;
 }, z.core.$strip>;
@@ -172,7 +176,8 @@ export type AcademyForgotPasswordRequestInput = z.infer<typeof academyForgotPass
 export type AcademyForgotPasswordVerifyInput = z.infer<typeof academyForgotPasswordVerifySchema>['body'];
 export declare const userRegisterSchema: z.ZodObject<{
     body: z.ZodObject<{
-        firstName: z.ZodString;
+        firstName: z.ZodPipe<z.ZodString, z.ZodTransform<string, string>>;
+        middleName: z.ZodPipe<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">]>>, z.ZodTransform<string | undefined, string | undefined>>;
         lastName: z.ZodPipe<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">]>>, z.ZodTransform<string | undefined, string | undefined>>;
         email: z.ZodString;
         mobile: z.ZodOptional<z.ZodString>;
@@ -224,6 +229,7 @@ export declare const userSocialLoginSchema: z.ZodObject<{
         }>>;
         idToken: z.ZodString;
         firstName: z.ZodOptional<z.ZodString>;
+        middleName: z.ZodOptional<z.ZodString>;
         lastName: z.ZodOptional<z.ZodString>;
         type: z.ZodOptional<z.ZodEnum<{
             student: "student";
@@ -296,7 +302,8 @@ export declare const userForgotPasswordVerifySchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const userProfileUpdateSchema: z.ZodObject<{
     body: z.ZodObject<{
-        firstName: z.ZodOptional<z.ZodString>;
+        firstName: z.ZodPipe<z.ZodOptional<z.ZodString>, z.ZodTransform<string | undefined, string | undefined>>;
+        middleName: z.ZodPipe<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">]>>, z.ZodTransform<string | undefined, string | undefined>>;
         lastName: z.ZodPipe<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">]>>, z.ZodTransform<string | undefined, string | undefined>>;
         email: z.ZodOptional<z.ZodString>;
         dob: z.ZodOptional<z.ZodString>;

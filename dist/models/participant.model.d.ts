@@ -4,6 +4,7 @@ import { Gender } from '../enums/gender.enum';
 export interface Participant {
     userId: Types.ObjectId;
     firstName?: string | null;
+    middleName?: string | null;
     lastName?: string | null;
     gender?: Gender | null;
     disability: number;

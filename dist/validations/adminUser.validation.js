@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateAdminUserSchema = exports.createAdminUserSchema = void 0;
 const zod_1 = require("zod");
 const validationMessages_1 = require("../utils/validationMessages");
+const string_1 = require("../utils/string");
 const user_model_1 = require("../models/user.model");
 const role_model_1 = require("../models/role.model");
 const gender_enum_1 = require("../enums/gender.enum");
@@ -41,8 +42,18 @@ exports.createAdminUserSchema = zod_1.z.object({
         firstName: zod_1.z
             .string({ message: 'First name is required' })
             .min(1, 'First name is required')
-            .max(100, 'First name is too long'),
-        lastName: zod_1.z.string().max(100, 'Last name is too long').optional().nullable(),
+            .max(100, 'First name is too long')
+            .transform((val) => (0, string_1.toTitleCase)(val)),
+        middleName: zod_1.z
+            .union([zod_1.z.string(), zod_1.z.literal('')])
+            .optional()
+            .transform((val) => (val && val.trim() ? (0, string_1.toTitleCase)(val.trim()) : undefined)),
+        lastName: zod_1.z
+            .string()
+            .max(100, 'Last name is too long')
+            .optional()
+            .nullable()
+            .transform((val) => (val != null && typeof val === 'string' && val.trim() ? (0, string_1.toTitleCase)(val.trim()) : null)),
         mobile: mobileNumberSchema,
         gender: zod_1.z.nativeEnum(gender_enum_1.Gender).optional().nullable(),
         dob: zod_1.z
@@ -148,8 +159,18 @@ exports.updateAdminUserSchema = zod_1.z.object({
             .string()
             .min(1, 'First name is required')
             .max(100, 'First name is too long')
-            .optional(),
-        lastName: zod_1.z.string().max(100, 'Last name is too long').optional().nullable(),
+            .optional()
+            .transform((val) => (val && val.trim() ? (0, string_1.toTitleCase)(val.trim()) : undefined)),
+        middleName: zod_1.z
+            .union([zod_1.z.string(), zod_1.z.literal('')])
+            .optional()
+            .transform((val) => (val && val.trim() ? (0, string_1.toTitleCase)(val.trim()) : undefined)),
+        lastName: zod_1.z
+            .string()
+            .max(100, 'Last name is too long')
+            .optional()
+            .nullable()
+            .transform((val) => (val != null && typeof val === 'string' && val.trim() ? (0, string_1.toTitleCase)(val.trim()) : null)),
         mobile: mobileNumberSchema,
         gender: zod_1.z.nativeEnum(gender_enum_1.Gender).optional().nullable(),
         dob: zod_1.z

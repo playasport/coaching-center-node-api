@@ -1,6 +1,7 @@
 import { PaymentStatus, BookingStatus } from '../../models/booking.model';
 import type { BookingSummaryInput, VerifyPaymentInput, DeleteOrderInput, BookSlotInput } from '../../validations/booking.validation';
 import { generateBookingId, calculateAge } from './booking.helpers.utils';
+import { Gender } from '../../enums/gender.enum';
 export { generateBookingId };
 export interface BookingSummary {
     batch: {
@@ -41,6 +42,7 @@ export interface BookingSummary {
     participants: Array<{
         id: string;
         firstName?: string | null;
+        middleName?: string | null;
         lastName?: string | null;
         age?: number | null;
     }>;
@@ -215,7 +217,9 @@ export interface BookingSummaryResponse {
     participants: Array<{
         id: string;
         firstName?: string | null;
+        middleName?: string | null;
         lastName?: string | null;
+        gender?: Gender | null;
         age?: number | null;
     }>;
     amount: number;
@@ -389,8 +393,10 @@ export interface UserBookingListItem {
     };
     participants: Array<{
         id: string;
-        firstName: string;
-        lastName: string;
+        firstName?: string | null;
+        middleName?: string | null;
+        lastName?: string | null;
+        gender?: Gender | null;
         age?: number | null;
         profilePhoto?: string | null;
     }>;
@@ -479,6 +485,7 @@ export interface BookingDetailsResponse {
     participants: Array<{
         id: string;
         firstName?: string | null;
+        middleName?: string | null;
         lastName?: string | null;
         age?: number | null;
         profilePhoto?: string | null;
