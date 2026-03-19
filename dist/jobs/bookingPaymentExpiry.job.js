@@ -57,7 +57,7 @@ const executeBookingPaymentExpiryJob = async () => {
         if (reminderHours.length === 0) {
             return;
         }
-        const mainSiteUrl = env_1.config.mainSiteUrl || 'https://www.playasport.in';
+        const mainSiteUrl = env_1.config.mainSiteUrl || 'https://front.playasport.in';
         // Build list of (booking, H) tasks that need reminders
         const reminderTasks = [];
         for (const booking of reminderBookings) {
@@ -80,7 +80,7 @@ const executeBookingPaymentExpiryJob = async () => {
             const batchName = booking.batch?.name || 'batch';
             const centerName = booking.center?.center_name || 'Academy';
             const bookingId = booking.booking_id || booking.id;
-            const paymentUrl = `${mainSiteUrl}/pay?token=${booking.payment_token}`;
+            const paymentUrl = `${mainSiteUrl}/pay/${booking.payment_token}`;
             const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user?.email || 'User' : 'User';
             const variables = {
                 userName,

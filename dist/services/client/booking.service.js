@@ -2257,11 +2257,14 @@ const cancelBooking = async (bookingId, reason, userId) => {
                         });
                     }
                     if (user.mobile) {
+                        const cancelReasonForUser = reason
+                            ? `You cancelled booking due to reason: ${reason}`
+                            : 'You cancelled your booking yourself';
                         (0, notificationQueue_service_1.queueWhatsAppTemplate)(user.mobile, 'booking_cancelled', {
                             batchName,
                             academyName: centerName,
                             bookingId: booking.booking_id ?? String(booking.id),
-                            cancelReason: reason || '—',
+                            cancelReason: cancelReasonForUser,
                         }, 'medium', { type: 'booking_cancelled', bookingId: booking.id, recipient: 'user' });
                     }
                 }
