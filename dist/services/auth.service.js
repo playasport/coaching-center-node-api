@@ -424,7 +424,7 @@ const requestAcademyPasswordReset = async (data) => {
         }
         await otp_service_1.otpService.createOtp({ channel: otpChannel_enum_1.OtpChannel.MOBILE, identifier: data.mobile }, otp, otpMode_enum_1.OtpMode.FORGOT_PASSWORD);
         const mobileNumber = `+91${data.mobile}`;
-        (0, notificationQueue_service_1.queueSms)(mobileNumber, `Your PlayAsport Academy OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Team Thank You.`, 'high', { type: 'otp' });
+        (0, notificationQueue_service_1.queueSms)(mobileNumber, `Your Play A sport OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Thank You, Play A Sport.`, 'high', { type: 'otp' });
     }
     else {
         const emailLower = data.email.toLowerCase();
@@ -566,7 +566,7 @@ const sendAcademyOtp = async (data) => {
     await otp_service_1.otpService.createOtp({ channel: otpChannel_enum_1.OtpChannel.MOBILE, identifier: mobile }, otp, otpMode);
     // add +91 to the mobile number
     const mobileNumber = `+91${mobile}`;
-    (0, notificationQueue_service_1.queueSms)(mobileNumber, `Your PlayAsport Academy OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Team Thank You.`, 'high', { type: 'otp' });
+    (0, notificationQueue_service_1.queueSms)(mobileNumber, `Your Play A Sport OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Thank You, Play A Sport.`, 'high', { type: 'otp' });
     return {
         mobile: mobileNumber,
         mode,
@@ -1163,7 +1163,7 @@ const requestUserPasswordReset = async (data) => {
         }
         await otp_service_1.otpService.createOtp({ channel: otpChannel_enum_1.OtpChannel.MOBILE, identifier: data.mobile }, otp, otpMode_enum_1.OtpMode.FORGOT_PASSWORD);
         const mobileNumber = `+91${data.mobile}`;
-        (0, notificationQueue_service_1.queueSms)(mobileNumber, `Your PlayAsport Academy OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Team Thank You.`, 'high', { type: 'otp' });
+        (0, notificationQueue_service_1.queueSms)(mobileNumber, `Your Play A Sport OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Thank You, Play A Sport.`, 'high', { type: 'otp' });
     }
     else {
         const emailLower = data.email.toLowerCase();
@@ -1328,7 +1328,7 @@ const sendUserOtp = async (data) => {
     await otp_service_1.otpService.createOtp({ channel: otpChannel_enum_1.OtpChannel.MOBILE, identifier: mobile }, otp, otpMode);
     // add +91 to the mobile number
     const mobileNumber = `+91${mobile}`;
-    (0, notificationQueue_service_1.queueSms)(mobileNumber, `Your PlayAsport Academy OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Team Thank You.`, 'high', { type: 'otp' });
+    (0, notificationQueue_service_1.queueSms)(mobileNumber, `Your Play A Sport OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Thank You, Play A Sport.`, 'high', { type: 'otp' });
     return {
         mobile: mobileNumber,
         mode,

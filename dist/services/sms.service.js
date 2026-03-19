@@ -95,7 +95,7 @@ const sendOtpSms = async (mobile, otp) => {
         logger_1.logger.info('SMS OTP not sent. Service disabled.', { mobile });
         return 'SMS delivery disabled. OTP not sent.';
     }
-    (0, exports.sendSms)(mobile, `Your PlayAsport Academy OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Play A Team Thank You.`, 'high', { type: 'otp' });
+    (0, exports.sendSms)(mobile, `Your Play A Sport OTP is ${otp} . This OTP will expire in 5 minutes. Do not share this OTP with anyone. Thank You, Play A Sport.`, 'high', { type: 'otp' });
     return 'OTP queued for delivery';
 };
 exports.sendOtpSms = sendOtpSms;

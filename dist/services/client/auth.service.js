@@ -771,7 +771,7 @@ const sendAcademyOtp = async (data) => {
     const mobileNumber = `+91${mobile}`;
     const expiryMinutes = env_1.config.otp.expiryMinutes;
     if (!isDemoAuth) {
-        (0, notificationQueue_service_1.queueSms)(mobileNumber, `Your Play A Sport OTP is ${otp} . This OTP will expire in ${expiryMinutes} minutes. Do not share this OTP with anyone. Play A Team Thank You.`, 'high', { type: 'otp' });
+        (0, notificationQueue_service_1.queueSms)(mobileNumber, `Your Play A Sport OTP is ${otp} . This OTP will expire in ${expiryMinutes} minutes. Do not share this OTP with anyone. Thank You, Play A Sport Team.`, 'high', { type: 'otp' });
     }
     return {
         mobile: mobileNumber,
@@ -1804,7 +1804,7 @@ const sendUserOtp = async (data) => {
     const mobileNumber = `+91${mobile}`;
     const expiryMinutes = env_1.config.otp.expiryMinutes;
     if (!isDemoAuth) {
-        (0, notificationQueue_service_1.queueSms)(mobileNumber, `Your Play A Sport OTP is ${otp} . This OTP will expire in ${expiryMinutes} minutes. Do not share this OTP with anyone. Play A Team Thank You.`, 'high', { type: 'otp' });
+        (0, notificationQueue_service_1.queueSms)(mobileNumber, `Your Play A Sport OTP is ${otp} . This OTP will expire in ${expiryMinutes} minutes. Do not share this OTP with anyone. Thank You, Play A Sport.`, 'high', { type: 'otp' });
     }
     return {
         mobile: mobileNumber,
