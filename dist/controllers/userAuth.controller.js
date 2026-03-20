@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeAcademyBookmark = exports.addAcademyBookmark = exports.getAcademyBookmarks = exports.logoutDevice = exports.getUserDevices = exports.saveFcmToken = exports.updateUserFavoriteSports = exports.logoutAll = exports.logout = exports.refreshToken = exports.verifyUserOtp = exports.sendUserOtp = exports.getCurrentUser = exports.changeUserPassword = exports.updateUserAddress = exports.updateUserProfile = exports.socialLoginUser = exports.registerUser = void 0;
+exports.deleteMyUserAccount = exports.removeAcademyBookmark = exports.addAcademyBookmark = exports.getAcademyBookmarks = exports.logoutDevice = exports.getUserDevices = exports.saveFcmToken = exports.updateUserFavoriteSports = exports.logoutAll = exports.logout = exports.refreshToken = exports.verifyUserOtp = exports.sendUserOtp = exports.getCurrentUser = exports.changeUserPassword = exports.updateUserAddress = exports.updateUserProfile = exports.socialLoginUser = exports.registerUser = void 0;
 const i18n_1 = require("../utils/i18n");
 const ApiResponse_1 = require("../utils/ApiResponse");
 const ApiError_1 = require("../utils/ApiError");
@@ -41,6 +41,7 @@ const authService = __importStar(require("../services/client/auth.service"));
 const deviceToken_service_1 = require("../services/common/deviceToken.service");
 const user_service_1 = require("../services/client/user.service");
 const userAcademyBookmarkService = __importStar(require("../services/client/userAcademyBookmark.service"));
+const accountSoftDelete_service_1 = require("../services/client/accountSoftDelete.service");
 const registerUser = async (req, res, next) => {
     try {
         const data = req.body;
@@ -456,4 +457,24 @@ const removeAcademyBookmark = async (req, res, next) => {
     }
 };
 exports.removeAcademyBookmark = removeAcademyBookmark;
+/**
+ * Soft-delete consumer (user) role for the authenticated account. Does not remove the document if academy role remains.
+ */
+const deleteMyUserAccount = async (req, res, next) => {
+    try {
+        if (!req.user) {
+            throw new ApiError_1.ApiError(401, (0, i18n_1.t)('auth.authorization.unauthorized'));
+        }
+        const result = await (0, accountSoftDelete_service_1.softDeleteUserAppAccount)(req.user.id);
+        const message = result.alreadyDeleted
+            ? (0, i18n_1.t)('auth.account.userAlreadyDeleted')
+            : (0, i18n_1.t)('auth.account.userDeleted');
+        const response = new ApiResponse_1.ApiResponse(200, { alreadyDeleted: result.alreadyDeleted }, message);
+        res.json(response);
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.deleteMyUserAccount = deleteMyUserAccount;
 //# sourceMappingURL=userAuth.controller.js.map

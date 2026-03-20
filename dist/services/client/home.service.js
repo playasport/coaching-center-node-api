@@ -143,6 +143,7 @@ const getNearbyAcademies = async (userLocation, limit = 12, userId, radius) => {
                 const validUsers = await user_model_1.UserModel.find({
                     _id: { $in: userIds },
                     isDeleted: false,
+                    $or: [{ academyRoleDeletedAt: null }, { academyRoleDeletedAt: { $exists: false } }],
                 })
                     .select('_id')
                     .lean();
@@ -292,7 +293,11 @@ const getRecommendedAcademies = async (userLocation, limit = 12, userId, radius)
                 .filter((uid) => uid && (mongoose_1.Types.ObjectId.isValid(uid) || uid._id));
             if (academyUserIds.length > 0) {
                 const userIds = academyUserIds.map((uid) => mongoose_1.Types.ObjectId.isValid(uid) ? new mongoose_1.Types.ObjectId(uid) : (uid._id || uid));
-                const validUsers = await user_model_1.UserModel.find({ _id: { $in: userIds }, isDeleted: false })
+                const validUsers = await user_model_1.UserModel.find({
+                    _id: { $in: userIds },
+                    isDeleted: false,
+                    $or: [{ academyRoleDeletedAt: null }, { academyRoleDeletedAt: { $exists: false } }],
+                })
                     .select('_id')
                     .lean();
                 const validUserIds = new Set(validUsers.map((u) => u._id.toString()));
@@ -366,6 +371,10 @@ const getPopularReels = async (limit = 6) => {
                 $match: {
                     'user.isDeleted': { $ne: true },
                     'user.isActive': true,
+                    $or: [
+                        { 'user.userRoleDeletedAt': null },
+                        { 'user.userRoleDeletedAt': { $exists: false } },
+                    ],
                 },
             },
             // Sort by views count descending
@@ -573,6 +582,7 @@ const getSportsWiseAcademies = async (userLocation, userId, radius) => {
                 const validUsers = await user_model_1.UserModel.find({
                     _id: { $in: userIds },
                     isDeleted: false,
+                    $or: [{ academyRoleDeletedAt: null }, { academyRoleDeletedAt: { $exists: false } }],
                 })
                     .select('_id')
                     .lean();

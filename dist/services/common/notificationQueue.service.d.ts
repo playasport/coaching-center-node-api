@@ -14,7 +14,7 @@ export declare const queueEmail: (to: string, subject: string, options?: {
 export declare const queueWhatsApp: (to: string, body: string, priority?: NotificationPriority, metadata?: Record<string, unknown>) => void;
 /**
  * Queue a Meta WhatsApp template message.
- * Params: payment_request → userName, academyName, bookingId, paymentUrl, numberOfHours, buttonUrlParameter; payment_reminder → batchName, academyName, hoursLeft, bookingId, paymentLink, buttonUrlParameter; booking_cancelled → batchName, academyName, bookingId, cancelReason.
+ * Params: payment_request → userName, academyName, bookingId, paymentUrl, numberOfHours, buttonUrlParameter; payment_reminder → batchName, academyName, hoursLeft, bookingId, paymentLink, buttonUrlParameter; booking_cancelled → batchName, academyName, bookingId, cancelReason; user_payment_verified → userName, bookingId, batchName, sportName, centerName, participants, startDate, startTime, endTime, currency, amount; booking_rejected → batchName, centerName, bookingId, rejectionReason.
  */
 export declare const queueWhatsAppTemplate: (to: string, templateName: WhatsAppTemplateName, params: Record<string, string>, priority?: NotificationPriority, metadata?: Record<string, unknown>) => void;
 export declare const queuePush: (userId: string, title: string, body: string, options?: {

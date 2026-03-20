@@ -629,7 +629,11 @@ export const getAcademyById = async (
 
     // If still not found, try by user custom ID
     if (!coachingCenter) {
-      const user = await UserModel.findOne({ id: id, isDeleted: false })
+      const user = await UserModel.findOne({
+        id,
+        isDeleted: false,
+        $or: [{ academyRoleDeletedAt: null }, { academyRoleDeletedAt: { $exists: false } }],
+      })
         .select('_id')
         .lean();
 

@@ -17,6 +17,7 @@ import {
   removeAcademyBookmark,
   getUserDevices,
   logoutDevice,
+  deleteMyUserAccount,
 } from '../controllers/userAuth.controller';
 import { validate } from '../middleware/validation.middleware';
 import {
@@ -973,6 +974,27 @@ router.post('/logout', authenticate, authorize(DefaultRoles.USER), logout);
  *         description: Unauthorized
  */
 router.post('/logout-all', authenticate, authorize(DefaultRoles.USER), logoutAll);
+
+/**
+ * @swagger
+ * /user/auth/account:
+ *   delete:
+ *     summary: Soft-delete your user (consumer) account
+ *     description: |
+ *       Sets a per-role soft delete for the `user` role only. If this email/mobile also has an academy role,
+ *       academy login and data are unaffected. Idempotent — repeated calls return success with `alreadyDeleted: true`.
+ *     tags: [User Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User role soft-deleted (or already deleted)
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (e.g. no user role)
+ */
+router.delete('/account', authenticate, authorize(DefaultRoles.USER), deleteMyUserAccount);
 
 /**
  * @swagger

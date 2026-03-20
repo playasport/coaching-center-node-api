@@ -19,6 +19,8 @@ import {
   sendWhatsAppCloudPaymentRequestTemplate,
   sendWhatsAppCloudPaymentReminderTemplate,
   sendWhatsAppCloudBookingCancelledTemplate,
+  sendWhatsAppCloudPaymentVerifiedTemplate,
+  sendWhatsAppCloudBookingRejectedTemplate,
 } from './metaWhatsApp.service';
 import type { WhatsAppTemplateName } from '../../types/notification.types';
 import { WhatsAppTemplateMessageModel } from '../../models/whatsappTemplateMessage.model';
@@ -290,6 +292,31 @@ const processWhatsApp = async (notification: WhatsAppNotification): Promise<Noti
           academyName: params.academyName ?? '',
           bookingId: params.bookingId ?? '',
           cancelReason: params.cancelReason ?? '—',
+        });
+        success = true;
+        messageId = res.messageId;
+      } else if (name === 'user_payment_verified') {
+        const res = await sendWhatsAppCloudPaymentVerifiedTemplate(notification.to, {
+          userName: params.userName ?? '',
+          bookingId: params.bookingId ?? '',
+          batchName: params.batchName ?? '',
+          sportName: params.sportName ?? '',
+          centerName: params.centerName ?? '',
+          participants: params.participants ?? '',
+          startDate: params.startDate ?? '',
+          startTime: params.startTime ?? '',
+          endTime: params.endTime ?? '',
+          currency: params.currency ?? '',
+          amount: params.amount ?? '',
+        });
+        success = true;
+        messageId = res.messageId;
+      } else if (name === 'booking_rejected') {
+        const res = await sendWhatsAppCloudBookingRejectedTemplate(notification.to, {
+          batchName: params.batchName ?? '',
+          centerName: params.centerName ?? '',
+          bookingId: params.bookingId ?? '',
+          rejectionReason: params.rejectionReason ?? '—',
         });
         success = true;
         messageId = res.messageId;
@@ -585,7 +612,7 @@ export const queueWhatsApp = (
 
 /**
  * Queue a Meta WhatsApp template message.
- * Params: payment_request → userName, academyName, bookingId, paymentUrl, numberOfHours, buttonUrlParameter; payment_reminder → batchName, academyName, hoursLeft, bookingId, paymentLink, buttonUrlParameter; booking_cancelled → batchName, academyName, bookingId, cancelReason.
+ * Params: payment_request → userName, academyName, bookingId, paymentUrl, numberOfHours, buttonUrlParameter; payment_reminder → batchName, academyName, hoursLeft, bookingId, paymentLink, buttonUrlParameter; booking_cancelled → batchName, academyName, bookingId, cancelReason; user_payment_verified → userName, bookingId, batchName, sportName, centerName, participants, startDate, startTime, endTime, currency, amount; booking_rejected → batchName, centerName, bookingId, rejectionReason.
  */
 export const queueWhatsAppTemplate = (
   to: string,

@@ -57,7 +57,7 @@ exports.listTemplateMessagesSchema = zod_1.z.object({
         limit: zod_1.z
             .preprocess((v) => (typeof v === 'string' ? parseInt(v, 10) : v), zod_1.z.number().int().min(1).max(100).optional())
             .optional(),
-        templateName: zod_1.z.enum(['payment_request', 'payment_reminder', 'booking_cancelled']).optional(),
+        templateName: zod_1.z.enum(['payment_request', 'payment_reminder', 'booking_cancelled', 'user_payment_verified', 'booking_rejected']).optional(),
         status: zod_1.z.enum(['sent', 'delivered', 'read', 'failed']).optional(),
         phone: zod_1.z.string().max(20).optional(),
         dateFrom: zod_1.z

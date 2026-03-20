@@ -33,13 +33,14 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRandomBanner = exports.saveFcmToken = exports.logoutAll = exports.logout = exports.refreshToken = exports.verifyAcademyOtp = exports.sendAcademyOtp = exports.getCurrentAcademyUser = exports.verifyAcademyPasswordReset = exports.requestAcademyPasswordReset = exports.changeAcademyPassword = exports.updateAcademyAddress = exports.updateAcademyProfile = exports.socialLoginAcademyUser = exports.loginAcademyUser = exports.registerAcademyUser = void 0;
+exports.getRandomBanner = exports.deleteMyAcademyAccount = exports.saveFcmToken = exports.logoutAll = exports.logout = exports.refreshToken = exports.verifyAcademyOtp = exports.sendAcademyOtp = exports.getCurrentAcademyUser = exports.verifyAcademyPasswordReset = exports.requestAcademyPasswordReset = exports.changeAcademyPassword = exports.updateAcademyAddress = exports.updateAcademyProfile = exports.socialLoginAcademyUser = exports.loginAcademyUser = exports.registerAcademyUser = void 0;
 const i18n_1 = require("../../utils/i18n");
 const ApiResponse_1 = require("../../utils/ApiResponse");
 const ApiError_1 = require("../../utils/ApiError");
 const academyAuthService = __importStar(require("../../services/client/auth.service"));
 const coachingCenterService = __importStar(require("../../services/academy/coachingCenter.service"));
 const deviceToken_service_1 = require("../../services/common/deviceToken.service");
+const accountSoftDelete_service_1 = require("../../services/client/accountSoftDelete.service");
 const registerAcademyUser = async (req, res, next) => {
     try {
         const data = req.body;
@@ -296,6 +297,26 @@ const saveFcmToken = async (req, res, next) => {
     }
 };
 exports.saveFcmToken = saveFcmToken;
+/**
+ * Soft-delete academy role; deactivates owned centers and batches. User-app access may remain if user role exists.
+ */
+const deleteMyAcademyAccount = async (req, res, next) => {
+    try {
+        if (!req.user) {
+            throw new ApiError_1.ApiError(401, (0, i18n_1.t)('auth.authorization.unauthorized'));
+        }
+        const result = await (0, accountSoftDelete_service_1.softDeleteAcademyAppAccount)(req.user.id);
+        const message = result.alreadyDeleted
+            ? (0, i18n_1.t)('auth.account.academyAlreadyDeleted')
+            : (0, i18n_1.t)('auth.account.academyDeleted');
+        const response = new ApiResponse_1.ApiResponse(200, { alreadyDeleted: result.alreadyDeleted }, message);
+        res.json(response);
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.deleteMyAcademyAccount = deleteMyAcademyAccount;
 /**
  * Get a random banner image from any CoachingCenter.
  * Returns default image URL if no CoachingCenter images found.

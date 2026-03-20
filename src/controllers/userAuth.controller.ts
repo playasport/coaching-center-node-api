@@ -17,6 +17,7 @@ import type {
 } from '../validations/auth.validation';
 import { userService } from '../services/client/user.service';
 import * as userAcademyBookmarkService from '../services/client/userAcademyBookmark.service';
+import { softDeleteUserAppAccount } from '../services/client/accountSoftDelete.service';
 
 export const registerUser = async (
   req: Request,
@@ -580,6 +581,30 @@ export const removeAcademyBookmark = async (
 
     const message = result.removed ? 'Academy removed from bookmarks' : 'Academy was not bookmarked';
     const response = new ApiResponse(200, result, message);
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Soft-delete consumer (user) role for the authenticated account. Does not remove the document if academy role remains.
+ */
+export const deleteMyUserAccount = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const result = await softDeleteUserAppAccount(req.user.id);
+    const message = result.alreadyDeleted
+      ? t('auth.account.userAlreadyDeleted')
+      : t('auth.account.userDeleted');
+    const response = new ApiResponse(200, { alreadyDeleted: result.alreadyDeleted }, message);
     res.json(response);
   } catch (error) {
     next(error);

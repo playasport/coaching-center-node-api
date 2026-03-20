@@ -852,20 +852,20 @@ export const rejectBookingRequest = async (
         });
       }
 
-      // TODO(WhatsApp): Enable after Meta template approved. See docs/WHATSAPP_TEMPLATES.md
-      // if (user.mobile) {
-      //   const whatsappMessage = getBookingRejectedUserWhatsApp({
-      //     batchName,
-      //     centerName,
-      //     bookingId: booking.booking_id ?? undefined,
-      //     reason: reason || null,
-      //   });
-      //   queueWhatsApp(user.mobile, whatsappMessage, 'medium', {
-      //     type: 'booking_rejected',
-      //     bookingId: booking.id,
-      //     recipient: 'user',
-      //   });
-      // }
+      if (user.mobile) {
+        queueWhatsAppTemplate(
+          user.mobile,
+          'booking_rejected',
+          {
+            batchName,
+            centerName,
+            bookingId: booking.booking_id ?? String(booking.id),
+            rejectionReason: reason || '—',
+          },
+          'medium',
+          { type: 'booking_rejected', bookingId: booking.id, recipient: 'user' }
+        );
+      }
     }
 
     logger.info(`Booking request rejected: ${bookingId} by academy user ${userId}`);

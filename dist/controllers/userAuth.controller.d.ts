@@ -44,4 +44,8 @@ export declare const addAcademyBookmark: (req: Request, res: Response, next: Nex
  * Remove academy from bookmarks. Returns updated list of bookmarked academies.
  */
 export declare const removeAcademyBookmark: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+/**
+ * Soft-delete consumer (user) role for the authenticated account. Does not remove the document if academy role remains.
+ */
+export declare const deleteMyUserAccount: (req: Request, res: Response, next: NextFunction) => Promise<void>;
 //# sourceMappingURL=userAuth.controller.d.ts.map

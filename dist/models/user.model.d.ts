@@ -27,6 +27,10 @@ export interface User {
     referredByAgentAt?: Date | null;
     isDeleted: boolean;
     deletedAt?: Date | null;
+    /** Soft-delete for consumer (`user` role) only; academy login may still work. */
+    userRoleDeletedAt?: Date | null;
+    /** Soft-delete for academy role only; user-app login may still work. */
+    academyRoleDeletedAt?: Date | null;
     createdAt: Date;
     updatedAt: Date;
 }

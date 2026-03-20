@@ -470,6 +470,186 @@ export async function sendWhatsAppCloudBookingCancelledTemplate(
   return { messageId };
 }
 
+/** Parameters for the user_payment_verified WhatsApp template (user; body only) */
+export interface PaymentVerifiedTemplateParams {
+  userName: string;
+  bookingId: string;
+  batchName: string;
+  sportName: string;
+  centerName: string;
+  participants: string;
+  startDate: string;
+  startTime: string;
+  endTime: string;
+  currency: string;
+  amount: string;
+}
+
+/**
+ * Send payment verified notification via Meta WhatsApp template "user_payment_verified".
+ * Body only: user_name, booking_id, batch_name, sport_name, center_name, participants, start_date, start_time, end_time, currency, amount.
+ */
+export async function sendWhatsAppCloudPaymentVerifiedTemplate(
+  to: string,
+  params: PaymentVerifiedTemplateParams
+): Promise<{ messageId: string }> {
+  const cfg = await getWhatsAppCloudConfig();
+  const phoneNumberId = cfg.phoneNumberId;
+  const accessToken = cfg.accessToken;
+  const version = cfg.apiVersion;
+
+  if (!cfg.enabled || !phoneNumberId || !accessToken) {
+    throw new ApiError(500, 'WhatsApp Cloud API is not configured');
+  }
+
+  const toNormalized = normalizePhone(to);
+  const url = getWhatsAppMessagesUrl(phoneNumberId, version);
+
+  const body = {
+    messaging_product: 'whatsapp',
+    to: toNormalized,
+    type: 'template',
+    template: {
+      name: 'user_payment_verified',
+      language: { code: 'en' },
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', parameter_name: 'user_name', text: params.userName },
+            { type: 'text', parameter_name: 'booking_id', text: params.bookingId },
+            { type: 'text', parameter_name: 'batch_name', text: params.batchName },
+            { type: 'text', parameter_name: 'sport_name', text: params.sportName },
+            { type: 'text', parameter_name: 'center_name', text: params.centerName },
+            { type: 'text', parameter_name: 'participants', text: params.participants },
+            { type: 'text', parameter_name: 'start_date', text: params.startDate },
+            { type: 'text', parameter_name: 'start_time', text: params.startTime },
+            { type: 'text', parameter_name: 'end_time', text: params.endTime },
+            { type: 'text', parameter_name: 'currency', text: params.currency },
+            { type: 'text', parameter_name: 'amount', text: params.amount },
+          ],
+        },
+      ],
+    },
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = (await res.json().catch(() => ({}))) as {
+    error?: { message?: string };
+    messages?: Array<{ id?: string }>;
+  };
+
+  if (!res.ok) {
+    logger.error('WhatsApp Cloud API user_payment_verified template send failed', {
+      status: res.status,
+      to: toNormalized,
+      error: data.error || data,
+    });
+    throw new ApiError(
+      res.status >= 500 ? 502 : 400,
+      data.error?.message || 'Failed to send WhatsApp user_payment_verified template'
+    );
+  }
+
+  const messageId = data.messages?.[0]?.id;
+  if (!messageId) {
+    throw new ApiError(502, 'WhatsApp API did not return message id');
+  }
+
+  return { messageId };
+}
+
+/** Parameters for the booking_rejected WhatsApp template (user; body only) */
+export interface BookingRejectedTemplateParams {
+  batchName: string;
+  centerName: string;
+  bookingId: string;
+  rejectionReason: string;
+}
+
+/**
+ * Send booking rejected notification via Meta WhatsApp template "booking_rejected".
+ * Body only: batch_name, center_name, booking_id, rejection_reason.
+ */
+export async function sendWhatsAppCloudBookingRejectedTemplate(
+  to: string,
+  params: BookingRejectedTemplateParams
+): Promise<{ messageId: string }> {
+  const cfg = await getWhatsAppCloudConfig();
+  const phoneNumberId = cfg.phoneNumberId;
+  const accessToken = cfg.accessToken;
+  const version = cfg.apiVersion;
+
+  if (!cfg.enabled || !phoneNumberId || !accessToken) {
+    throw new ApiError(500, 'WhatsApp Cloud API is not configured');
+  }
+
+  const toNormalized = normalizePhone(to);
+  const url = getWhatsAppMessagesUrl(phoneNumberId, version);
+
+  const body = {
+    messaging_product: 'whatsapp',
+    to: toNormalized,
+    type: 'template',
+    template: {
+      name: 'booking_rejected',
+      language: { code: 'en' },
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', parameter_name: 'batch_name', text: params.batchName },
+            { type: 'text', parameter_name: 'center_name', text: params.centerName },
+            { type: 'text', parameter_name: 'booking_id', text: params.bookingId },
+            { type: 'text', parameter_name: 'rejection_reason', text: params.rejectionReason },
+          ],
+        },
+      ],
+    },
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = (await res.json().catch(() => ({}))) as {
+    error?: { message?: string };
+    messages?: Array<{ id?: string }>;
+  };
+
+  if (!res.ok) {
+    logger.error('WhatsApp Cloud API booking_rejected template send failed', {
+      status: res.status,
+      to: toNormalized,
+      error: data.error || data,
+    });
+    throw new ApiError(
+      res.status >= 500 ? 502 : 400,
+      data.error?.message || 'Failed to send WhatsApp booking_rejected template'
+    );
+  }
+
+  const messageId = data.messages?.[0]?.id;
+  if (!messageId) {
+    throw new ApiError(502, 'WhatsApp API did not return message id');
+  }
+
+  return { messageId };
+}
+
 /** Incoming message from webhook value.messages[] item */
 interface IncomingMessage {
   id: string;

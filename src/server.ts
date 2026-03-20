@@ -22,6 +22,7 @@ import { closeRateLimit } from './middleware/rateLimit.middleware';
 import { closePermissionCache } from './services/admin/permission.service';
 import { startMediaCleanupJob } from './jobs/mediaCleanup.job';
 import { startPermanentDeleteJob } from './jobs/permanentDelete.job';
+import { startPayoutReconciliationJob } from './jobs/payoutReconciliation.job';
 import { preloadRoleCache } from './services/admin/role.service';
 import { closeAcademyDashboardCache } from './utils/academyDashboardCache';
 import { closeAdminDashboardCache } from './utils/adminDashboardCache';
@@ -49,6 +50,9 @@ const startServer = async (): Promise<void> => {
     // Booking payment expiry: auto-cancel unpaid approved bookings and send payment reminders (every 15 min)
     const { startBookingPaymentExpiryJob } = await import('./jobs/bookingPaymentExpiry.job');
     startBookingPaymentExpiryJob();
+
+    // Payout reconciliation: create missing payouts for verified payments (every hour)
+    startPayoutReconciliationJob();
 
     // Start server
     app.listen(config.port, () => {

@@ -10,9 +10,11 @@ import { DefaultRoles } from '../enums/defaultRoles.enum';
 /**
  * Validate user status and existence
  * This is a critical security check that should run after JWT validation
+ * @param jwtRole - Access token role; used to enforce per-role soft-delete on client User documents
  */
 const validateUserStatus = async (
-  userId: string
+  userId: string,
+  jwtRole?: string
 ): Promise<{ valid: boolean; reason?: string }> => {
   try {
     // Input validation - prevent injection attacks
@@ -30,9 +32,7 @@ const validateUserStatus = async (
       });
     }
 
-    // Check user exists, is active, and not deleted
-    // First check AdminUser table (for admin users), then User table (for client/academy users)
-    let user = await AdminUserModel.findOne({
+    const adminUser = await AdminUserModel.findOne({
       id: sanitizedUserId,
       isDeleted: false,
       isActive: true,
@@ -40,22 +40,30 @@ const validateUserStatus = async (
       .select('_id isActive isDeleted')
       .lean();
 
-    // If not found in AdminUser, check User table
-    if (!user) {
-      user = await UserModel.findOne({
-        id: sanitizedUserId,
-        isDeleted: false,
-        isActive: true,
-      })
-        .select('_id isActive isDeleted')
-        .lean();
+    if (adminUser) {
+      return { valid: true };
     }
 
-    if (!user) {
+    const clientUser = await UserModel.findOne({
+      id: sanitizedUserId,
+      isDeleted: false,
+      isActive: true,
+    })
+      .select('_id isActive isDeleted userRoleDeletedAt academyRoleDeletedAt')
+      .lean();
+
+    if (!clientUser) {
       logger.warn('User validation failed - user not found, deleted, or inactive', {
         userId: sanitizedUserId,
       });
       return { valid: false, reason: 'User not found or inactive' };
+    }
+
+    if (jwtRole === DefaultRoles.ACADEMY && clientUser.academyRoleDeletedAt) {
+      return { valid: false, reason: 'account_role_deleted' };
+    }
+    if (jwtRole === DefaultRoles.USER && clientUser.userRoleDeletedAt) {
+      return { valid: false, reason: 'account_role_deleted' };
     }
 
     return { valid: true };
@@ -132,7 +140,7 @@ export const authenticate = async (
 
     // CRITICAL SECURITY CHECK: Validate user still exists, is active, and not deleted
     // This prevents using tokens for deleted/deactivated users
-    const userValidation = await validateUserStatus(decoded.id);
+    const userValidation = await validateUserStatus(decoded.id, decoded.role);
 
     if (!userValidation.valid) {
       logger.warn('Authentication failed - user validation failed', {
@@ -141,9 +149,10 @@ export const authenticate = async (
         userAgent,
         reason: userValidation.reason,
       });
-      res.status(401).json({
+      const isRoleSoftDeleted = userValidation.reason === 'account_role_deleted';
+      res.status(isRoleSoftDeleted ? 403 : 401).json({
         success: false,
-        message: t('auth.token.invalidToken'), // Don't reveal specific reason
+        message: isRoleSoftDeleted ? t('auth.login.accountDeleted') : t('auth.token.invalidToken'),
       });
       return;
     }
@@ -274,7 +283,7 @@ export const optionalAuthenticate = async (
     }
 
     // Validate user status
-    const userValidation = await validateUserStatus(decoded.id);
+    const userValidation = await validateUserStatus(decoded.id, decoded.role);
     if (!userValidation.valid) {
       next();
       return;

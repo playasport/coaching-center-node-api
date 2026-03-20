@@ -67,7 +67,7 @@ export const executeBookingPaymentExpiryJob = async (): Promise<void> => {
       return;
     }
 
-    const mainSiteUrl = config.mainSiteUrl || 'https://www.playasport.in';
+    const mainSiteUrl = config.mainSiteUrl || 'https://front.playasport.in';
 
     // Build list of (booking, H) tasks that need reminders
     const reminderTasks: Array<{ booking: typeof reminderBookings[0]; H: number; hoursLeft: number }> = [];
@@ -89,7 +89,7 @@ export const executeBookingPaymentExpiryJob = async (): Promise<void> => {
       const batchName = (booking.batch as any)?.name || 'batch';
       const centerName = (booking.center as any)?.center_name || 'Academy';
       const bookingId = booking.booking_id || booking.id;
-      const paymentUrl = `${mainSiteUrl}/pay?token=${booking.payment_token}`;
+      const paymentUrl = `${mainSiteUrl}/pay/${booking.payment_token}`;
       const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user?.email || 'User' : 'User';
       const variables = {
         userName,

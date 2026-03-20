@@ -411,7 +411,7 @@ const bookingSchema = new Schema<Booking>(
     },
     payment_reminder_sent_hours: {
       type: [Number],
-      default: null,
+      default: [],
     },
   },
   {

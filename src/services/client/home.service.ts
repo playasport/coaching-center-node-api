@@ -203,6 +203,7 @@ export const getNearbyAcademies = async (
         const validUsers = await UserModel.find({
           _id: { $in: userIds },
           isDeleted: false,
+          $or: [{ academyRoleDeletedAt: null }, { academyRoleDeletedAt: { $exists: false } }],
         })
           .select('_id')
           .lean();
@@ -369,7 +370,11 @@ export const getRecommendedAcademies = async (
         const userIds = academyUserIds.map((uid: any) =>
           Types.ObjectId.isValid(uid) ? new Types.ObjectId(uid) : (uid._id || uid)
         );
-        const validUsers = await UserModel.find({ _id: { $in: userIds }, isDeleted: false })
+        const validUsers = await UserModel.find({
+          _id: { $in: userIds },
+          isDeleted: false,
+          $or: [{ academyRoleDeletedAt: null }, { academyRoleDeletedAt: { $exists: false } }],
+        })
           .select('_id')
           .lean();
         const validUserIds = new Set(validUsers.map((u: any) => u._id.toString()));
@@ -447,6 +452,10 @@ export const getPopularReels = async (limit: number = 6): Promise<PopularReel[]>
         $match: {
           'user.isDeleted': { $ne: true },
           'user.isActive': true,
+          $or: [
+            { 'user.userRoleDeletedAt': null },
+            { 'user.userRoleDeletedAt': { $exists: false } },
+          ],
         },
       },
       // Sort by views count descending
@@ -700,6 +709,7 @@ export const getSportsWiseAcademies = async (
         const validUsers = await UserModel.find({
           _id: { $in: userIds },
           isDeleted: false,
+          $or: [{ academyRoleDeletedAt: null }, { academyRoleDeletedAt: { $exists: false } }],
         })
           .select('_id')
           .lean();

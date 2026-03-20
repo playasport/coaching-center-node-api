@@ -35,7 +35,12 @@ export interface EmailNotification extends BaseNotification {
 }
 
 /** Meta WhatsApp template name (approved in Business Manager) */
-export type WhatsAppTemplateName = 'payment_request' | 'payment_reminder' | 'booking_cancelled';
+export type WhatsAppTemplateName =
+  | 'payment_request'
+  | 'payment_reminder'
+  | 'booking_cancelled'
+  | 'user_payment_verified'
+  | 'booking_rejected';
 
 export interface WhatsAppNotification extends BaseNotification {
   channel: 'whatsapp';

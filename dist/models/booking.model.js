@@ -320,7 +320,7 @@ const bookingSchema = new mongoose_1.Schema({
     },
     payment_reminder_sent_hours: {
         type: [Number],
-        default: null,
+        default: [],
     },
 }, {
     timestamps: true,

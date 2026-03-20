@@ -70,6 +70,41 @@ export interface BookingCancelledTemplateParams {
 export declare function sendWhatsAppCloudBookingCancelledTemplate(to: string, params: BookingCancelledTemplateParams): Promise<{
     messageId: string;
 }>;
+/** Parameters for the user_payment_verified WhatsApp template (user; body only) */
+export interface PaymentVerifiedTemplateParams {
+    userName: string;
+    bookingId: string;
+    batchName: string;
+    sportName: string;
+    centerName: string;
+    participants: string;
+    startDate: string;
+    startTime: string;
+    endTime: string;
+    currency: string;
+    amount: string;
+}
+/**
+ * Send payment verified notification via Meta WhatsApp template "user_payment_verified".
+ * Body only: user_name, booking_id, batch_name, sport_name, center_name, participants, start_date, start_time, end_time, currency, amount.
+ */
+export declare function sendWhatsAppCloudPaymentVerifiedTemplate(to: string, params: PaymentVerifiedTemplateParams): Promise<{
+    messageId: string;
+}>;
+/** Parameters for the booking_rejected WhatsApp template (user; body only) */
+export interface BookingRejectedTemplateParams {
+    batchName: string;
+    centerName: string;
+    bookingId: string;
+    rejectionReason: string;
+}
+/**
+ * Send booking rejected notification via Meta WhatsApp template "booking_rejected".
+ * Body only: batch_name, center_name, booking_id, rejection_reason.
+ */
+export declare function sendWhatsAppCloudBookingRejectedTemplate(to: string, params: BookingRejectedTemplateParams): Promise<{
+    messageId: string;
+}>;
 /** Incoming message from webhook value.messages[] item */
 interface IncomingMessage {
     id: string;
