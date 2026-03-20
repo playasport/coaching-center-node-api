@@ -31,6 +31,10 @@ export declare const deviceTokenService: {
      */
     getUserDeviceTokens(userId: string | Types.ObjectId, appContext?: DeviceTokenAppContext | null): Promise<any[]>;
     /**
+     * Blacklist refresh tokens and remove device rows for one app context (user vs academy).
+     */
+    revokeAllSessionsForAppContext(userId: string | Types.ObjectId, appContext: DeviceTokenAppContext): Promise<number>;
+    /**
      * Deactivate a device token (mark as inactive)
      * Supports both MongoDB ObjectId and custom UUID string
      */

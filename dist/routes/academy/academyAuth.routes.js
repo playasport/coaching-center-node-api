@@ -479,5 +479,26 @@ router.post('/logout', auth_middleware_1.authenticate, (0, auth_middleware_1.aut
  *         description: Unauthorized
  */
 router.post('/logout-all', auth_middleware_1.authenticate, (0, auth_middleware_1.authorize)(defaultRoles_enum_1.DefaultRoles.ACADEMY), academyAuth_controller_1.logoutAll);
+/**
+ * @swagger
+ * /academy/auth/account:
+ *   delete:
+ *     summary: Soft-delete your academy account
+ *     description: |
+ *       Sets a per-role soft delete for the `academy` role, deactivates owned coaching centers and batches,
+ *       and revokes academy app sessions. If the same account also has a user role, user-app login may still work.
+ *       Idempotent — repeated calls return success with `alreadyDeleted: true`.
+ *     tags: [Academy Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Academy role soft-deleted (or already deleted)
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (e.g. no academy role)
+ */
+router.delete('/account', auth_middleware_1.authenticate, (0, auth_middleware_1.authorize)(defaultRoles_enum_1.DefaultRoles.ACADEMY), academyAuth_controller_1.deleteMyAcademyAccount);
 exports.default = router;
 //# sourceMappingURL=academyAuth.routes.js.map

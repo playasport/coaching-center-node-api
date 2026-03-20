@@ -56,6 +56,8 @@ const userSchema = new mongoose_1.Schema({
     referredByAgentAt: { type: Date, default: null },
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
+    userRoleDeletedAt: { type: Date, default: null, index: true },
+    academyRoleDeletedAt: { type: Date, default: null, index: true },
 }, {
     timestamps: true,
     versionKey: false,
@@ -90,6 +92,8 @@ userSchema.index({ isDeleted: 1, isActive: 1, createdAt: -1 });
 userSchema.index({ isDeleted: 1, roles: 1, userType: 1, createdAt: -1 });
 userSchema.index({ isDeleted: 1, roles: 1, isActive: 1, createdAt: -1 });
 userSchema.index({ isDeleted: 1, userType: 1, isActive: 1, createdAt: -1 });
+userSchema.index({ isDeleted: 1, userRoleDeletedAt: 1 });
+userSchema.index({ isDeleted: 1, academyRoleDeletedAt: 1 });
 // Text index for search functionality (correct syntax)
 userSchema.index({ firstName: 'text', middleName: 'text', lastName: 'text', email: 'text', mobile: 'text' }, { name: 'user_search_text_index' });
 exports.UserModel = (0, mongoose_1.model)('User', userSchema);

@@ -32,9 +32,13 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deviceTokenService = void 0;
 const uuid_1 = require("uuid");
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const mongoose_1 = require("mongoose");
 const deviceToken_model_1 = require("../../models/deviceToken.model");
 const logger_1 = require("../../utils/logger");
@@ -142,6 +146,55 @@ exports.deviceTokenService = {
         }
         const tokens = await deviceToken_model_1.DeviceTokenModel.find(query).lean();
         return tokens;
+    },
+    /**
+     * Blacklist refresh tokens and remove device rows for one app context (user vs academy).
+     */
+    async revokeAllSessionsForAppContext(userId, appContext) {
+        const tokens = await this.getUserDeviceTokens(userId, appContext);
+        const { blacklistToken, blacklistJti } = await Promise.resolve().then(() => __importStar(require('../../utils/tokenBlacklist')));
+        for (const dt of tokens) {
+            if (dt.refreshToken) {
+                try {
+                    await blacklistToken(dt.refreshToken);
+                    const decoded = jsonwebtoken_1.default.decode(dt.refreshToken);
+                    if (decoded?.jti) {
+                        const ttl = decoded.exp ? decoded.exp - Math.floor(Date.now() / 1000) : undefined;
+                        await blacklistJti(decoded.jti, ttl && ttl > 0 ? ttl : undefined);
+                    }
+                }
+                catch (error) {
+                    logger_1.logger.warn('Failed to blacklist token in revokeAllSessionsForAppContext', {
+                        error: error instanceof Error ? error.message : error,
+                    });
+                }
+            }
+        }
+        let userIdObj;
+        if (userId instanceof mongoose_1.Types.ObjectId) {
+            userIdObj = userId;
+        }
+        else if (mongoose_1.Types.ObjectId.isValid(userId) && userId.length === 24) {
+            userIdObj = new mongoose_1.Types.ObjectId(userId);
+        }
+        else {
+            const { getUserObjectId } = await Promise.resolve().then(() => __importStar(require('../../utils/userCache')));
+            const objectId = await getUserObjectId(userId);
+            if (!objectId) {
+                logger_1.logger.warn('User not found for revokeAllSessionsForAppContext', { userId });
+                return 0;
+            }
+            userIdObj = objectId;
+        }
+        const query = { userId: userIdObj };
+        if (appContext === 'academy') {
+            query.appContext = 'academy';
+        }
+        else {
+            query.$or = [{ appContext: 'user' }, { appContext: null }, { appContext: { $exists: false } }];
+        }
+        const result = await deviceToken_model_1.DeviceTokenModel.deleteMany(query);
+        return result.deletedCount ?? 0;
     },
     /**
      * Deactivate a device token (mark as inactive)

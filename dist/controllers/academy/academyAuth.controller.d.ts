@@ -27,6 +27,10 @@ export declare const logoutAll: (req: Request, res: Response, next: NextFunction
  */
 export declare const saveFcmToken: (req: Request, res: Response, next: NextFunction) => Promise<void>;
 /**
+ * Soft-delete academy role; deactivates owned centers and batches. User-app access may remain if user role exists.
+ */
+export declare const deleteMyAcademyAccount: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+/**
  * Get a random banner image from any CoachingCenter.
  * Returns default image URL if no CoachingCenter images found.
  * Requires academy authentication.

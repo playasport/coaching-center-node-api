@@ -62,6 +62,7 @@ const deviceToken_model_1 = require("../../models/deviceToken.model");
 const deviceType_enum_1 = require("../../enums/deviceType.enum");
 const userCache_1 = require("../../utils/userCache");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const accountSoftDelete_util_1 = require("../../utils/accountSoftDelete.util");
 // Helper function to get role name from roles array
 const getRoleName = (user) => {
     const roles = user.roles;
@@ -343,9 +344,7 @@ const loginAcademyUser = async (data) => {
     if (!hasRole(user, defaultRoles_enum_1.DefaultRoles.ACADEMY)) {
         throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.invalidRole'));
     }
-    if (!user.isActive || user.isDeleted) {
-        throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.inactive'));
-    }
+    (0, accountSoftDelete_util_1.assertAcademyAppCanAuthenticate)(user);
     const isPasswordValid = await (0, utils_1.comparePassword)(password, user.password);
     if (!isPasswordValid) {
         throw new ApiError_1.ApiError(401, (0, i18n_1.t)('auth.login.invalidCredentials'));
@@ -434,9 +433,7 @@ const socialLoginAcademyUser = async (data) => {
     if (!hasRole(user, defaultRoles_enum_1.DefaultRoles.ACADEMY)) {
         throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.invalidRole'));
     }
-    if (!user.isActive || user.isDeleted) {
-        throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.inactive'));
-    }
+    (0, accountSoftDelete_util_1.assertAcademyAppCanAuthenticate)(user);
     // Generate tokens with device-specific expiry and store refresh token
     const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(user, defaultRoles_enum_1.DefaultRoles.ACADEMY, {
         fcmToken: payload.fcmToken ?? undefined,
@@ -584,6 +581,7 @@ const requestAcademyPasswordReset = async (data) => {
         if (!hasRole(user, defaultRoles_enum_1.DefaultRoles.ACADEMY)) {
             throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.invalidRole'));
         }
+        (0, accountSoftDelete_util_1.assertAcademyAppCanAuthenticate)(user);
         await otp_service_1.otpService.createOtp({ channel: otpChannel_enum_1.OtpChannel.MOBILE, identifier: data.mobile }, otp, otpMode_enum_1.OtpMode.FORGOT_PASSWORD);
         const mobileNumber = `+91${data.mobile}`;
         (0, notificationQueue_service_1.queueSms)(mobileNumber, (0, notificationMessages_1.getOtpSms)({ otp }), 'high', { type: 'otp' });
@@ -612,6 +610,7 @@ const requestAcademyPasswordReset = async (data) => {
         if (!hasRole(user, defaultRoles_enum_1.DefaultRoles.ACADEMY)) {
             throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.invalidRole'));
         }
+        (0, accountSoftDelete_util_1.assertAcademyAppCanAuthenticate)(user);
         await otp_service_1.otpService.createOtp({ channel: otpChannel_enum_1.OtpChannel.EMAIL, identifier: emailLower }, otp, otpMode_enum_1.OtpMode.FORGOT_PASSWORD);
         await (0, email_service_1.sendPasswordResetEmail)(emailLower, otp, {
             name: user.firstName || 'User',
@@ -646,6 +645,7 @@ const verifyAcademyPasswordReset = async (data) => {
     if (roleName !== defaultRoles_enum_1.DefaultRoles.ACADEMY) {
         throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.invalidRole'));
     }
+    (0, accountSoftDelete_util_1.assertAcademyAppCanAuthenticate)(user);
     const updatedUser = await user_service_1.userService.update(user.id, {
         password: data.newPassword,
     });
@@ -689,9 +689,14 @@ const sendAcademyOtp = async (data) => {
         if (!existingUser) {
             throw new ApiError_1.ApiError(404, (0, i18n_1.t)('auth.login.mobileNotFound'));
         }
-        // Check if user is active and not deleted before sending OTP
-        if (existingUser.isDeleted || !existingUser.isActive) {
+        if (existingUser.isDeleted) {
+            throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.accountDeleted'));
+        }
+        if (!existingUser.isActive) {
             throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.inactive'));
+        }
+        if (existingUser.academyRoleDeletedAt) {
+            throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.accountDeleted'));
         }
         // If user has 'user' role and trying to login as academy, add academy role (keep user role)
         if (hasRole(existingUser, defaultRoles_enum_1.DefaultRoles.USER) && !hasRole(existingUser, defaultRoles_enum_1.DefaultRoles.ACADEMY)) {
@@ -737,9 +742,14 @@ const sendAcademyOtp = async (data) => {
         if (!existingUser) {
             throw new ApiError_1.ApiError(404, (0, i18n_1.t)('auth.password.resetUserNotFound'));
         }
-        // Check if user is active and not deleted before sending OTP
-        if (existingUser.isDeleted || !existingUser.isActive) {
+        if (existingUser.isDeleted) {
+            throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.accountDeleted'));
+        }
+        if (!existingUser.isActive) {
             throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.inactive'));
+        }
+        if (existingUser.academyRoleDeletedAt) {
+            throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.accountDeleted'));
         }
         // If user has 'user' role and trying to reset password as academy, add academy role (keep user role)
         if (hasRole(existingUser, defaultRoles_enum_1.DefaultRoles.USER) && !hasRole(existingUser, defaultRoles_enum_1.DefaultRoles.ACADEMY)) {
@@ -829,9 +839,7 @@ const verifyAcademyOtp = async (data) => {
         if (!hasRole(user, defaultRoles_enum_1.DefaultRoles.ACADEMY)) {
             throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.invalidRole'));
         }
-        if (!user.isActive || user.isDeleted) {
-            throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.inactive'));
-        }
+        (0, accountSoftDelete_util_1.assertAcademyAppCanAuthenticate)(user);
         await linkAcademyUserToAgentIfEligible(user.id, data.agentCode);
         // Generate tokens with device-specific expiry and store refresh token
         const deviceData = data;
@@ -877,6 +885,13 @@ const refreshToken = async (token) => {
     if (!user || !user.isActive || user.isDeleted) {
         throw new ApiError_1.ApiError(401, (0, i18n_1.t)('auth.token.invalidToken'));
     }
+    const roleName = decoded.role ?? getRoleName(user);
+    if (roleName === defaultRoles_enum_1.DefaultRoles.ACADEMY && user.academyRoleDeletedAt) {
+        throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.accountDeleted'));
+    }
+    if (roleName === defaultRoles_enum_1.DefaultRoles.USER && user.userRoleDeletedAt) {
+        throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.accountDeleted'));
+    }
     // Check if refresh token is linked to a device (for mobile apps)
     const deviceToken = decoded.deviceId
         ? await deviceToken_service_1.deviceTokenService.findDeviceByRefreshToken(token)
@@ -884,9 +899,8 @@ const refreshToken = async (token) => {
     if (deviceToken && !deviceToken.isActive) {
         throw new ApiError_1.ApiError(401, (0, i18n_1.t)('auth.token.invalidToken'));
     }
-    const roleName = getRoleName(user);
     const deviceType = decoded.deviceType || deviceToken?.deviceType || 'web';
-    // Generate new token pair with same device type
+    // Generate new token pair with same device type and same logical role as the refresh token
     const { accessToken, refreshToken: newRefreshToken } = (0, jwt_1.generateTokenPair)({
         id: user.id,
         email: user.email,
@@ -1267,9 +1281,7 @@ const loginUser = async (data) => {
     if (!hasRole(user, defaultRoles_enum_1.DefaultRoles.USER)) {
         throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.invalidRole'));
     }
-    if (!user.isActive || user.isDeleted) {
-        throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.inactive'));
-    }
+    (0, accountSoftDelete_util_1.assertUserAppCanAuthenticate)(user);
     // Refresh user data to get updated role
     const updatedUserData = await user_service_1.userService.findByEmail(email);
     const sanitizedUser = updatedUserData || user_service_1.userService.sanitize(user);
@@ -1367,9 +1379,7 @@ const socialLoginUser = async (data) => {
     if (!hasRole(user, defaultRoles_enum_1.DefaultRoles.USER)) {
         throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.invalidRole'));
     }
-    if (!user.isActive || user.isDeleted) {
-        throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.inactive'));
-    }
+    (0, accountSoftDelete_util_1.assertUserAppCanAuthenticate)(user);
     // Generate tokens with device-specific expiry and store refresh token
     const { accessToken, refreshToken } = await generateTokensAndStoreDeviceToken(user, defaultRoles_enum_1.DefaultRoles.USER, {
         fcmToken: payload.fcmToken ?? undefined,
@@ -1520,6 +1530,7 @@ const requestUserPasswordReset = async (data) => {
         if (!hasRole(user, defaultRoles_enum_1.DefaultRoles.USER)) {
             throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.invalidRole'));
         }
+        (0, accountSoftDelete_util_1.assertUserAppCanAuthenticate)(user);
         await otp_service_1.otpService.createOtp({ channel: otpChannel_enum_1.OtpChannel.MOBILE, identifier: data.mobile }, otp, otpMode_enum_1.OtpMode.FORGOT_PASSWORD);
         const mobileNumber = `+91${data.mobile}`;
         (0, notificationQueue_service_1.queueSms)(mobileNumber, (0, notificationMessages_1.getOtpSms)({ otp }), 'high', { type: 'otp' });
@@ -1534,6 +1545,7 @@ const requestUserPasswordReset = async (data) => {
         if (!hasRole(user, defaultRoles_enum_1.DefaultRoles.USER)) {
             throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.invalidRole'));
         }
+        (0, accountSoftDelete_util_1.assertUserAppCanAuthenticate)(user);
         await otp_service_1.otpService.createOtp({ channel: otpChannel_enum_1.OtpChannel.EMAIL, identifier: emailLower }, otp, otpMode_enum_1.OtpMode.FORGOT_PASSWORD);
         await (0, email_service_1.sendPasswordResetEmail)(emailLower, otp, {
             name: user.firstName || 'User',
@@ -1568,6 +1580,7 @@ const verifyUserPasswordReset = async (data) => {
     if (!hasRole(user, defaultRoles_enum_1.DefaultRoles.USER)) {
         throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.invalidRole'));
     }
+    (0, accountSoftDelete_util_1.assertUserAppCanAuthenticate)(user);
     // Validate userType for user role
     if (user.userType !== 'student' && user.userType !== 'guardian') {
         throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.invalidRole'));
@@ -1708,9 +1721,14 @@ const sendUserOtp = async (data) => {
     if (mode === 'login') {
         // Allow sending OTP even if user doesn't exist - we'll handle that in verifyUserOtp
         if (existingUser) {
-            // Check if user is active and not deleted before sending OTP
-            if (existingUser.isDeleted || !existingUser.isActive) {
+            if (existingUser.isDeleted) {
+                throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.accountDeleted'));
+            }
+            if (!existingUser.isActive) {
                 throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.inactive'));
+            }
+            if (existingUser.userRoleDeletedAt) {
+                throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.accountDeleted'));
             }
             let userRole = getRoleName(existingUser);
             // If user is registered as academy and trying to login as user, add user role (keep academy role)
@@ -1765,9 +1783,14 @@ const sendUserOtp = async (data) => {
         if (!existingUser) {
             throw new ApiError_1.ApiError(404, (0, i18n_1.t)('auth.password.resetUserNotFound'));
         }
-        // Check if user is active and not deleted before sending OTP
-        if (existingUser.isDeleted || !existingUser.isActive) {
+        if (existingUser.isDeleted) {
+            throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.accountDeleted'));
+        }
+        if (!existingUser.isActive) {
             throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.inactive'));
+        }
+        if (existingUser.userRoleDeletedAt) {
+            throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.accountDeleted'));
         }
         let userRole = getRoleName(existingUser);
         // If user is registered as academy, add user role (keep academy role)
@@ -1871,9 +1894,7 @@ const verifyUserOtp = async (data) => {
         if (!hasRole(user, defaultRoles_enum_1.DefaultRoles.USER)) {
             throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.invalidRole'));
         }
-        if (!user.isActive || user.isDeleted) {
-            throw new ApiError_1.ApiError(403, (0, i18n_1.t)('auth.login.inactive'));
-        }
+        (0, accountSoftDelete_util_1.assertUserAppCanAuthenticate)(user);
         // Use user role for token (even if academy is first in array)
         const userRoleForToken = hasRole(user, defaultRoles_enum_1.DefaultRoles.USER) ? defaultRoles_enum_1.DefaultRoles.USER : getRoleName(user);
         // Generate tokens with device-specific expiry and store refresh token

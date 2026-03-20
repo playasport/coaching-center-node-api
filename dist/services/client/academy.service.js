@@ -423,7 +423,11 @@ const getAcademyById = async (id, isUserLoggedIn = false, userId, userLocation) 
         }
         // If still not found, try by user custom ID
         if (!coachingCenter) {
-            const user = await user_model_1.UserModel.findOne({ id: id, isDeleted: false })
+            const user = await user_model_1.UserModel.findOne({
+                id,
+                isDeleted: false,
+                $or: [{ academyRoleDeletedAt: null }, { academyRoleDeletedAt: { $exists: false } }],
+            })
                 .select('_id')
                 .lean();
             if (user) {
