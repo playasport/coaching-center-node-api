@@ -6,7 +6,7 @@ import { getNearbyAcademiesWithRoadDistance } from '../common/geoNearAcademies.s
 import { Types } from 'mongoose';
 import { getUserObjectId } from '../../utils/userCache';
 import { UserModel } from '../../models/user.model';
-import { config } from '../../config/env';
+import { resolveSearchRadiusKm } from '../../utils/searchRadius';
 import type { AcademyListItem } from './academy.service';
 import { ReelModel, ReelStatus } from '../../models/reel.model';
 import { VideoProcessingStatus } from '../../models/streamHighlight.model';
@@ -126,7 +126,7 @@ export const getNearbyAcademies = async (
   radius?: number
 ): Promise<AcademyListItem[]> => {
   try {
-    const searchRadius = radius ?? config.location.defaultRadius;
+    const searchRadius = resolveSearchRadiusKm(radius);
 
     // Get user's favorite sports if logged in
     let favoriteSportIds: Types.ObjectId[] = [];
@@ -317,7 +317,7 @@ export const getRecommendedAcademies = async (
 
     if (favoriteSportIds.length === 0) return [];
 
-    const searchRadius = radius ?? config.location.defaultRadius;
+    const searchRadius = resolveSearchRadiusKm(radius);
 
     // Try geoNear + road distance first
     let academies: any[] = [];
@@ -596,7 +596,7 @@ export const getSportsWiseAcademies = async (
   radius?: number
 ): Promise<SportWiseAcademy[]> => {
   try {
-    const searchRadius = radius ?? config.location.defaultRadius;
+    const searchRadius = resolveSearchRadiusKm(radius);
     const bbox = getBoundingBox(userLocation.latitude, userLocation.longitude, searchRadius);
 
     // Get 5 sports: favorites first when logged in, then fill with popular sports

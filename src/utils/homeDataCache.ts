@@ -1,38 +1,7 @@
-import Redis from 'ioredis';
-import { config } from '../config/env';
 import { logger } from './logger';
+import { getRedisUserCache } from './redisClient';
 
-let redisClient: Redis | null = null;
-
-const getRedisClient = (): Redis | null => {
-  try {
-    if (!redisClient) {
-      redisClient = new Redis({
-        host: config.redis.host,
-        port: config.redis.port,
-        password: config.redis.password,
-        db: config.redis.db.userCache,
-        ...config.redis.connection,
-        retryStrategy: (times) => {
-          const delay = Math.min(times * 50, 2000);
-          return delay;
-        },
-      });
-
-      redisClient.on('error', (err) => {
-        logger.error('Redis home data cache client error:', err);
-      });
-
-      redisClient.on('connect', () => {
-        logger.info('Redis home data cache client connected');
-      });
-    }
-    return redisClient;
-  } catch (error) {
-    logger.warn('Redis not available for home data caching', error);
-    return null;
-  }
-};
+const getRedisClient = () => getRedisUserCache();
 
 const CACHE_KEY_PREFIX = 'home:data:';
 /** Cache TTL: 5 minutes - balance freshness vs DB load for same user/location */
@@ -75,7 +44,6 @@ export const getCachedHomeData = async (
 ): Promise<any | null> => {
   try {
     const redis = getRedisClient();
-    if (!redis) return null;
 
     const key = getCacheKey(params.userId, params.userLocation, params.radius);
     const cached = await redis.get(key);
@@ -102,7 +70,7 @@ export const cacheHomeData = async (
 ): Promise<void> => {
   try {
     const redis = getRedisClient();
-    if (!redis || !data) return;
+    if (!data) return;
 
     const key = getCacheKey(params.userId, params.userLocation, params.radius);
     await redis.setex(key, CACHE_TTL, JSON.stringify(data));
@@ -128,7 +96,6 @@ export interface CachedGlobalHomeData {
 export const getCachedGlobalHomeData = async (): Promise<CachedGlobalHomeData | null> => {
   try {
     const redis = getRedisClient();
-    if (!redis) return null;
     const cached = await redis.get(GLOBAL_CACHE_KEY);
     if (cached) return JSON.parse(cached);
     return null;
@@ -144,7 +111,7 @@ export const getCachedGlobalHomeData = async (): Promise<CachedGlobalHomeData | 
 export const cacheGlobalHomeData = async (data: CachedGlobalHomeData): Promise<void> => {
   try {
     const redis = getRedisClient();
-    if (!redis || !data) return;
+    if (!data) return;
     await redis.setex(GLOBAL_CACHE_KEY, GLOBAL_CACHE_TTL, JSON.stringify(data));
   } catch (error) {
     logger.warn('Failed to cache global home data', { error });
@@ -201,7 +168,6 @@ export const getCachedAcademyList = async (
 ): Promise<any | null> => {
   try {
     const redis = getRedisClient();
-    if (!redis) return null;
     const key = getAcademyCacheKey(params);
     const cached = await redis.get(key);
     if (cached) {
@@ -221,7 +187,7 @@ export const cacheAcademyList = async (
 ): Promise<void> => {
   try {
     const redis = getRedisClient();
-    if (!redis || !data) return;
+    if (!data) return;
     const key = getAcademyCacheKey(params);
     await redis.setex(key, ACADEMY_CACHE_TTL, JSON.stringify(data));
     logger.debug('Academy list cached', { page: params.page });
@@ -230,13 +196,3 @@ export const cacheAcademyList = async (
   }
 };
 
-/**
- * Close Redis connection (for graceful shutdown)
- */
-export const closeHomeDataCache = async (): Promise<void> => {
-  if (redisClient) {
-    await redisClient.quit();
-    redisClient = null;
-    logger.info('Redis home data cache client closed');
-  }
-};

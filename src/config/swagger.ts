@@ -3987,6 +3987,22 @@ const options: swaggerJsdoc.Options = {
                   },
                   nullable: true,
                 },
+                recommendedAcademies: {
+                  type: 'array',
+                  description:
+                    'Up to 6 academies near this selected academy (distance is km from this center): same sports first; if logged in, fills remaining slots with favorite sports nearby',
+                  items: {
+                    $ref: '#/components/schemas/AcademyListItem',
+                  },
+                },
+                moreAcademyBranches: {
+                  type: 'array',
+                  description:
+                    'Up to 6 other academies registered under the same academy owner user (excludes this academy)',
+                  items: {
+                    $ref: '#/components/schemas/AcademyListItem',
+                  },
+                },
               },
             },
           ],

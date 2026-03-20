@@ -1,39 +1,9 @@
-import Redis from 'ioredis';
 import { Types } from 'mongoose';
-import { config } from '../config/env';
 import { logger } from './logger';
 import { UserModel } from '../models/user.model';
+import { getRedisUserCache } from './redisClient';
 
-// Redis connection for caching (separate from BullMQ)
-let redisClient: Redis | null = null;
-
-/**
- * Get or create Redis client for caching
- */
-const getRedisClient = (): Redis => {
-  if (!redisClient) {
-    redisClient = new Redis({
-      host: config.redis.host,
-      port: config.redis.port,
-      password: config.redis.password,
-      db: config.redis.db.userCache,
-      ...config.redis.connection,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
-    });
-
-    redisClient.on('error', (err) => {
-      logger.error('Redis cache client error:', err);
-    });
-
-    redisClient.on('connect', () => {
-      logger.info('Redis cache client connected');
-    });
-  }
-  return redisClient;
-};
+const getRedisClient = () => getRedisUserCache();
 
 /**
  * Cache key prefix for user ObjectId lookups
@@ -180,15 +150,3 @@ export const invalidateUserCache = async (userId: string): Promise<void> => {
     });
   }
 };
-
-/**
- * Close Redis connection (for graceful shutdown)
- */
-export const closeUserCache = async (): Promise<void> => {
-  if (redisClient) {
-    await redisClient.quit();
-    redisClient = null;
-    logger.info('Redis cache client closed');
-  }
-};
-

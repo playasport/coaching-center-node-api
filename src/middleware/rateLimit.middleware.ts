@@ -4,40 +4,12 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import Redis from 'ioredis';
 import { config } from '../config/env';
 import { logger } from '../utils/logger';
 import { t } from '../utils/i18n';
+import { getRedisRateLimit } from '../utils/redisClient';
 
-let redisClient: Redis | null = null;
-
-/**
- * Get or create Redis client for rate limiting
- */
-const getRedisClient = (): Redis => {
-  if (!redisClient) {
-    redisClient = new Redis({
-      host: config.redis.host,
-      port: config.redis.port,
-      password: config.redis.password,
-      db: config.redis.db.rateLimit,
-      ...config.redis.connection,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
-    });
-
-    redisClient.on('error', (err) => {
-      logger.error('Redis rate limit client error:', err);
-    });
-
-    redisClient.on('connect', () => {
-      logger.info('Redis rate limit client connected');
-    });
-  }
-  return redisClient;
-};
+const getRedisClient = () => getRedisRateLimit();
 
 /**
  * Rate limit options
@@ -147,15 +119,3 @@ export const loginRateLimit = rateLimit({
   },
   message: t('rateLimit.loginExceeded'),
 });
-
-/**
- * Close Redis connection (for graceful shutdown)
- */
-export const closeRateLimit = async (): Promise<void> => {
-  if (redisClient) {
-    await redisClient.quit();
-    redisClient = null;
-    logger.info('Redis rate limit client closed');
-  }
-};
-

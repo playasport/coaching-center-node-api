@@ -1,42 +1,7 @@
-import Redis from 'ioredis';
-import { config } from '../config/env';
 import { logger } from './logger';
+import { getRedisUserCache } from './redisClient';
 
-// Redis connection for academy dashboard caching
-let redisClient: Redis | null = null;
-
-/**
- * Get or create Redis client for academy dashboard caching
- */
-const getRedisClient = (): Redis | null => {
-  try {
-    if (!redisClient) {
-      redisClient = new Redis({
-        host: config.redis.host,
-        port: config.redis.port,
-        password: config.redis.password,
-        db: config.redis.db.userCache, // Reuse userCache DB
-        ...config.redis.connection,
-        retryStrategy: (times) => {
-          const delay = Math.min(times * 50, 2000);
-          return delay;
-        },
-      });
-
-      redisClient.on('error', (err) => {
-        logger.error('Redis academy dashboard cache client error:', err);
-      });
-
-      redisClient.on('connect', () => {
-        logger.info('Redis academy dashboard cache client connected');
-      });
-    }
-    return redisClient;
-  } catch (error) {
-    logger.warn('Redis not available for academy dashboard caching, using fallback only', error);
-    return null;
-  }
-};
+const getRedisClient = () => getRedisUserCache();
 
 /**
  * Cache key prefix for academy dashboard
@@ -63,7 +28,6 @@ export const getCachedAcademyDashboard = async (
 ): Promise<any | null> => {
   try {
     const redis = getRedisClient();
-    if (!redis) return null;
 
     const cacheKey = getCacheKey(academyUserId);
     const cached = await redis.get(cacheKey);
@@ -87,7 +51,7 @@ export const cacheAcademyDashboard = async (
 ): Promise<void> => {
   try {
     const redis = getRedisClient();
-    if (!redis || !data) return;
+    if (!data) return;
 
     const cacheKey = getCacheKey(academyUserId);
     await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(data));
@@ -103,7 +67,6 @@ export const cacheAcademyDashboard = async (
 export const invalidateAcademyDashboardCache = async (academyUserId: string): Promise<void> => {
   try {
     const redis = getRedisClient();
-    if (!redis) return;
 
     const cacheKey = getCacheKey(academyUserId);
     await redis.del(cacheKey);
@@ -113,13 +76,3 @@ export const invalidateAcademyDashboardCache = async (academyUserId: string): Pr
   }
 };
 
-/**
- * Close Redis connection (for graceful shutdown)
- */
-export const closeAcademyDashboardCache = async (): Promise<void> => {
-  if (redisClient) {
-    await redisClient.quit();
-    redisClient = null;
-    logger.info('Redis academy dashboard cache client closed');
-  }
-};

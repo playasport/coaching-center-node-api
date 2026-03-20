@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
-import { config } from '../config/env';
+import { parseRadiusKmFromQuery, assertValidRadiusKmIfProvided } from '../utils/searchRadius';
 import * as academyService from '../services/client/academy.service';
 import * as coachingCenterRatingService from '../services/client/coachingCenterRating.service';
 
@@ -20,7 +20,7 @@ export const getAllAcademies = async (
     const limit = parseInt(req.query.limit as string) || 10;
     const latitude = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
     const longitude = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
-    const radius = req.query.radius ? parseFloat(req.query.radius as string) : undefined;
+    const radius = parseRadiusKmFromQuery(req.query.radius);
     const city = (req.query.city as string)?.trim() || undefined;
     const state = (req.query.state as string)?.trim() || undefined;
     const sportId = (req.query.sportId as string)?.trim() || undefined;
@@ -40,12 +40,7 @@ export const getAllAcademies = async (
       userLocation = { latitude, longitude };
     }
 
-    // Validate radius if provided
-    if (radius !== undefined) {
-      if (isNaN(radius) || radius <= 0 || radius > config.location.maxRadius) {
-        throw new ApiError(400, t('academy.validation.invalidRadius'));
-      }
-    }
+    assertValidRadiusKmIfProvided(radius, t('academy.validation.invalidRadius'));
 
     // Get user ID if authenticated (optional)
     const userId = req.user?.id;
@@ -173,7 +168,7 @@ export const getAcademiesBySport = async (
     const limit = parseInt(req.query.limit as string) || 10;
     const latitude = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
     const longitude = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
-    const radius = req.query.radius ? parseFloat(req.query.radius as string) : undefined;
+    const radius = parseRadiusKmFromQuery(req.query.radius);
 
     // Validate location if provided
     let userLocation: { latitude: number; longitude: number } | undefined;
@@ -184,12 +179,7 @@ export const getAcademiesBySport = async (
       userLocation = { latitude, longitude };
     }
 
-    // Validate radius if provided
-    if (radius !== undefined) {
-      if (isNaN(radius) || radius <= 0 || radius > config.location.maxRadius) {
-        throw new ApiError(400, t('academy.validation.invalidRadius'));
-      }
-    }
+    assertValidRadiusKmIfProvided(radius, t('academy.validation.invalidRadius'));
 
     const userId = req.user?.id;
     const result = await academyService.getAcademiesBySport(slug, page, limit, userLocation, radius, userId);

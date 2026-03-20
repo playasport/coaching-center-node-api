@@ -3,40 +3,11 @@
  * Stores blacklisted tokens until they expire
  */
 
-import Redis from 'ioredis';
 import jwt from 'jsonwebtoken';
-import { config } from '../config/env';
 import { logger } from './logger';
+import { getRedisTokenBlacklist } from './redisClient';
 
-let redisClient: Redis | null = null;
-
-/**
- * Get or create Redis client for token blacklist
- */
-const getRedisClient = (): Redis => {
-  if (!redisClient) {
-    redisClient = new Redis({
-      host: config.redis.host,
-      port: config.redis.port,
-      password: config.redis.password,
-      db: config.redis.db.tokenBlacklist,
-      ...config.redis.connection,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
-    });
-
-    redisClient.on('error', (err) => {
-      logger.error('Redis blacklist client error:', err);
-    });
-
-    redisClient.on('connect', () => {
-      logger.info('Redis blacklist client connected');
-    });
-  }
-  return redisClient;
-};
+const getRedisClient = () => getRedisTokenBlacklist();
 
 /**
  * Blacklist key prefix
@@ -238,15 +209,3 @@ export const clearUserBlacklist = async (userId: string): Promise<void> => {
     // Don't throw - clearing failure shouldn't break login
   }
 };
-
-/**
- * Close Redis connection (for graceful shutdown)
- */
-export const closeTokenBlacklist = async (): Promise<void> => {
-  if (redisClient) {
-    await redisClient.quit();
-    redisClient = null;
-    logger.info('Redis blacklist client closed');
-  }
-};
-

@@ -1,43 +1,13 @@
-import Redis from 'ioredis';
 import { Types } from 'mongoose';
-import { config } from '../../config/env';
 import { logger } from '../../utils/logger';
+import { getRedisPermissionCache } from '../../utils/redisClient';
 import { PermissionModel, Permission } from '../../models/permission.model';
 import { AdminUserModel } from '../../models/adminUser.model';
 import { Section } from '../../enums/section.enum';
 import { Action } from '../../enums/section.enum';
 import { DefaultRoles } from '../../enums/defaultRoles.enum';
 
-// Redis connection for permission caching
-let redisClient: Redis | null = null;
-
-/**
- * Get or create Redis client for permission caching
- */
-const getRedisClient = (): Redis => {
-  if (!redisClient) {
-    redisClient = new Redis({
-      host: config.redis.host,
-      port: config.redis.port,
-      password: config.redis.password,
-      db: config.redis.db.permissionCache,
-      ...config.redis.connection,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
-    });
-
-    redisClient.on('error', (err) => {
-      logger.error('Redis permission cache client error:', err);
-    });
-
-    redisClient.on('connect', () => {
-      logger.info('Redis permission cache client connected');
-    });
-  }
-  return redisClient;
-};
+const getRedisClient = () => getRedisPermissionCache();
 
 /**
  * Cache key prefix for permissions
@@ -322,15 +292,3 @@ export const invalidateAllPermissionCache = async (): Promise<void> => {
     });
   }
 };
-
-/**
- * Close Redis connection (for graceful shutdown)
- */
-export const closePermissionCache = async (): Promise<void> => {
-  if (redisClient) {
-    await redisClient.quit();
-    redisClient = null;
-    logger.info('Redis permission cache client closed');
-  }
-};
-

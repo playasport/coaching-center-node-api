@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import { t } from '../utils/i18n';
-import { config } from '../config/env';
+import { parseRadiusKmFromQuery, assertValidRadiusKmIfProvided } from '../utils/searchRadius';
 import * as homeService from '../services/client/home.service';
 
 /**
@@ -20,7 +20,7 @@ export const getHomeData = async (
     let userLocation: { latitude: number; longitude: number } | undefined;
     const latitude = req.query.latitude;
     const longitude = req.query.longitude;
-    const radius = req.query.radius ? parseFloat(req.query.radius as string) : undefined;
+    const radius = parseRadiusKmFromQuery(req.query.radius);
 
     if (latitude !== undefined && longitude !== undefined) {
       const latitudeNum = typeof latitude === 'string' ? parseFloat(latitude) : Number(latitude);
@@ -33,12 +33,7 @@ export const getHomeData = async (
       userLocation = { latitude: latitudeNum, longitude: longitudeNum };
     }
 
-    // Validate radius if provided
-    if (radius !== undefined) {
-      if (isNaN(radius) || radius <= 0 || radius > config.location.maxRadius) {
-        throw new ApiError(400, t('academy.validation.invalidRadius'));
-      }
-    }
+    assertValidRadiusKmIfProvided(radius, t('academy.validation.invalidRadius'));
 
     // Get user ID if authenticated (optional)
     const userId = req.user?.id;

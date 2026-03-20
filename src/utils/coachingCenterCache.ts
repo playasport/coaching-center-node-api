@@ -1,42 +1,7 @@
-import Redis from 'ioredis';
-import { config } from '../config/env';
 import { logger } from './logger';
+import { getRedisUserCache } from './redisClient';
 
-// Redis connection for coaching center caching
-let redisClient: Redis | null = null;
-
-/**
- * Get or create Redis client for coaching center caching
- */
-const getRedisClient = (): Redis | null => {
-  try {
-    if (!redisClient) {
-      redisClient = new Redis({
-        host: config.redis.host,
-        port: config.redis.port,
-        password: config.redis.password,
-        db: config.redis.db.userCache, // Reuse userCache DB
-        ...config.redis.connection,
-        retryStrategy: (times) => {
-          const delay = Math.min(times * 50, 2000);
-          return delay;
-        },
-      });
-
-      redisClient.on('error', (err) => {
-        logger.error('Redis coaching center cache client error:', err);
-      });
-
-      redisClient.on('connect', () => {
-        logger.info('Redis coaching center cache client connected');
-      });
-    }
-    return redisClient;
-  } catch (error) {
-    logger.warn('Redis not available for coaching center caching, using fallback only', error);
-    return null;
-  }
-};
+const getRedisClient = () => getRedisUserCache();
 
 /**
  * Cache key prefix for coaching centers list
@@ -72,7 +37,6 @@ export const getCachedCoachingCentersList = async (
 ): Promise<any | null> => {
   try {
     const redis = getRedisClient();
-    if (!redis) return null;
 
     const cacheKey = getCacheKey(page, limit, search, status, isActive, centerId);
     const cached = await redis.get(cacheKey);
@@ -101,7 +65,7 @@ export const cacheCoachingCentersList = async (
 ): Promise<void> => {
   try {
     const redis = getRedisClient();
-    if (!redis || !data) return;
+    if (!data) return;
 
     const cacheKey = getCacheKey(page, limit, search, status, isActive, centerId);
     await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(data));
@@ -118,7 +82,6 @@ export const cacheCoachingCentersList = async (
 export const invalidateCoachingCentersListCache = async (): Promise<void> => {
   try {
     const redis = getRedisClient();
-    if (!redis) return;
 
     // Get all cache keys for coaching centers list
     const keys = await redis.keys(`${CACHE_KEY_PREFIX}*`);
@@ -131,13 +94,3 @@ export const invalidateCoachingCentersListCache = async (): Promise<void> => {
   }
 };
 
-/**
- * Close Redis connection (for graceful shutdown)
- */
-export const closeCoachingCenterCache = async (): Promise<void> => {
-  if (redisClient) {
-    await redisClient.quit();
-    redisClient = null;
-    logger.info('Redis coaching center cache client closed');
-  }
-};

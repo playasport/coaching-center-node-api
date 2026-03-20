@@ -16,17 +16,11 @@ import { payoutStakeholderQueue } from './queue/payoutStakeholderQueue';
 import { closePayoutStakeholderWorker } from './queue/payoutStakeholderWorker';
 import { payoutTransferQueue } from './queue/payoutTransferQueue';
 import { closePayoutTransferWorker } from './queue/payoutTransferWorker';
-import { closeUserCache } from './utils/userCache';
-import { closeTokenBlacklist } from './utils/tokenBlacklist';
-import { closeRateLimit } from './middleware/rateLimit.middleware';
-import { closePermissionCache } from './services/admin/permission.service';
+import { closeAllRedisConnections } from './utils/redisClient';
 import { startMediaCleanupJob } from './jobs/mediaCleanup.job';
 import { startPermanentDeleteJob } from './jobs/permanentDelete.job';
 import { startPayoutReconciliationJob } from './jobs/payoutReconciliation.job';
 import { preloadRoleCache } from './services/admin/role.service';
-import { closeAcademyDashboardCache } from './utils/academyDashboardCache';
-import { closeAdminDashboardCache } from './utils/adminDashboardCache';
-import { closeHomeDataCache } from './utils/homeDataCache';
 
 const startServer = async (): Promise<void> => {
   try {
@@ -129,26 +123,8 @@ const gracefulShutdown = async (signal: string) => {
     await payoutTransferQueue.close();
     logger.info('Payout transfer queue closed');
     
-    // Close user cache Redis connection
-    await closeUserCache();
-    
-    // Close token blacklist Redis connection
-    await closeTokenBlacklist();
-    
-    // Close rate limit Redis connection
-    await closeRateLimit();
-    
-    // Close permission cache Redis connection
-    await closePermissionCache();
-    
-    // Close academy dashboard cache Redis connection
-    await closeAcademyDashboardCache();
-
-    // Close admin dashboard cache Redis connection
-    await closeAdminDashboardCache();
-
-    // Close home data cache Redis connection
-    await closeHomeDataCache();
+    // Shared Redis connections (user cache, blacklist, rate limit, permissions, dashboards, home, academy detail, etc.)
+    await closeAllRedisConnections();
     
     // Disconnect database
     await disconnectDatabase();

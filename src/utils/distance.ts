@@ -1,42 +1,8 @@
-import Redis from 'ioredis';
 import { config } from '../config/env';
 import { logger } from './logger';
+import { getRedisUserCache } from './redisClient';
 
-// Redis connection for distance caching
-let redisClient: Redis | null = null;
-
-/**
- * Get or create Redis client for distance caching
- */
-const getRedisClient = (): Redis | null => {
-  try {
-    if (!redisClient) {
-      redisClient = new Redis({
-        host: config.redis.host,
-        port: config.redis.port,
-        password: config.redis.password,
-        db: config.redis.db.userCache, // Reuse userCache DB or create new one
-        ...config.redis.connection,
-        retryStrategy: (times) => {
-          const delay = Math.min(times * 50, 2000);
-          return delay;
-        },
-      });
-
-      redisClient.on('error', (err) => {
-        logger.error('Redis distance cache client error:', err);
-      });
-
-      redisClient.on('connect', () => {
-        logger.info('Redis distance cache client connected');
-      });
-    }
-    return redisClient;
-  } catch (error) {
-    logger.warn('Redis not available for distance caching, using fallback only', error);
-    return null;
-  }
-};
+const getRedisClient = () => getRedisUserCache();
 
 /**
  * Cache key prefix for distance calculations

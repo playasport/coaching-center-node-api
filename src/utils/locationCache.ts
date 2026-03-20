@@ -1,42 +1,7 @@
-import Redis from 'ioredis';
-import { config } from '../config/env';
 import { logger } from './logger';
+import { getRedisUserCache } from './redisClient';
 
-// Redis connection for location caching
-let redisClient: Redis | null = null;
-
-/**
- * Get or create Redis client for location caching
- */
-const getRedisClient = (): Redis | null => {
-  try {
-    if (!redisClient) {
-      redisClient = new Redis({
-        host: config.redis.host,
-        port: config.redis.port,
-        password: config.redis.password,
-        db: config.redis.db.userCache, // Reuse userCache DB or can be configured separately
-        ...config.redis.connection,
-        retryStrategy: (times) => {
-          const delay = Math.min(times * 50, 2000);
-          return delay;
-        },
-      });
-
-      redisClient.on('error', (err) => {
-        logger.error('Redis location cache client error:', err);
-      });
-
-      redisClient.on('connect', () => {
-        logger.info('Redis location cache client connected');
-      });
-    }
-    return redisClient;
-  } catch (error) {
-    logger.warn('Redis not available for location caching, using fallback only', error);
-    return null;
-  }
-};
+const getRedisClient = () => getRedisUserCache();
 
 /**
  * Cache key prefixes
@@ -62,7 +27,6 @@ const CACHE_TTL = {
 export const getCachedCountries = async (): Promise<any[] | null> => {
   try {
     const redis = getRedisClient();
-    if (!redis) return null;
 
     const cached = await redis.get(CACHE_KEY_PREFIX.countries);
     if (cached) {
@@ -82,7 +46,7 @@ export const getCachedCountries = async (): Promise<any[] | null> => {
 export const cacheCountries = async (countries: any[]): Promise<void> => {
   try {
     const redis = getRedisClient();
-    if (!redis || !countries || countries.length === 0) return;
+    if (!countries || countries.length === 0) return;
 
     await redis.setex(
       CACHE_KEY_PREFIX.countries,
@@ -101,7 +65,6 @@ export const cacheCountries = async (countries: any[]): Promise<void> => {
 export const getCachedStates = async (countryCode: string): Promise<any[] | null> => {
   try {
     const redis = getRedisClient();
-    if (!redis) return null;
 
     const cacheKey = `${CACHE_KEY_PREFIX.states}${countryCode}`;
     const cached = await redis.get(cacheKey);
@@ -122,7 +85,7 @@ export const getCachedStates = async (countryCode: string): Promise<any[] | null
 export const cacheStates = async (countryCode: string, states: any[]): Promise<void> => {
   try {
     const redis = getRedisClient();
-    if (!redis || !states || states.length === 0) return;
+    if (!states || states.length === 0) return;
 
     const cacheKey = `${CACHE_KEY_PREFIX.states}${countryCode}`;
     await redis.setex(cacheKey, CACHE_TTL.states, JSON.stringify(states));
@@ -138,7 +101,6 @@ export const cacheStates = async (countryCode: string, states: any[]): Promise<v
 export const getCachedCities = async (stateId: string): Promise<any[] | null> => {
   try {
     const redis = getRedisClient();
-    if (!redis) return null;
 
     const cacheKey = `${CACHE_KEY_PREFIX.cities}${stateId}`;
     const cached = await redis.get(cacheKey);
@@ -159,7 +121,7 @@ export const getCachedCities = async (stateId: string): Promise<any[] | null> =>
 export const cacheCities = async (stateId: string, cities: any[]): Promise<void> => {
   try {
     const redis = getRedisClient();
-    if (!redis || !cities || cities.length === 0) return;
+    if (!cities || cities.length === 0) return;
 
     const cacheKey = `${CACHE_KEY_PREFIX.cities}${stateId}`;
     await redis.setex(cacheKey, CACHE_TTL.cities, JSON.stringify(cities));
@@ -178,7 +140,6 @@ export const invalidateLocationCache = async (
 ): Promise<void> => {
   try {
     const redis = getRedisClient();
-    if (!redis) return;
 
     if (type === 'countries') {
       await redis.del(CACHE_KEY_PREFIX.countries);
@@ -203,7 +164,6 @@ export const invalidateLocationCache = async (
 export const invalidateAllLocationCache = async (): Promise<void> => {
   try {
     const redis = getRedisClient();
-    if (!redis) return;
 
     const keys = await redis.keys(`${CACHE_KEY_PREFIX.countries}*`);
     const statesKeys = await redis.keys(`${CACHE_KEY_PREFIX.states}*`);
