@@ -171,7 +171,9 @@ export const getNearbyAcademies = async (
       const fetchLimit = Math.min(limit * 10, 500);
       academies = await CoachingCenterModel.find(query)
         .populate('sports', 'custom_id name logo is_popular')
-        .select('id center_name logo location sports allowed_genders sport_details createdAt user')
+        .select(
+          'id center_name logo location sports allowed_genders sport_details averageRating totalRatings createdAt user'
+        )
         .sort({ createdAt: -1 })
         .limit(fetchLimit)
         .lean();
@@ -279,6 +281,8 @@ const mapAcademyToListItem = (academy: any): AcademyListItem => {
     })),
     allowed_genders: academy.allowed_genders || [],
     distance: academy.distance,
+    averageRating: academy.averageRating ?? 0,
+    totalRatings: academy.totalRatings ?? 0,
   };
 };
 
@@ -341,7 +345,9 @@ export const getRecommendedAcademies = async (
       const fetchLimit = Math.min(limit * 10, 500);
       academies = await CoachingCenterModel.find(query)
         .populate('sports', 'custom_id name logo is_popular')
-        .select('id center_name logo location sports allowed_genders sport_details createdAt user')
+        .select(
+          'id center_name logo location sports allowed_genders sport_details averageRating totalRatings createdAt user'
+        )
         .sort({ createdAt: -1 })
         .limit(fetchLimit)
         .lean();
@@ -690,7 +696,9 @@ export const getSportsWiseAcademies = async (
     );
     let academies = await CoachingCenterModel.find(query)
       .populate('sports', 'custom_id name logo is_popular')
-      .select('id center_name logo location sports allowed_genders sport_details createdAt user')
+      .select(
+        'id center_name logo location sports allowed_genders sport_details averageRating totalRatings createdAt user'
+      )
       .sort({ createdAt: -1 })
       .limit(fetchLimit)
       .lean();

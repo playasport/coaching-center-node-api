@@ -15,7 +15,8 @@
     "invalidRolesFormat": "अमान्य भूमिका प्रारूप",
     "createFailed": "उपयोगकर्ता बनाया गया लेकिन प्राप्त नहीं किया जा सका",
     "onlySuperAdminCanUpdateEmail": "केवल सुपर व्यवस्थापक ईमेल अपडेट कर सकता है",
-    "onlySuperAdminCanUpdatePassword": "केवल सुपर व्यवस्थापक पासवर्ड अपडेट कर सकता है"
+    "onlySuperAdminCanUpdatePassword": "केवल सुपर व्यवस्थापक पासवर्ड अपडेट कर सकता है",
+    "enabled": "उपयोगकर्ता खाता सफलतापूर्वक सक्षम किया गया"
   },
   "permissions": {
     "retrieved": "अनुमतियां सफलतापूर्वक प्राप्त की गईं",

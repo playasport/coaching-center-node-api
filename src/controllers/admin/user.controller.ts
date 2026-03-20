@@ -17,6 +17,10 @@ import { DefaultRoles } from '../../enums/defaultRoles.enum';
 import { BatchStatus } from '../../enums/batchStatus.enum';
 import type { CreateAdminUserInput, UpdateAdminUserInput } from '../../validations/adminUser.validation';
 import { getRoleIds } from '../../services/admin/role.service';
+import {
+  mapUserDeletionFieldsForAdmin,
+  enableClientUserAccount,
+} from '../../services/admin/clientUserAdmin.service';
 
 /**
  * Create user (admin)
@@ -191,6 +195,8 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
     const userType = req.query.userType as string | undefined;
     const isActive = req.query.isActive as string | undefined;
     const includeTotal = req.query.includeTotal !== 'false'; // Make total count optional (default: true)
+    const includeDeleted =
+      req.query.includeDeleted === 'true' || req.query.includeDeleted === '1';
     // Note: role filter removed - only showing users with "user" or "academy" roles
 
     // Get user and academy role IDs with caching (optimization)
@@ -201,11 +207,11 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
     if (userRoleId) roleIds.push(userRoleId);
     if (academyRoleId) roleIds.push(academyRoleId);
 
-    // Build base query - start with isDeleted filter only
-    // Role filter will be added conditionally based on userType
-    const query: any = { 
-      isDeleted: false
-    };
+    // Build base query — by default exclude globally soft-deleted users; use includeDeleted=true to list them too
+    const query: any = {};
+    if (!includeDeleted) {
+      query.isDeleted = false;
+    }
     
     // Add base role filter only if userType is not student/guardian
     // (student/guardian can have any role, so we don't restrict by role)
@@ -371,10 +377,10 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
           .filter((role: any) => role !== null && role !== undefined);
       }
       
-      return {
+      return mapUserDeletionFieldsForAdmin({
         ...user,
         roles: formattedRoles,
-      };
+      } as Record<string, unknown>) as Record<string, unknown>;
     });
 
     const responseData: any = {
@@ -431,13 +437,13 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
       userObjectId = new Types.ObjectId(id);
       query = UserModel.findOne({
         $or: [
-          { _id: userObjectId, isDeleted: false, roles: { $in: roleIds } },
-          { id, isDeleted: false, roles: { $in: roleIds } }
-        ]
+          { _id: userObjectId, roles: { $in: roleIds } },
+          { id, roles: { $in: roleIds } },
+        ],
       });
     } else {
       // Try UUID id format
-      query = UserModel.findOne({ id, isDeleted: false, roles: { $in: roleIds } });
+      query = UserModel.findOne({ id, roles: { $in: roleIds } });
     }
 
     // Fetch user with populate - use same pattern as getAllUsers which works correctly
@@ -451,10 +457,10 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
     }
     
     // Format user data: ensure id is set properly (same as getAllUsers pattern)
-    const formattedUser = {
+    const formattedUser = mapUserDeletionFieldsForAdmin({
       ...user,
       id: user.id || (user._id ? user._id.toString() : null),
-    };
+    } as Record<string, unknown>) as Record<string, unknown>;
 
     // Get user ObjectId if not already obtained
     if (!userObjectId) {
@@ -890,6 +896,24 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
     if (error instanceof ApiError) {
       throw error;
     }
+    throw new ApiError(500, t('errors.internalServerError'));
+  }
+};
+
+/**
+ * Re-enable a client user account: clears admin soft-delete and per-role soft-delete, sets active, reactivates owned centers/batches.
+ */
+export const enableUserAccount = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const user = await enableClientUserAccount(id);
+    const response = new ApiResponse(200, { user }, t('admin.users.enabled'));
+    res.json(response);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Enable user account error:', error);
     throw new ApiError(500, t('errors.internalServerError'));
   }
 };

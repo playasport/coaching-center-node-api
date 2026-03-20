@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteUser = exports.toggleUserStatus = exports.updateUser = exports.getUser = exports.getAllUsers = exports.createUser = void 0;
+exports.enableUserAccount = exports.deleteUser = exports.toggleUserStatus = exports.updateUser = exports.getUser = exports.getAllUsers = exports.createUser = void 0;
 const ApiResponse_1 = require("../../utils/ApiResponse");
 const ApiError_1 = require("../../utils/ApiError");
 const i18n_1 = require("../../utils/i18n");
@@ -18,6 +18,7 @@ const mongoose_1 = require("mongoose");
 const defaultRoles_enum_1 = require("../../enums/defaultRoles.enum");
 const batchStatus_enum_1 = require("../../enums/batchStatus.enum");
 const role_service_1 = require("../../services/admin/role.service");
+const clientUserAdmin_service_1 = require("../../services/admin/clientUserAdmin.service");
 /**
  * Create user (admin)
  */
@@ -175,6 +176,7 @@ const getAllUsers = async (req, res) => {
         const userType = req.query.userType;
         const isActive = req.query.isActive;
         const includeTotal = req.query.includeTotal !== 'false'; // Make total count optional (default: true)
+        const includeDeleted = req.query.includeDeleted === 'true' || req.query.includeDeleted === '1';
         // Note: role filter removed - only showing users with "user" or "academy" roles
         // Get user and academy role IDs with caching (optimization)
         const { userRoleId, academyRoleId } = await (0, role_service_1.getRoleIds)();
@@ -184,11 +186,11 @@ const getAllUsers = async (req, res) => {
             roleIds.push(userRoleId);
         if (academyRoleId)
             roleIds.push(academyRoleId);
-        // Build base query - start with isDeleted filter only
-        // Role filter will be added conditionally based on userType
-        const query = {
-            isDeleted: false
-        };
+        // Build base query — by default exclude globally soft-deleted users; use includeDeleted=true to list them too
+        const query = {};
+        if (!includeDeleted) {
+            query.isDeleted = false;
+        }
         // Add base role filter only if userType is not student/guardian
         // (student/guardian can have any role, so we don't restrict by role)
         let shouldApplyBaseRoleFilter = true;
@@ -334,10 +336,10 @@ const getAllUsers = async (req, res) => {
                 })
                     .filter((role) => role !== null && role !== undefined);
             }
-            return {
+            return (0, clientUserAdmin_service_1.mapUserDeletionFieldsForAdmin)({
                 ...user,
                 roles: formattedRoles,
-            };
+            });
         });
         const responseData = {
             users: usersWithCounts,
@@ -387,14 +389,14 @@ const getUser = async (req, res) => {
             userObjectId = new mongoose_1.Types.ObjectId(id);
             query = user_model_1.UserModel.findOne({
                 $or: [
-                    { _id: userObjectId, isDeleted: false, roles: { $in: roleIds } },
-                    { id, isDeleted: false, roles: { $in: roleIds } }
-                ]
+                    { _id: userObjectId, roles: { $in: roleIds } },
+                    { id, roles: { $in: roleIds } },
+                ],
             });
         }
         else {
             // Try UUID id format
-            query = user_model_1.UserModel.findOne({ id, isDeleted: false, roles: { $in: roleIds } });
+            query = user_model_1.UserModel.findOne({ id, roles: { $in: roleIds } });
         }
         // Fetch user with populate - use same pattern as getAllUsers which works correctly
         const user = await query
@@ -405,10 +407,10 @@ const getUser = async (req, res) => {
             throw new ApiError_1.ApiError(404, (0, i18n_1.t)('auth.user.notFound'));
         }
         // Format user data: ensure id is set properly (same as getAllUsers pattern)
-        const formattedUser = {
+        const formattedUser = (0, clientUserAdmin_service_1.mapUserDeletionFieldsForAdmin)({
             ...user,
             id: user.id || (user._id ? user._id.toString() : null),
-        };
+        });
         // Get user ObjectId if not already obtained
         if (!userObjectId) {
             userObjectId = new mongoose_1.Types.ObjectId(user._id || formattedUser.id);
@@ -801,4 +803,23 @@ const deleteUser = async (req, res) => {
     }
 };
 exports.deleteUser = deleteUser;
+/**
+ * Re-enable a client user account: clears admin soft-delete and per-role soft-delete, sets active, reactivates owned centers/batches.
+ */
+const enableUserAccount = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await (0, clientUserAdmin_service_1.enableClientUserAccount)(id);
+        const response = new ApiResponse_1.ApiResponse(200, { user }, (0, i18n_1.t)('admin.users.enabled'));
+        res.json(response);
+    }
+    catch (error) {
+        if (error instanceof ApiError_1.ApiError) {
+            throw error;
+        }
+        logger_1.logger.error('Enable user account error:', error);
+        throw new ApiError_1.ApiError(500, (0, i18n_1.t)('errors.internalServerError'));
+    }
+};
+exports.enableUserAccount = enableUserAccount;
 //# sourceMappingURL=user.controller.js.map

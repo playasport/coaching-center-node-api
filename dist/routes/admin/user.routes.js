@@ -143,6 +143,7 @@ router.post('/', (0, permission_middleware_1.requirePermission)(section_enum_1.S
  *       - `search`: Search by first name, last name, email, or mobile number
  *       - `userType`: Filter by user type (student, guardian, academy, or other)
  *       - `isActive`: Filter by active status (true/false)
+ *       - `includeDeleted`: When `true`, include globally soft-deleted users (`isDeleted: true`) in the list. Default excludes them. Response includes `accountDeleted`, `userRoleSoftDeleted`, `academyRoleSoftDeleted` and timestamps.
  *
  *       **Filter Examples:**
  *       - Get all students: `?userType=student`
@@ -189,6 +190,11 @@ router.post('/', (0, permission_middleware_1.requirePermission)(section_enum_1.S
  *         schema:
  *           type: boolean
  *         description: Filter by active status (true/false)
+ *       - in: query
+ *         name: includeDeleted
+ *         schema:
+ *           type: boolean
+ *         description: Include globally soft-deleted users in results (default false)
  *     responses:
  *       200:
  *         description: Users retrieved successfully
@@ -394,6 +400,33 @@ router.get('/:id', (0, permission_middleware_1.requirePermission)(section_enum_1
  *               message: "User not found"
  */
 router.patch('/:id/toggle-status', (0, permission_middleware_1.requirePermission)(section_enum_1.Section.USER, section_enum_2.Action.UPDATE), userController.toggleUserStatus);
+/**
+ * @swagger
+ * /admin/users/{id}/enable:
+ *   post:
+ *     summary: Enable / restore user account (admin)
+ *     description: |
+ *       Clears global soft-delete (`isDeleted`), per-role soft-deletes (`userRoleDeletedAt`, `academyRoleDeletedAt`),
+ *       sets `isActive` true, and reactivates owned coaching centers and batches (non-deleted documents).
+ *     tags: [Admin Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID (UUID or MongoDB ObjectId)
+ *     responses:
+ *       200:
+ *         description: Account enabled successfully
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: User not found
+ */
+router.post('/:id/enable', (0, permission_middleware_1.requirePermission)(section_enum_1.Section.USER, section_enum_2.Action.UPDATE), userController.enableUserAccount);
 /**
  * @swagger
  * /admin/users/{id}:

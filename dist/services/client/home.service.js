@@ -119,7 +119,7 @@ const getNearbyAcademies = async (userLocation, limit = 12, userId, radius) => {
             const fetchLimit = Math.min(limit * 10, 500);
             academies = await coachingCenter_model_1.CoachingCenterModel.find(query)
                 .populate('sports', 'custom_id name logo is_popular')
-                .select('id center_name logo location sports allowed_genders sport_details createdAt user')
+                .select('id center_name logo location sports allowed_genders sport_details averageRating totalRatings createdAt user')
                 .sort({ createdAt: -1 })
                 .limit(fetchLimit)
                 .lean();
@@ -218,6 +218,8 @@ const mapAcademyToListItem = (academy) => {
         })),
         allowed_genders: academy.allowed_genders || [],
         distance: academy.distance,
+        averageRating: academy.averageRating ?? 0,
+        totalRatings: academy.totalRatings ?? 0,
     };
 };
 /**
@@ -272,7 +274,7 @@ const getRecommendedAcademies = async (userLocation, limit = 12, userId, radius)
             const fetchLimit = Math.min(limit * 10, 500);
             academies = await coachingCenter_model_1.CoachingCenterModel.find(query)
                 .populate('sports', 'custom_id name logo is_popular')
-                .select('id center_name logo location sports allowed_genders sport_details createdAt user')
+                .select('id center_name logo location sports allowed_genders sport_details averageRating totalRatings createdAt user')
                 .sort({ createdAt: -1 })
                 .limit(fetchLimit)
                 .lean();
@@ -568,7 +570,7 @@ const getSportsWiseAcademies = async (userLocation, userId, radius) => {
         const fetchLimit = Math.min(SPORTS_WISE_SPORTS_LIMIT * SPORTS_WISE_ACADEMIES_PER_SPORT * 3, 600);
         let academies = await coachingCenter_model_1.CoachingCenterModel.find(query)
             .populate('sports', 'custom_id name logo is_popular')
-            .select('id center_name logo location sports allowed_genders sport_details createdAt user')
+            .select('id center_name logo location sports allowed_genders sport_details averageRating totalRatings createdAt user')
             .sort({ createdAt: -1 })
             .limit(fetchLimit)
             .lean();

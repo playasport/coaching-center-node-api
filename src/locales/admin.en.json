@@ -15,7 +15,8 @@
     "invalidRolesFormat": "Invalid roles format",
     "createFailed": "User was created but could not be retrieved",
     "onlySuperAdminCanUpdateEmail": "Only super admin can update email",
-    "onlySuperAdminCanUpdatePassword": "Only super admin can update password"
+    "onlySuperAdminCanUpdatePassword": "Only super admin can update password",
+    "enabled": "User account enabled successfully"
   },
   "permissions": {
     "retrieved": "Permissions retrieved successfully",

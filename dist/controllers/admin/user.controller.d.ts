@@ -23,4 +23,8 @@ export declare const toggleUserStatus: (req: Request, res: Response) => Promise<
  * Delete user (admin - soft delete)
  */
 export declare const deleteUser: (req: Request, res: Response) => Promise<void>;
+/**
+ * Re-enable a client user account: clears admin soft-delete and per-role soft-delete, sets active, reactivates owned centers/batches.
+ */
+export declare const enableUserAccount: (req: Request, res: Response) => Promise<void>;
 //# sourceMappingURL=user.controller.d.ts.map
