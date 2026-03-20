@@ -148,6 +148,10 @@ export interface AcademyDetail extends AcademyListItem {
         is_active: boolean;
         description?: string | null;
     }>;
+    /** Nearby recommended academies (max 6): same sports as this center first; if logged in, then favorite sports near this center */
+    recommendedAcademies: AcademyListItem[];
+    /** Other academies by the same owner user (max 6); excludes this academy */
+    moreAcademyBranches: AcademyListItem[];
 }
 /** Filter options for get all academies (same as search API) */
 export interface GetAllAcademiesFilters {
@@ -177,6 +181,7 @@ export declare const getAllAcademies: (page?: number, limit?: number, userLocati
  * 3. User custom ID - searches by user's custom ID
  * When userId is provided, response includes latest 5 ratings with that user's rating first (if any), and isAlreadyRated/canUpdateRating.
  * When userLocation is provided, returns distance in km from user to academy.
+ * Response is cached in Redis (5 min TTL) keyed by id, auth, and rounded location.
  */
 export declare const getAcademyById: (id: string, isUserLoggedIn?: boolean, userId?: string | null, userLocation?: {
     latitude: number;

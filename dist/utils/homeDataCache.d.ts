@@ -47,8 +47,4 @@ export interface AcademyListCacheParams {
 }
 export declare const getCachedAcademyList: (params: AcademyListCacheParams) => Promise<any | null>;
 export declare const cacheAcademyList: (params: AcademyListCacheParams, data: any) => Promise<void>;
-/**
- * Close Redis connection (for graceful shutdown)
- */
-export declare const closeHomeDataCache: () => Promise<void>;
 //# sourceMappingURL=homeDataCache.d.ts.map

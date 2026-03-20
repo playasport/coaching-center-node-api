@@ -11,8 +11,4 @@ export declare const cacheCoachingCentersList: (page: number, limit: number, sea
  * Call this when coaching centers are created, updated, or deleted
  */
 export declare const invalidateCoachingCentersListCache: () => Promise<void>;
-/**
- * Close Redis connection (for graceful shutdown)
- */
-export declare const closeCoachingCenterCache: () => Promise<void>;
 //# sourceMappingURL=coachingCenterCache.d.ts.map

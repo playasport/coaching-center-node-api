@@ -1,41 +1,11 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.closeUserCache = exports.invalidateUserCache = exports.getUserObjectId = void 0;
-const ioredis_1 = __importDefault(require("ioredis"));
+exports.invalidateUserCache = exports.getUserObjectId = void 0;
 const mongoose_1 = require("mongoose");
-const env_1 = require("../config/env");
 const logger_1 = require("./logger");
 const user_model_1 = require("../models/user.model");
-// Redis connection for caching (separate from BullMQ)
-let redisClient = null;
-/**
- * Get or create Redis client for caching
- */
-const getRedisClient = () => {
-    if (!redisClient) {
-        redisClient = new ioredis_1.default({
-            host: env_1.config.redis.host,
-            port: env_1.config.redis.port,
-            password: env_1.config.redis.password,
-            db: env_1.config.redis.db.userCache,
-            ...env_1.config.redis.connection,
-            retryStrategy: (times) => {
-                const delay = Math.min(times * 50, 2000);
-                return delay;
-            },
-        });
-        redisClient.on('error', (err) => {
-            logger_1.logger.error('Redis cache client error:', err);
-        });
-        redisClient.on('connect', () => {
-            logger_1.logger.info('Redis cache client connected');
-        });
-    }
-    return redisClient;
-};
+const redisClient_1 = require("./redisClient");
+const getRedisClient = () => (0, redisClient_1.getRedisUserCache)();
 /**
  * Cache key prefix for user ObjectId lookups
  */
@@ -177,15 +147,4 @@ const invalidateUserCache = async (userId) => {
     }
 };
 exports.invalidateUserCache = invalidateUserCache;
-/**
- * Close Redis connection (for graceful shutdown)
- */
-const closeUserCache = async () => {
-    if (redisClient) {
-        await redisClient.quit();
-        redisClient = null;
-        logger_1.logger.info('Redis cache client closed');
-    }
-};
-exports.closeUserCache = closeUserCache;
 //# sourceMappingURL=userCache.js.map

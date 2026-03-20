@@ -37,7 +37,7 @@ exports.getRatingsByAcademyId = exports.submitRating = exports.getAcademiesBySpo
 const ApiResponse_1 = require("../utils/ApiResponse");
 const ApiError_1 = require("../utils/ApiError");
 const i18n_1 = require("../utils/i18n");
-const env_1 = require("../config/env");
+const searchRadius_1 = require("../utils/searchRadius");
 const academyService = __importStar(require("../services/client/academy.service"));
 const coachingCenterRatingService = __importStar(require("../services/client/coachingCenterRating.service"));
 /**
@@ -50,7 +50,7 @@ const getAllAcademies = async (req, res, next) => {
         const limit = parseInt(req.query.limit) || 10;
         const latitude = req.query.latitude ? parseFloat(req.query.latitude) : undefined;
         const longitude = req.query.longitude ? parseFloat(req.query.longitude) : undefined;
-        const radius = req.query.radius ? parseFloat(req.query.radius) : undefined;
+        const radius = (0, searchRadius_1.parseRadiusKmFromQuery)(req.query.radius);
         const city = req.query.city?.trim() || undefined;
         const state = req.query.state?.trim() || undefined;
         const sportId = req.query.sportId?.trim() || undefined;
@@ -68,12 +68,7 @@ const getAllAcademies = async (req, res, next) => {
             }
             userLocation = { latitude, longitude };
         }
-        // Validate radius if provided
-        if (radius !== undefined) {
-            if (isNaN(radius) || radius <= 0 || radius > env_1.config.location.maxRadius) {
-                throw new ApiError_1.ApiError(400, (0, i18n_1.t)('academy.validation.invalidRadius'));
-            }
-        }
+        (0, searchRadius_1.assertValidRadiusKmIfProvided)(radius, (0, i18n_1.t)('academy.validation.invalidRadius'));
         // Get user ID if authenticated (optional)
         const userId = req.user?.id;
         const filters = {
@@ -170,7 +165,7 @@ const getAcademiesBySport = async (req, res, next) => {
         const limit = parseInt(req.query.limit) || 10;
         const latitude = req.query.latitude ? parseFloat(req.query.latitude) : undefined;
         const longitude = req.query.longitude ? parseFloat(req.query.longitude) : undefined;
-        const radius = req.query.radius ? parseFloat(req.query.radius) : undefined;
+        const radius = (0, searchRadius_1.parseRadiusKmFromQuery)(req.query.radius);
         // Validate location if provided
         let userLocation;
         if (latitude !== undefined && longitude !== undefined) {
@@ -179,12 +174,7 @@ const getAcademiesBySport = async (req, res, next) => {
             }
             userLocation = { latitude, longitude };
         }
-        // Validate radius if provided
-        if (radius !== undefined) {
-            if (isNaN(radius) || radius <= 0 || radius > env_1.config.location.maxRadius) {
-                throw new ApiError_1.ApiError(400, (0, i18n_1.t)('academy.validation.invalidRadius'));
-            }
-        }
+        (0, searchRadius_1.assertValidRadiusKmIfProvided)(radius, (0, i18n_1.t)('academy.validation.invalidRadius'));
         const userId = req.user?.id;
         const result = await academyService.getAcademiesBySport(slug, page, limit, userLocation, radius, userId);
         const response = new ApiResponse_1.ApiResponse(200, result, (0, i18n_1.t)('academy.getBySport.success'));

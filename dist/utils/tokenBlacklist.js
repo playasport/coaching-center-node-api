@@ -7,37 +7,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.closeTokenBlacklist = exports.clearUserBlacklist = exports.isUserBlacklisted = exports.blacklistUserTokens = exports.isTokenBlacklisted = exports.blacklistJti = exports.blacklistToken = void 0;
-const ioredis_1 = __importDefault(require("ioredis"));
+exports.clearUserBlacklist = exports.isUserBlacklisted = exports.blacklistUserTokens = exports.isTokenBlacklisted = exports.blacklistJti = exports.blacklistToken = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const env_1 = require("../config/env");
 const logger_1 = require("./logger");
-let redisClient = null;
-/**
- * Get or create Redis client for token blacklist
- */
-const getRedisClient = () => {
-    if (!redisClient) {
-        redisClient = new ioredis_1.default({
-            host: env_1.config.redis.host,
-            port: env_1.config.redis.port,
-            password: env_1.config.redis.password,
-            db: env_1.config.redis.db.tokenBlacklist,
-            ...env_1.config.redis.connection,
-            retryStrategy: (times) => {
-                const delay = Math.min(times * 50, 2000);
-                return delay;
-            },
-        });
-        redisClient.on('error', (err) => {
-            logger_1.logger.error('Redis blacklist client error:', err);
-        });
-        redisClient.on('connect', () => {
-            logger_1.logger.info('Redis blacklist client connected');
-        });
-    }
-    return redisClient;
-};
+const redisClient_1 = require("./redisClient");
+const getRedisClient = () => (0, redisClient_1.getRedisTokenBlacklist)();
 /**
  * Blacklist key prefix
  */
@@ -235,15 +209,4 @@ const clearUserBlacklist = async (userId) => {
     }
 };
 exports.clearUserBlacklist = clearUserBlacklist;
-/**
- * Close Redis connection (for graceful shutdown)
- */
-const closeTokenBlacklist = async () => {
-    if (redisClient) {
-        await redisClient.quit();
-        redisClient = null;
-        logger_1.logger.info('Redis blacklist client closed');
-    }
-};
-exports.closeTokenBlacklist = closeTokenBlacklist;
 //# sourceMappingURL=tokenBlacklist.js.map

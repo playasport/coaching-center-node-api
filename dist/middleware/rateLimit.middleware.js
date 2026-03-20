@@ -3,41 +3,13 @@
  * Rate limiting middleware using Redis
  * Prevents brute force attacks and API abuse
  */
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.closeRateLimit = exports.loginRateLimit = exports.generalRateLimit = exports.rateLimit = void 0;
-const ioredis_1 = __importDefault(require("ioredis"));
+exports.loginRateLimit = exports.generalRateLimit = exports.rateLimit = void 0;
 const env_1 = require("../config/env");
 const logger_1 = require("../utils/logger");
 const i18n_1 = require("../utils/i18n");
-let redisClient = null;
-/**
- * Get or create Redis client for rate limiting
- */
-const getRedisClient = () => {
-    if (!redisClient) {
-        redisClient = new ioredis_1.default({
-            host: env_1.config.redis.host,
-            port: env_1.config.redis.port,
-            password: env_1.config.redis.password,
-            db: env_1.config.redis.db.rateLimit,
-            ...env_1.config.redis.connection,
-            retryStrategy: (times) => {
-                const delay = Math.min(times * 50, 2000);
-                return delay;
-            },
-        });
-        redisClient.on('error', (err) => {
-            logger_1.logger.error('Redis rate limit client error:', err);
-        });
-        redisClient.on('connect', () => {
-            logger_1.logger.info('Redis rate limit client connected');
-        });
-    }
-    return redisClient;
-};
+const redisClient_1 = require("../utils/redisClient");
+const getRedisClient = () => (0, redisClient_1.getRedisRateLimit)();
 /**
  * Create rate limiting middleware
  */
@@ -126,15 +98,4 @@ exports.loginRateLimit = (0, exports.rateLimit)({
     },
     message: (0, i18n_1.t)('rateLimit.loginExceeded'),
 });
-/**
- * Close Redis connection (for graceful shutdown)
- */
-const closeRateLimit = async () => {
-    if (redisClient) {
-        await redisClient.quit();
-        redisClient = null;
-        logger_1.logger.info('Redis rate limit client closed');
-    }
-};
-exports.closeRateLimit = closeRateLimit;
 //# sourceMappingURL=rateLimit.middleware.js.map

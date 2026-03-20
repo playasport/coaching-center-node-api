@@ -1,45 +1,10 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.calculateDistances = exports.calculateDistance = exports.getBoundingBox = exports.calculateHaversineDistance = void 0;
-const ioredis_1 = __importDefault(require("ioredis"));
 const env_1 = require("../config/env");
 const logger_1 = require("./logger");
-// Redis connection for distance caching
-let redisClient = null;
-/**
- * Get or create Redis client for distance caching
- */
-const getRedisClient = () => {
-    try {
-        if (!redisClient) {
-            redisClient = new ioredis_1.default({
-                host: env_1.config.redis.host,
-                port: env_1.config.redis.port,
-                password: env_1.config.redis.password,
-                db: env_1.config.redis.db.userCache, // Reuse userCache DB or create new one
-                ...env_1.config.redis.connection,
-                retryStrategy: (times) => {
-                    const delay = Math.min(times * 50, 2000);
-                    return delay;
-                },
-            });
-            redisClient.on('error', (err) => {
-                logger_1.logger.error('Redis distance cache client error:', err);
-            });
-            redisClient.on('connect', () => {
-                logger_1.logger.info('Redis distance cache client connected');
-            });
-        }
-        return redisClient;
-    }
-    catch (error) {
-        logger_1.logger.warn('Redis not available for distance caching, using fallback only', error);
-        return null;
-    }
-};
+const redisClient_1 = require("./redisClient");
+const getRedisClient = () => (0, redisClient_1.getRedisUserCache)();
 /**
  * Cache key prefix for distance calculations
  */

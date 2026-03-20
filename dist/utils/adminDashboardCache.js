@@ -1,41 +1,9 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.closeAdminDashboardCache = exports.invalidateAdminDashboardCache = exports.cacheAdminDashboardStats = exports.getCachedAdminDashboardStats = void 0;
-const ioredis_1 = __importDefault(require("ioredis"));
-const env_1 = require("../config/env");
+exports.invalidateAdminDashboardCache = exports.cacheAdminDashboardStats = exports.getCachedAdminDashboardStats = void 0;
 const logger_1 = require("./logger");
-let redisClient = null;
-const getRedisClient = () => {
-    try {
-        if (!redisClient) {
-            redisClient = new ioredis_1.default({
-                host: env_1.config.redis.host,
-                port: env_1.config.redis.port,
-                password: env_1.config.redis.password,
-                db: env_1.config.redis.db.userCache,
-                ...env_1.config.redis.connection,
-                retryStrategy: (times) => {
-                    const delay = Math.min(times * 50, 2000);
-                    return delay;
-                },
-            });
-            redisClient.on('error', (err) => {
-                logger_1.logger.error('Redis admin dashboard cache client error:', err);
-            });
-            redisClient.on('connect', () => {
-                logger_1.logger.info('Redis admin dashboard cache client connected');
-            });
-        }
-        return redisClient;
-    }
-    catch (error) {
-        logger_1.logger.warn('Redis not available for admin dashboard caching', error);
-        return null;
-    }
-};
+const redisClient_1 = require("./redisClient");
+const getRedisClient = () => (0, redisClient_1.getRedisUserCache)();
 const CACHE_KEY = 'admin:dashboard:stats';
 const CACHE_TTL = 5 * 60; // 5 minutes
 /**
@@ -44,8 +12,6 @@ const CACHE_TTL = 5 * 60; // 5 minutes
 const getCachedAdminDashboardStats = async () => {
     try {
         const redis = getRedisClient();
-        if (!redis)
-            return null;
         const cached = await redis.get(CACHE_KEY);
         if (cached) {
             logger_1.logger.debug('Admin dashboard cache hit');
@@ -65,7 +31,7 @@ exports.getCachedAdminDashboardStats = getCachedAdminDashboardStats;
 const cacheAdminDashboardStats = async (data) => {
     try {
         const redis = getRedisClient();
-        if (!redis || !data)
+        if (!data)
             return;
         await redis.setex(CACHE_KEY, CACHE_TTL, JSON.stringify(data));
         logger_1.logger.debug('Admin dashboard stats cached');
@@ -81,8 +47,6 @@ exports.cacheAdminDashboardStats = cacheAdminDashboardStats;
 const invalidateAdminDashboardCache = async () => {
     try {
         const redis = getRedisClient();
-        if (!redis)
-            return;
         await redis.del(CACHE_KEY);
         logger_1.logger.debug('Admin dashboard cache invalidated');
     }
@@ -91,15 +55,4 @@ const invalidateAdminDashboardCache = async () => {
     }
 };
 exports.invalidateAdminDashboardCache = invalidateAdminDashboardCache;
-/**
- * Close Redis connection (for graceful shutdown)
- */
-const closeAdminDashboardCache = async () => {
-    if (redisClient) {
-        await redisClient.quit();
-        redisClient = null;
-        logger_1.logger.info('Redis admin dashboard cache client closed');
-    }
-};
-exports.closeAdminDashboardCache = closeAdminDashboardCache;
 //# sourceMappingURL=adminDashboardCache.js.map

@@ -1,45 +1,9 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.closeCoachingCenterCache = exports.invalidateCoachingCentersListCache = exports.cacheCoachingCentersList = exports.getCachedCoachingCentersList = void 0;
-const ioredis_1 = __importDefault(require("ioredis"));
-const env_1 = require("../config/env");
+exports.invalidateCoachingCentersListCache = exports.cacheCoachingCentersList = exports.getCachedCoachingCentersList = void 0;
 const logger_1 = require("./logger");
-// Redis connection for coaching center caching
-let redisClient = null;
-/**
- * Get or create Redis client for coaching center caching
- */
-const getRedisClient = () => {
-    try {
-        if (!redisClient) {
-            redisClient = new ioredis_1.default({
-                host: env_1.config.redis.host,
-                port: env_1.config.redis.port,
-                password: env_1.config.redis.password,
-                db: env_1.config.redis.db.userCache, // Reuse userCache DB
-                ...env_1.config.redis.connection,
-                retryStrategy: (times) => {
-                    const delay = Math.min(times * 50, 2000);
-                    return delay;
-                },
-            });
-            redisClient.on('error', (err) => {
-                logger_1.logger.error('Redis coaching center cache client error:', err);
-            });
-            redisClient.on('connect', () => {
-                logger_1.logger.info('Redis coaching center cache client connected');
-            });
-        }
-        return redisClient;
-    }
-    catch (error) {
-        logger_1.logger.warn('Redis not available for coaching center caching, using fallback only', error);
-        return null;
-    }
-};
+const redisClient_1 = require("./redisClient");
+const getRedisClient = () => (0, redisClient_1.getRedisUserCache)();
 /**
  * Cache key prefix for coaching centers list
  */
@@ -64,8 +28,6 @@ const getCacheKey = (page, limit, search, status, isActive, centerId) => {
 const getCachedCoachingCentersList = async (page, limit, search, status, isActive, centerId) => {
     try {
         const redis = getRedisClient();
-        if (!redis)
-            return null;
         const cacheKey = getCacheKey(page, limit, search, status, isActive, centerId);
         const cached = await redis.get(cacheKey);
         if (cached) {
@@ -86,7 +48,7 @@ exports.getCachedCoachingCentersList = getCachedCoachingCentersList;
 const cacheCoachingCentersList = async (page, limit, search, status, isActive, centerId, data) => {
     try {
         const redis = getRedisClient();
-        if (!redis || !data)
+        if (!data)
             return;
         const cacheKey = getCacheKey(page, limit, search, status, isActive, centerId);
         await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(data));
@@ -104,8 +66,6 @@ exports.cacheCoachingCentersList = cacheCoachingCentersList;
 const invalidateCoachingCentersListCache = async () => {
     try {
         const redis = getRedisClient();
-        if (!redis)
-            return;
         // Get all cache keys for coaching centers list
         const keys = await redis.keys(`${CACHE_KEY_PREFIX}*`);
         if (keys.length > 0) {
@@ -118,15 +78,4 @@ const invalidateCoachingCentersListCache = async () => {
     }
 };
 exports.invalidateCoachingCentersListCache = invalidateCoachingCentersListCache;
-/**
- * Close Redis connection (for graceful shutdown)
- */
-const closeCoachingCenterCache = async () => {
-    if (redisClient) {
-        await redisClient.quit();
-        redisClient = null;
-        logger_1.logger.info('Redis coaching center cache client closed');
-    }
-};
-exports.closeCoachingCenterCache = closeCoachingCenterCache;
 //# sourceMappingURL=coachingCenterCache.js.map

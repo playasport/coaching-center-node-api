@@ -25,9 +25,5 @@ export declare const generalRateLimit: (req: Request, res: Response, next: NextF
  * Login rate limiting (5 attempts per 15 minutes per IP)
  */
 export declare const loginRateLimit: (req: Request, res: Response, next: NextFunction) => Promise<void>;
-/**
- * Close Redis connection (for graceful shutdown)
- */
-export declare const closeRateLimit: () => Promise<void>;
 export {};
 //# sourceMappingURL=rateLimit.middleware.d.ts.map

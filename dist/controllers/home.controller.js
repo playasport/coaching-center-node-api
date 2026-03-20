@@ -37,7 +37,7 @@ exports.getHomeData = void 0;
 const ApiResponse_1 = require("../utils/ApiResponse");
 const ApiError_1 = require("../utils/ApiError");
 const i18n_1 = require("../utils/i18n");
-const env_1 = require("../config/env");
+const searchRadius_1 = require("../utils/searchRadius");
 const homeService = __importStar(require("../services/client/home.service"));
 /**
  * Get home page data (nearby academies and popular sports)
@@ -50,7 +50,7 @@ const getHomeData = async (req, res, next) => {
         let userLocation;
         const latitude = req.query.latitude;
         const longitude = req.query.longitude;
-        const radius = req.query.radius ? parseFloat(req.query.radius) : undefined;
+        const radius = (0, searchRadius_1.parseRadiusKmFromQuery)(req.query.radius);
         if (latitude !== undefined && longitude !== undefined) {
             const latitudeNum = typeof latitude === 'string' ? parseFloat(latitude) : Number(latitude);
             const longitudeNum = typeof longitude === 'string' ? parseFloat(longitude) : Number(longitude);
@@ -59,12 +59,7 @@ const getHomeData = async (req, res, next) => {
             }
             userLocation = { latitude: latitudeNum, longitude: longitudeNum };
         }
-        // Validate radius if provided
-        if (radius !== undefined) {
-            if (isNaN(radius) || radius <= 0 || radius > env_1.config.location.maxRadius) {
-                throw new ApiError_1.ApiError(400, (0, i18n_1.t)('academy.validation.invalidRadius'));
-            }
-        }
+        (0, searchRadius_1.assertValidRadiusKmIfProvided)(radius, (0, i18n_1.t)('academy.validation.invalidRadius'));
         // Get user ID if authenticated (optional)
         const userId = req.user?.id;
         // Get home data

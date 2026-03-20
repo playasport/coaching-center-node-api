@@ -9,7 +9,7 @@ const geoNearAcademies_service_1 = require("../common/geoNearAcademies.service")
 const mongoose_1 = require("mongoose");
 const userCache_1 = require("../../utils/userCache");
 const user_model_1 = require("../../models/user.model");
-const env_1 = require("../../config/env");
+const searchRadius_1 = require("../../utils/searchRadius");
 const reel_model_1 = require("../../models/reel.model");
 const streamHighlight_model_1 = require("../../models/streamHighlight.model");
 const coachingCenterStatus_enum_1 = require("../../enums/coachingCenterStatus.enum");
@@ -77,7 +77,7 @@ exports.getPopularSports = getPopularSports;
  */
 const getNearbyAcademies = async (userLocation, limit = 12, userId, radius) => {
     try {
-        const searchRadius = radius ?? env_1.config.location.defaultRadius;
+        const searchRadius = (0, searchRadius_1.resolveSearchRadiusKm)(radius);
         // Get user's favorite sports if logged in
         let favoriteSportIds = [];
         if (userId) {
@@ -248,7 +248,7 @@ const getRecommendedAcademies = async (userLocation, limit = 12, userId, radius)
         }
         if (favoriteSportIds.length === 0)
             return [];
-        const searchRadius = radius ?? env_1.config.location.defaultRadius;
+        const searchRadius = (0, searchRadius_1.resolveSearchRadiusKm)(radius);
         // Try geoNear + road distance first
         let academies = [];
         const geoResults = await (0, geoNearAcademies_service_1.getNearbyAcademiesWithRoadDistance)(userLocation, {
@@ -483,7 +483,7 @@ const SPORTS_WISE_ACADEMIES_PER_SPORT = 18;
  */
 const getSportsWiseAcademies = async (userLocation, userId, radius) => {
     try {
-        const searchRadius = radius ?? env_1.config.location.defaultRadius;
+        const searchRadius = (0, searchRadius_1.resolveSearchRadiusKm)(radius);
         const bbox = (0, distance_1.getBoundingBox)(userLocation.latitude, userLocation.longitude, searchRadius);
         // Get 5 sports: favorites first when logged in, then fill with popular sports
         let sportIds = [];

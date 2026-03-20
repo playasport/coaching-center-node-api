@@ -10,8 +10,4 @@ export declare const cacheAdminDashboardStats: (data: any) => Promise<void>;
  * Invalidate admin dashboard cache (e.g. when critical data changes)
  */
 export declare const invalidateAdminDashboardCache: () => Promise<void>;
-/**
- * Close Redis connection (for graceful shutdown)
- */
-export declare const closeAdminDashboardCache: () => Promise<void>;
 //# sourceMappingURL=adminDashboardCache.d.ts.map

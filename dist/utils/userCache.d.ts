@@ -15,8 +15,4 @@ export declare const getUserObjectId: (userId: string) => Promise<Types.ObjectId
  * @param userId - User's custom string ID
  */
 export declare const invalidateUserCache: (userId: string) => Promise<void>;
-/**
- * Close Redis connection (for graceful shutdown)
- */
-export declare const closeUserCache: () => Promise<void>;
 //# sourceMappingURL=userCache.d.ts.map

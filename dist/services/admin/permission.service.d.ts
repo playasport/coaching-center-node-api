@@ -39,8 +39,4 @@ export declare const invalidatePermissionCache: (roleId: string | Types.ObjectId
  * Invalidate all permission caches
  */
 export declare const invalidateAllPermissionCache: () => Promise<void>;
-/**
- * Close Redis connection (for graceful shutdown)
- */
-export declare const closePermissionCache: () => Promise<void>;
 //# sourceMappingURL=permission.service.d.ts.map

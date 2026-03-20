@@ -1,45 +1,15 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.closePermissionCache = exports.invalidateAllPermissionCache = exports.invalidatePermissionCache = exports.getRolePermissions = exports.getUserPermissions = exports.checkPermission = exports.hasPermission = void 0;
-const ioredis_1 = __importDefault(require("ioredis"));
+exports.invalidateAllPermissionCache = exports.invalidatePermissionCache = exports.getRolePermissions = exports.getUserPermissions = exports.checkPermission = exports.hasPermission = void 0;
 const mongoose_1 = require("mongoose");
-const env_1 = require("../../config/env");
 const logger_1 = require("../../utils/logger");
+const redisClient_1 = require("../../utils/redisClient");
 const permission_model_1 = require("../../models/permission.model");
 const adminUser_model_1 = require("../../models/adminUser.model");
 const section_enum_1 = require("../../enums/section.enum");
 const section_enum_2 = require("../../enums/section.enum");
 const defaultRoles_enum_1 = require("../../enums/defaultRoles.enum");
-// Redis connection for permission caching
-let redisClient = null;
-/**
- * Get or create Redis client for permission caching
- */
-const getRedisClient = () => {
-    if (!redisClient) {
-        redisClient = new ioredis_1.default({
-            host: env_1.config.redis.host,
-            port: env_1.config.redis.port,
-            password: env_1.config.redis.password,
-            db: env_1.config.redis.db.permissionCache,
-            ...env_1.config.redis.connection,
-            retryStrategy: (times) => {
-                const delay = Math.min(times * 50, 2000);
-                return delay;
-            },
-        });
-        redisClient.on('error', (err) => {
-            logger_1.logger.error('Redis permission cache client error:', err);
-        });
-        redisClient.on('connect', () => {
-            logger_1.logger.info('Redis permission cache client connected');
-        });
-    }
-    return redisClient;
-};
+const getRedisClient = () => (0, redisClient_1.getRedisPermissionCache)();
 /**
  * Cache key prefix for permissions
  */
@@ -300,15 +270,4 @@ const invalidateAllPermissionCache = async () => {
     }
 };
 exports.invalidateAllPermissionCache = invalidateAllPermissionCache;
-/**
- * Close Redis connection (for graceful shutdown)
- */
-const closePermissionCache = async () => {
-    if (redisClient) {
-        await redisClient.quit();
-        redisClient = null;
-        logger_1.logger.info('Redis permission cache client closed');
-    }
-};
-exports.closePermissionCache = closePermissionCache;
 //# sourceMappingURL=permission.service.js.map

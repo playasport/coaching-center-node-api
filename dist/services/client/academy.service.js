@@ -19,6 +19,8 @@ const userAcademyBookmark_model_1 = require("../../models/userAcademyBookmark.mo
 const coachingCenterStatus_enum_1 = require("../../enums/coachingCenterStatus.enum");
 const batchStatus_enum_1 = require("../../enums/batchStatus.enum");
 const homeDataCache_1 = require("../../utils/homeDataCache");
+const academyDetailCache_1 = require("../../utils/academyDetailCache");
+const searchRadius_1 = require("../../utils/searchRadius");
 const slugify = (text) => {
     if (!text)
         return '';
@@ -31,6 +33,217 @@ const slugify = (text) => {
         .replace(/\-\-+/g, '-')
         .replace(/^-+/, '')
         .replace(/-+$/, '');
+};
+const ACADEMY_DETAIL_RECOMMENDED_LIMIT = 6;
+const ACADEMY_DETAIL_MORE_BRANCHES_LIMIT = 6;
+const ACADEMY_DETAIL_RECOMMENDED_BBOX_FETCH = 500;
+const mapCoachingCenterDocToListItem = (academy, opts) => {
+    let image = null;
+    if (academy.sport_details && Array.isArray(academy.sport_details)) {
+        for (const sportDetail of academy.sport_details) {
+            if (sportDetail.images && Array.isArray(sportDetail.images)) {
+                const sortedImages = [...sportDetail.images].sort((a, b) => {
+                    if (a.is_banner && !b.is_banner)
+                        return -1;
+                    if (!a.is_banner && b.is_banner)
+                        return 1;
+                    return 0;
+                });
+                const activeImage = sortedImages.find((img) => img.is_active && !img.is_deleted);
+                if (activeImage) {
+                    image = activeImage.url;
+                    break;
+                }
+            }
+        }
+    }
+    return {
+        id: academy.id || academy._id.toString(),
+        center_name: academy.center_name,
+        logo: academy.logo,
+        image: image,
+        location: academy.location,
+        sports: (academy.sports || []).map((sport) => ({
+            id: sport.custom_id || sport._id?.toString(),
+            name: sport.name,
+            logo: sport.logo || null,
+            is_popular: sport.is_popular || false,
+        })),
+        allowed_genders: academy.allowed_genders || [],
+        age: academy.age ? { min: academy.age.min, max: academy.age.max } : undefined,
+        allowed_disabled: academy.allowed_disabled === true,
+        is_only_for_disabled: academy.is_only_for_disabled === true,
+        distance: opts.distance,
+        averageRating: academy.averageRating ?? 0,
+        totalRatings: academy.totalRatings ?? 0,
+        isBookmarked: opts.isBookmarked,
+    };
+};
+const filterCentersWithValidOwners = async (academies) => {
+    if (academies.length === 0)
+        return [];
+    const academyUserIds = academies
+        .map((a) => a.user)
+        .filter((uid) => uid && (mongoose_1.Types.ObjectId.isValid(uid) || uid._id));
+    if (academyUserIds.length === 0)
+        return [];
+    const userIds = academyUserIds.map((uid) => mongoose_1.Types.ObjectId.isValid(uid) ? new mongoose_1.Types.ObjectId(uid) : (uid._id || uid));
+    const validUsers = await user_model_1.UserModel.find({
+        _id: { $in: userIds },
+        isDeleted: false,
+        $or: [{ academyRoleDeletedAt: null }, { academyRoleDeletedAt: { $exists: false } }],
+    })
+        .select('_id')
+        .lean();
+    const validUserIds = new Set(validUsers.map((u) => u._id.toString()));
+    return academies.filter((academy) => {
+        if (!academy.user)
+            return false;
+        const uid = academy.user._id || academy.user;
+        return validUserIds.has(uid.toString ? uid.toString() : String(uid));
+    });
+};
+const getBookmarkedCenterIdSet = async (userId, centerObjectIds) => {
+    if (!userId || centerObjectIds.length === 0)
+        return new Set();
+    const userObjId = await (0, userCache_1.getUserObjectId)(userId);
+    if (!userObjId)
+        return new Set();
+    const bookmarks = await userAcademyBookmark_model_1.UserAcademyBookmarkModel.find({
+        user: userObjId,
+        academy: { $in: centerObjectIds },
+    })
+        .select('academy')
+        .lean();
+    return new Set(bookmarks.map((b) => b.academy.toString()));
+};
+const sportIdsOverlapSet = (academy, idSet) => idSet.size > 0 &&
+    (academy.sports || []).some((s) => idSet.has(s._id?.toString()));
+/**
+ * Academies near the **selected** academy (anchor): distance is from this center to each candidate.
+ * 1) Prefer same sports as the selected academy (nearest first within default search radius).
+ * 2) If fewer than 6 and user is logged in with favorite sports, add nearest academies matching favorites (excluding already picked).
+ */
+const loadRecommendedAcademiesForDetail = async (excludeCenterId, anchorLocation, currentSportObjectIds, userId) => {
+    const anchorLat = anchorLocation?.latitude ?? anchorLocation?.lat;
+    const anchorLon = anchorLocation?.longitude ?? anchorLocation?.long;
+    if (anchorLat == null ||
+        anchorLon == null ||
+        typeof anchorLat !== 'number' ||
+        typeof anchorLon !== 'number') {
+        return [];
+    }
+    let favoriteSportIds = [];
+    if (userId) {
+        try {
+            const userObjId = await (0, userCache_1.getUserObjectId)(userId);
+            if (userObjId) {
+                const user = await user_model_1.UserModel.findById(userObjId).select('favoriteSports').lean();
+                if (user?.favoriteSports?.length) {
+                    favoriteSportIds = user.favoriteSports;
+                }
+            }
+        }
+        catch {
+            /* ignore */
+        }
+    }
+    const currentSportSet = new Set(currentSportObjectIds.map((id) => id.toString()));
+    if (currentSportSet.size === 0 && favoriteSportIds.length === 0) {
+        return [];
+    }
+    const searchRadius = searchRadius_1.DEFAULT_SEARCH_RADIUS_KM;
+    const bbox = (0, distance_1.getBoundingBox)(anchorLat, anchorLon, searchRadius);
+    let candidates = await coachingCenter_model_1.CoachingCenterModel.find({
+        _id: { $ne: excludeCenterId },
+        status: coachingCenterStatus_enum_1.CoachingCenterStatus.PUBLISHED,
+        is_active: true,
+        is_deleted: false,
+        approval_status: 'approved',
+        'location.latitude': { $gte: bbox.minLat, $lte: bbox.maxLat },
+        'location.longitude': { $gte: bbox.minLon, $lte: bbox.maxLon },
+    })
+        .populate('sports', 'custom_id name logo is_popular')
+        .select('id center_name logo location sports allowed_genders sport_details age allowed_disabled is_only_for_disabled averageRating totalRatings createdAt user')
+        .sort({ createdAt: -1 })
+        .limit(ACADEMY_DETAIL_RECOMMENDED_BBOX_FETCH)
+        .lean();
+    candidates = await filterCentersWithValidOwners(candidates);
+    if (candidates.length === 0)
+        return [];
+    const destinations = candidates.map((a) => ({
+        latitude: a.location.latitude,
+        longitude: a.location.longitude,
+    }));
+    const distances = await (0, distance_1.calculateDistances)(anchorLat, anchorLon, destinations);
+    candidates = candidates.map((a, i) => ({ ...a, distance: distances[i] }));
+    candidates = candidates.filter((a) => a.distance !== undefined && a.distance <= searchRadius);
+    candidates.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+    const limit = ACADEMY_DETAIL_RECOMMENDED_LIMIT;
+    const favSet = new Set(favoriteSportIds.map((id) => id.toString()));
+    const picked = [];
+    const usedIds = new Set();
+    for (const a of candidates) {
+        if (picked.length >= limit)
+            break;
+        const idStr = a._id.toString();
+        if (usedIds.has(idStr))
+            continue;
+        if (sportIdsOverlapSet(a, currentSportSet)) {
+            picked.push(a);
+            usedIds.add(idStr);
+        }
+    }
+    if (picked.length < limit && favSet.size > 0) {
+        for (const a of candidates) {
+            if (picked.length >= limit)
+                break;
+            const idStr = a._id.toString();
+            if (usedIds.has(idStr))
+                continue;
+            if (sportIdsOverlapSet(a, favSet)) {
+                picked.push(a);
+                usedIds.add(idStr);
+            }
+        }
+    }
+    const bookmarkSet = await getBookmarkedCenterIdSet(userId, picked.map((c) => c._id));
+    return picked.map((a) => mapCoachingCenterDocToListItem(a, {
+        distance: a.distance,
+        isBookmarked: bookmarkSet.has(a._id.toString()),
+    }));
+};
+const loadMoreAcademyBranchesForDetail = async (ownerUserId, excludeCenterId, userLocation, userId) => {
+    if (!ownerUserId)
+        return [];
+    let candidates = await coachingCenter_model_1.CoachingCenterModel.find({
+        user: ownerUserId,
+        _id: { $ne: excludeCenterId },
+        status: coachingCenterStatus_enum_1.CoachingCenterStatus.PUBLISHED,
+        is_active: true,
+        is_deleted: false,
+        approval_status: 'approved',
+    })
+        .populate('sports', 'custom_id name logo is_popular')
+        .select('id center_name logo location sports allowed_genders sport_details age allowed_disabled is_only_for_disabled averageRating totalRatings createdAt user')
+        .sort({ createdAt: -1 })
+        .limit(ACADEMY_DETAIL_MORE_BRANCHES_LIMIT * 3)
+        .lean();
+    candidates = await filterCentersWithValidOwners(candidates);
+    candidates = candidates.slice(0, ACADEMY_DETAIL_MORE_BRANCHES_LIMIT);
+    if (userLocation && candidates.length > 0) {
+        const destinations = candidates.map((a) => ({
+            latitude: a.location.latitude,
+            longitude: a.location.longitude,
+        }));
+        const distances = await (0, distance_1.calculateDistances)(userLocation.latitude, userLocation.longitude, destinations);
+        candidates = candidates.map((a, i) => ({ ...a, distance: distances[i] }));
+    }
+    const bookmarkSet = await getBookmarkedCenterIdSet(userId, candidates.map((c) => c._id));
+    return candidates.map((a) => mapCoachingCenterDocToListItem(a, {
+        distance: a.distance,
+        isBookmarked: bookmarkSet.has(a._id.toString()),
+    }));
 };
 /**
  * Mask email address for privacy
@@ -161,7 +374,7 @@ const getAllAcademies = async (page = 1, limit = env_1.config.pagination.default
         }
         // When city or state filter is applied, skip location filter (lat/long/radius)
         const useLocationFilter = userLocation && !filterCity && !filterState;
-        const searchRadius = radius ?? env_1.config.location.defaultRadius;
+        const searchRadius = (0, searchRadius_1.resolveSearchRadiusKm)(radius);
         let academies = [];
         if (useLocationFilter) {
             // Try geoNear + road distance first (Redis cache → $geoNear → Google road distance)
@@ -389,9 +602,20 @@ exports.getAllAcademies = getAllAcademies;
  * 3. User custom ID - searches by user's custom ID
  * When userId is provided, response includes latest 5 ratings with that user's rating first (if any), and isAlreadyRated/canUpdateRating.
  * When userLocation is provided, returns distance in km from user to academy.
+ * Response is cached in Redis (5 min TTL) keyed by id, auth, and rounded location.
  */
 const getAcademyById = async (id, isUserLoggedIn = false, userId, userLocation) => {
     try {
+        const detailCacheParams = {
+            requestId: id,
+            userId: userId ?? null,
+            userLocation,
+            isUserLoggedIn,
+        };
+        const cachedDetail = await (0, academyDetailCache_1.getCachedAcademyDetail)(detailCacheParams);
+        if (cachedDetail) {
+            return cachedDetail;
+        }
         let coachingCenter = null;
         // Try searching by CoachingCenter id field first (UUID field)
         coachingCenter = await coachingCenter_model_1.CoachingCenterModel.findOne({
@@ -490,7 +714,7 @@ const getAcademyById = async (id, isUserLoggedIn = false, userId, userLocation) 
                 ? userAcademyBookmark_model_1.UserAcademyBookmarkModel.exists({ user: userObjId, academy: coachingCenter._id })
                 : null)
             : Promise.resolve(null);
-        const [batches, ratingData, bookmarkDoc] = await Promise.all([
+        const [batches, ratingData, bookmarkDoc, ownerLean] = await Promise.all([
             batch_model_1.BatchModel.find({
                 center: coachingCenter._id,
                 is_active: true,
@@ -503,6 +727,16 @@ const getAcademyById = async (id, isUserLoggedIn = false, userId, userLocation) 
                 .lean(),
             (0, coachingCenterRating_service_1.getLatestRatingsForCenter)(centerIdForRatings, 5, userId),
             bookmarkCheckPromise,
+            coachingCenter_model_1.CoachingCenterModel.findById(coachingCenter._id).select('user').lean(),
+        ]);
+        const sportObjectIds = (coachingCenter.sports || [])
+            .map((s) => s._id)
+            .filter((id) => id != null);
+        const ownerUserId = ownerLean?.user;
+        const anchorLoc = coachingCenter.location;
+        const [recommendedAcademies, moreAcademyBranches] = await Promise.all([
+            loadRecommendedAcademiesForDetail(coachingCenter._id, anchorLoc, sportObjectIds, userId),
+            loadMoreAcademyBranchesForDetail(ownerUserId, coachingCenter._id, userLocation, userId),
         ]);
         // Transform response: remove _id, status, is_active, transform sports, sport_details, facility, and batches
         const { _id, sports, sport_details, facility, status, is_active, ...coachingCenterData } = coachingCenter;
@@ -554,6 +788,8 @@ const getAcademyById = async (id, isUserLoggedIn = false, userId, userLocation) 
             isAlreadyRated: ratingData.isAlreadyRated,
             canUpdateRating: ratingData.canUpdateRating,
             isBookmarked: !!bookmarkDoc,
+            recommendedAcademies,
+            moreAcademyBranches,
         };
         if (!isUserLoggedIn) {
             result.mobile_number = coachingCenter.mobile_number
@@ -574,6 +810,7 @@ const getAcademyById = async (id, isUserLoggedIn = false, userId, userLocation) 
                 result.distance = Math.round(distKm * 100) / 100;
             }
         }
+        (0, academyDetailCache_1.cacheAcademyDetail)(detailCacheParams, result).catch(() => { });
         return result;
     }
     catch (error) {
@@ -755,7 +992,7 @@ const getAcademiesBySport = async (sportSlug, page = 1, limit = env_1.config.pag
                 distance: distances[index],
             }));
             // Filter by radius if provided
-            const searchRadius = radius ?? env_1.config.location.defaultRadius;
+            const searchRadius = (0, searchRadius_1.resolveSearchRadiusKm)(radius);
             academies = academies.filter((academy) => {
                 const distance = academy.distance;
                 return distance !== undefined && distance <= searchRadius;

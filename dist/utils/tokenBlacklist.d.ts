@@ -39,8 +39,4 @@ export declare const isUserBlacklisted: (userId: string) => Promise<boolean>;
  * @param userId - User ID
  */
 export declare const clearUserBlacklist: (userId: string) => Promise<void>;
-/**
- * Close Redis connection (for graceful shutdown)
- */
-export declare const closeTokenBlacklist: () => Promise<void>;
 //# sourceMappingURL=tokenBlacklist.d.ts.map

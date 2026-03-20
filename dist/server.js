@@ -54,17 +54,11 @@ const payoutStakeholderQueue_1 = require("./queue/payoutStakeholderQueue");
 const payoutStakeholderWorker_1 = require("./queue/payoutStakeholderWorker");
 const payoutTransferQueue_1 = require("./queue/payoutTransferQueue");
 const payoutTransferWorker_1 = require("./queue/payoutTransferWorker");
-const userCache_1 = require("./utils/userCache");
-const tokenBlacklist_1 = require("./utils/tokenBlacklist");
-const rateLimit_middleware_1 = require("./middleware/rateLimit.middleware");
-const permission_service_1 = require("./services/admin/permission.service");
+const redisClient_1 = require("./utils/redisClient");
 const mediaCleanup_job_1 = require("./jobs/mediaCleanup.job");
 const permanentDelete_job_1 = require("./jobs/permanentDelete.job");
 const payoutReconciliation_job_1 = require("./jobs/payoutReconciliation.job");
 const role_service_1 = require("./services/admin/role.service");
-const academyDashboardCache_1 = require("./utils/academyDashboardCache");
-const adminDashboardCache_1 = require("./utils/adminDashboardCache");
-const homeDataCache_1 = require("./utils/homeDataCache");
 const startServer = async () => {
     try {
         // Set default locale from environment variable or default to 'en'
@@ -144,20 +138,8 @@ const gracefulShutdown = async (signal) => {
         // Close payout transfer queue
         await payoutTransferQueue_1.payoutTransferQueue.close();
         logger_1.logger.info('Payout transfer queue closed');
-        // Close user cache Redis connection
-        await (0, userCache_1.closeUserCache)();
-        // Close token blacklist Redis connection
-        await (0, tokenBlacklist_1.closeTokenBlacklist)();
-        // Close rate limit Redis connection
-        await (0, rateLimit_middleware_1.closeRateLimit)();
-        // Close permission cache Redis connection
-        await (0, permission_service_1.closePermissionCache)();
-        // Close academy dashboard cache Redis connection
-        await (0, academyDashboardCache_1.closeAcademyDashboardCache)();
-        // Close admin dashboard cache Redis connection
-        await (0, adminDashboardCache_1.closeAdminDashboardCache)();
-        // Close home data cache Redis connection
-        await (0, homeDataCache_1.closeHomeDataCache)();
+        // Shared Redis connections (user cache, blacklist, rate limit, permissions, dashboards, home, academy detail, etc.)
+        await (0, redisClient_1.closeAllRedisConnections)();
         // Disconnect database
         await (0, database_1.disconnectDatabase)();
         process.exit(0);
