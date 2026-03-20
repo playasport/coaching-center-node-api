@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
 import { Types } from 'mongoose';
 import { DeviceTokenModel, DeviceTokenAppContext } from '../../models/deviceToken.model';
 import { DeviceType } from '../../enums/deviceType.enum';
@@ -145,6 +146,60 @@ export const deviceTokenService = {
     
     const tokens = await DeviceTokenModel.find(query).lean();
     return tokens;
+  },
+
+  /**
+   * Blacklist refresh tokens and remove device rows for one app context (user vs academy).
+   */
+  async revokeAllSessionsForAppContext(
+    userId: string | Types.ObjectId,
+    appContext: DeviceTokenAppContext
+  ): Promise<number> {
+    const tokens = await this.getUserDeviceTokens(userId, appContext);
+    const { blacklistToken, blacklistJti } = await import('../../utils/tokenBlacklist');
+
+    for (const dt of tokens) {
+      if (dt.refreshToken) {
+        try {
+          await blacklistToken(dt.refreshToken);
+          const decoded = jwt.decode(dt.refreshToken) as jwt.JwtPayload | null;
+          if (decoded?.jti) {
+            const ttl = decoded.exp ? decoded.exp - Math.floor(Date.now() / 1000) : undefined;
+            await blacklistJti(decoded.jti, ttl && ttl > 0 ? ttl : undefined);
+          }
+        } catch (error) {
+          logger.warn('Failed to blacklist token in revokeAllSessionsForAppContext', {
+            error: error instanceof Error ? error.message : error,
+          });
+        }
+      }
+    }
+
+    let userIdObj: Types.ObjectId;
+
+    if (userId instanceof Types.ObjectId) {
+      userIdObj = userId;
+    } else if (Types.ObjectId.isValid(userId) && userId.length === 24) {
+      userIdObj = new Types.ObjectId(userId);
+    } else {
+      const { getUserObjectId } = await import('../../utils/userCache');
+      const objectId = await getUserObjectId(userId);
+      if (!objectId) {
+        logger.warn('User not found for revokeAllSessionsForAppContext', { userId });
+        return 0;
+      }
+      userIdObj = objectId;
+    }
+
+    const query: Record<string, unknown> = { userId: userIdObj };
+    if (appContext === 'academy') {
+      query.appContext = 'academy';
+    } else {
+      query.$or = [{ appContext: 'user' }, { appContext: null }, { appContext: { $exists: false } }];
+    }
+
+    const result = await DeviceTokenModel.deleteMany(query);
+    return result.deletedCount ?? 0;
   },
 
   /**

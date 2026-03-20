@@ -6,6 +6,7 @@ import { DeviceType } from '../../enums/deviceType.enum';
 import * as academyAuthService from '../../services/client/auth.service';
 import * as coachingCenterService from '../../services/academy/coachingCenter.service';
 import { deviceTokenService } from '../../services/common/deviceToken.service';
+import { softDeleteAcademyAppAccount } from '../../services/client/accountSoftDelete.service';
 import type {
   AcademyRegisterInput,
   AcademyLoginInput,
@@ -387,6 +388,30 @@ export const saveFcmToken = async (
     });
 
     const response = new ApiResponse(200, null, t('auth.fcmToken.saved'));
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Soft-delete academy role; deactivates owned centers and batches. User-app access may remain if user role exists.
+ */
+export const deleteMyAcademyAccount = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new ApiError(401, t('auth.authorization.unauthorized'));
+    }
+
+    const result = await softDeleteAcademyAppAccount(req.user.id);
+    const message = result.alreadyDeleted
+      ? t('auth.account.academyAlreadyDeleted')
+      : t('auth.account.academyDeleted');
+    const response = new ApiResponse(200, { alreadyDeleted: result.alreadyDeleted }, message);
     res.json(response);
   } catch (error) {
     next(error);

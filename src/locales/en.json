@@ -27,7 +27,8 @@
       "otpUsed": "The OTP has already been used.",
       "otpExpired": "The OTP has expired. Please request a new one.",
       "invalidOtp": "The OTP you entered is invalid.",
-      "otpVerified": "OTP verified successfully."
+      "otpVerified": "OTP verified successfully.",
+      "accountDeleted": "Your account has been deleted. Please contact the support team."
     },
     "user": {
       "notFound": "User not found"
@@ -46,6 +47,12 @@
       "noToken": "No token provided or invalid format",
       "invalidToken": "Invalid or expired token",
       "refreshed": "Token refreshed successfully"
+    },
+    "account": {
+      "userDeleted": "Your user account has been deleted.",
+      "userAlreadyDeleted": "Your user account was already deleted.",
+      "academyDeleted": "Your academy account has been deleted.",
+      "academyAlreadyDeleted": "Your academy account was already deleted."
     },
     "logout": {
       "success": "Logged out successfully",

@@ -117,6 +117,10 @@ export const getReelsList = async (
         $match: {
           'user.isDeleted': { $ne: true },
           'user.isActive': true,
+          $or: [
+            { 'user.userRoleDeletedAt': null },
+            { 'user.userRoleDeletedAt': { $exists: false } },
+          ],
         },
       },
       { $sort: { createdAt: -1 } },

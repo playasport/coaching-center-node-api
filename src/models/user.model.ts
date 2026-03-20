@@ -30,6 +30,10 @@ export interface User {
   referredByAgentAt?: Date | null; // Timestamp when agent was linked
   isDeleted: boolean;
   deletedAt?: Date | null;
+  /** Soft-delete for consumer (`user` role) only; academy login may still work. */
+  userRoleDeletedAt?: Date | null;
+  /** Soft-delete for academy role only; user-app login may still work. */
+  academyRoleDeletedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -89,6 +93,8 @@ const userSchema = new Schema<User>(
     referredByAgentAt: { type: Date, default: null },
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
+    userRoleDeletedAt: { type: Date, default: null, index: true },
+    academyRoleDeletedAt: { type: Date, default: null, index: true },
   },
   {
     timestamps: true,
@@ -127,6 +133,8 @@ userSchema.index({ isDeleted: 1, isActive: 1, createdAt: -1 });
 userSchema.index({ isDeleted: 1, roles: 1, userType: 1, createdAt: -1 });
 userSchema.index({ isDeleted: 1, roles: 1, isActive: 1, createdAt: -1 });
 userSchema.index({ isDeleted: 1, userType: 1, isActive: 1, createdAt: -1 });
+userSchema.index({ isDeleted: 1, userRoleDeletedAt: 1 });
+userSchema.index({ isDeleted: 1, academyRoleDeletedAt: 1 });
 
 // Text index for search functionality (correct syntax)
 userSchema.index({ firstName: 'text', middleName: 'text', lastName: 'text', email: 'text', mobile: 'text' }, { name: 'user_search_text_index' });
